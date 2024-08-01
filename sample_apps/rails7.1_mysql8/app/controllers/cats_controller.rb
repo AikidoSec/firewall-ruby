@@ -47,12 +47,13 @@ class CatsController < ApplicationController
 
   private
 
-  # Use callbacks to share common setup or constraints between actions.
   def set_cat
-    @cat = Cat.find(params[:id])
+    # NOTE: This is insecure by design as a means to demonstrate a
+    # vulnerability. Do not copy it or write code like this in your
+    # applications.
+    @cat = Cat.where("id = '#{params[:id]}'").first
   end
 
-  # Only allow a list of trusted parameters through.
   def cat_params
     params.require(:cat).permit(:name)
   end

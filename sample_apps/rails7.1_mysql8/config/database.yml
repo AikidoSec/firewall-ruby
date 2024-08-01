@@ -5,6 +5,8 @@ default: &default
   username: root
   password:
   host: localhost
+  flags:
+    - MULTI_STATEMENTS
 
 development:
   <<: *default

@@ -9,3 +9,4 @@ Try the following URLs:
 
 * `http://localhost:3000/cats`: List all cats
 * `http://localhost:3000/cats/1`: See details of one cat
+* `http://localhost:3000/cats/1');%20TRUNCATE%20cats;--`: Deletes all cats :(
