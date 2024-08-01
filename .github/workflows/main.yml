@@ -1,0 +1,23 @@
+name: Ruby
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build (Ruby ${{ matrix.ruby }})
+    strategy:
+      matrix:
+        ruby:
+          - '3.3.4'
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+    - name: Run the tests
+      run: bundle exec rake
