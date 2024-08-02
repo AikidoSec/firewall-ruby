@@ -13,3 +13,5 @@ group :development, :test do
   gem "debug", platforms: %i[mri windows]
   gem "standard"
 end
+
+gem "aikido-firewall", path: "../..", require: !ENV["DISABLE_FIREWALL"]

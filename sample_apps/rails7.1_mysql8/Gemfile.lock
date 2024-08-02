@@ -1,3 +1,9 @@
+PATH
+  remote: ../..
+  specs:
+    aikido-firewall (0.1.0)
+      actionpack (>= 3.0.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -257,6 +263,7 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  aikido-firewall!
   debug
   mysql2 (~> 0.5)
   propshaft
