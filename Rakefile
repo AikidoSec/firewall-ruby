@@ -2,9 +2,44 @@
 
 require "bundler/gem_tasks"
 require "minitest/test_task"
-
-Minitest::TestTask.create
-
 require "standard/rake"
 
-task default: %i[test standard]
+namespace :build do
+  desc "Ensure Gemfile.lock is up-to-date"
+  task "update_gem_lockfile" do
+    system "bundle check >/dev/null || bundle"
+  end
+end
+task build: "build:update_gem_lockfile"
+
+Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
+  namespace :build do
+    desc "Ensure Gemfile.lock is up-to-date in the #{dir.basename} sample app"
+    task "update_#{dir.basename}_lockfile" do
+      Dir.chdir(dir) { system "bundle check >/dev/null || bundle" }
+    end
+  end
+
+  task build: "build:update_#{dir.basename}_lockfile"
+end
+
+Minitest::TestTask.create do |test_task|
+  test_task.test_globs = FileList["test/**/{test_*,*_test}.rb"]
+    .exclude("test/e2e/**/*.rb")
+end
+
+Pathname.glob("test/e2e/*").select(&:directory?).each do |dir|
+  namespace :e2e do
+    desc "Run e2e tests for the #{dir.basename} sample app"
+    task dir.basename do
+      Dir.chdir(dir) do
+        system "rake"
+      end
+    end
+  end
+
+  desc "Run all e2e tests"
+  task e2e: "e2e:#{dir.basename}"
+end
+
+task default: %i[test e2e standard]
