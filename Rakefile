@@ -42,4 +42,4 @@ Pathname.glob("test/e2e/*").select(&:directory?).each do |dir|
   task e2e: "e2e:#{dir.basename}"
 end
 
-task default: %i[test e2e standard]
+task default: %i[test standard]
