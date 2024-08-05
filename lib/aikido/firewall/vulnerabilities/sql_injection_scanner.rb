@@ -19,7 +19,8 @@ module Aikido::Firewall
         return if request.nil?
 
         request.each_user_input do |input|
-          new(query, input).scan
+          scanner = new(query, input)
+          raise SQLInjectionError.new(query, input) if scanner.attack?
         end
       end
 
@@ -29,37 +30,113 @@ module Aikido::Firewall
         @input = input.downcase
       end
 
-      def scan
-        # If the input is longer than the query, then it is not part of it.
-        return if @input.length > @query.length
+      def attack?
+        # Ignore single char inputs since they shouldn't be able to do much harm
+        return false if @input.length <= 1
 
-        # If the input is not included in the query at all, then we are safe.
-        return unless @query.include?(@input)
+        # If the input is longer than the query, then it is not part of it
+        return false if @input.length > @query.length
 
-        # If the input is correctly escaped, we can ignore it.
-        return if input_escaped_within_query?
+        # If the input is not included in the query at all, then we are safe
+        return false unless @query.include?(@input)
 
-        # TODO: Detect if the input has SQL or if it's e.g. an unescaped number.
+        # If the input is correctly quoted/escaped, we can ignore it
+        return false if input_quoted_or_escaped_within_query?
 
-        raise SQLInjectionError.new(@original_query, @original_input)
+        # If the input is solely alphanumeric, we can ignore it
+        return false if /\A[[:alnum:]]+\z/i.match?(@input)
+
+        # The last thing to check is whether the input contains SQL syntax.
+        self.class.syntax_regexp.match?(@input)
       end
 
-      def input_escaped_within_query?
+      def input_quoted_or_escaped_within_query?
         segments_in_between = @query.split(@input)
-        segments_in_between.each_cons(2) do |current_segment, next_segment|
-          char_before_input = current_segment.last
-          char_after_input = next_segment.first
 
-          # FIXME: This is wrong but a simple enough first approximation to test
-          # that this works for some simple cases.
-          return false unless char_before_input == char_after_input &&
-            QUOTE_CHARS.include?(char_before_input)
+        # Special case to make sure each_cons does the right thing when the
+        # query starts/ends in the user input.
+        segments_in_between.unshift "" if @query.start_with?(@input)
+        segments_in_between.push "" if @query.end_with?(@input)
+
+        segments_in_between.each_cons(2) do |current_segment, next_segment|
+          input = @input
+
+          char_before_input = current_segment[-1]
+          char_after_input = next_segment[0]
+
+          QUOTE_CHARS.each do |quote|
+            # Special case when the input starts with a single quote but it is
+            # correctly escaped, such as:
+            #
+            #   input: 'hello
+            #   query: ...WHERE id = '\\'hello'
+            #
+            # In this case, we remove the `\\'`, leaving the char_before_input
+            # and char_after_input to both be `'`, which results in the check
+            # being successful.
+            if input.start_with?(quote) && char_before_input == "\\" &&
+                current_segment[-2] == quote && char_after_input == quote
+              char_before_input = quote
+              input = input[1..] # remove the quote from the start
+              break
+            end
+          end
+
+          return false if char_before_input != char_after_input
+
+          return false unless QUOTE_CHARS.include?(char_before_input)
+
+          return false if input.include?(char_before_input)
+
+          return false if input.gsub(ALLOWED_ESCAPE_SEQUENCES, "").include?("\\")
         end
 
         true
       end
 
-      QUOTE_CHARS = %W[" ' `]
+      QUOTE_CHARS = %w[" ' `]
+
+      ALLOWED_ESCAPE_SEQUENCES = /\\n|\\r|\\t/
+
+      # Builds a regexp to detect if the user input has embedded SQL syntax.
+      def self.syntax_regexp
+        return @syntax_regexp if defined?(@syntax_regexp)
+
+        # Match keywords that are neither preceeded nor followed by any letters
+        # or underscores
+        match_keywords = "(?<![a-z_])(#{KEYWORDS.join("|")})(?![a-z_])"
+
+        match_operators = "(#{OPERATORS.join("|")})"
+
+        match_functions = [
+          "(?<=#{["\\s", "\\.", "^", *OPERATORS].join("|")})",
+          "([a-z0-9_-]+)",
+          "(?=[\\s]*\\()"
+        ].join
+
+        match_dangerous_syntax = DANGEROUS_SYNTAX.join("|")
+
+        @syntax_regexp = Regexp.new(
+          [match_keywords, match_operators, match_functions, match_dangerous_syntax].join("|"),
+          "im"
+        )
+      end
+
+      KEYWORDS = %w[
+        INSERT SELECT CREATE DROP DATABASE UPDATE DELETE ALTER GRANT SAVEPOINT
+        COMMIT ROLLBACK TRUNCATE OR AND UNION AS WHERE DISTINCT FROM INTO TOP
+        BETWEEN LIKE IN NULL NOT TABLE INDEX VIEW COUNT SUM AVG MIN MAX GROUP BY
+        HAVING DESC ASC OFFSET FETCH LEFT RIGHT INNER OUTER JOIN EXISTS REVOKE
+        ALL LIMIT ORDER ADD CONSTRAINT COLUMN ANY BACKUP CASE CHECK REPLACE
+        DEFAULT EXEC FOREIGN KEY FULL PROCEDURE ROWNUM SET SESSION GLOBAL UNIQUE
+        VALUES COLLATE IS
+      ].map { |keyword| Regexp.escape(keyword) }
+
+      OPERATORS = %w[= ! ; + - * / % & | ^ > < # ::].map { |op| Regexp.escape(op) }
+
+      # Characters or sequences that are dangerous inside a string and can be
+      # abused.
+      DANGEROUS_SYNTAX = %w[" ' ` \\ /* */ -- #].map { |syn| Regexp.escape(syn) }
     end
   end
 end
