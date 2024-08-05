@@ -7,7 +7,7 @@ require "standard/rake"
 namespace :build do
   desc "Ensure Gemfile.lock is up-to-date"
   task "update_gem_lockfile" do
-    system "bundle check >/dev/null || bundle"
+    sh "bundle check >/dev/null || bundle"
   end
 end
 task build: "build:update_gem_lockfile"
@@ -16,7 +16,7 @@ Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
   namespace :build do
     desc "Ensure Gemfile.lock is up-to-date in the #{dir.basename} sample app"
     task "update_#{dir.basename}_lockfile" do
-      Dir.chdir(dir) { system "bundle check >/dev/null || bundle" }
+      Dir.chdir(dir) { sh "bundle check >/dev/null || bundle" }
     end
   end
 
@@ -33,7 +33,7 @@ Pathname.glob("test/e2e/*").select(&:directory?).each do |dir|
     desc "Run e2e tests for the #{dir.basename} sample app"
     task dir.basename do
       Dir.chdir(dir) do
-        system "rake"
+        sh "rake"
       end
     end
   end
@@ -42,4 +42,4 @@ Pathname.glob("test/e2e/*").select(&:directory?).each do |dir|
   task e2e: "e2e:#{dir.basename}"
 end
 
-task default: %i[test e2e standard]
+task default: %i[test standard]

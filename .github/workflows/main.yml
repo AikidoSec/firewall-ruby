@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         ruby:
-          - '3.3.4'
+          - "3.3"
 
     steps:
     - uses: actions/checkout@v4
@@ -19,5 +19,37 @@ jobs:
       with:
         ruby-version: ${{ matrix.ruby }}
         bundler-cache: true
-    - name: Run the tests
+    - name: Run the unit tests
       run: bundle exec rake
+
+
+  e2e:
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: cats_test
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    runs-on: ubuntu-latest
+    name: End to end tests (Ruby ${{ matrix.ruby }}, App ${{ matrix.app }})
+    strategy:
+      matrix:
+        ruby:
+          - "3.3"
+        app:
+          - "rails7.1_mysql8"
+    env:
+      BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app }}/Gemfile
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+    - name: Run the e2e tests
+      run: "bundle exec rake e2e:${{ matrix.app }}"
