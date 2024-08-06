@@ -91,6 +91,18 @@ module Aikido::Firewall::Vulnerabilities
           "CHARACTER SET",
           "CHARSET"
         ]
+      ),
+
+      postgresql: SQLDialect.new(
+        name: "PostgreSQL",
+        keywords: [
+          # https://www.postgresql.org/docs/current/sql-set.html
+          "CLIENT_ENCODING"
+        ],
+        dangerous_syntax: [
+          # https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-DOLLAR-QUOTING
+          "$"
+        ]
       )
     }
   end

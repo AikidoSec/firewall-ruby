@@ -3,14 +3,28 @@
 require "test_helper"
 
 class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Test
-  def assert_attack(query, input = query, reason = "`#{input}` was not blocked")
-    scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input, :mysql)
-    assert scanner.attack?, reason
+  module Assertions
+    def assert_attack(query, input = query, dialect = :common, reason = "`#{input}` was not blocked (#{dialect})")
+      scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input, dialect)
+      assert scanner.attack?, reason
+    end
+
+    def refute_attack(query, input = query, dialect = :common, reason = "`#{input}` was blocked (#{dialect})")
+      scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input, dialect)
+      refute scanner.attack?, reason
+    end
   end
 
-  def refute_attack(query, input = query, reason = "`#{input}` was blocked")
-    scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input, :mysql)
-    refute scanner.attack?, reason
+  include Assertions
+
+  def assert_attack(query, input = query, *args)
+    super(query, input, :mysql, *args)
+    super(query, input, :postgresql, *args)
+  end
+
+  def refute_attack(query, input = query, *args)
+    super(query, input, :mysql, *args)
+    super(query, input, :postgresql, *args)
   end
 
   test "ignores inputs longer than the query" do
@@ -323,14 +337,14 @@ class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Tes
   end
 
   class TestMySQLDialect < Minitest::Test
-    def assert_attack(query, input = query, reason = "`#{input}` was not blocked")
-      scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input, :mysql)
-      assert scanner.attack?, reason
+    include Assertions
+
+    def assert_attack(query, input = query, *args)
+      super(query, input, :mysql, *args)
     end
 
-    def refute_attack(query, input = query, reason = "`#{input}` was blocked")
-      scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input, :mysql)
-      refute scanner.attack?, reason
+    def refute_attack(query, input = query, *args)
+      super(query, input, :mysql, *args)
     end
 
     test "flags MySQL bitwise operator as SQL injection" do
@@ -371,6 +385,43 @@ class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Tes
       refute_attack "SELECT * FROM users WHERE id = 'SET CHARACTER SET=utf8'", "SET CHARACTER SET=utf8"
       refute_attack "SELECT * FROM users WHERE id = 'SET CHARSET utf8'", "SET CHARSET utf8"
       refute_attack "SELECT * FROM users WHERE id = 'SET CHARSET=utf8'", "SET CHARSET=utf8"
+    end
+  end
+
+  class TestPostgreSQLDialect < Minitest::Test
+    include Assertions
+
+    def assert_attack(query, input = query, *args)
+      super(query, input, :postgresql, *args)
+    end
+
+    def refute_attack(query, input = query, *args)
+      super(query, input, :postgresql, *args)
+    end
+
+    test "flags postgres bitwise operator as SQL injection" do
+      assert_attack "SELECT 10 # 12", "10 # 12"
+    end
+
+    test "flags postgres type cast operator as SQL injection" do
+      assert_attack "SELECT abc::date", "abc::date"
+    end
+
+    test "flags double dollar sign as SQL injection" do
+      assert_attack "SELECT $$", "$$"
+      assert_attack "SELECT $$text$$", "$$text$$"
+      assert_attack "SELECT $tag$text$tag$", "$tag$text$tag$"
+
+      refute_attack "SELECT '$$text$$'", "$$text$$"
+    end
+
+    test "flags CLIENT_ENCODING as SQL injection" do
+      assert_attack "SET CLIENT_ENCODING TO 'UTF8'", "CLIENT_ENCODING TO 'UTF8'"
+      assert_attack "SET CLIENT_ENCODING = 'UTF8'", "CLIENT_ENCODING = 'UTF8'"
+      assert_attack "SET CLIENT_ENCODING='UTF8'", "CLIENT_ENCODING='UTF8'"
+
+      refute_attack %(SELECT * FROM users WHERE id = 'SET CLIENT_ENCODING = "UTF8"'), 'SET CLIENT_ENCODING = "UTF8"'
+      refute_attack %(SELECT * FROM users WHERE id = 'SET CLIENT_ENCODING TO "UTF8"'), 'SET CLIENT_ENCODING TO "UTF8"'
     end
   end
 
