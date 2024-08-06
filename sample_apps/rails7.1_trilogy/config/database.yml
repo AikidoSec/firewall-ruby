@@ -1,0 +1,20 @@
+default: &default
+  adapter: trilogy
+  encoding: utf8mb4
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  username: root
+  password:
+  host: 127.0.0.1
+  multi_statements: true
+
+development:
+  <<: *default
+  database: cats
+
+test:
+  <<: *default
+  database: cats_test
+
+production:
+  <<: *default
+  database: cats

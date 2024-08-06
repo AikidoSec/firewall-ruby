@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+# Sets some common options for a new sample Rails app.
+
+dirname="$1"
+
+set -euo pipefail
+
+usage() {
+  echo "Usage: $0 [directory] [...options]" >&2
+}
+
+[ -n "$dirname" ] || { usage; exit 1; }
+if [ -d "./sample_apps/$dirname" ]; then
+  echo "./sample_apps/$dirname already exists. Aborting." >&2
+  exit 1
+fi
+
+(
+  cd ./sample_apps
+  rails new "$dirname" \
+    --minimal \
+    --name=cats \
+    --skip-keeps \
+    --skip-docker \
+    $@
+)
+
+rm -rf "./sample_apps/$dirname/.git" # If we --skip-git that also skips the .gitignore.
+(cd "test/e2e"; ln -nfs "../../sample_apps/$dirname/test" "$dirname")
+(cd "./sample_apps/$dirname/lib/tasks"; ln -nfs "../../../../test/e2e/rails_ci.rake" "ci.rake")
+
+echo "New sample app added."
+echo
+echo "[ ] Add \"$dirname\" to .github/workflows/main.yml"
+echo "[ ] Generate the Cat scaffold"
+echo "    - Add if_not_exists: true to the migration if reusing DB"
