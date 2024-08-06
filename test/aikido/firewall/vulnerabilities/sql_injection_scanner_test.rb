@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Aikido::Firewall::Vulnerabilities::TestSQLInjectionScanner < Minitest::Test
+class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Test
   def assert_attack(query, input = query, reason = "`#{input}` was not blocked")
     scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input)
     assert scanner.attack?, reason
