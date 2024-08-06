@@ -41,6 +41,7 @@ jobs:
           - "3.3"
         app:
           - "rails7.1_mysql2"
+          - "rails7.1_trilogy"
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app }}/Gemfile
 
