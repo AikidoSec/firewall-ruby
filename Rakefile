@@ -33,7 +33,8 @@ Pathname.glob("test/e2e/*").select(&:directory?).each do |dir|
     desc "Run e2e tests for the #{dir.basename} sample app"
     task dir.basename do
       Dir.chdir(dir) do
-        sh "rake"
+        sh "rake ci:setup"
+        sh "rake test"
       end
     end
   end

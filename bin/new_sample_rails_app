@@ -28,6 +28,7 @@ fi
 
 rm -rf "./sample_apps/$dirname/.git" # If we --skip-git that also skips the .gitignore.
 (cd "test/e2e"; ln -nfs "../../sample_apps/$dirname/test" "$dirname")
+(cd "./sample_apps/$dirname/lib/tasks"; ln -nfs "../../../../test/e2e/rails_ci.rake" "ci.rake")
 
 echo "New sample app added."
 echo
