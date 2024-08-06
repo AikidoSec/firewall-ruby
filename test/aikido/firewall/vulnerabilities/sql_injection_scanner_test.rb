@@ -20,11 +20,13 @@ class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Tes
   def assert_attack(query, input = query, *args)
     super(query, input, :mysql, *args)
     super(query, input, :postgresql, *args)
+    super(query, input, :sqlite, *args)
   end
 
   def refute_attack(query, input = query, *args)
     super(query, input, :mysql, *args)
     super(query, input, :postgresql, *args)
+    super(query, input, :sqlite, *args)
   end
 
   test "ignores inputs longer than the query" do
@@ -422,6 +424,36 @@ class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Tes
 
       refute_attack %(SELECT * FROM users WHERE id = 'SET CLIENT_ENCODING = "UTF8"'), 'SET CLIENT_ENCODING = "UTF8"'
       refute_attack %(SELECT * FROM users WHERE id = 'SET CLIENT_ENCODING TO "UTF8"'), 'SET CLIENT_ENCODING TO "UTF8"'
+    end
+  end
+
+  class TestSQLiteDialect < Minitest::Test
+    include Assertions
+
+    def assert_attack(query, input = query, *args)
+      super(query, input, :sqlite, *args)
+    end
+
+    def refute_attack(query, input = query, *args)
+      super(query, input, :sqlite, *args)
+    end
+
+    test "flags the VACUUM command as SQL injection" do
+      assert_attack "VACUUM;", "VACUUM;"
+    end
+
+    test "does not flag the VACUUM command without semicolon as SQL injection" do
+      refute_attack "VACUUM;", "VACUUM"
+    end
+
+    test "flags the ATTACH command as SQL injection" do
+      assert_attack "ATTACH DATABASE 'test.db' AS test;", "'test.db' AS test"
+    end
+
+    test "ignores postgres dollar signs" do
+      refute_attack "SELECT $$", "$$"
+      refute_attack "SELECT $$text$$", "$$text$$"
+      refute_attack "SELECT $tag$text$tag$", "$tag$text$tag$"
     end
   end
 

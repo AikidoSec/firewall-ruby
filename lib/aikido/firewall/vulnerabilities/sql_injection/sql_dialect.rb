@@ -103,6 +103,11 @@ module Aikido::Firewall::Vulnerabilities
           # https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-DOLLAR-QUOTING
           "$"
         ]
+      ),
+
+      sqlite: SQLDialect.new(
+        name: "SQLite",
+        keywords: ["VACUUM", "ATTACH", "DETACH"]
       )
     }
   end
