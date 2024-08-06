@@ -3,6 +3,7 @@
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "aikido/firewall"
 require "minitest/autorun"
+require "pathname"
 require "debug"
 
 class Minitest::Test
@@ -16,5 +17,10 @@ class Minitest::Test
     else
       define_method(test_name) { flunk "No implementation provided for #{name}" }
     end
+  end
+
+  # @return [Pathname] the given file path within test/fixtures.
+  def file_fixture(relative_path)
+    Pathname("test/fixtures").join(relative_path)
   end
 end

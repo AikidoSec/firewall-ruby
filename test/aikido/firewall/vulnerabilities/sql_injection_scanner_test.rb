@@ -316,6 +316,12 @@ class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Tes
     end
   end
 
+  test "flags common auth bypasses as attacks" do
+    file_fixture("sql_injection/Auth_Bypass.txt").each_line do |payload|
+      assert_attack payload.chomp
+    end
+  end
+
   class TestEncapsulation < Minitest::Test
     def assert_encapsulated(query, input, reason = "`#{input}` not correctly encapsulated in `#{query}`")
       scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input)
