@@ -40,7 +40,7 @@ jobs:
         ruby:
           - "3.3"
         app:
-          - "rails7.1_mysql8"
+          - "rails7.1_mysql2"
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app }}/Gemfile
 
