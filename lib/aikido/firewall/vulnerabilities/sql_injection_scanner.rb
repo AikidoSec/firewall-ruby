@@ -10,7 +10,7 @@ module Aikido::Firewall
       #
       # @param query [String]
       # @param request [Aikido::Agent::Request]
-      # @param dialect [Symbol, Aikido::Firewall::Vulnerabilities::SQLInjection::SQLDialect]
+      # @param dialect [Symbol] one of +:mysql+, +:postgesql+, or +:sqlite+.
       #
       # @return [void]
       # @raise [Aikido::Firewall::SQLInjectionError] if an attack is detected.
@@ -27,6 +27,7 @@ module Aikido::Firewall
         end
       end
 
+      # @api private
       def initialize(query, input, dialect)
         @original_query, @original_input = query, input
         @query = query.downcase
@@ -34,6 +35,7 @@ module Aikido::Firewall
         @dialect = SQLInjection[dialect]
       end
 
+      # @api private
       def attack?
         # Ignore single char inputs since they shouldn't be able to do much harm
         return false if @input.length <= 1
@@ -54,6 +56,7 @@ module Aikido::Firewall
         @dialect.match?(@input)
       end
 
+      # @api private
       def input_quoted_or_escaped_within_query?
         segments_in_between = @query.split(@input)
 

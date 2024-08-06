@@ -2,10 +2,20 @@
 
 module Aikido::Firewall::Vulnerabilities
   module SQLInjection
+    # Fetches a dialect implementation by key.
+    #
+    # @param dialect [Symbol] one of `:mysql`, `:postgresql`, `:sqlite`.
+    #
+    # @raise [KeyError] if given an invalid dialect key.
+    # @return [SQLDialect]
     def self.[](dialect)
       @dialects.fetch(dialect)
     end
 
+    # Implements dialect-specific things like special syntax or keywords. This
+    # can be used to check if a String contains embedded SQL.
+    #
+    # @api private
     class SQLDialect
       attr_reader :name
 
