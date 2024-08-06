@@ -4,7 +4,7 @@ module Aikido::Firewall
   module Sinks
     module Mysql2
       def query(query, *)
-        Vulnerabilities::SQLInjectionScanner.scan(query)
+        Vulnerabilities::SQLInjectionScanner.scan(query, dialect: :mysql)
 
         super
       end

@@ -11,11 +11,13 @@ module Aikido::Firewall
 
     attr_reader :query
     attr_reader :input
+    attr_reader :dialect
 
-    def initialize(query, input)
-      super("SQL injection detected! User input <#{input}> not escaped in query: <#{query}>")
+    def initialize(query, input, dialect)
+      super("SQL injection detected! User input <#{input}> not escaped in #{dialect} query: <#{query}>")
       @query = query
       @input = input
+      @dialect = dialect
     end
   end
 end
