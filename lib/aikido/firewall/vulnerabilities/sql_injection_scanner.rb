@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "sql_injection/sql_dialect"
+
 module Aikido::Firewall
   module Vulnerabilities
     class SQLInjectionScanner
@@ -8,10 +10,11 @@ module Aikido::Firewall
       #
       # @param query [String]
       # @param request [Aikido::Agent::Request]
+      # @param dialect [Symbol, Aikido::Firewall::Vulnerabilities::SQLInjection::SQLDialect]
       #
       # @return [void]
       # @raise [Aikido::Firewall::SQLInjectionError] if an attack is detected.
-      def self.scan(query, request: Aikido::Agent.current_request)
+      def self.scan(query, dialect:, request: Aikido::Agent.current_request)
         # FIXME: This assumes queries executed outside of an HTTP request are
         # safe, but this is not the case. For example, if an HTTP request
         # enqueues a background job, passing user input verbatim, the job might
@@ -19,15 +22,16 @@ module Aikido::Firewall
         return if request.nil?
 
         request.each_user_input do |input|
-          scanner = new(query, input)
-          raise SQLInjectionError.new(query, input) if scanner.attack?
+          scanner = new(query, input, dialect)
+          raise SQLInjectionError.new(query, input, dialect) if scanner.attack?
         end
       end
 
-      def initialize(query, input)
+      def initialize(query, input, dialect)
         @original_query, @original_input = query, input
         @query = query.downcase
         @input = input.downcase
+        @dialect = SQLInjection[dialect]
       end
 
       def attack?
@@ -47,7 +51,7 @@ module Aikido::Firewall
         return false if /\A[[:alnum:]]+\z/i.match?(@input)
 
         # The last thing to check is whether the input contains SQL syntax.
-        self.class.syntax_regexp.match?(@input)
+        @dialect.match?(@input)
       end
 
       def input_quoted_or_escaped_within_query?
@@ -97,46 +101,6 @@ module Aikido::Firewall
       QUOTE_CHARS = %w[" ' `]
 
       ALLOWED_ESCAPE_SEQUENCES = /\\n|\\r|\\t/
-
-      # Builds a regexp to detect if the user input has embedded SQL syntax.
-      def self.syntax_regexp
-        return @syntax_regexp if defined?(@syntax_regexp)
-
-        # Match keywords that are neither preceeded nor followed by any letters
-        # or underscores
-        match_keywords = "(?<![a-z_])(#{KEYWORDS.join("|")})(?![a-z_])"
-
-        match_operators = "(#{OPERATORS.join("|")})"
-
-        match_functions = [
-          "(?<=#{["\\s", "\\.", "^", *OPERATORS].join("|")})",
-          "([a-z0-9_-]+)",
-          "(?=[\\s]*\\()"
-        ].join
-
-        match_dangerous_syntax = DANGEROUS_SYNTAX.join("|")
-
-        @syntax_regexp = Regexp.new(
-          [match_keywords, match_operators, match_functions, match_dangerous_syntax].join("|"),
-          "im"
-        )
-      end
-
-      KEYWORDS = %w[
-        INSERT SELECT CREATE DROP DATABASE UPDATE DELETE ALTER GRANT SAVEPOINT
-        COMMIT ROLLBACK TRUNCATE OR AND UNION AS WHERE DISTINCT FROM INTO TOP
-        BETWEEN LIKE IN NULL NOT TABLE INDEX VIEW COUNT SUM AVG MIN MAX GROUP BY
-        HAVING DESC ASC OFFSET FETCH LEFT RIGHT INNER OUTER JOIN EXISTS REVOKE
-        ALL LIMIT ORDER ADD CONSTRAINT COLUMN ANY BACKUP CASE CHECK REPLACE
-        DEFAULT EXEC FOREIGN KEY FULL PROCEDURE ROWNUM SET SESSION GLOBAL UNIQUE
-        VALUES COLLATE IS
-      ].map { |keyword| Regexp.escape(keyword) }
-
-      OPERATORS = %w[= ! ; + - * / % & | ^ > < # ::].map { |op| Regexp.escape(op) }
-
-      # Characters or sequences that are dangerous inside a string and can be
-      # abused.
-      DANGEROUS_SYNTAX = %w[" ' ` \\ /* */ -- #].map { |syn| Regexp.escape(syn) }
     end
   end
 end

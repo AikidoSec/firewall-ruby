@@ -4,12 +4,12 @@ require "test_helper"
 
 class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Test
   def assert_attack(query, input = query, reason = "`#{input}` was not blocked")
-    scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input)
+    scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input, :mysql)
     assert scanner.attack?, reason
   end
 
   def refute_attack(query, input = query, reason = "`#{input}` was blocked")
-    scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input)
+    scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input, :mysql)
     refute scanner.attack?, reason
   end
 
@@ -217,7 +217,7 @@ class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Tes
   end
 
   test "it flags dangerous strings as attacks" do
-    Aikido::Firewall::Vulnerabilities::SQLInjectionScanner::DANGEROUS_SYNTAX.each do |token|
+    Aikido::Firewall::Vulnerabilities::SQLInjection[:common].dangerous_syntax.each do |token|
       input = "#{token} a" # needs to be longer than one character
       assert_attack "SELECT * FROM users WHERE #{input}", input
     end
@@ -297,18 +297,18 @@ class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Tes
   end
 
   test "it does not flag keywords by themselves as they don't pose any risk" do
-    Aikido::Firewall::Vulnerabilities::SQLInjectionScanner::KEYWORDS.each do |keyword|
+    Aikido::Firewall::Vulnerabilities::SQLInjection[:common].keywords.each do |keyword|
       refute_attack "SELECT id FROM #{keyword}", keyword
       refute_attack "SELECT id FROM #{keyword}", keyword.downcase
     end
   end
 
   test "it flags keywords when the input contains other characters" do
-    Aikido::Firewall::Vulnerabilities::SQLInjectionScanner::KEYWORDS.each do |keyword|
+    Aikido::Firewall::Vulnerabilities::SQLInjection[:common].keywords.each do |keyword|
       assert_attack "SELECT id FROM #{keyword}", " #{keyword}"
       assert_attack "SELECT id FROM #{keyword}", " #{keyword.downcase}"
 
-      Aikido::Firewall::Vulnerabilities::SQLInjectionScanner::DANGEROUS_SYNTAX.each do |token|
+      Aikido::Firewall::Vulnerabilities::SQLInjection[:common].dangerous_syntax.each do |token|
         payload = "#{keyword}#{token}"
         assert_attack "SELECT id FROM #{payload}", payload
         assert_attack "SELECT id FROM #{payload}", payload.downcase
@@ -322,14 +322,66 @@ class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Tes
     end
   end
 
+  class TestMySQLDialect < Minitest::Test
+    def assert_attack(query, input = query, reason = "`#{input}` was not blocked")
+      scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input, :mysql)
+      assert scanner.attack?, reason
+    end
+
+    def refute_attack(query, input = query, reason = "`#{input}` was blocked")
+      scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input, :mysql)
+      refute scanner.attack?, reason
+    end
+
+    test "flags MySQL bitwise operator as SQL injection" do
+      assert_attack "SELECT 10 ^ 12", "10 ^ 12"
+    end
+
+    test "ignores PostgreSQL dollar signs" do
+      refute_attack "SELECT $$", "$$"
+      refute_attack "SELECT $$text$$", "$$text$$"
+      refute_attack "SELECT $tag$text$tag$", "$tag$text$tag$"
+    end
+
+    test "flags SET GLOBAL as an attack" do
+      assert_attack "SET GLOBAL max_connections = 1000", "GLOBAL max_connections"
+      assert_attack "SET @@GLOBAL.max_connections = 1000", "@@GLOBAL.max_connections = 1000"
+      assert_attack "SET @@GLOBAL.max_connections=1000", "@@GLOBAL.max_connections=1000"
+
+      refute_attack "SELECT * FROM users WHERE id = 'SET GLOBAL max_connections = 1000'", "SET GLOBAL max_connections = 1000"
+      refute_attack "SELECT * FROM users WHERE id = 'SET @@GLOBAL.max_connections = 1000'", "SET @@GLOBAL.max_connections = 1000"
+    end
+
+    test "flags SET SESSION as an attack" do
+      assert_attack "SET SESSION max_connections = 1000", "SESSION max_connections"
+      assert_attack "SET @@SESSION.max_connections = 1000", "@@SESSION.max_connections = 1000"
+      assert_attack "SET @@SESSION.max_connections=1000", "@@SESSION.max_connections=1000"
+
+      refute_attack "SELECT * FROM users WHERE id = 'SET SESSION max_connections = 1000'", "SET SESSION max_connections = 1000"
+      refute_attack "SELECT * FROM users WHERE id = 'SET @@SESSION.max_connections = 1000'", "SET @@SESSION.max_connections = 1000"
+    end
+
+    test "flags SET CHARACTER SET as an attack" do
+      assert_attack "SET CHARACTER SET utf8", "CHARACTER SET utf8"
+      assert_attack "SET CHARACTER SET=utf8", "CHARACTER SET=utf8"
+      assert_attack "SET CHARSET utf8", "CHARSET utf8"
+      assert_attack "SET CHARSET=utf8", "CHARSET=utf8"
+
+      refute_attack "SELECT * FROM users WHERE id = 'SET CHARACTER SET utf8'", "SET CHARACTER SET utf8"
+      refute_attack "SELECT * FROM users WHERE id = 'SET CHARACTER SET=utf8'", "SET CHARACTER SET=utf8"
+      refute_attack "SELECT * FROM users WHERE id = 'SET CHARSET utf8'", "SET CHARSET utf8"
+      refute_attack "SELECT * FROM users WHERE id = 'SET CHARSET=utf8'", "SET CHARSET=utf8"
+    end
+  end
+
   class TestEncapsulation < Minitest::Test
     def assert_encapsulated(query, input, reason = "`#{input}` not correctly encapsulated in `#{query}`")
-      scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input)
+      scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input, :mysql)
       assert scanner.input_quoted_or_escaped_within_query?, reason
     end
 
     def refute_encapsulated(query, input, reason = "`#{input}` correctly encapsulated in `#{query}`")
-      scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input)
+      scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input, :mysql)
       refute scanner.input_quoted_or_escaped_within_query?, reason
     end
 
