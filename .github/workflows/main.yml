@@ -32,6 +32,13 @@ jobs:
           MYSQL_DATABASE: cats_test
         ports: ['3306:3306']
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      postgres:
+        image: postgres:16
+        ports: ['5432:5432']
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+        options: --mount type=tmpfs,destination=/var/lib/postgresql/data --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries=3
 
     runs-on: ubuntu-latest
     name: End to end tests (Ruby ${{ matrix.ruby }}, App ${{ matrix.app }})
@@ -42,8 +49,11 @@ jobs:
         app:
           - "rails7.1_mysql2"
           - "rails7.1_trilogy"
+          - "rails7.1_postgresql"
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app }}/Gemfile
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: password
 
     steps:
     - uses: actions/checkout@v4
