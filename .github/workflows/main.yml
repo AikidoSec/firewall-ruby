@@ -50,6 +50,7 @@ jobs:
           - "rails7.1_mysql2"
           - "rails7.1_trilogy"
           - "rails7.1_postgresql"
+          - "rails7.1_sqlite3"
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app }}/Gemfile
       POSTGRES_USERNAME: postgres
