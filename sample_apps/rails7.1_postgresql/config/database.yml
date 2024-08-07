@@ -1,0 +1,18 @@
+default: &default
+  adapter: postgresql
+  database: cats
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  host: localhost
+  username: <%= ENV.fetch("POSTGRES_USERNAME", nil) %>
+  password: <%= ENV.fetch("POSTGRES_PASSWORD", nil) %>
+
+development:
+  <<: *default
+
+test:
+  <<: *default
+  database: cats_test
+
+production:
+  <<: *default
