@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
-require_relative "agent"
 require_relative "errors"
+
+require_relative "agent"
 
 require_relative "firewall/version"
 require_relative "firewall/vulnerabilities"
