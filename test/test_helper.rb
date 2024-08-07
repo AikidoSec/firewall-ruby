@@ -3,6 +3,7 @@
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "aikido/firewall"
 require "minitest/autorun"
+require "minitest/stub_const"
 require "pathname"
 require "debug"
 

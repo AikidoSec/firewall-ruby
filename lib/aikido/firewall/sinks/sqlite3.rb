@@ -2,15 +2,23 @@
 
 module Aikido::Firewall
   module Sinks
-    # All methods that execute queries in SQLite3 initialize a Statement object,
-    # so we just need to patch this method to cover all entrypoints.
     module SQLite3
-      def initialize(_, sql, *)
-        Vulnerabilities::SQLInjectionScanner.scan(sql, dialect: :sqlite)
-        super
+      module Database
+        def exec_batch(sql, *)
+          Vulnerabilities::SQLInjectionScanner.scan(sql, dialect: :sqlite)
+          super
+        end
+      end
+
+      module Statement
+        def initialize(_, sql, *)
+          Vulnerabilities::SQLInjectionScanner.scan(sql, dialect: :sqlite)
+          super
+        end
       end
     end
   end
 end
 
-::SQLite3::Statement.prepend(Aikido::Firewall::Sinks::SQLite3)
+::SQLite3::Database.prepend(Aikido::Firewall::Sinks::SQLite3::Database)
+::SQLite3::Statement.prepend(Aikido::Firewall::Sinks::SQLite3::Statement)
