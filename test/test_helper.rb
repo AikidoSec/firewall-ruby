@@ -4,6 +4,7 @@ $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "aikido/firewall"
 require "minitest/autorun"
 require "minitest/stub_const"
+require "webmock/minitest"
 require "pathname"
 require "debug"
 
@@ -48,6 +49,8 @@ class Minitest::Test
   setup do
     Aikido::Agent.instance_variable_set(:@config, nil)
     Aikido::Firewall.instance_variable_set(:@settings, nil)
+
+    WebMock.reset!
   end
 
   # @return [Pathname] the given file path within test/fixtures.
