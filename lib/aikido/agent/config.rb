@@ -9,6 +9,10 @@ module Aikido::Agent
     #   +https://guard.aikido.dev+.
     attr_reader :api_base_url
 
+    # @return [URI] The HTTP host for the Aikido Runtime API. Defaults to
+    #   +https://runtime.aikido.dev+.
+    attr_reader :runtime_api_base_url
+
     # @return [Hash] HTTP timeouts for communicating with the API.
     attr_reader :api_timeouts
 
@@ -27,6 +31,7 @@ module Aikido::Agent
     def initialize
       self.api_timeouts = 10
       self.api_base_url = ENV.fetch("AIKIDO_BASE_URL", DEFAULT_API_BASE_URL)
+      self.runtime_api_base_url = ENV.fetch("AIKIDO_RUNTIME_URL", DEFAULT_RUNTIME_BASE_URL)
       self.api_token = ENV.fetch("AIKIDO_TOKEN", nil)
       self.json_encoder = DEFAULT_JSON_ENCODER
       self.json_decoder = DEFAULT_JSON_DECODER
@@ -37,6 +42,13 @@ module Aikido::Agent
     # @param url [String, URI]
     def api_base_url=(url)
       @api_base_url = URI(url)
+    end
+
+    # Set the base URL for runtime API requests.
+    #
+    # @param url [String, URI]
+    def runtime_api_base_url=(url)
+      @runtime_api_base_url = URI(url)
     end
 
     # @overload def api_timeouts=(timeouts)
@@ -60,6 +72,9 @@ module Aikido::Agent
 
     # @!visibility private
     DEFAULT_API_BASE_URL = "https://guard.aikido.dev"
+
+    # @!visibility private
+    DEFAULT_RUNTIME_BASE_URL = "https://runtime.aikido.dev"
 
     # @!visibility private
     DEFAULT_JSON_ENCODER = JSON.method(:dump)

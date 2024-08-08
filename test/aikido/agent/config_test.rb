@@ -10,15 +10,22 @@ class Aikido::Agent::ConfigTest < ActiveSupport::TestCase
   test "default values" do
     assert_nil @config.api_token
     assert_equal URI("https://guard.aikido.dev"), @config.api_base_url
+    assert_equal URI("https://runtime.aikido.dev"), @config.runtime_api_base_url
     assert_equal 10, @config.api_timeouts[:open_timeout]
     assert_equal 10, @config.api_timeouts[:read_timeout]
     assert_equal 10, @config.api_timeouts[:write_timeout]
   end
 
   test "can overwrite the api_base_url" do
-    @config.api_base_url = "https://test.aikido.dev"
+    @config.api_base_url = "http://app.local.aikido.io"
 
-    assert_equal URI("https://test.aikido.dev"), @config.api_base_url
+    assert_equal URI("http://app.local.aikido.io"), @config.api_base_url
+  end
+
+  test "can overwrite the runtime_api_base_url" do
+    @config.runtime_api_base_url = "http://localhost:3000"
+
+    assert_equal URI("http://localhost:3000"), @config.runtime_api_base_url
   end
 
   test "can set granular timeouts" do

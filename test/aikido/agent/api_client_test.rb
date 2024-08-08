@@ -22,6 +22,48 @@ class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
     assert @client.can_make_requests?
   end
 
+  class CheckIfStaleConfigTest < ActiveSupport::TestCase
+    setup do
+      Aikido::Agent.config.api_token = "TOKEN"
+      @client = Aikido::Agent::APIClient.new
+    end
+
+    test "returns false without making a request if the token is missing" do
+      Aikido::Agent.config.api_token = nil
+
+      assert_not @client.should_fetch_settings?
+      assert_not_requested :get, "https://runtime.aikido.dev/config"
+    end
+
+    test "returns true without making a request if we don't know the last update time" do
+      assert @client.should_fetch_settings?(nil)
+      assert_not_requested :get, "https://runtime.aikido.dev/config"
+
+      Aikido::Firewall.settings.updated_at = nil
+      assert @client.should_fetch_settings?
+      assert_not_requested :get, "https://runtime.aikido.dev/config"
+    end
+
+    test "returns false if the updated_at from the server is the same or older than the one we have" do
+      stub_request(:get, "https://runtime.aikido.dev/config")
+        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890))
+
+      Aikido::Firewall.settings.updated_at = Time.at(1234567890)
+      assert_not @client.should_fetch_settings?
+
+      Aikido::Firewall.settings.updated_at = Time.at(1234567890 + 1)
+      assert_not @client.should_fetch_settings?
+    end
+
+    test "returns true if the updated_at from the server is newer than the one we have" do
+      stub_request(:get, "https://runtime.aikido.dev/config")
+        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890))
+
+      Aikido::Firewall.settings.updated_at = Time.at(1234567890 - 1)
+      assert @client.should_fetch_settings?
+    end
+  end
+
   class FetchingConfigTest < ActiveSupport::TestCase
     setup do
       Aikido::Agent.config.api_token = "TOKEN"
