@@ -6,7 +6,7 @@ require "trilogy"
 require "aikido/firewall/sinks/trilogy"
 
 class Aikido::Firewall::Sinks::TrilogyTest < Minitest::Test
-  def setup
+  setup do
     @db = Trilogy.new(
       host: ENV.fetch("MYSQL_HOST", "127.0.0.1"),
       username: ENV.fetch("MYSQL_USERNAME", "root"),

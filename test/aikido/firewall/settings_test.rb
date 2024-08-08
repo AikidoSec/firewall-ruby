@@ -3,7 +3,7 @@
 require "test_helper"
 
 class Aikido::Firewall::SettingsTest < Minitest::Test
-  def setup
+  setup do
     @settings = Aikido::Firewall::Settings.new
   end
 

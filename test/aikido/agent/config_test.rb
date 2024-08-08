@@ -3,7 +3,7 @@
 require "test_helper"
 
 class Aikido::Agent::ConfigTest < Minitest::Test
-  def setup
+  setup do
     @config = Aikido::Agent::Config.new
   end
 

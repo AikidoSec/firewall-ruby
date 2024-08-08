@@ -6,7 +6,7 @@ require "sqlite3"
 require "aikido/firewall/sinks/sqlite3"
 
 class Aikido::Firewall::Sinks::SQLite3Test < Minitest::Test
-  def setup
+  setup do
     @db = SQLite3::Database.new(":memory:")
   end
 
