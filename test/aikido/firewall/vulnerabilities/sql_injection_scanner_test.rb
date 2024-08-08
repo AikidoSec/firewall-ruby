@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Test
+class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < ActiveSupport::TestCase
   module Assertions
     def assert_attack(query, input = query, dialect = :common, reason = "`#{input}` was not blocked (#{dialect})")
       scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input, dialect)
@@ -338,7 +338,7 @@ class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Tes
     end
   end
 
-  class TestMySQLDialect < Minitest::Test
+  class TestMySQLDialect < ActiveSupport::TestCase
     include Assertions
 
     def assert_attack(query, input = query, *args)
@@ -390,7 +390,7 @@ class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Tes
     end
   end
 
-  class TestPostgreSQLDialect < Minitest::Test
+  class TestPostgreSQLDialect < ActiveSupport::TestCase
     include Assertions
 
     def assert_attack(query, input = query, *args)
@@ -427,7 +427,7 @@ class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Tes
     end
   end
 
-  class TestSQLiteDialect < Minitest::Test
+  class TestSQLiteDialect < ActiveSupport::TestCase
     include Assertions
 
     def assert_attack(query, input = query, *args)
@@ -457,7 +457,7 @@ class Aikido::Firewall::Vulnerabilities::SQLInjectionScannerTest < Minitest::Tes
     end
   end
 
-  class TestEncapsulation < Minitest::Test
+  class TestEncapsulation < ActiveSupport::TestCase
     def assert_encapsulated(query, input, reason = "`#{input}` not correctly encapsulated in `#{query}`")
       scanner = Aikido::Firewall::Vulnerabilities::SQLInjectionScanner.new(query, input, :mysql)
       assert scanner.input_quoted_or_escaped_within_query?, reason

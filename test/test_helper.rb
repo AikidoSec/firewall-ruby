@@ -3,25 +3,21 @@
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "aikido/firewall"
 require "minitest/autorun"
+require "active_support/test_case"
 require "minitest/stub_const"
+require "webmock/minitest"
+require "active_support/testing/setup_and_teardown"
 require "pathname"
 require "debug"
 
-class Minitest::Test
-  # Add declarative tests like ActiveSupport adds, because they read nicer.
-  def self.test(name, &block)
-    test_name = :"test_#{name.gsub(/\s+/, "_")}"
-    raise "#{test_name} is already defined in #{self}" if method_defined?(test_name)
+class ActiveSupport::TestCase
+  self.file_fixture_path = "test/fixtures"
 
-    if block
-      define_method(test_name, &block)
-    else
-      define_method(test_name) { flunk "No implementation provided for #{name}" }
-    end
-  end
+  # Reset any global state before each test
+  setup do
+    Aikido::Agent.instance_variable_set(:@config, nil)
+    Aikido::Firewall.instance_variable_set(:@settings, nil)
 
-  # @return [Pathname] the given file path within test/fixtures.
-  def file_fixture(relative_path)
-    Pathname("test/fixtures").join(relative_path)
+    WebMock.reset!
   end
 end

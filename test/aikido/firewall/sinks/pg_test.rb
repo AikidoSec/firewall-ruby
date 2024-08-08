@@ -5,8 +5,8 @@ require "test_helper"
 require "pg"
 require "aikido/firewall/sinks/pg"
 
-class Aikido::Firewall::Sinks::PGTest < Minitest::Test
-  def setup
+class Aikido::Firewall::Sinks::PGTest < ActiveSupport::TestCase
+  setup do
     @db = PG.connect(
       host: ENV.fetch("POSTGRES_HOST", "127.0.0.1"),
       user: ENV.fetch("POSTGRES_USERNAME", ENV["USER"]),

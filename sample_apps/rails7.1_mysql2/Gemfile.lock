@@ -3,6 +3,7 @@ PATH
   specs:
     aikido-firewall (0.1.0)
       actionpack (>= 3.0.0)
+      concurrent-ruby (~> 1.0)
 
 GEM
   remote: https://rubygems.org/

@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "serviceId": 123,
+  "configUpdatedAt": 1723043695,
+  "heartbeatIntervalInMS": 600000,
+  "endpoints": [],
+  "blockedUserIds": [],
+  "allowedIPAddresses": [],
+  "receivedAnyStats": false
+}

@@ -2,8 +2,8 @@
 
 require "test_helper"
 
-class Aikido::TestFirewall < Minitest::Test
-  def test_that_it_has_a_version_number
+class Aikido::TestFirewall < ActiveSupport::TestCase
+  test "it has a version number" do
     refute_nil ::Aikido::Firewall::VERSION
   end
 end
