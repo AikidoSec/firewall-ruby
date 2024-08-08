@@ -3,28 +3,28 @@
 module Aikido::Firewall
   # Stores the firewall configuration sourced from the Aikido dashboard. This
   # object is updated by the Agent regularly.
-  class Settings
-    # @return [Time]
-    attr_accessor :updated_at
+  class Settings < Concurrent::MutableStruct.new(
+    :updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :allowed_ip_addresses, :received_any_stats
+  )
+    # @!attribute [rw] updated_at
+    #   @return [Time] when these settings were updated in the Aikido dashboard.
 
-    # @return [Integer] duration in seconds between heartbeat requests to the
-    #   Aikido server.
-    attr_accessor :heartbeat_interval
+    # @!attribute [rw] heartbeat_interval
+    #   @return [Integer] duration in seconds between heartbeat requests to the
+    #     Aikido server.
 
-    attr_accessor :endpoints
+    # @!attribute [rw] received_any_stats
+    #   @return [Boolean] whether the Aikido server has received any data from
+    #     this application.
 
-    attr_accessor :blocked_user_ids
+    # @!attribute [rw] endpoints
+    #   @return [Array]
 
-    attr_accessor :allowed_ip_addresses
+    # @!attribute [rw] blocked_user_ids
+    #   @return [Array]
 
-    # @return [Boolean] whether the Aikido server has received any data from
-    #   this application.
-    attr_accessor :received_any_stats
-
-    # @return [Boolean] whether we have successfully gotten data from the API.
-    def loaded?
-      @loaded
-    end
+    # @!attribute [rw] allowed_ip_addresses
+    #   @return [Array]
 
     # Parse and interpret the JSON response from the core API with updated
     # settings, and apply the changes.
@@ -34,8 +34,6 @@ module Aikido::Firewall
     #
     # @return [void]
     def update_from_json(data)
-      @loaded = true
-
       self.updated_at = Time.at(data["configUpdatedAt"].to_i)
       self.heartbeat_interval = (data["heartbeatIntervalInMS"].to_i / 1000)
       self.endpoints = data["endpoints"]

@@ -7,9 +7,7 @@ class Aikido::Firewall::SettingsTest < ActiveSupport::TestCase
     @settings = Aikido::Firewall::Settings.new
   end
 
-  test "updating from a JSON response" do
-    refute @settings.loaded?
-
+  test "building from a JSON response" do
     @settings.update_from_json({
       "success" => true,
       "serviceId" => 1234,
@@ -21,7 +19,6 @@ class Aikido::Firewall::SettingsTest < ActiveSupport::TestCase
       "receivedAnyStats" => false
     })
 
-    assert @settings.loaded?
     assert_equal Time.utc(2024, 5, 31, 16, 8, 37), @settings.updated_at
     assert_equal 60, @settings.heartbeat_interval
     assert_equal [], @settings.endpoints

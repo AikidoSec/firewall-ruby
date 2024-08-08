@@ -22,6 +22,8 @@ module Aikido::Agent
     end
 
     config.after_initialize do
+      Aikido::Agent.initialize!
+
       # Make sure this is run at the end of the initialization process, so
       # that any gems required after aikido-firewall are detected and patched
       # accordingly.

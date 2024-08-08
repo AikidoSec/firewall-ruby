@@ -20,6 +20,10 @@ module Aikido::Agent
     #   Aikido interface.
     attr_accessor :api_token
 
+    # @return [Integer] the interval in seconds to poll the runtime API for
+    #   settings changes. Defaults to evey 60 seconds.
+    attr_accessor :polling_interval
+
     # @return [#call] Callable that can be passed an Object and returns a String
     #   of JSON. Defaults to the standard library's JSON.dump method.
     attr_accessor :json_encoder
@@ -33,6 +37,7 @@ module Aikido::Agent
       self.api_base_url = ENV.fetch("AIKIDO_BASE_URL", DEFAULT_API_BASE_URL)
       self.runtime_api_base_url = ENV.fetch("AIKIDO_RUNTIME_URL", DEFAULT_RUNTIME_BASE_URL)
       self.api_token = ENV.fetch("AIKIDO_TOKEN", nil)
+      self.polling_interval = 60
       self.json_encoder = DEFAULT_JSON_ENCODER
       self.json_decoder = DEFAULT_JSON_DECODER
     end
