@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "net/http"
-require "json"
 
 module Aikido::Agent
   # Implements all communication with the Aikido servers.
@@ -19,7 +18,7 @@ module Aikido::Agent
     # other low-lever error, the request will be automatically retried up to two
     # times, after which it will raise an error.
     #
-    # @return [Hash] JSON response from the server.
+    # @return [Hash] decoded JSON response from the server.
     # @raise [Aikido::Agent::APIError] in case of a 4XX or 5XX response.
     # @raise [Aikido::Agent::NetworkError] if an error occurs trying to make the
     #   request.
@@ -33,7 +32,7 @@ module Aikido::Agent
 
         case response
         when Net::HTTPSuccess
-          JSON.parse(response.body)
+          @config.json_decoder.call(response.body)
         else
           raise APIError.new(request, response)
         end

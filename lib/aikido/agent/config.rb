@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "uri"
+require "json"
 
 module Aikido::Agent
   class Config
@@ -15,10 +16,20 @@ module Aikido::Agent
     #   Aikido interface.
     attr_accessor :api_token
 
+    # @return [#call] Callable that can be passed an Object and returns a String
+    #   of JSON. Defaults to the standard library's JSON.dump method.
+    attr_accessor :json_encoder
+
+    # @return [#call] Callable that can be passed a JSON string and parses it
+    #   into an Object. Defaults to the standard library's JSON.parse method.
+    attr_accessor :json_decoder
+
     def initialize
       self.api_timeouts = 10
       self.api_base_url = ENV.fetch("AIKIDO_BASE_URL", DEFAULT_API_BASE_URL)
       self.api_token = ENV.fetch("AIKIDO_TOKEN", nil)
+      self.json_encoder = DEFAULT_JSON_ENCODER
+      self.json_decoder = DEFAULT_JSON_DECODER
     end
 
     # Set the base URL for API requests.
@@ -49,5 +60,11 @@ module Aikido::Agent
 
     # @!visibility private
     DEFAULT_API_BASE_URL = "https://guard.aikido.dev"
+
+    # @!visibility private
+    DEFAULT_JSON_ENCODER = JSON.method(:dump)
+
+    # @!visibility private
+    DEFAULT_JSON_DECODER = JSON.method(:parse)
   end
 end

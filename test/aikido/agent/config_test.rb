@@ -65,6 +65,20 @@ class Aikido::Agent::ConfigTest < Minitest::Test
     end
   end
 
+  test "provides a pluggable way of parsing JSON" do
+    assert_equal ["foo", "bar"], @config.json_decoder.call(%(["foo","bar"]))
+
+    @config.json_decoder = ->(string) { string.reverse }
+    assert_equal "raboof", @config.json_decoder.call("foobar")
+  end
+
+  test "provides a pluggable way of encoding JSON" do
+    assert_equal %({"foo":"bar"}), @config.json_encoder.call("foo" => "bar")
+
+    @config.json_encoder = ->(obj) { obj.class.to_s }
+    assert_equal "Array", @config.json_encoder.call([1, 2])
+  end
+
   def with_env(data = {})
     env = ENV.to_h
     ENV.update(data)
