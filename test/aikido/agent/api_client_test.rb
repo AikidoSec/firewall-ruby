@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Aikido::Agent::APIClientTest < Minitest::Test
+class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
   setup do
     @client = Aikido::Agent::APIClient.new
   end
@@ -22,7 +22,7 @@ class Aikido::Agent::APIClientTest < Minitest::Test
     assert @client.can_make_requests?
   end
 
-  class FetchingConfigTest < Minitest::Test
+  class FetchingConfigTest < ActiveSupport::TestCase
     setup do
       Aikido::Agent.config.api_token = "TOKEN"
       @client = Aikido::Agent::APIClient.new

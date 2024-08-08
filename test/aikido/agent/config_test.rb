@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Aikido::Agent::ConfigTest < Minitest::Test
+class Aikido::Agent::ConfigTest < ActiveSupport::TestCase
   setup do
     @config = Aikido::Agent::Config.new
   end

@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Aikido::Firewall::SettingsTest < Minitest::Test
+class Aikido::Firewall::SettingsTest < ActiveSupport::TestCase
   setup do
     @settings = Aikido::Firewall::Settings.new
   end
