@@ -192,4 +192,115 @@ class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
       assert_kind_of Timeout::Error, err.cause
     end
   end
+
+  class ReportStartedEvent < ActiveSupport::TestCase
+    setup do
+      Aikido::Agent.config.api_token = "TOKEN"
+      @client = Aikido::Agent::APIClient.new
+    end
+
+    test "makes a POST request to the specified endpoint" do
+      stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
+        .with(body: hash_including(type: "started"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+
+      response = @client.report(Aikido::Agent::Events::Started.new)
+      assert response["success"]
+
+      assert_requested :post, "https://guard.aikido.dev/api/runtime/events",
+        headers: {
+          "Authorization" => Aikido::Agent.config.api_token,
+          "Accept" => "application/json",
+          "Content-Type" => "application/json"
+        },
+        body: hash_including(type: "started")
+    end
+
+    test "it sends the timestamp of the event in milliseconds" do
+      stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
+        .with(body: hash_including(type: "started"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+
+      event = Aikido::Agent::Events::Started.new(time: Time.at(1234567890))
+      @client.report(event)
+
+      assert_requested :post, "https://guard.aikido.dev/api/runtime/events",
+        body: hash_including(
+          type: "started",
+          time: 1234567890000
+        )
+    end
+
+    test "it sends the agent info" do
+      stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
+        .with(body: hash_including(type: "started"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+
+      @client.report(Aikido::Agent::Events::Started.new)
+
+      assert_requested :post, "https://guard.aikido.dev/api/runtime/events",
+        body: hash_including(
+          type: "started",
+          agent: Aikido::Agent.info.as_json
+        )
+    end
+
+    test "uses the host configured in the agent config" do
+      Aikido::Agent.config.api_base_url = "https://app.local.aikido.io"
+
+      stub_request(:post, "https://app.local.aikido.io/api/runtime/events")
+        .with(body: hash_including(type: "started"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+
+      @client.report(Aikido::Agent::Events::Started.new)
+
+      assert_requested :post, "https://app.local.aikido.io/api/runtime/events"
+    end
+
+    test "sets the User-Agent on the request" do
+      stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
+        .with(body: hash_including(type: "started"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+
+      @client.report(Aikido::Agent::Events::Started.new)
+
+      assert_requested :post, "https://guard.aikido.dev/api/runtime/events",
+        headers: {"User-Agent" => "firewall-ruby v#{Aikido::Agent::VERSION}"}
+    end
+
+    test "raises Aikido::Agent::APIError on 4XX requests" do
+      stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
+        .to_return(status: 401, body: "")
+
+      err = assert_raises Aikido::Agent::APIError do
+        @client.report(Aikido::Agent::Events::Started.new)
+      end
+
+      assert 401, err.response.code
+      assert "********************OKEN", err.request["Authorization"]
+    end
+
+    test "raises Aikido::Agent::APIError on 5XX requests" do
+      stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
+        .to_return(status: 502, body: "")
+
+      err = assert_raises Aikido::Agent::APIError do
+        @client.report(Aikido::Agent::Events::Started.new)
+      end
+
+      assert 502, err.response.code
+      assert "********************OKEN", err.request["Authorization"]
+    end
+
+    test "wraps timeouts in Aikido::Agent::NetworkError" do
+      stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
+        .to_timeout
+
+      err = assert_raises Aikido::Agent::NetworkError do
+        @client.report(Aikido::Agent::Events::Started.new)
+      end
+
+      assert_kind_of Timeout::Error, err.cause
+    end
+  end
 end
