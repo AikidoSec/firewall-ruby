@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 require "socket"
-require "rubygems/platform"
+require "rubygems"
+
+require_relative "package"
 
 module Aikido::Agent
   # Provides information about the currently running Agent.
@@ -30,6 +32,11 @@ module Aikido::Agent
       @hostname ||= Socket.gethostname
     end
 
+    # @return [Array<Aikido::Agent::Package>] a list of loaded rubygems.
+    def packages
+      @packages ||= Gem.loaded_specs.map { |_, spec| Package.new(spec.name, spec.version) }
+    end
+
     # @return [String] the first non-loopback IPv4 address that we can use
     #   to identify this host. If the machine is solely identified by IPv6
     #   addresses, then this will instead return an IPv6 address.
@@ -56,7 +63,7 @@ module Aikido::Agent
         hostname: hostname,
         ipAddress: ip_address,
         os: {name: os_name, version: os_version},
-        packages: [],
+        packages: packages.reduce({}) { |all, package| all.update(package.as_json) },
         incompatiblePackages: {},
         stack: [],
         serverless: false,

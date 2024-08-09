@@ -63,6 +63,19 @@ class Aikido::Agent::InfoTest < ActiveSupport::TestCase
     end
   end
 
+  test "#packages maps the list of loaded gems into a list of Package instances" do
+    test_specs = Gem.loaded_specs.slice("concurrent-ruby", "minitest")
+
+    Gem.stub(:loaded_specs, test_specs) do
+      expected_packages = [
+        Aikido::Agent::Package.new("concurrent-ruby", test_specs["concurrent-ruby"].version),
+        Aikido::Agent::Package.new("minitest", test_specs["minitest"].version)
+      ]
+
+      assert_equal expected_packages, @info.packages
+    end
+  end
+
   test "as_json includes the expected fields" do
     assert_equal @info.attacks_are_only_reported?, @info.as_json[:dryMode]
     assert_equal @info.library_name, @info.as_json[:library]
@@ -72,12 +85,17 @@ class Aikido::Agent::InfoTest < ActiveSupport::TestCase
     assert_equal @info.os_name, @info.as_json.dig(:os, :name)
     assert_equal @info.os_version, @info.as_json.dig(:os, :version)
 
+    # To keep the test scalable, only test one known dependency.
+    assert_kind_of Hash, @info.as_json[:packages]
+    assert_equal \
+      Gem.loaded_specs["concurrent-ruby"].version.to_s,
+      @info.as_json.dig(:packages, "concurrent-ruby", :version)
+
     assert_equal "", @info.as_json[:nodeEnv]
     assert_equal false, @info.as_json[:preventedPrototypePollution]
 
     # FIXME: Source the actual values for the following properties
     assert_equal false, @info.as_json[:serverless]
-    assert_equal [], @info.as_json[:packages]
     assert_equal [], @info.as_json[:stack]
     assert_equal({}, @info.as_json[:incompatiblePackages])
   end
