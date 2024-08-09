@@ -6,6 +6,11 @@ module Aikido
   # superclass).
   module Error; end
 
+  # Generic error for problems with the Agent.
+  class AgentError < RuntimeError
+    include Error
+  end
+
   module Agent
     # Wrapper for all low-level network errors communicating with the API. You
     # can access the original error by calling #cause.
