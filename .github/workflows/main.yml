@@ -62,20 +62,25 @@ jobs:
         options: --mount type=tmpfs,destination=/var/lib/postgresql/data --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries=3
 
     runs-on: ubuntu-latest
-    name: End to end tests (Ruby ${{ matrix.ruby }}, App ${{ matrix.app }})
+    name: End to end tests (Ruby ${{ matrix.ruby }}, App ${{ matrix.app.name }})
     strategy:
       matrix:
         ruby:
           - "3.3"
         app:
-          - "rails7.1_mysql2"
-          - "rails7.1_trilogy"
-          - "rails7.1_postgresql"
-          - "rails7.1_sqlite3"
+          - name: "rails7.1_sql_injection"
+            env: "DATABASE_URL=mysql2://root:@127.0.0.1:3306/cats_test"
+            pre: "rm -f config/database.yml"
+          - name: "rails7.1_sql_injection"
+            env: "DATABASE_URL=trilogy://root:@127.0.0.1:3306/cats_test"
+            pre: "rm -f config/database.yml"
+          - name: "rails7.1_sql_injection"
+            env: "DATABASE_URL=postgresql://postgres:password@127.0.0.1:5432/cats_test"
+            pre: "rm -f config/database.yml"
+          - name: "rails7.1_sql_injection"
+            env: "DATABASE_URL=sqlite3:storage/test.salite3"
     env:
-      BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app }}/Gemfile
-      POSTGRES_USERNAME: postgres
-      POSTGRES_PASSWORD: password
+      BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app.name }}/Gemfile
 
     steps:
     - uses: actions/checkout@v4
@@ -84,5 +89,12 @@ jobs:
       with:
         ruby-version: ${{ matrix.ruby }}
         bundler-cache: true
+    - name: Set any matrix-defined ENV
+      run: >-
+        echo "${{ matrix.app.env }}" >> "$GITHUB_ENV"
+      if: ${{ matrix.app.env }}
+    - name: Run any preamble commands for the current app
+      run: ${{ matrix.app.pre }}
+      if: ${{ matrix.app.pre }}
     - name: Run the e2e tests
-      run: "bundle exec rake e2e:${{ matrix.app }}"
+      run: "bundle exec rake e2e:${{ matrix.app.name }}"

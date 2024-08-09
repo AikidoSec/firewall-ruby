@@ -1,1 +1,0 @@
-../../../../test/e2e/rails_ci.rake
