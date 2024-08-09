@@ -59,7 +59,6 @@ module Aikido::Agent
     end
 
     private def reporting_pool
-      # TODO: Should we use a pool with more than one thread for parallelism?
       @reporting_pool ||= Concurrent::SingleThreadExecutor.new
     end
 
