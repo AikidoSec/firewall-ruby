@@ -25,6 +25,8 @@ class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
   class CheckIfStaleConfigTest < ActiveSupport::TestCase
     setup do
       Aikido::Agent.config.api_token = "TOKEN"
+      Aikido::Firewall.settings.updated_at = Time.at(0)
+
       @client = Aikido::Agent::APIClient.new
     end
 
@@ -62,6 +64,51 @@ class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
       Aikido::Firewall.settings.updated_at = Time.at(1234567890 - 1)
       assert @client.should_fetch_settings?
     end
+
+    test "sets the User-Agent on the request" do
+      stub_request(:get, "https://runtime.aikido.dev/config")
+        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890))
+
+      @client.should_fetch_settings?
+
+      assert_requested :get, "https://runtime.aikido.dev/config",
+        headers: {"User-Agent" => "firewall-ruby v#{Aikido::Agent::VERSION}"}
+    end
+
+    test "raises Aikido::Agent::APIError on 4XX requests" do
+      stub_request(:get, "https://runtime.aikido.dev/config")
+        .to_return(status: 401, body: "")
+
+      err = assert_raises Aikido::Agent::APIError do
+        @client.should_fetch_settings?
+      end
+
+      assert 401, err.response.code
+      assert "********************OKEN", err.request["Authorization"]
+    end
+
+    test "raises Aikido::Agent::APIError on 5XX requests" do
+      stub_request(:get, "https://runtime.aikido.dev/config")
+        .to_return(status: 502, body: "")
+
+      err = assert_raises Aikido::Agent::APIError do
+        @client.should_fetch_settings?
+      end
+
+      assert 502, err.response.code
+      assert "********************OKEN", err.request["Authorization"]
+    end
+
+    test "wraps timeouts in Aikido::Agent::NetworkError" do
+      stub_request(:get, "https://runtime.aikido.dev/config")
+        .to_timeout
+
+      err = assert_raises Aikido::Agent::NetworkError do
+        @client.should_fetch_settings?
+      end
+
+      assert_kind_of Timeout::Error, err.cause
+    end
   end
 
   class FetchingConfigTest < ActiveSupport::TestCase
@@ -98,6 +145,16 @@ class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
           "Authorization" => Aikido::Agent.config.api_token,
           "Accept" => "application/json"
         }
+    end
+
+    test "sets the User-Agent on the request" do
+      stub_request(:get, "https://guard.aikido.dev/api/runtime/config")
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+
+      @client.fetch_settings
+
+      assert_requested :get, "https://guard.aikido.dev/api/runtime/config",
+        headers: {"User-Agent" => "firewall-ruby v#{Aikido::Agent::VERSION}"}
     end
 
     test "raises Aikido::Agent::APIError on 4XX requests" do
