@@ -5,8 +5,9 @@ require "net/http"
 module Aikido::Agent
   # Implements all communication with the Aikido servers.
   class APIClient
-    def initialize(config = Aikido::Agent.config)
+    def initialize(config = Aikido::Agent.config, info = Aikido::Agent.info)
       @config = config
+      @info = info
     end
 
     # @return [Boolean] whether we have a configured token.
@@ -78,7 +79,7 @@ module Aikido::Agent
       @default_headers ||= {
         "Authorization" => @config.api_token,
         "Accept" => "application/json",
-        "User-Agent" => "firewall-ruby v#{VERSION}"
+        "User-Agent" => "#{@info.library_name} v#{@info.library_version}"
       }
     end
   end

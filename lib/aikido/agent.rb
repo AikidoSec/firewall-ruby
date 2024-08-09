@@ -2,6 +2,7 @@
 
 require_relative "firewall/version"
 require_relative "agent/config"
+require_relative "agent/info"
 require_relative "agent/runner"
 require_relative "agent/api_client"
 require_relative "agent/current_request"
@@ -14,6 +15,12 @@ module Aikido
     # @return [Aikido::Agent::Config] the agent configuration.
     def self.config
       @config ||= Config.new
+    end
+
+    # Gets information about the current configuration of the agent, which is
+    # sent to the server along with any events.
+    def self.info
+      @info ||= Info.new
     end
 
     # Starts the background threads that keep the agent running.
