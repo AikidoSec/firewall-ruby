@@ -6,6 +6,18 @@ require "rubygems/platform"
 module Aikido::Agent
   # Provides information about the currently running Agent.
   class Info
+    def initialize(config = Aikido::Agent.config)
+      @config = config
+    end
+
+    def attacks_block_requests?
+      !!@config.blocking_mode
+    end
+
+    def attacks_are_only_reported?
+      !attacks_block_requests?
+    end
+
     def library_name
       "firewall-ruby"
     end
@@ -38,7 +50,7 @@ module Aikido::Agent
 
     def as_json
       {
-        dryMode: false,
+        dryMode: attacks_are_only_reported?,
         library: library_name,
         version: library_version,
         hostname: hostname,

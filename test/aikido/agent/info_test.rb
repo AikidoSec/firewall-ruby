@@ -7,6 +7,18 @@ class Aikido::Agent::InfoTest < ActiveSupport::TestCase
     @info = Aikido::Agent::Info.new
   end
 
+  test "by default, attacks do not block requests" do
+    assert_equal false, @info.attacks_block_requests?
+    assert_equal true, @info.attacks_are_only_reported?
+  end
+
+  test "attacks block requests if blocking_mode is turned on in the config" do
+    Aikido::Agent.config.blocking_mode = true
+
+    assert_equal true, @info.attacks_block_requests?
+    assert_equal false, @info.attacks_are_only_reported?
+  end
+
   test "library_name is firewall-ruby" do
     assert_equal "firewall-ruby", @info.library_name
   end
@@ -52,6 +64,7 @@ class Aikido::Agent::InfoTest < ActiveSupport::TestCase
   end
 
   test "as_json includes the expected fields" do
+    assert_equal @info.attacks_are_only_reported?, @info.as_json[:dryMode]
     assert_equal @info.library_name, @info.as_json[:library]
     assert_equal @info.library_version, @info.as_json[:version]
     assert_equal @info.hostname, @info.as_json[:hostname]
@@ -63,7 +76,6 @@ class Aikido::Agent::InfoTest < ActiveSupport::TestCase
     assert_equal false, @info.as_json[:preventedPrototypePollution]
 
     # FIXME: Source the actual values for the following properties
-    assert_equal false, @info.as_json[:dryMode]
     assert_equal false, @info.as_json[:serverless]
     assert_equal [], @info.as_json[:packages]
     assert_equal [], @info.as_json[:stack]

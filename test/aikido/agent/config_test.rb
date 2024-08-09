@@ -8,6 +8,7 @@ class Aikido::Agent::ConfigTest < ActiveSupport::TestCase
   end
 
   test "default values" do
+    assert_equal false, @config.blocking_mode
     assert_nil @config.api_token
     assert_equal URI("https://guard.aikido.dev"), @config.api_base_url
     assert_equal URI("https://runtime.aikido.dev"), @config.runtime_api_base_url
@@ -58,6 +59,12 @@ class Aikido::Agent::ConfigTest < ActiveSupport::TestCase
     assert_equal "S3CR3T", @config.api_token
   end
 
+  test "can overwrite blocking_mode" do
+    @config.blocking_mode = true
+
+    assert_equal true, @config.blocking_mode
+  end
+
   test "can set the token from an ENV variable" do
     with_env "AIKIDO_TOKEN" => "S3CR3T" do
       config = Aikido::Agent::Config.new
@@ -69,6 +76,13 @@ class Aikido::Agent::ConfigTest < ActiveSupport::TestCase
     with_env "AIKIDO_BASE_URL" => "https://test.aikido.dev" do
       config = Aikido::Agent::Config.new
       assert_equal URI("https://test.aikido.dev"), config.api_base_url
+    end
+  end
+
+  test "can set blocking_mode via an ENV variable" do
+    with_env "AIKIDO_BLOCKING" => "1" do
+      config = Aikido::Agent::Config.new
+      assert_equal true, config.blocking_mode
     end
   end
 
