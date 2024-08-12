@@ -38,6 +38,8 @@ module Aikido::Agent
       raise AgentError, "Aikido Agent already started!" if started?
       @started_at = Time.now.utc
 
+      at_exit { stop! }
+
       report(Events::Started.new(time: @started_at)) do |response|
         Aikido::Firewall.settings.update_from_json(settings)
       end
