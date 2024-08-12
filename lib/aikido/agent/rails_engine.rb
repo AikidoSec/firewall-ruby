@@ -9,6 +9,7 @@ module Aikido::Agent
     initializer "aikido.configuration" do |app|
       # Access library configuration at `Rails.application.config.aikido_agent`.
       app.config.aikido_agent = lib_config = Aikido::Agent.config
+      lib_config.logger = Rails.logger.tagged("aikido")
 
       # Plug Rails' JSON encoder/decoder, but only if the user hasn't changed
       # them for something else.
