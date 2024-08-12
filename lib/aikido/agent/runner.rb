@@ -16,6 +16,7 @@ module Aikido::Agent
       @info = info
       @config = config
       @api_client = api_client
+      @timer_tasks = []
     end
 
     def started?
@@ -35,29 +36,52 @@ module Aikido::Agent
     end
 
     def start!
-      raise AgentError, "Aikido Agent already started!" if started?
+      @config.logger.info "Starting Aikido agent"
+
+      raise Aikido::AgentError, "Aikido Agent already started!" if started?
       @started_at = Time.now.utc
 
-      at_exit { stop! }
+      if @config.blocking_mode
+        @config.logger.info "Requests identified as attacks will be blocked"
+      else
+        @config.logger.warn "Non-blocking mode enabled! No requests will be blocked."
+      end
+
+      if @api_client.can_make_requests?
+        @config.logger.info "API Token set! Reporting has been enabled."
+      else
+        @config.logger.warn "No API Token set! Reporting has been disabled."
+        return
+      end
+
+      at_exit { stop! if started? }
 
       report(Events::Started.new(time: @started_at)) do |response|
-        Aikido::Firewall.settings.update_from_json(settings)
+        Aikido::Firewall.settings.update_from_json(response)
+        @config.logger.info "Updated firewall settings."
       end
 
       poll_for_setting_updates
     end
 
     def poll_for_setting_updates
-      @poll_for_setting_updates = timer_task(every: @config.polling_interval) do
+      timer_task(every: @config.polling_interval) do
         if @api_client.should_fetch_settings?
           Aikido::Firewall.settings.update_from_json(@api_client.fetch_settings)
+          @config.logger.info "Updated firewall settings after polling"
         end
       end
     end
 
     def stop!
-      @poll_for_setting_updates&.kill
-      @reporting_pool&.shutdown and @reporting_pool&.wait_for_termination(30)
+      @started_at = nil
+
+      @config.logger.info "Stopping Aikido agent"
+
+      @timer_tasks.each { |task| task.shutdown }
+
+      @reporting_pool&.shutdown
+      @reporting_pool&.wait_for_termination(30)
     end
 
     private def reporting_pool
@@ -65,16 +89,14 @@ module Aikido::Agent
     end
 
     private def timer_task(every:, **opts, &block)
-      task = Concurrent::TimerTask.new(
+      @timer_tasks << Concurrent::TimerTask.execute(
         run_now: true,
         interval_type: :fixed_rate,
         execution_interval: every,
+        executor: reporting_pool,
         **opts,
         &block
       )
-
-      task.execute
-      task
     end
   end
 end
