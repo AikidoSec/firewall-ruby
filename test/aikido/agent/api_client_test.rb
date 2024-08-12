@@ -109,6 +109,15 @@ class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
 
       assert_kind_of Timeout::Error, err.cause
     end
+
+    test "logs a debug message" do
+      stub_request(:get, "https://runtime.aikido.dev/config")
+        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890))
+
+      @client.should_fetch_settings?
+
+      assert_logged :debug, /polling for new firewall settings/i
+    end
   end
 
   class FetchingConfigTest < ActiveSupport::TestCase
@@ -190,6 +199,15 @@ class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
       end
 
       assert_kind_of Timeout::Error, err.cause
+    end
+
+    test "logs a debug message" do
+      stub_request(:get, "https://guard.aikido.dev/api/runtime/config")
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+
+      @client.fetch_settings
+
+      assert_logged :debug, /fetching new firewall settings/i
     end
   end
 
@@ -301,6 +319,16 @@ class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
       end
 
       assert_kind_of Timeout::Error, err.cause
+    end
+
+    test "logs a debug message" do
+      stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
+        .with(body: hash_including(type: "started"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+
+      @client.report(Aikido::Agent::Events::Started.new)
+
+      assert_logged :debug, /reporting started event/i
     end
   end
 end
