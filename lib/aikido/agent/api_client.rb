@@ -23,6 +23,8 @@ module Aikido::Agent
     # @return [Boolean]
     # @raise (see #request)
     def should_fetch_settings?(last_updated_at = Aikido::Firewall.settings.updated_at)
+      @config.logger.debug("Polling for new firewall settings to fetch")
+
       return false unless can_make_requests?
       return true if last_updated_at.nil?
 
@@ -43,6 +45,8 @@ module Aikido::Agent
     #   settings.
     # @raise (see #request)
     def fetch_settings
+      @config.logger.debug("Fetching new firewall settings")
+
       request(Net::HTTP::Get.new("/api/runtime/config", default_headers))
     end
 
@@ -60,6 +64,8 @@ module Aikido::Agent
     #   @return (see #fetch_settings)
     #   @raise (see #request)
     def report(event)
+      @config.logger.debug("Reporting #{event.type.upcase} event")
+
       req = Net::HTTP::Post.new("/api/runtime/events", default_headers)
       req.content_type = "application/json"
       req.body = @config.json_encoder.call(event.as_json)

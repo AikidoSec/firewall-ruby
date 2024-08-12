@@ -2,6 +2,7 @@
 
 require "uri"
 require "json"
+require "logger"
 
 module Aikido::Agent
   class Config
@@ -37,6 +38,9 @@ module Aikido::Agent
     #   into an Object. Defaults to the standard library's JSON.parse method.
     attr_accessor :json_decoder
 
+    # @returns [Logger]
+    attr_accessor :logger
+
     def initialize
       self.blocking_mode = !!ENV.fetch("AIKIDO_BLOCKING", false)
       self.api_timeouts = 10
@@ -46,6 +50,7 @@ module Aikido::Agent
       self.polling_interval = 60
       self.json_encoder = DEFAULT_JSON_ENCODER
       self.json_decoder = DEFAULT_JSON_DECODER
+      self.logger = Logger.new($stdout, progname: "aikido")
     end
 
     # Set the base URL for API requests.

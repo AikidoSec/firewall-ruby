@@ -21,4 +21,43 @@ class ActiveSupport::TestCase
 
     WebMock.reset!
   end
+
+  # Capture log output and make it testable
+  setup do
+    @log_output = StringIO.new
+    Aikido::Agent.config.logger.reopen(@log_output)
+  end
+
+  # @return [Array<String>] all the log messages recorded in the current test.
+  #   Further invocations will include previously inspected messages, too.
+  def log_output
+  end
+
+  # rubocop:disable Style/OptionalArguments
+  def assert_logged(level = nil, pattern)
+    @log_output.rewind
+
+    lines = @log_output.readlines.map(&:chomp)
+    match_level = level.to_s.upcase if level
+
+    reason = "no #{level.inspect if level} log message" +
+      "matches #{pattern.inspect}".squeeze("\s") +
+      "Log messages:\n#{lines.map { |line| "\t* #{line}" }.join("\n")}"
+
+    assert lines.any? { |line| pattern === line && (match_level === line or true) }, reason
+  end
+
+  def refute_logged(level = nil, pattern)
+    @log_output.rewind
+
+    lines = @log_output.readlines.map(&:chomp)
+    match_level = level.to_s.upcase if level
+
+    reason = "expected no #{level.inspect if level} log messages " +
+      "to match #{pattern.inspect}".squeeze("\s") +
+      "Log messages:\n#{lines.map { |line| "\t* #{line}" }.join("\n")}"
+
+    refute lines.any? { |line| pattern === line && (match_level === line or true) }, reason
+  end
+  # rubocop:enable Style/OptionalArguments
 end
