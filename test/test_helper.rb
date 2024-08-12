@@ -15,6 +15,7 @@ class ActiveSupport::TestCase
 
   # Reset any global state before each test
   setup do
+    Aikido::Agent.instance_variable_set(:@info, nil)
     Aikido::Agent.instance_variable_set(:@config, nil)
     Aikido::Firewall.instance_variable_set(:@settings, nil)
 

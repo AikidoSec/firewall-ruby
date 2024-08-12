@@ -5,6 +5,11 @@ require "json"
 
 module Aikido::Agent
   class Config
+    # @return [Boolean] whether Aikido should only report infractions or block
+    #   the request by raising an Exception. Defaults to whether AIKIDO_BLOCKING
+    #   is set to a non-empty value in your environment, or +false+ otherwise.
+    attr_accessor :blocking_mode
+
     # @return [URI] The HTTP host for the Aikido API. Defaults to
     #   +https://guard.aikido.dev+.
     attr_reader :api_base_url
@@ -33,6 +38,7 @@ module Aikido::Agent
     attr_accessor :json_decoder
 
     def initialize
+      self.blocking_mode = !!ENV.fetch("AIKIDO_BLOCKING", false)
       self.api_timeouts = 10
       self.api_base_url = ENV.fetch("AIKIDO_BASE_URL", DEFAULT_API_BASE_URL)
       self.runtime_api_base_url = ENV.fetch("AIKIDO_RUNTIME_URL", DEFAULT_RUNTIME_BASE_URL)

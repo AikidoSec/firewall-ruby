@@ -5,8 +5,9 @@ require "net/http"
 module Aikido::Agent
   # Implements all communication with the Aikido servers.
   class APIClient
-    def initialize(config = Aikido::Agent.config)
+    def initialize(config = Aikido::Agent.config, info = Aikido::Agent.info)
       @config = config
+      @info = info
     end
 
     # @return [Boolean] whether we have a configured token.
@@ -38,10 +39,32 @@ module Aikido::Agent
     # other low-lever error, the request will be automatically retried up to two
     # times, after which it will raise an error.
     #
-    # @return [Hash] decoded JSON response from the server.
+    # @return [Hash] decoded JSON response from the server with the Firewall
+    #   settings.
     # @raise (see #request)
     def fetch_settings
       request(Net::HTTP::Get.new("/api/runtime/config", default_headers))
+    end
+
+    # @overload report(event)
+    #   Reports an event to the server.
+    #
+    #   @param event [Aikido::Agent::Event]
+    #   @return [void]
+    #   @raise (see #request)
+    #
+    # @overload report(agent_started_event)
+    #   Reports the Agent has started.
+    #
+    #   @param agent_started_event [Aikido::Agent::Events::Started]
+    #   @return (see #fetch_settings)
+    #   @raise (see #request)
+    def report(event)
+      req = Net::HTTP::Post.new("/api/runtime/events", default_headers)
+      req.content_type = "application/json"
+      req.body = @config.json_encoder.call(event.as_json)
+
+      request(req)
     end
 
     # Perform an HTTP request against one of our API endpoints, and process the
@@ -78,7 +101,7 @@ module Aikido::Agent
       @default_headers ||= {
         "Authorization" => @config.api_token,
         "Accept" => "application/json",
-        "User-Agent" => "firewall-ruby v#{VERSION}"
+        "User-Agent" => "#{@info.library_name} v#{@info.library_version}"
       }
     end
   end
