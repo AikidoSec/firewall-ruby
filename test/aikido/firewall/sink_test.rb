@@ -3,8 +3,6 @@
 require "test_helper"
 
 class Aikido::Firewall::SinkTest < ActiveSupport::TestCase
-  NOOP = ->(*args, **opts) {}
-
   test "provides access to its name and scanners" do
     sink = Aikido::Firewall::Sink.new("test", scanners: [NOOP])
 

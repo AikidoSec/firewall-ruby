@@ -13,6 +13,9 @@ require "debug"
 class ActiveSupport::TestCase
   self.file_fixture_path = "test/fixtures"
 
+  # Utility proc that does nothing.
+  NOOP = ->(*args, **opts) {}
+
   # Reset any global state before each test
   setup do
     Aikido::Agent.instance_variable_set(:@info, nil)
