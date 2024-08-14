@@ -104,4 +104,35 @@ class Aikido::Firewall::SinkTest < ActiveSupport::TestCase
     scan = sink.scan(foo: 1, bar: 2)
     assert scan.duration > 0.001
   end
+
+  class TestRegistry < ActiveSupport::TestCase
+    Sinks = Aikido::Firewall::Sinks
+
+    setup do
+      @old_registry = Sinks.registry.dup
+      Sinks.registry.clear
+    end
+
+    teardown do
+      Sinks.registry.replace(@old_registry)
+    end
+
+    test "Sinks.add defines a new sink and registers it" do
+      assert_changes -> { Sinks.registry.keys }, from: [], to: ["test"] do
+        sink = Sinks.add("test", scanners: [NOOP])
+
+        assert_kind_of Aikido::Firewall::Sink, sink
+        assert_equal "test", sink.name
+        assert_equal [NOOP], sink.scanners
+      end
+    end
+
+    test "registering a sink more than once raises an error" do
+      Sinks.add("test", scanners: [NOOP])
+
+      assert_raises ArgumentError do
+        Sinks.add("test", scanners: [NOOP])
+      end
+    end
+  end
 end

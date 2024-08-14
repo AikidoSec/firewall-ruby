@@ -6,19 +6,24 @@ require "trilogy"
 require "aikido/firewall/sinks/trilogy"
 
 class Aikido::Firewall::Sinks::TrilogyTest < ActiveSupport::TestCase
+  include StubsCurrentRequest
+
   setup do
     @db = Trilogy.new(
       host: ENV.fetch("MYSQL_HOST", "127.0.0.1"),
       username: ENV.fetch("MYSQL_USERNAME", "root"),
       password: ENV.fetch("MYSQL_PASSWORD", "")
     )
+
+    @sink = Aikido::Firewall::Sinks::Trilogy::SINK
   end
 
   test "scans queries via #query" do
     mock = Minitest::Mock.new
-    mock.expect :scan, nil, [String], dialect: :mysql
+    mock.expect :call, nil,
+      query: String, dialect: :mysql, sink: @sink, request: Aikido::Agent::Request
 
-    Aikido::Firewall::Vulnerabilities.stub_const(:SQLInjectionScanner, mock) do
+    @sink.stub :scanners, [mock] do
       @db.query("SELECT 1")
     end
 

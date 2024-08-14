@@ -3,13 +3,17 @@
 module Aikido::Firewall
   module Sinks
     module Trilogy
-      def query(query, *)
-        Vulnerabilities::SQLInjectionScanner.scan(query, dialect: :mysql)
+      SINK = Sinks.add("trilogy", scanners: [Vulnerabilities::SQLInjectionScanner])
 
-        super
+      module Extensions
+        def query(query, *)
+          SINK.scan(query: query, dialect: :mysql)
+
+          super
+        end
       end
     end
   end
 end
 
-::Trilogy.prepend(Aikido::Firewall::Sinks::Trilogy)
+::Trilogy.prepend(Aikido::Firewall::Sinks::Trilogy::Extensions)

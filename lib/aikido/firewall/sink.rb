@@ -3,6 +3,30 @@
 require_relative "scan"
 
 module Aikido::Firewall
+  module Sinks
+    # @api internal
+    # @return [Hash<String, Sink>]
+    def self.registry
+      @registry ||= {}
+    end
+
+    # Primary interface to set up a sink with a list of given scanners.
+    #
+    # @param name [String] name of the library being patched. (This must
+    #   match the name of the gem, or we won't report that gem as
+    #   supported.)
+    # @param scanners [Array<#call>] a list of objects that respond to
+    #   #call with a Hash and return an Attack or nil.
+    #
+    # @return [void]
+    # @raise [ArgumentError] if a Sink with this name has already been
+    #   registered.
+    def self.add(name, scanners:)
+      raise ArgumentError, "Sink #{name} already registered" if registry.key?(name.to_s)
+      registry[name.to_s] = Sink.new(name.to_s, scanners: scanners)
+    end
+  end
+
   # Sinks serve as the proxies between a given library that we protect
   # (such as a database adapter that we patch to prevent SQL injections)
   # and the reporting agent.

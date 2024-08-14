@@ -3,13 +3,17 @@
 module Aikido::Firewall
   module Sinks
     module Mysql2
-      def query(query, *)
-        Vulnerabilities::SQLInjectionScanner.scan(query, dialect: :mysql)
+      SINK = Sinks.add("mysql2", scanners: [Vulnerabilities::SQLInjectionScanner])
 
-        super
+      module Extensions
+        def query(query, *)
+          SINK.scan(query: query, dialect: :mysql)
+
+          super
+        end
       end
     end
   end
 end
 
-::Mysql2::Client.prepend(Aikido::Firewall::Sinks::Mysql2)
+::Mysql2::Client.prepend(Aikido::Firewall::Sinks::Mysql2::Extensions)

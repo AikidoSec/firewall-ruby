@@ -1,18 +1,24 @@
 # frozen_string_literal: true
 
+require_relative "../sink"
+
 module Aikido::Firewall
   module Sinks
     module SQLite3
-      module Database
+      SINK = Sinks.add("sqlite3", scanners: [Vulnerabilities::SQLInjectionScanner])
+
+      module DatabaseExt
         def exec_batch(sql, *)
-          Vulnerabilities::SQLInjectionScanner.scan(sql, dialect: :sqlite)
+          SINK.scan(query: sql, dialect: :sqlite)
+
           super
         end
       end
 
-      module Statement
+      module StatementExt
         def initialize(_, sql, *)
-          Vulnerabilities::SQLInjectionScanner.scan(sql, dialect: :sqlite)
+          SINK.scan(query: sql, dialect: :sqlite)
+
           super
         end
       end
@@ -20,5 +26,5 @@ module Aikido::Firewall
   end
 end
 
-::SQLite3::Database.prepend(Aikido::Firewall::Sinks::SQLite3::Database)
-::SQLite3::Statement.prepend(Aikido::Firewall::Sinks::SQLite3::Statement)
+::SQLite3::Database.prepend(Aikido::Firewall::Sinks::SQLite3::DatabaseExt)
+::SQLite3::Statement.prepend(Aikido::Firewall::Sinks::SQLite3::StatementExt)

@@ -60,4 +60,16 @@ class ActiveSupport::TestCase
     refute lines.any? { |line| pattern === line && (match_level === line or true) }, reason
   end
   # rubocop:enable Style/OptionalArguments
+
+  module StubsCurrentRequest
+    # Override in tests to return the desired stub.
+    def current_request
+      @current_request ||= Aikido::Agent::Request.new({})
+    end
+
+    def self.included(base)
+      base.setup { Aikido::Agent.current_request = current_request }
+      base.teardown { Aikido::Agent.current_request = nil }
+    end
+  end
 end
