@@ -35,6 +35,8 @@ module Aikido::Firewall
             request: request
           )
         end
+
+        nil
       end
 
       # @api private

@@ -68,11 +68,16 @@ module Aikido::Firewall
       scan = Scan.new(sink: self, request: request)
 
       scan.perform do
-        scanners.find do |scanner|
-          scanner.call(sink: self, request: request, **scan_params)
+        result = nil
+
+        scanners.each do |scanner|
+          result = scanner.call(sink: self, request: request, **scan_params)
+          break result if result
         rescue => error
           scan.track_error(error, scanner)
         end
+
+        result
       end
 
       @reporter.call(scan)

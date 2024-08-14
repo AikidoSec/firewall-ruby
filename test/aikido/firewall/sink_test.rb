@@ -67,6 +67,7 @@ class Aikido::Firewall::SinkTest < ActiveSupport::TestCase
       scan = sink.scan(foo: 1, bar: 2)
 
       assert scan.attack?
+      assert_equal attack, scan.attack
       assert_empty scan.errors
     end
   end
