@@ -127,6 +127,14 @@ class Aikido::Firewall::SinkTest < ActiveSupport::TestCase
       end
     end
 
+    test "adding a sink to the registry marks the corresponding Package as supported" do
+      package = Aikido::Agent::Package.new("test", Gem::Version.new("1.0.0"))
+      refute package.supported?
+
+      Sinks.add(package.name, scanners: [NOOP])
+      assert package.supported?
+    end
+
     test "registering a sink more than once raises an error" do
       Sinks.add("test", scanners: [NOOP])
 
