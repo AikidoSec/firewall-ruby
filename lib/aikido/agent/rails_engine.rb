@@ -2,23 +2,26 @@
 
 module Aikido::Agent
   class RailsEngine < ::Rails::Engine
+    config.before_configuration do
+      # Access library configuration at `Rails.application.config.aikido_agent`.
+      config.aikido_agent = Aikido::Agent.config
+    end
+
     initializer "aikido.add_middleware" do |app|
       app.middleware.use Aikido::Agent::SetCurrentRequest
     end
 
     initializer "aikido.configuration" do |app|
-      # Access library configuration at `Rails.application.config.aikido_agent`.
-      app.config.aikido_agent = lib_config = Aikido::Agent.config
-      lib_config.logger = Rails.logger.tagged("aikido")
+      app.config.aikido_agent.logger = Rails.logger.tagged("aikido")
 
       # Plug Rails' JSON encoder/decoder, but only if the user hasn't changed
       # them for something else.
-      if lib_config.json_encoder == Aikido::Agent::Config::DEFAULT_JSON_ENCODER
-        lib_config.json_encoder = ActiveSupport::JSON.method(:encode)
+      if app.config.aikido_agent.json_encoder == Aikido::Agent::Config::DEFAULT_JSON_ENCODER
+        app.config.aikido_agent.json_encoder = ActiveSupport::JSON.method(:encode)
       end
 
-      if lib_config.json_decoder == Aikido::Agent::Config::DEFAULT_JSON_DECODER
-        lib_config.json_decoder = ActiveSupport::JSON.method(:decode)
+      if app.config.aikido_agent.json_decoder == Aikido::Agent::Config::DEFAULT_JSON_DECODER
+        app.config.aikido_agent.json_decoder = ActiveSupport::JSON.method(:decode)
       end
     end
 
