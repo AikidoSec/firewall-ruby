@@ -31,7 +31,11 @@ module Aikido
     # @raise [Aikido::Firewall::UnderAttackError] if the scan detected an Attack
     #   and blocking_mode is enabled.
     def self.track(scan)
-      # TODO: Implement me
+      # We shouldn't start collecting data before we even initialize the runner,
+      # but might as well make sure we have a @runner going to report to.
+      @runner or initialize!
+      # TODO: Implement statistics gathering
+      @runner.handle_attack(scan.attack) if scan.attack?
     end
 
     # Starts the background threads that keep the agent running.

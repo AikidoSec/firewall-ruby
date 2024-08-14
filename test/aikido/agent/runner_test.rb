@@ -7,8 +7,6 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
   Aikido::Agent::Runner.attr_reader :timer_tasks
 
   class MockAPIClient < Aikido::Agent::APIClient
-    include WebMock::API
-
     def should_fetch_settings?
       false
     end
@@ -152,6 +150,63 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
       assert_logged :info, /updated firewall settings after polling/i
 
       assert_mock @api_client
+    end
+  end
+
+  test "#handle_attack logs the attack's message" do
+    attack = TestAttack.new
+
+    @runner.handle_attack(attack)
+
+    assert_logged :error, /\[ATTACK DETECTED\] test attack/
+  end
+
+  test "#handle_attack reports an ATTACK event" do
+    attack = TestAttack.new
+
+    @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
+      @api_client.expect :report, {}, [Aikido::Agent::Events::Attack]
+
+      @runner.handle_attack(attack)
+
+      assert_mock @api_client
+    end
+  end
+
+  test "#handle_attack does not report an event if the API can't make requests" do
+    @config.api_token = nil
+
+    @runner.stub :report, -> { raise "#report called unexpectedly" } do
+      assert_nothing_raised do
+        @runner.handle_attack(TestAttack.new)
+      end
+    end
+  end
+
+  test "#handle_attack raises an error if blocking_mode is configured" do
+    @config.blocking_mode = true
+
+    attack = TestAttack.new
+
+    assert_raises Aikido::Firewall::UnderAttackError do
+      @runner.handle_attack(attack)
+    end
+  end
+
+  class TestAttack < Aikido::Firewall::Attack
+    def initialize
+    end
+
+    def log_message
+      "test attack"
+    end
+
+    def as_json
+      {}
+    end
+
+    def exception(*)
+      Aikido::Firewall::UnderAttackError.new(self)
     end
   end
 end
