@@ -28,11 +28,6 @@ class ActiveSupport::TestCase
     Aikido::Agent.config.logger.reopen(@log_output)
   end
 
-  # @return [Array<String>] all the log messages recorded in the current test.
-  #   Further invocations will include previously inspected messages, too.
-  def log_output
-  end
-
   # rubocop:disable Style/OptionalArguments
   def assert_logged(level = nil, pattern)
     @log_output.rewind
