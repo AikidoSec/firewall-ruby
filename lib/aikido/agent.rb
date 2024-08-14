@@ -23,6 +23,17 @@ module Aikido
       @info ||= Info.new
     end
 
+    # Track statistics about the result of a Sink's scan, and report it as an
+    # Attack if one is detected.
+    #
+    # @param scan [Aikido::Firewall::Scan]
+    # @return [void]
+    # @raise [Aikido::Firewall::UnderAttackError] if the scan detected an Attack
+    #   and blocking_mode is enabled.
+    def self.track(scan)
+      # TODO: Implement me
+    end
+
     # Starts the background threads that keep the agent running.
     #
     # @return [Aikido::Agent::Runner]

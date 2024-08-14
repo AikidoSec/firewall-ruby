@@ -1,0 +1,59 @@
+# frozen_string_literal: true
+
+require_relative "scan"
+
+module Aikido::Firewall
+  # Sinks serve as the proxies between a given library that we protect
+  # (such as a database adapter that we patch to prevent SQL injections)
+  # and the reporting agent.
+  #
+  # When a library is patched to track and potentially block attacks, we
+  # rely on a sink to run any scans required, and report any attacks to
+  # our agent.
+  #
+  # @see ./sinks/trilogy.rb for a reference implementation.
+  class Sink
+    # @return [String] name of the patched library (e.g. "mysql2").
+    attr_reader :name
+
+    # @return [Array<#call>] list of registered scanners for this sink.
+    attr_reader :scanners
+
+    def initialize(name, scanners:, reporter: Aikido::Agent.method(:track))
+      raise ArgumentError, "scanners cannot be empty" if scanners.empty?
+
+      @name = name
+      @scanners = scanners
+      @reporter = reporter
+    end
+
+    # Run the given arguments through all the registered scanners, until
+    # one of them returns an Attack or all return +nil+, and report the
+    # findings back to the Sink's +reporter+ to track statistics and
+    # potentially handle the +Attack+, if anything.
+    #
+    # @param scan_params [Hash] data to pass to all registered scanners.
+    # @option scan_params [Aikido::Agent::Request, nil] :request
+    #   The current HTTP request being inspected, or +nil+ if we're
+    #   scanning outside of an HTTP request.
+    #
+    # @return [Aikido::Firewall::Scan] the result of the scan.
+    # @raise [Aikido::UnderAttackError] if an attack is detected and
+    #   blocking_mode is enabled.
+    def scan(request: Aikido::Agent.current_request, **scan_params)
+      scan = Scan.new(sink: self, request: request)
+
+      scan.perform do
+        scanners.find do |scanner|
+          scanner.call(sink: self, request: request, **scan_params)
+        rescue => error
+          scan.track_error(error, scanner)
+        end
+      end
+
+      @reporter.call(scan)
+
+      scan
+    end
+  end
+end

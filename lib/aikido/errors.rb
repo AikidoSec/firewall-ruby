@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "forwardable"
+
 module Aikido
   # Support rescuing Aikido::Error without forcing a single base class to all
   # errors (so things that should be e.g. a TypeError, can have the correct
@@ -43,19 +45,20 @@ module Aikido
   end
 
   module Firewall
-    class SQLInjectionError < StandardError
+    class UnderAttackError < StandardError
       include Error
 
-      attr_reader :query
-      attr_reader :input
-      attr_reader :dialect
+      attr_reader :attack
 
-      def initialize(query, input, dialect)
-        super("SQL injection detected! User input <#{input}> not escaped in #{dialect} query: <#{query}>")
-        @query = query
-        @input = input
-        @dialect = dialect
+      def initialize(attack)
+        super(attack.log_message)
+        @attack = attack
       end
+    end
+
+    class SQLInjectionError < UnderAttackError
+      extend Forwardable
+      def_delegators :@attack, :query, :input, :dialect
     end
   end
 end
