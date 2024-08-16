@@ -39,6 +39,11 @@ module Aikido::Firewall
       @attack != nil
     end
 
+    # @return [Boolean] whether any errors were caught by this Scan.
+    def errors?
+      @errors.any?
+    end
+
     # Runs a block of code, capturing its return value as the potential
     # Attack object (or nil, if safe), and how long it took to run.
     #

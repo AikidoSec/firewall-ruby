@@ -2,17 +2,23 @@
 
 require "concurrent"
 require_relative "event"
+require_relative "stats"
 
 module Aikido::Agent
   # Handles the background threads that are run by the Agent.
   class Runner
+    # @return [Aikido::Agent::Stats] the statistics collected by the agent.
+    attr_reader :stats
+
     def initialize(
+      stats: Aikido::Agent::Stats.new,
       config: Aikido::Agent.config,
       info: Aikido::Agent.info,
       api_client: Aikido::Agent::APIClient.new
     )
       @started_at = nil
 
+      @stats = stats
       @info = info
       @config = config
       @api_client = api_client
@@ -35,6 +41,7 @@ module Aikido::Agent
       @config.logger.error("[ATTACK DETECTED] #{attack.log_message}")
       report(Events::Attack.new(attack: attack)) if @api_client.can_make_requests?
 
+      @stats.add_attack(attack, being_blocked: @config.blocking_mode?)
       raise attack if @config.blocking_mode?
     end
 
@@ -55,6 +62,8 @@ module Aikido::Agent
 
       raise Aikido::AgentError, "Aikido Agent already started!" if started?
       @started_at = Time.now.utc
+
+      @stats.start(@started_at)
 
       if @config.blocking_mode?
         @config.logger.info "Requests identified as attacks will be blocked"

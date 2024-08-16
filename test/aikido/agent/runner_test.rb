@@ -3,7 +3,7 @@
 require "test_helper"
 
 class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
-  # Define this so we can access the set of defined tasks.
+  # Make it easier to test
   Aikido::Agent::Runner.attr_reader :timer_tasks
 
   class MockAPIClient < Aikido::Agent::APIClient
@@ -26,6 +26,8 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
 
     @api_client = Minitest::Mock.new(MockAPIClient.new)
     @runner = Aikido::Agent::Runner.new(api_client: @api_client)
+
+    @test_sink = Aikido::Firewall::Sink.new("test", scanners: [NOOP])
   end
 
   teardown do
@@ -50,6 +52,14 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
     end
 
     assert_match(/already started/i, err.message)
+  end
+
+  test "#start! sets the start time for our stats funnel" do
+    assert_nil @runner.stats.started_at
+
+    @runner.start!
+
+    refute_nil @runner.stats.started_at
   end
 
   test "#start! warns if blocking mode is disabled" do
@@ -154,7 +164,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
   end
 
   test "#handle_attack logs the attack's message" do
-    attack = TestAttack.new
+    attack = TestAttack.new(sink: @test_sink)
 
     @runner.handle_attack(attack)
 
@@ -162,7 +172,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
   end
 
   test "#handle_attack reports an ATTACK event" do
-    attack = TestAttack.new
+    attack = TestAttack.new(sink: @test_sink)
 
     @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
       @api_client.expect :report, {}, [Aikido::Agent::Events::Attack]
@@ -178,7 +188,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
 
     @runner.stub :report, -> { raise "#report called unexpectedly" } do
       assert_nothing_raised do
-        @runner.handle_attack(TestAttack.new)
+        @runner.handle_attack(TestAttack.new(sink: @test_sink))
       end
     end
   end
@@ -186,7 +196,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
   test "#handle_attack raises an error if blocking_mode is configured" do
     @config.blocking_mode = true
 
-    attack = TestAttack.new
+    attack = TestAttack.new(sink: @test_sink)
 
     assert_raises Aikido::Firewall::UnderAttackError do
       @runner.handle_attack(attack)
@@ -194,7 +204,8 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
   end
 
   class TestAttack < Aikido::Firewall::Attack
-    def initialize
+    def initialize(sink: nil, request: nil)
+      super
     end
 
     def log_message

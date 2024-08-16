@@ -34,7 +34,7 @@ module Aikido
       # We shouldn't start collecting data before we even initialize the runner,
       # but might as well make sure we have a @runner going to report to.
       @runner or initialize!
-      # TODO: Implement statistics gathering
+      @runner.stats.add_scan(scan)
       @runner.handle_attack(scan.attack) if scan.attack?
     end
 
