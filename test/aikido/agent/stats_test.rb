@@ -113,6 +113,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
     expected = {
       startedAt: 1234567890000,
+      endedAt: 1234577890000,
       sinks: {},
       requests: {
         total: 0,
@@ -124,7 +125,29 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       }
     }
 
-    assert_equal expected, @stats.as_json
+    assert_equal expected, @stats.as_json(ended_at: Time.at(1234577890))
+  end
+
+  test "#as_json defaults the end time to the current time" do
+    @stats.start(Time.at(1234567890))
+
+    freeze_time do
+      expected = {
+        startedAt: 1234567890000,
+        endedAt: Time.now.utc.to_i * 1000,
+        sinks: {},
+        requests: {
+          total: 0,
+          aborted: 0,
+          attacksDetected: {
+            total: 0,
+            blocked: 0
+          }
+        }
+      }
+
+      assert_equal expected, @stats.as_json
+    end
   end
 
   test "#as_json includes the number of requests" do
@@ -133,6 +156,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
     expected = {
       startedAt: 1234567890000,
+      endedAt: 1234577890000,
       sinks: {},
       requests: {
         total: 3,
@@ -144,7 +168,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       }
     }
 
-    assert_equal expected, @stats.as_json
+    assert_equal expected, @stats.as_json(ended_at: Time.at(1234577890))
   end
 
   test "#as_json includes the scans grouped by sink" do
@@ -157,6 +181,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
     expected = {
       startedAt: 1234567890000,
+      endedAt: 1234577890000,
       requests: {
         total: 2,
         aborted: 0,
@@ -189,7 +214,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       }
     }
 
-    assert_equal expected, @stats.as_json
+    assert_equal expected, @stats.as_json(ended_at: Time.at(1234577890))
   end
 
   test "#as_json includes the number of scans that raised an error" do
@@ -202,6 +227,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
     expected = {
       startedAt: 1234567890000,
+      endedAt: 1234577890000,
       requests: {
         total: 2,
         aborted: 0,
@@ -234,7 +260,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       }
     }
 
-    assert_equal expected, @stats.as_json
+    assert_equal expected, @stats.as_json(ended_at: Time.at(1234577890))
   end
 
   test "#as_json includes the attacks grouped by sink" do
@@ -250,6 +276,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
     expected = {
       startedAt: 1234567890000,
+      endedAt: 1234577890000,
       requests: {
         total: 2,
         aborted: 0,
@@ -282,7 +309,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       }
     }
 
-    assert_equal expected, @stats.as_json
+    assert_equal expected, @stats.as_json(ended_at: Time.at(1234577890))
   end
 
   test "#as_json includes the compressed timings grouped by sink" do
@@ -299,6 +326,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
       expected = {
         startedAt: 1234567890000,
+        endedAt: 1234577890000,
         requests: {
           total: 2,
           aborted: 0,
@@ -351,7 +379,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
         }
       }
 
-      assert_equal expected, @stats.as_json
+      assert_equal expected, @stats.as_json(ended_at: Time.at(1234577890))
     end
   end
 end
