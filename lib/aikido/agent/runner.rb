@@ -114,11 +114,22 @@ module Aikido::Agent
     def setup_heartbeat(settings)
       return unless @api_client.can_make_requests?
 
-      if !@heartbeats&.running? && settings.heartbeat_interval&.nonzero?
+      # If the desired interval changed, then clear the current heartbeat timer
+      # and set up a new one.
+      if @heartbeats&.running? && @heartbeats.execution_interval != settings.heartbeat_interval
+        @heartbeats.shutdown
+        @heartbeats = nil
+        setup_heartbeat(settings)
+
+      # If the heartbeat timer isn't running but we know how often it should run, schedule it.
+      elsif !@heartbeats&.running? && settings.heartbeat_interval&.nonzero?
         @config.logger.debug "Scheduling heartbeats every #{settings.heartbeat_interval} seconds"
         @heartbeats = timer_task(every: settings.heartbeat_interval, run_now: false) do
           send_heartbeat
         end
+
+      elsif !@heartbeats&.running?
+        @config.logger.debug(format("Heartbeat could not be setup (interval: %p)", settings.heartbeat_interval))
       end
     end
 
@@ -138,14 +149,14 @@ module Aikido::Agent
     end
 
     private def timer_task(every:, **opts, &block)
-      @timer_tasks << Concurrent::TimerTask.execute(
+      Concurrent::TimerTask.execute(
         run_now: true,
         interval_type: :fixed_rate,
         execution_interval: every,
         executor: reporting_pool,
         **opts,
         &block
-      )
+      ).tap { |task| @timer_tasks << task }
     end
   end
 end

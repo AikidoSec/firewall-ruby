@@ -250,6 +250,28 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
     assert_logged :debug, /scheduling heartbeats every 10 seconds/i
   end
 
+  test "#setup_heartbeat resets the timer if the interval changes" do
+    settings = Aikido::Firewall.settings
+    settings.heartbeat_interval = 10
+    assert_difference -> { @runner.timer_tasks.size }, +1 do
+      @runner.setup_heartbeat(settings)
+    end
+
+    first_timer = @runner.timer_tasks.last
+    assert_equal 10, first_timer.execution_interval
+    assert first_timer.running?
+
+    settings.heartbeat_interval = 20
+    assert_difference -> { @runner.timer_tasks.size }, +1 do
+      @runner.setup_heartbeat(settings)
+    end
+
+    second_timer = @runner.timer_tasks.last
+    assert_equal 20, second_timer.execution_interval
+    refute first_timer.running?
+    assert second_timer.running?
+  end
+
   class TestAttack < Aikido::Firewall::Attack
     def initialize(sink: nil, request: nil)
       super
