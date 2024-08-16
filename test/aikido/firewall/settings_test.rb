@@ -11,7 +11,7 @@ class Aikido::Firewall::SettingsTest < ActiveSupport::TestCase
     @settings.update_from_json({
       "success" => true,
       "serviceId" => 1234,
-      "configUpdatedAt" => 1717171717,
+      "configUpdatedAt" => 1717171717000,
       "heartbeatIntervalInMS" => 60000,
       "endpoints" => [],
       "blockedUserIds" => [],

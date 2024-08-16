@@ -107,7 +107,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
   test "#start! takes the response of the STARTED event as firewall settings" do
     @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
       @api_client.expect :report,
-        {"configUpdatedAt" => 1234567890},
+        {"configUpdatedAt" => 1234567890000},
         [Aikido::Agent::Events::Started]
 
       assert_changes -> { Aikido::Firewall.settings.updated_at }, to: Time.at(1234567890) do
@@ -151,7 +151,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
   test "#start! updates the firewall settings after polling if needed" do
     @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
       @api_client.expect :should_fetch_settings?, true
-      @api_client.expect :fetch_settings, {"configUpdatedAt" => 1234567890}
+      @api_client.expect :fetch_settings, {"configUpdatedAt" => 1234567890000}
 
       assert_changes -> { Aikido::Firewall.settings.updated_at }, to: Time.at(1234567890) do
         @runner.start!

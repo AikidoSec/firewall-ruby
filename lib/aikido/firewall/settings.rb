@@ -34,7 +34,7 @@ module Aikido::Firewall
     #
     # @return [void]
     def update_from_json(data)
-      self.updated_at = Time.at(data["configUpdatedAt"].to_i)
+      self.updated_at = Time.at(data["configUpdatedAt"].to_i / 1000)
       self.heartbeat_interval = (data["heartbeatIntervalInMS"].to_i / 1000)
       self.endpoints = data["endpoints"]
       self.blocked_user_ids = data["blockedUserIds"]
