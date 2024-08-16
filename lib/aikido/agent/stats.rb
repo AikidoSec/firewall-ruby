@@ -5,8 +5,8 @@ require "concurrent"
 module Aikido::Agent
   # Tracks information about how the Aikido Agent is used in the app.
   class Stats < Concurrent::Synchronization::LockableObject
-    # @api private
-    attr_reader :started_at
+    # @!visibility private
+    attr_reader :started_at, :requests, :aborted_requests, :sinks
 
     def initialize(config = Aikido::Agent.config)
       super()

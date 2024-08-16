@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "action_dispatch"
+require_relative "request"
 
 module Aikido::Agent
-  # @return [ActionDispatch::Request, nil] the ongoing HTTP request, or +nil+ if
+  # @return [Aikido::Agent::Request, nil] the ongoing HTTP request, or +nil+ if
   #   outside an HTTP request.
   def self.current_request
     Thread.current[:_aikido_current_request_]
@@ -22,25 +22,11 @@ module Aikido::Agent
 
     def call(env)
       Aikido::Agent.current_request = Request.new(env)
+      Aikido::Agent.track_request(Aikido::Agent.current_request)
+
       @app.call(env)
     ensure
       Aikido::Agent.current_request = nil
-    end
-  end
-
-  class Request < ActionDispatch::Request
-    # Yields every non-empty input in the request (whether a query param, path
-    # param, or request body param).
-    #
-    # @return [void]
-    def each_user_input
-      # FIXME: This does not yet consider nested hashes
-      params.each_value { |v| yield v if v.present? }
-    end
-
-    # TODO: Implement me
-    def as_json
-      {method: method}
     end
   end
 end

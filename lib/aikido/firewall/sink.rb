@@ -43,7 +43,7 @@ module Aikido::Firewall
     # @return [Array<#call>] list of registered scanners for this sink.
     attr_reader :scanners
 
-    def initialize(name, scanners:, reporter: Aikido::Agent.method(:track))
+    def initialize(name, scanners:, reporter: Aikido::Agent.method(:track_scan))
       raise ArgumentError, "scanners cannot be empty" if scanners.empty?
 
       @name = name

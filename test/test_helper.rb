@@ -20,9 +20,16 @@ class ActiveSupport::TestCase
   setup do
     Aikido::Agent.instance_variable_set(:@info, nil)
     Aikido::Agent.instance_variable_set(:@config, nil)
+    Aikido::Agent.instance_variable_set(:@runner, nil)
     Aikido::Firewall.instance_variable_set(:@settings, nil)
 
     WebMock.reset!
+  end
+
+  teardown do
+    # In case any test starts the agent background thread as a side effect, this
+    # should make sure we're cleaning things up.
+    Aikido::Agent.stop!
   end
 
   # Capture log output and make it testable

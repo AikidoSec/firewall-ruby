@@ -10,10 +10,6 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
     @sink = stub_sink(name: "test")
   end
 
-  # Expose these fields for ease of testing.
-  Aikido::Agent::Stats.attr_reader :requests, :aborted_requests, :sinks
-  CompressedTiming = Aikido::Agent::Stats::SinkStats::CompressedTiming
-
   def stub_sink(name:)
     Aikido::Firewall::Sink.new(name, scanners: [NOOP])
   end
@@ -90,9 +86,11 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       # The last value is kept in the raw timings list
       assert_equal Set.new([4]), stats.timings
 
-      assert_equal \
-        [CompressedTiming.new(2, {50 => 2, 75 => 3, 90 => 3, 95 => 3, 99 => 3}, Time.now.utc)],
-        stats.compressed_timings
+      expected = Aikido::Agent::Stats::SinkStats::CompressedTiming.new(
+        2, {50 => 2, 75 => 3, 90 => 3, 95 => 3, 99 => 3}, Time.now.utc
+      )
+
+      assert_equal [expected], stats.compressed_timings
     end
   end
 
