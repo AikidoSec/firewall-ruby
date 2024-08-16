@@ -3,9 +3,24 @@
 module Aikido::Firewall
   # Stores the firewall configuration sourced from the Aikido dashboard. This
   # object is updated by the Agent regularly.
+  #
+  # Because the Settings object can be modified in runtime, it implements the
+  # {Observable} API, allowing you to subscribe to updates. These are triggered
+  # whenever #update_from_json makes a change (i.e. if the settings don't
+  # change, no update is triggered).
+  #
+  # You can subscribe to changes with +#add_observer(object, func_name)+, which
+  # will call the function passing the settings as an argument.
   class Settings < Concurrent::MutableStruct.new(
     :updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :allowed_ip_addresses, :received_any_stats
   )
+    include Concurrent::Concern::Observable
+
+    def initialize(*)
+      self.observers = Concurrent::Collection::CopyOnWriteObserverSet.new
+      super
+    end
+
     # @!attribute [rw] updated_at
     #   @return [Time] when these settings were updated in the Aikido dashboard.
 
@@ -27,19 +42,24 @@ module Aikido::Firewall
     #   @return [Array]
 
     # Parse and interpret the JSON response from the core API with updated
-    # settings, and apply the changes.
+    # settings, and apply the changes. This will also notify any subscriber
+    # to updates
     #
     # @param data [Hash] the decoded JSON payload from the /api/runtime/config
     #   API endpoint.
     #
     # @return [void]
     def update_from_json(data)
+      last_updated_at = updated_at
+
       self.updated_at = Time.at(data["configUpdatedAt"].to_i / 1000)
       self.heartbeat_interval = (data["heartbeatIntervalInMS"].to_i / 1000)
       self.endpoints = data["endpoints"]
       self.blocked_user_ids = data["blockedUserIds"]
       self.allowed_ip_addresses = data["allowedIpAddresses"]
       self.received_any_stats = data["receivedAnyStats"]
+
+      observers.notify_observers(self) if updated_at != last_updated_at
     end
   end
 end
