@@ -23,6 +23,21 @@ module Aikido::Agent
       !!@started_at
     end
 
+    # Given an Attack, report it to the Aikido server, and/or block the request
+    # depending on configuration.
+    #
+    # @param attack [Attack] a detected attack.
+    # @return [void]
+    #
+    # @raise [Aikido::Firewall::UnderAttackError] if the firewall is configured
+    #   to block requests.
+    def handle_attack(attack)
+      @config.logger.error("[ATTACK DETECTED] #{attack.log_message}")
+      report(Events::Attack.new(attack: attack)) if @api_client.can_make_requests?
+
+      raise attack if @config.blocking_mode?
+    end
+
     # Asynchronously reports an Event of any kind to the Aikido dashboard. If
     # given a block, the API response will be passed to the block for handling.
     #
@@ -41,7 +56,7 @@ module Aikido::Agent
       raise Aikido::AgentError, "Aikido Agent already started!" if started?
       @started_at = Time.now.utc
 
-      if @config.blocking_mode
+      if @config.blocking_mode?
         @config.logger.info "Requests identified as attacks will be blocked"
       else
         @config.logger.warn "Non-blocking mode enabled! No requests will be blocked."

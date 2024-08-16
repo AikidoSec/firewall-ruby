@@ -6,6 +6,8 @@ require "pg"
 require "aikido/firewall/sinks/pg"
 
 class Aikido::Firewall::Sinks::PGTest < ActiveSupport::TestCase
+  include StubsCurrentRequest
+
   setup do
     @db = PG.connect(
       host: ENV.fetch("POSTGRES_HOST", "127.0.0.1"),
@@ -13,13 +15,16 @@ class Aikido::Firewall::Sinks::PGTest < ActiveSupport::TestCase
       password: ENV.fetch("POSTGRES_PASSWORD", "password"),
       dbname: ENV.fetch("POSTGRES_DATABASE", "postgres")
     )
+
+    @sink = Aikido::Firewall::Sinks::PG::SINK
   end
 
   def with_mocked_scanner(&b)
     mock = Minitest::Mock.new
-    mock.expect :scan, nil, [String], dialect: :postgresql
+    mock.expect :call, nil,
+      query: String, dialect: :postgresql, sink: @sink, request: Aikido::Agent::Request
 
-    Aikido::Firewall::Vulnerabilities.stub_const(:SQLInjectionScanner, mock) do
+    @sink.stub :scanners, [mock] do
       yield mock
     end
   end

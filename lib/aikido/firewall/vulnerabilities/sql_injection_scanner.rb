@@ -1,20 +1,22 @@
 # frozen_string_literal: true
 
 require_relative "sql_injection/sql_dialect"
+require_relative "../attack"
 
 module Aikido::Firewall
   module Vulnerabilities
     class SQLInjectionScanner
       # Checks if the given SQL query may have dangerous user input injected,
-      # and raises an error if so, based on the current request.
+      # and returns an Attack if so, based on the current request.
       #
       # @param query [String]
       # @param request [Aikido::Agent::Request]
+      # @param sink [Aikido::Firewall::Sink] the Sink that is running the scan.
       # @param dialect [Symbol] one of +:mysql+, +:postgesql+, or +:sqlite+.
       #
-      # @return [void]
-      # @raise [Aikido::Firewall::SQLInjectionError] if an attack is detected.
-      def self.scan(query, dialect:, request: Aikido::Agent.current_request)
+      # @return [Aikido::Firewall::Attack, nil] an Attack if any user input is
+      #   detected to be attempting a SQL injection, or nil if this is safe.
+      def self.call(query:, dialect:, sink:, request:)
         # FIXME: This assumes queries executed outside of an HTTP request are
         # safe, but this is not the case. For example, if an HTTP request
         # enqueues a background job, passing user input verbatim, the job might
@@ -23,13 +25,22 @@ module Aikido::Firewall
 
         request.each_user_input do |input|
           scanner = new(query, input, dialect)
-          raise SQLInjectionError.new(query, input, dialect) if scanner.attack?
+          next unless scanner.attack?
+
+          return Attacks::SQLInjectionAttack.new(
+            sink: sink,
+            query: query,
+            input: input,
+            dialect: dialect,
+            request: request
+          )
         end
+
+        nil
       end
 
       # @api private
       def initialize(query, input, dialect)
-        @original_query, @original_input = query, input
         @query = query.downcase
         @input = input.downcase
         @dialect = SQLInjection[dialect]

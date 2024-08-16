@@ -84,7 +84,7 @@ module Aikido::Firewall::Vulnerabilities
     end
 
     @dialects = {
-      common: SQLDialect.new(name: :common),
+      common: SQLDialect.new(name: "SQL"),
 
       mysql: SQLDialect.new(
         name: "MySQL",

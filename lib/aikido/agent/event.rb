@@ -30,5 +30,19 @@ module Aikido::Agent
         super(type: "started", **opts)
       end
     end
+
+    class Attack < Event
+      def initialize(attack:, **opts)
+        @attack = attack
+        super(type: "detected_attack", **opts)
+      end
+
+      def as_json
+        super.update(
+          attack: @attack.as_json,
+          request: @attack.request.as_json
+        )
+      end
+    end
   end
 end

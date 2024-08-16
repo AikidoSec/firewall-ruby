@@ -13,6 +13,9 @@ require "debug"
 class ActiveSupport::TestCase
   self.file_fixture_path = "test/fixtures"
 
+  # Utility proc that does nothing.
+  NOOP = ->(*args, **opts) {}
+
   # Reset any global state before each test
   setup do
     Aikido::Agent.instance_variable_set(:@info, nil)
@@ -26,11 +29,6 @@ class ActiveSupport::TestCase
   setup do
     @log_output = StringIO.new
     Aikido::Agent.config.logger.reopen(@log_output)
-  end
-
-  # @return [Array<String>] all the log messages recorded in the current test.
-  #   Further invocations will include previously inspected messages, too.
-  def log_output
   end
 
   # rubocop:disable Style/OptionalArguments
@@ -60,4 +58,16 @@ class ActiveSupport::TestCase
     refute lines.any? { |line| pattern === line && (match_level === line or true) }, reason
   end
   # rubocop:enable Style/OptionalArguments
+
+  module StubsCurrentRequest
+    # Override in tests to return the desired stub.
+    def current_request
+      @current_request ||= Aikido::Agent::Request.new({})
+    end
+
+    def self.included(base)
+      base.setup { Aikido::Agent.current_request = current_request }
+      base.teardown { Aikido::Agent.current_request = nil }
+    end
+  end
 end

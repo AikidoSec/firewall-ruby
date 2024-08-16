@@ -37,5 +37,10 @@ module Aikido::Agent
       # FIXME: This does not yet consider nested hashes
       params.each_value { |v| yield v if v.present? }
     end
+
+    # TODO: Implement me
+    def as_json
+      {method: method}
+    end
   end
 end

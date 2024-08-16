@@ -10,6 +10,7 @@ module Aikido::Agent
     #   the request by raising an Exception. Defaults to whether AIKIDO_BLOCKING
     #   is set to a non-empty value in your environment, or +false+ otherwise.
     attr_accessor :blocking_mode
+    alias_method :blocking_mode?, :blocking_mode
 
     # @return [URI] The HTTP host for the Aikido API. Defaults to
     #   +https://guard.aikido.dev+.

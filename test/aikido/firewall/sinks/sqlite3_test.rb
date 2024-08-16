@@ -6,15 +6,19 @@ require "sqlite3"
 require "aikido/firewall/sinks/sqlite3"
 
 class Aikido::Firewall::Sinks::SQLite3Test < ActiveSupport::TestCase
+  include StubsCurrentRequest
+
   setup do
     @db = SQLite3::Database.new(":memory:")
+    @sink = Aikido::Firewall::Sinks::SQLite3::SINK
   end
 
   def with_mocked_scanner(&b)
     mock = Minitest::Mock.new
-    mock.expect :scan, nil, [String], dialect: :sqlite
+    mock.expect :call, nil,
+      query: String, dialect: :sqlite, sink: @sink, request: Aikido::Agent::Request
 
-    Aikido::Firewall::Vulnerabilities.stub_const(:SQLInjectionScanner, mock) do
+    @sink.stub(:scanners, [mock]) do
       yield mock
     end
   end
