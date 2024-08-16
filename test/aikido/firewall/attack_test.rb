@@ -34,7 +34,7 @@ module Aikido::Firewall
       TXT
     end
 
-    test "correclty identifies the MySQL dialect in the log message" do
+    test "correctly identifies the MySQL dialect in the log message" do
       dialect = Aikido::Firewall::Vulnerabilities::SQLInjection[:mysql]
       attack = Aikido::Firewall::Attacks::SQLInjectionAttack.new(
         query: @query, input: @input, dialect: dialect, sink: @sink, request: @request
@@ -43,7 +43,7 @@ module Aikido::Firewall
       assert_match(/in MySQL query/, attack.log_message)
     end
 
-    test "correclty identifies the PostgreSQL dialect in the log message" do
+    test "correctly identifies the PostgreSQL dialect in the log message" do
       dialect = Aikido::Firewall::Vulnerabilities::SQLInjection[:postgresql]
       attack = Aikido::Firewall::Attacks::SQLInjectionAttack.new(
         query: @query, input: @input, dialect: dialect, sink: @sink, request: @request
@@ -52,7 +52,7 @@ module Aikido::Firewall
       assert_match(/in PostgreSQL query/, attack.log_message)
     end
 
-    test "correclty identifies the SQLite dialect in the log message" do
+    test "correctly identifies the SQLite dialect in the log message" do
       dialect = Aikido::Firewall::Vulnerabilities::SQLInjection[:sqlite]
       attack = Aikido::Firewall::Attacks::SQLInjectionAttack.new(
         query: @query, input: @input, dialect: dialect, sink: @sink, request: @request
