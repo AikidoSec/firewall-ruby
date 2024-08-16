@@ -135,7 +135,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
     @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
       @api_client.expect :should_fetch_settings?, false
 
-      assert_changes -> { @runner.timer_tasks.size }, from: 0, to: 1 do
+      assert_difference -> { @runner.timer_tasks.size }, +1 do
         @runner.start!
       end
 
@@ -201,6 +201,53 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
     assert_raises Aikido::Firewall::UnderAttackError do
       @runner.handle_attack(attack)
     end
+  end
+
+  test "#send_heartbeat reports a heartbeat event and updates the settings" do
+    @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
+      @api_client.expect :report, {"receivedAnyStats" => true}, [Aikido::Agent::Events::Heartbeat]
+
+      assert_changes -> { Aikido::Firewall.settings.received_any_stats }, to: true do
+        @runner.send_heartbeat
+      end
+
+      assert_mock @api_client
+    end
+  end
+
+  test "#send_heartbeat flushes the stats before sending them" do
+    stats = Minitest::Mock.new
+    stats.expect :serialize_and_reset, {}
+
+    @runner.stub :stats, stats do
+      @runner.send_heartbeat
+
+      assert_mock stats
+    end
+  end
+
+  test "#send_heartbeat does nothing if we don't have an API token" do
+    @config.api_token = nil
+
+    @runner.stub :report, -> { raise "#report called unexpectedly" } do
+      assert_nothing_raised do
+        @runner.send_heartbeat
+      end
+    end
+  end
+
+  test "#setup_heartbeat configures a timer for the configured frequency" do
+    settings = Aikido::Firewall.settings
+    settings.heartbeat_interval = 10
+
+    assert_difference -> { @runner.timer_tasks.size }, +1 do
+      @runner.setup_heartbeat(settings)
+    end
+
+    timer = @runner.timer_tasks.last
+    assert_equal 10, timer.execution_interval
+
+    assert_logged :debug, /scheduling heartbeats every 10 seconds/i
   end
 
   class TestAttack < Aikido::Firewall::Attack

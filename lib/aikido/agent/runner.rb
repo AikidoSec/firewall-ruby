@@ -41,7 +41,7 @@ module Aikido::Agent
       @config.logger.error("[ATTACK DETECTED] #{attack.log_message}")
       report(Events::Attack.new(attack: attack)) if @api_client.can_make_requests?
 
-      @stats.add_attack(attack, being_blocked: @config.blocking_mode?)
+      stats.add_attack(attack, being_blocked: @config.blocking_mode?)
       raise attack if @config.blocking_mode?
     end
 
@@ -63,7 +63,7 @@ module Aikido::Agent
       raise Aikido::AgentError, "Aikido Agent already started!" if started?
       @started_at = Time.now.utc
 
-      @stats.start(@started_at)
+      stats.start(@started_at)
 
       if @config.blocking_mode?
         @config.logger.info "Requests identified as attacks will be blocked"
@@ -78,6 +78,10 @@ module Aikido::Agent
         return
       end
 
+      # Subscribe to firewall setting changes so we can correctly re-configure
+      # the heartbeat process.
+      Aikido::Firewall.settings.add_observer(self, :setup_heartbeat)
+
       at_exit { stop! if started? }
 
       report(Events::Started.new(time: @started_at)) do |response|
@@ -88,11 +92,32 @@ module Aikido::Agent
       poll_for_setting_updates
     end
 
+    def send_heartbeat
+      return unless @api_client.can_make_requests?
+
+      serialized = stats.serialize_and_reset
+      report(Events::Heartbeat.new(serialized_stats: serialized)) do |response|
+        Aikido::Firewall.settings.update_from_json(response)
+        @config.logger.info "Updated firewall settings after heartbeat"
+      end
+    end
+
     def poll_for_setting_updates
       timer_task(every: @config.polling_interval) do
         if @api_client.should_fetch_settings?
           Aikido::Firewall.settings.update_from_json(@api_client.fetch_settings)
           @config.logger.info "Updated firewall settings after polling"
+        end
+      end
+    end
+
+    def setup_heartbeat(settings)
+      return unless @api_client.can_make_requests?
+
+      if !@heartbeats&.running? && settings.heartbeat_interval&.nonzero?
+        @config.logger.debug "Scheduling heartbeats every #{settings.heartbeat_interval} seconds"
+        @heartbeats = timer_task(every: settings.heartbeat_interval, run_now: false) do
+          send_heartbeat
         end
       end
     end
