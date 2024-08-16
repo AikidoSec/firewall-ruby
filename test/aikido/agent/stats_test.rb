@@ -382,4 +382,98 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       assert_equal expected, @stats.as_json(ended_at: Time.at(1234577890))
     end
   end
+
+  test "#serialize_and_reset returns the JSON serialization" do
+    @stats.start(Time.at(1234567890))
+
+    expected = {
+      startedAt: 1234567890000,
+      endedAt: 1234577890000,
+      sinks: {},
+      requests: {
+        total: 0,
+        aborted: 0,
+        attacksDetected: {
+          total: 0,
+          blocked: 0
+        }
+      }
+    }
+
+    assert_equal expected, @stats.serialize_and_reset(as_of: Time.at(1234577890))
+  end
+
+  test "#serialize_and_reset includes all current stats and clears the object" do
+    @stats.start(Time.at(1234567890))
+    2.times { @stats.add_request(stub_request) }
+
+    @stats.add_scan(stub_scan(sink: @sink, duration: 2))
+    @stats.add_scan(stub_scan(sink: @sink, duration: 3))
+    @stats.add_scan(stub_scan(sink: @sink, duration: 1))
+    @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
+
+    freeze_time do
+      expected = {
+        startedAt: 1234567890000,
+        endedAt: 1234577890000,
+        requests: {
+          total: 2,
+          aborted: 0,
+          attacksDetected: {
+            total: 1,
+            blocked: 1
+          }
+        },
+        sinks: {
+          "test" => {
+            total: 3,
+            interceptorThrewError: 0,
+            withoutContext: 0,
+            attacksDetected: {
+              total: 1,
+              blocked: 1
+            },
+            compressedTimings: [{
+              averageInMs: 2000,
+              percentiles: {
+                50 => 2000,
+                75 => 3000,
+                90 => 3000,
+                95 => 3000,
+                99 => 3000
+              },
+              compressedAt: Time.now.to_i * 1000
+            }]
+          }
+        }
+      }
+
+      assert_equal expected, @stats.serialize_and_reset(as_of: Time.at(1234577890))
+
+      assert_empty @stats.sinks
+      assert_equal 0, @stats.requests
+      assert_equal 0, @stats.aborted_requests
+      assert_equal Time.at(1234577890), @stats.started_at
+    end
+  end
+
+  test "writing new data while serialize_and_reset is running waits and appends data to new stats" do
+    @stats.start(Time.at(1234567890))
+    2.times { @stats.add_request(stub_request) }
+
+    @stats.add_scan(stub_scan(sink: @sink, duration: 2))
+    @stats.add_scan(stub_scan(sink: @sink, duration: 3))
+    @stats.add_scan(stub_scan(sink: @sink, duration: 1))
+    @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
+
+    serialized = nil
+    t1 = Thread.new { serialized = @stats.serialize_and_reset }
+    t2 = Thread.new { 10.times { @stats.add_request(stub_request) } }
+
+    t1.join
+    t2.join
+
+    assert_equal 2, serialized.dig(:requests, :total)
+    assert_equal 10, @stats.requests
+  end
 end

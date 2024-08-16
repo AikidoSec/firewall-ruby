@@ -23,6 +23,28 @@ module Aikido::Agent
       synchronize { @started_at = at }
     end
 
+    # Atomically serializes the stats as JSON and resets them to start
+    # collecting a new set of stats.
+    #
+    # @return [Hash] the result of #as_json
+    def serialize_and_reset(as_of: Time.now.utc)
+      synchronize {
+        # Before flushing the stats into JSON we need to compress any
+        # timing stats, as the JSON representation includes these but
+        # not the raw measurements.
+        @sinks.each_value(&:compress_timings)
+        serialized = as_json(ended_at: as_of)
+
+        # Reset all the internal state
+        @sinks.clear
+        @requests = 0
+        @aborted_requests = 0
+        start(as_of)
+
+        serialized
+      }
+    end
+
     # @param [Aikido::Agent::Request]
     # @return [void]
     def add_request(request)
