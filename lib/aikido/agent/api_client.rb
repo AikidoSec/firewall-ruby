@@ -33,7 +33,7 @@ module Aikido::Agent
         base_url: @config.runtime_api_base_url
       )
 
-      new_updated_at = Time.at(response["configUpdatedAt"].to_i)
+      new_updated_at = Time.at(response["configUpdatedAt"].to_i / 1000)
       new_updated_at > last_updated_at
     end
 

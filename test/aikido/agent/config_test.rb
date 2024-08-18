@@ -15,6 +15,9 @@ class Aikido::Agent::ConfigTest < ActiveSupport::TestCase
     assert_equal 10, @config.api_timeouts[:open_timeout]
     assert_equal 10, @config.api_timeouts[:read_timeout]
     assert_equal 10, @config.api_timeouts[:write_timeout]
+    assert_kind_of ::Logger, @config.logger
+    assert_equal 5000, @config.max_performance_samples
+    assert_equal 100, @config.max_compressed_stats
   end
 
   test "can overwrite the api_base_url" do

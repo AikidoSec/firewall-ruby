@@ -48,7 +48,7 @@ class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
 
     test "returns false if the updated_at from the server is the same or older than the one we have" do
       stub_request(:get, "https://runtime.aikido.dev/config")
-        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890))
+        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890000))
 
       Aikido::Firewall.settings.updated_at = Time.at(1234567890)
       assert_not @client.should_fetch_settings?
@@ -59,7 +59,7 @@ class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
 
     test "returns true if the updated_at from the server is newer than the one we have" do
       stub_request(:get, "https://runtime.aikido.dev/config")
-        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890))
+        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890000))
 
       Aikido::Firewall.settings.updated_at = Time.at(1234567890 - 1)
       assert @client.should_fetch_settings?
@@ -67,7 +67,7 @@ class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
 
     test "sets the User-Agent on the request" do
       stub_request(:get, "https://runtime.aikido.dev/config")
-        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890))
+        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890000))
 
       @client.should_fetch_settings?
 

@@ -2,17 +2,23 @@
 
 require "concurrent"
 require_relative "event"
+require_relative "stats"
 
 module Aikido::Agent
   # Handles the background threads that are run by the Agent.
   class Runner
+    # @return [Aikido::Agent::Stats] the statistics collected by the agent.
+    attr_reader :stats
+
     def initialize(
+      stats: Aikido::Agent::Stats.new,
       config: Aikido::Agent.config,
       info: Aikido::Agent.info,
       api_client: Aikido::Agent::APIClient.new
     )
       @started_at = nil
 
+      @stats = stats
       @info = info
       @config = config
       @api_client = api_client
@@ -35,6 +41,7 @@ module Aikido::Agent
       @config.logger.error("[ATTACK DETECTED] #{attack.log_message}")
       report(Events::Attack.new(attack: attack)) if @api_client.can_make_requests?
 
+      stats.add_attack(attack, being_blocked: @config.blocking_mode?)
       raise attack if @config.blocking_mode?
     end
 
@@ -56,6 +63,8 @@ module Aikido::Agent
       raise Aikido::AgentError, "Aikido Agent already started!" if started?
       @started_at = Time.now.utc
 
+      stats.start(@started_at)
+
       if @config.blocking_mode?
         @config.logger.info "Requests identified as attacks will be blocked"
       else
@@ -69,6 +78,10 @@ module Aikido::Agent
         return
       end
 
+      # Subscribe to firewall setting changes so we can correctly re-configure
+      # the heartbeat process.
+      Aikido::Firewall.settings.add_observer(self, :setup_heartbeat)
+
       at_exit { stop! if started? }
 
       report(Events::Started.new(time: @started_at)) do |response|
@@ -79,12 +92,44 @@ module Aikido::Agent
       poll_for_setting_updates
     end
 
+    def send_heartbeat
+      return unless @api_client.can_make_requests?
+
+      serialized = stats.serialize_and_reset
+      report(Events::Heartbeat.new(serialized_stats: serialized)) do |response|
+        Aikido::Firewall.settings.update_from_json(response)
+        @config.logger.info "Updated firewall settings after heartbeat"
+      end
+    end
+
     def poll_for_setting_updates
       timer_task(every: @config.polling_interval) do
         if @api_client.should_fetch_settings?
           Aikido::Firewall.settings.update_from_json(@api_client.fetch_settings)
           @config.logger.info "Updated firewall settings after polling"
         end
+      end
+    end
+
+    def setup_heartbeat(settings)
+      return unless @api_client.can_make_requests?
+
+      # If the desired interval changed, then clear the current heartbeat timer
+      # and set up a new one.
+      if @heartbeats&.running? && @heartbeats.execution_interval != settings.heartbeat_interval
+        @heartbeats.shutdown
+        @heartbeats = nil
+        setup_heartbeat(settings)
+
+      # If the heartbeat timer isn't running but we know how often it should run, schedule it.
+      elsif !@heartbeats&.running? && settings.heartbeat_interval&.nonzero?
+        @config.logger.debug "Scheduling heartbeats every #{settings.heartbeat_interval} seconds"
+        @heartbeats = timer_task(every: settings.heartbeat_interval, run_now: false) do
+          send_heartbeat
+        end
+
+      elsif !@heartbeats&.running?
+        @config.logger.debug(format("Heartbeat could not be setup (interval: %p)", settings.heartbeat_interval))
       end
     end
 
@@ -104,14 +149,14 @@ module Aikido::Agent
     end
 
     private def timer_task(every:, **opts, &block)
-      @timer_tasks << Concurrent::TimerTask.execute(
+      Concurrent::TimerTask.execute(
         run_now: true,
         interval_type: :fixed_rate,
         execution_interval: every,
         executor: reporting_pool,
         **opts,
         &block
-      )
+      ).tap { |task| @timer_tasks << task }
     end
   end
 end

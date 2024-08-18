@@ -5,7 +5,8 @@ require_relative "agent/config"
 require_relative "agent/info"
 require_relative "agent/runner"
 require_relative "agent/api_client"
-require_relative "agent/current_request"
+require_relative "agent/request"
+require_relative "agent/set_current_request"
 require_relative "agent/rails_engine" if defined?(::Rails)
 
 module Aikido
@@ -30,12 +31,17 @@ module Aikido
     # @return [void]
     # @raise [Aikido::Firewall::UnderAttackError] if the scan detected an Attack
     #   and blocking_mode is enabled.
-    def self.track(scan)
-      # We shouldn't start collecting data before we even initialize the runner,
-      # but might as well make sure we have a @runner going to report to.
-      @runner or initialize!
-      # TODO: Implement statistics gathering
-      @runner.handle_attack(scan.attack) if scan.attack?
+    def self.track_scan(scan)
+      runner.stats.add_scan(scan)
+      runner.handle_attack(scan.attack) if scan.attack?
+    end
+
+    # Track statistics about an HTTP request the app handled.
+    #
+    # @param request [Aikido::Agent::Request]
+    # @return [void]
+    def self.track_request(request)
+      runner.stats.add_request(request)
     end
 
     # Starts the background threads that keep the agent running.
@@ -49,6 +55,13 @@ module Aikido
     # Stop any background threads.
     def self.stop!
       @runner&.stop!
+    end
+
+    private_class_method def self.runner
+      # We shouldn't start collecting data before we even initialize the runner,
+      # but might as well make sure we have a @runner going to report to.
+      @runner or initialize!
+      @runner
     end
   end
 end

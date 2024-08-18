@@ -42,6 +42,15 @@ module Aikido::Agent
     # @returns [Logger]
     attr_accessor :logger
 
+    # @return [Integer] maximum number of timing measurements to keep in memory
+    #   before compressing them.
+    attr_accessor :max_performance_samples
+
+    # @return [Integer] maximum number of compressed performance samples to keep
+    #   in memory. If we take more than this before reporting them to Aikido, we
+    #   will discard the oldest samples.
+    attr_accessor :max_compressed_stats
+
     def initialize
       self.blocking_mode = !!ENV.fetch("AIKIDO_BLOCKING", false)
       self.api_timeouts = 10
@@ -52,6 +61,8 @@ module Aikido::Agent
       self.json_encoder = DEFAULT_JSON_ENCODER
       self.json_decoder = DEFAULT_JSON_DECODER
       self.logger = Logger.new($stdout, progname: "aikido")
+      self.max_performance_samples = 5000
+      self.max_compressed_stats = 100
     end
 
     # Set the base URL for API requests.

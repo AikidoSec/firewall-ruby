@@ -3,7 +3,7 @@
 require "test_helper"
 
 class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
-  # Define this so we can access the set of defined tasks.
+  # Make it easier to test
   Aikido::Agent::Runner.attr_reader :timer_tasks
 
   class MockAPIClient < Aikido::Agent::APIClient
@@ -26,6 +26,8 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
 
     @api_client = Minitest::Mock.new(MockAPIClient.new)
     @runner = Aikido::Agent::Runner.new(api_client: @api_client)
+
+    @test_sink = Aikido::Firewall::Sink.new("test", scanners: [NOOP])
   end
 
   teardown do
@@ -50,6 +52,14 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
     end
 
     assert_match(/already started/i, err.message)
+  end
+
+  test "#start! sets the start time for our stats funnel" do
+    assert_nil @runner.stats.started_at
+
+    @runner.start!
+
+    refute_nil @runner.stats.started_at
   end
 
   test "#start! warns if blocking mode is disabled" do
@@ -97,7 +107,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
   test "#start! takes the response of the STARTED event as firewall settings" do
     @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
       @api_client.expect :report,
-        {"configUpdatedAt" => 1234567890},
+        {"configUpdatedAt" => 1234567890000},
         [Aikido::Agent::Events::Started]
 
       assert_changes -> { Aikido::Firewall.settings.updated_at }, to: Time.at(1234567890) do
@@ -125,7 +135,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
     @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
       @api_client.expect :should_fetch_settings?, false
 
-      assert_changes -> { @runner.timer_tasks.size }, from: 0, to: 1 do
+      assert_difference -> { @runner.timer_tasks.size }, +1 do
         @runner.start!
       end
 
@@ -141,7 +151,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
   test "#start! updates the firewall settings after polling if needed" do
     @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
       @api_client.expect :should_fetch_settings?, true
-      @api_client.expect :fetch_settings, {"configUpdatedAt" => 1234567890}
+      @api_client.expect :fetch_settings, {"configUpdatedAt" => 1234567890000}
 
       assert_changes -> { Aikido::Firewall.settings.updated_at }, to: Time.at(1234567890) do
         @runner.start!
@@ -154,7 +164,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
   end
 
   test "#handle_attack logs the attack's message" do
-    attack = TestAttack.new
+    attack = TestAttack.new(sink: @test_sink)
 
     @runner.handle_attack(attack)
 
@@ -162,7 +172,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
   end
 
   test "#handle_attack reports an ATTACK event" do
-    attack = TestAttack.new
+    attack = TestAttack.new(sink: @test_sink)
 
     @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
       @api_client.expect :report, {}, [Aikido::Agent::Events::Attack]
@@ -178,7 +188,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
 
     @runner.stub :report, -> { raise "#report called unexpectedly" } do
       assert_nothing_raised do
-        @runner.handle_attack(TestAttack.new)
+        @runner.handle_attack(TestAttack.new(sink: @test_sink))
       end
     end
   end
@@ -186,15 +196,85 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
   test "#handle_attack raises an error if blocking_mode is configured" do
     @config.blocking_mode = true
 
-    attack = TestAttack.new
+    attack = TestAttack.new(sink: @test_sink)
 
     assert_raises Aikido::Firewall::UnderAttackError do
       @runner.handle_attack(attack)
     end
   end
 
+  test "#send_heartbeat reports a heartbeat event and updates the settings" do
+    @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
+      @api_client.expect :report, {"receivedAnyStats" => true}, [Aikido::Agent::Events::Heartbeat]
+
+      assert_changes -> { Aikido::Firewall.settings.received_any_stats }, to: true do
+        @runner.send_heartbeat
+      end
+
+      assert_mock @api_client
+    end
+  end
+
+  test "#send_heartbeat flushes the stats before sending them" do
+    stats = Minitest::Mock.new
+    stats.expect :serialize_and_reset, {}
+
+    @runner.stub :stats, stats do
+      @runner.send_heartbeat
+
+      assert_mock stats
+    end
+  end
+
+  test "#send_heartbeat does nothing if we don't have an API token" do
+    @config.api_token = nil
+
+    @runner.stub :report, -> { raise "#report called unexpectedly" } do
+      assert_nothing_raised do
+        @runner.send_heartbeat
+      end
+    end
+  end
+
+  test "#setup_heartbeat configures a timer for the configured frequency" do
+    settings = Aikido::Firewall.settings
+    settings.heartbeat_interval = 10
+
+    assert_difference -> { @runner.timer_tasks.size }, +1 do
+      @runner.setup_heartbeat(settings)
+    end
+
+    timer = @runner.timer_tasks.last
+    assert_equal 10, timer.execution_interval
+
+    assert_logged :debug, /scheduling heartbeats every 10 seconds/i
+  end
+
+  test "#setup_heartbeat resets the timer if the interval changes" do
+    settings = Aikido::Firewall.settings
+    settings.heartbeat_interval = 10
+    assert_difference -> { @runner.timer_tasks.size }, +1 do
+      @runner.setup_heartbeat(settings)
+    end
+
+    first_timer = @runner.timer_tasks.last
+    assert_equal 10, first_timer.execution_interval
+    assert first_timer.running?
+
+    settings.heartbeat_interval = 20
+    assert_difference -> { @runner.timer_tasks.size }, +1 do
+      @runner.setup_heartbeat(settings)
+    end
+
+    second_timer = @runner.timer_tasks.last
+    assert_equal 20, second_timer.execution_interval
+    refute first_timer.running?
+    assert second_timer.running?
+  end
+
   class TestAttack < Aikido::Firewall::Attack
-    def initialize
+    def initialize(sink: nil, request: nil)
+      super
     end
 
     def log_message

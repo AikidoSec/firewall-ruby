@@ -56,4 +56,32 @@ class Aikido::Agent::EventTest < ActiveSupport::TestCase
       assert_equal Time.at(1234567890), event.time
     end
   end
+
+  class HeartbeatTest < ActiveSupport::TestCase
+    test "sets type to heartbeat" do
+      event = Aikido::Agent::Events::Heartbeat.new(serialized_stats: {})
+
+      assert_equal "heartbeat", event.type
+    end
+
+    test "sets the stats to the serialized_stats passed" do
+      event = Aikido::Agent::Events::Heartbeat.new(
+        serialized_stats: {sinks: {}, requests: {}}
+      )
+
+      assert_equal({sinks: {}, requests: {}}, event.as_json[:stats])
+    end
+
+    test "includes the outbound hostnames visited by the app" do
+      skip "Implement support for outbound request interception"
+    end
+
+    test "includes the recognized framework routes" do
+      skip "Implement support for routes"
+    end
+
+    test "includes the users the developer told us about" do
+      skip "Implement support for users"
+    end
+  end
 end
