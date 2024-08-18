@@ -63,8 +63,11 @@ class Aikido::Agent::InfoTest < ActiveSupport::TestCase
     end
   end
 
-  test "#packages maps the list of loaded gems into a list of Package instances" do
-    test_specs = Gem.loaded_specs.slice("concurrent-ruby", "minitest")
+  test "#packages maps the list of supported loaded gems into a list of Package instances" do
+    test_specs = Gem.loaded_specs.slice("concurrent-ruby", "minitest", "rack")
+
+    Aikido::Firewall::Sinks.add("minitest", scanners: [NOOP])
+    Aikido::Firewall::Sinks.add("concurrent-ruby", scanners: [NOOP])
 
     Gem.stub(:loaded_specs, test_specs) do
       expected_packages = [
@@ -77,6 +80,8 @@ class Aikido::Agent::InfoTest < ActiveSupport::TestCase
   end
 
   test "as_json includes the expected fields" do
+    Aikido::Firewall::Sinks.add("concurrent-ruby", scanners: [NOOP])
+
     assert_equal @info.attacks_are_only_reported?, @info.as_json[:dryMode]
     assert_equal @info.library_name, @info.as_json[:library]
     assert_equal @info.library_version, @info.as_json[:version]
@@ -89,7 +94,7 @@ class Aikido::Agent::InfoTest < ActiveSupport::TestCase
     assert_kind_of Hash, @info.as_json[:packages]
     assert_equal \
       Gem.loaded_specs["concurrent-ruby"].version.to_s,
-      @info.as_json.dig(:packages, "concurrent-ruby", :version)
+      @info.as_json.dig(:packages, "concurrent-ruby")
 
     assert_equal "", @info.as_json[:nodeEnv]
     assert_equal false, @info.as_json[:preventedPrototypePollution]

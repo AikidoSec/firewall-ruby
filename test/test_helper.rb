@@ -23,6 +23,9 @@ class ActiveSupport::TestCase
     Aikido::Agent.instance_variable_set(:@runner, nil)
     Aikido::Firewall.instance_variable_set(:@settings, nil)
 
+    @_old_sinks_registry = Aikido::Firewall::Sinks.registry.dup
+    Aikido::Firewall::Sinks.registry.clear
+
     WebMock.reset!
   end
 
@@ -30,6 +33,8 @@ class ActiveSupport::TestCase
     # In case any test starts the agent background thread as a side effect, this
     # should make sure we're cleaning things up.
     Aikido::Agent.stop!
+
+    Aikido::Firewall::Sinks.registry.replace(@_old_sinks_registry)
   end
 
   # Capture log output and make it testable

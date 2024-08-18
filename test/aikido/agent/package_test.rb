@@ -29,6 +29,6 @@ class Aikido::Agent::PackageTest < ActiveSupport::TestCase
   test "#as_json provides the expected serialization" do
     pkg = Package.new("test", Gem::Version.new("1.0.0"))
 
-    assert_equal({"test" => {version: "1.0.0", supported: false}}, pkg.as_json)
+    assert_equal({"test" => "1.0.0"}, pkg.as_json)
   end
 end

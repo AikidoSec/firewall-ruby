@@ -32,9 +32,13 @@ module Aikido::Agent
       @hostname ||= Socket.gethostname
     end
 
-    # @return [Array<Aikido::Agent::Package>] a list of loaded rubygems.
+    # @return [Array<Aikido::Agent::Package>] a list of loaded rubygems that are
+    #   supported by Aikido (i.e. we have a Sink that scans the package for
+    #   vulnerabilities and protects you).
     def packages
-      @packages ||= Gem.loaded_specs.map { |_, spec| Package.new(spec.name, spec.version) }
+      @packages ||= Gem.loaded_specs
+        .map { |_, spec| Package.new(spec.name, spec.version) }
+        .select(&:supported?)
     end
 
     # @return [String] the first non-loopback IPv4 address that we can use
