@@ -311,7 +311,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
   end
 
   class TestAttack < Aikido::Firewall::Attack
-    def initialize(sink: nil, request: nil)
+    def initialize(sink: nil, request: nil, operation: "test")
       super
     end
 

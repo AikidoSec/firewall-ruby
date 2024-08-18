@@ -21,7 +21,11 @@ class Aikido::Firewall::Sinks::TrilogyTest < ActiveSupport::TestCase
   test "scans queries via #query" do
     mock = Minitest::Mock.new
     mock.expect :call, nil,
-      query: String, dialect: :mysql, sink: @sink, request: Aikido::Agent::Request
+      query: String,
+      dialect: :mysql,
+      sink: @sink,
+      operation: "query",
+      request: Aikido::Agent::Request
 
     @sink.stub :scanners, [mock] do
       @db.query("SELECT 1")

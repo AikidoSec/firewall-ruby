@@ -57,7 +57,7 @@ class Aikido::Firewall::SinkTest < ActiveSupport::TestCase
 
   # rubocop:disable Link/RaiseException
   test "#scan stops after the first Attack is detected" do
-    attack = Aikido::Firewall::Attack.new(request: nil, sink: nil)
+    attack = Aikido::Firewall::Attack.new(request: nil, sink: nil, operation: nil)
     sink = Aikido::Firewall::Sink.new("test", reporter: NOOP, scanners: [
       ->(**data) { attack },
       ->(**data) { raise Exception, "oops" } # Exception would not be caught

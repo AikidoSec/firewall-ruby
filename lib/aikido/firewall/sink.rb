@@ -17,13 +17,15 @@ module Aikido::Firewall
     #   supported.)
     # @param scanners [Array<#call>] a list of objects that respond to
     #   #call with a Hash and return an Attack or nil.
+    # @param opts [Hash<Symbol, Object>] any other options to pass to
+    #   the Sink initializer.
     #
     # @return [void]
     # @raise [ArgumentError] if a Sink with this name has already been
     #   registered.
-    def self.add(name, scanners:)
+    def self.add(name, scanners:, **opts)
       raise ArgumentError, "Sink #{name} already registered" if registry.key?(name.to_s)
-      registry[name.to_s] = Sink.new(name.to_s, scanners: scanners)
+      registry[name.to_s] = Sink.new(name.to_s, scanners: scanners, **opts)
     end
   end
 
@@ -43,10 +45,17 @@ module Aikido::Firewall
     # @return [Array<#call>] list of registered scanners for this sink.
     attr_reader :scanners
 
-    def initialize(name, scanners:, reporter: Aikido::Agent.method(:track_scan))
+    # @return [String] descriptor of the module / method being scanned
+    #   for attacks. This is fed into Attacks when instantiated. In
+    #   certain cases, some scanners allow you to specialize this by
+    #   using an +operation+ param of their own.
+    attr_reader :operation
+
+    def initialize(name, scanners:, operation: name, reporter: Aikido::Agent.method(:track_scan))
       raise ArgumentError, "scanners cannot be empty" if scanners.empty?
 
       @name = name
+      @operation = operation
       @scanners = scanners
       @reporter = reporter
     end

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../sink"
+
 module Aikido::Firewall
   module Sinks
     module Mysql2
@@ -7,7 +9,7 @@ module Aikido::Firewall
 
       module Extensions
         def query(query, *)
-          SINK.scan(query: query, dialect: :mysql)
+          SINK.scan(query: query, dialect: :mysql, operation: "query")
 
           super
         end

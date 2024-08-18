@@ -26,7 +26,7 @@ class Aikido::Firewall::ScanTest < ActiveSupport::TestCase
   end
 
   test "it is considered an attack if the block returns an Attack" do
-    attack = Aikido::Firewall::Attack.new(request: @request, sink: @sink)
+    attack = Aikido::Firewall::Attack.new(request: @request, sink: @sink, operation: "test")
 
     @scan.perform { attack }
 

@@ -7,10 +7,12 @@ module Aikido::Firewall
   # if blocking_mode is on.
   class Attack
     attr_reader :request
+    attr_reader :operation
     attr_accessor :sink
 
-    def initialize(request:, sink:)
+    def initialize(request:, sink:, operation:)
       @request = request
+      @operation = operation
       @sink = sink
       @blocked = false
     end
