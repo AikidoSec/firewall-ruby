@@ -59,10 +59,14 @@ module Aikido::Firewall
       end
 
       def as_json
-        # TODO: Actually implement this.
         {
           kind: "sql_injection",
-          blocked: blocked?
+          blocked: blocked?,
+          payload: @input,
+          metadata: {sql: @query},
+          operation: @operation,
+          source: nil,
+          pathToPayload: nil
         }
       end
 

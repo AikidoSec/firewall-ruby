@@ -91,7 +91,37 @@ module Aikido::Firewall
         query: @query, input: @input, dialect: @dialect, sink: @sink, request: @request, operation: @op
       )
 
-      # debugger
+      expected = {
+        kind: "sql_injection",
+        operation: @op,
+        blocked: false,
+        payload: @input,
+        metadata: {sql: @query},
+        source: nil,
+        pathToPayload: nil
+      }
+
+      assert_equal expected, attack.as_json
+    end
+
+    test "#as_json reflects if the attack was blocked" do
+      attack = Aikido::Firewall::Attacks::SQLInjectionAttack.new(
+        query: @query, input: @input, dialect: @dialect, sink: @sink, request: @request, operation: @op
+      )
+
+      attack.will_be_blocked!
+
+      expected = {
+        kind: "sql_injection",
+        operation: @op,
+        blocked: true,
+        payload: @input,
+        metadata: {sql: @query},
+        source: nil,
+        pathToPayload: nil
+      }
+
+      assert_equal expected, attack.as_json
     end
   end
 end
