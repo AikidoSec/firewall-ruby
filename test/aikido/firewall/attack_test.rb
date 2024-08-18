@@ -72,5 +72,16 @@ module Aikido::Firewall
       assert_equal @dialect, attack.exception.dialect
       assert_equal attack.log_message, attack.exception.message
     end
+
+    test "can track if the Agent will block it" do
+      attack = Aikido::Firewall::Attacks::SQLInjectionAttack.new(
+        query: @query, input: @input, dialect: @dialect, sink: @sink, request: @request
+      )
+
+      refute attack.blocked?
+
+      attack.will_be_blocked!
+      assert attack.blocked?
+    end
   end
 end

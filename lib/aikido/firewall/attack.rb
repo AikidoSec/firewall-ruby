@@ -12,6 +12,15 @@ module Aikido::Firewall
     def initialize(request:, sink:)
       @request = request
       @sink = sink
+      @blocked = false
+    end
+
+    def will_be_blocked!
+      @blocked = true
+    end
+
+    def blocked?
+      @blocked
     end
 
     def log_message
@@ -49,7 +58,10 @@ module Aikido::Firewall
 
       def as_json
         # TODO: Actually implement this.
-        {kind: "sql_injection"}
+        {
+          kind: "sql_injection",
+          blocked: blocked?
+        }
       end
 
       def exception(*)

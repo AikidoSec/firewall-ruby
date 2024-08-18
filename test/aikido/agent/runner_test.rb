@@ -203,6 +203,44 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
     end
   end
 
+  test "#handle_attack marks that the attack will be blocked before reporting the event" do
+    @config.blocking_mode = true
+
+    runner = Minitest::Mock.new(@runner)
+    runner.expect :report, {} do |event|
+      assert event.attack.blocked?
+    end
+
+    assert_raises Aikido::Firewall::UnderAttackError do
+      attack = TestAttack.new(sink: @test_sink)
+      runner.handle_attack(attack)
+    end
+  end
+
+  test "#handle_attack does not raise if blocking_mode is off" do
+    @config.blocking_mode = false
+
+    attack = TestAttack.new(sink: @test_sink)
+
+    assert_nothing_raised do
+      @runner.handle_attack(attack)
+    end
+  end
+
+  test "#handle_attack does not mark that the attack was blocked if blocking_mode is off" do
+    @config.blocking_mode = false
+
+    runner = Minitest::Mock.new(@runner)
+    runner.expect :report, {} do |event|
+      refute event.attack.blocked?
+    end
+
+    assert_nothing_raised do
+      attack = TestAttack.new(sink: @test_sink)
+      runner.handle_attack(attack)
+    end
+  end
+
   test "#send_heartbeat reports a heartbeat event and updates the settings" do
     @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
       @api_client.expect :report, {"receivedAnyStats" => true}, [Aikido::Agent::Events::Heartbeat]
