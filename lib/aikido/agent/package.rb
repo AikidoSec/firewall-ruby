@@ -16,7 +16,7 @@ module Aikido::Agent
     end
 
     def as_json
-      {name => {version: version.to_s, supported: supported?}}
+      {name => version.to_s}
     end
   end
 end
