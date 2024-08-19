@@ -18,6 +18,25 @@ module Aikido::Agent
       other.is_a?(Payload) && other.value == value && other.source == source
     end
 
+    def as_json
+      {
+        payload: value.to_s,
+        source: SOURCE_SERIALIZATIONS[source],
+        pathToPayload: path.to_s
+      }
+    end
+
+    SOURCE_SERIALIZATIONS = {
+      query: "query",
+      body: "body",
+      header: "headers",
+      cookie: "cookies",
+      route: "routeParams",
+      graphql: "graphql",
+      xml: "xml",
+      subdomain: "subdomains"
+    }
+
     def inspect
       val = (value.to_s.size > 128) ? value[0..125] + "..." : value
       "#<Aikido::Agent::Payload #{source}(#{path}) #{val.inspect}>"
