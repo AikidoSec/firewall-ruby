@@ -38,6 +38,8 @@ module Aikido::Agent
     # @raise [Aikido::Firewall::UnderAttackError] if the firewall is configured
     #   to block requests.
     def handle_attack(attack)
+      attack.will_be_blocked! if @config.blocking_mode?
+
       @config.logger.error("[ATTACK DETECTED] #{attack.log_message}")
       report(Events::Attack.new(attack: attack)) if @api_client.can_make_requests?
 

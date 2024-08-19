@@ -7,11 +7,22 @@ module Aikido::Firewall
   # if blocking_mode is on.
   class Attack
     attr_reader :request
+    attr_reader :operation
     attr_accessor :sink
 
-    def initialize(request:, sink:)
+    def initialize(request:, sink:, operation:)
       @request = request
+      @operation = operation
       @sink = sink
+      @blocked = false
+    end
+
+    def will_be_blocked!
+      @blocked = true
+    end
+
+    def blocked?
+      @blocked
     end
 
     def log_message
@@ -48,8 +59,15 @@ module Aikido::Firewall
       end
 
       def as_json
-        # TODO: Actually implement this.
-        {kind: "sql_injection"}
+        {
+          kind: "sql_injection",
+          blocked: blocked?,
+          payload: @input,
+          metadata: {sql: @query},
+          operation: @operation,
+          source: nil,
+          pathToPayload: nil
+        }
       end
 
       def exception(*)

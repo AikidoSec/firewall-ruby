@@ -13,10 +13,14 @@ class Aikido::Firewall::Sinks::SQLite3Test < ActiveSupport::TestCase
     @sink = Aikido::Firewall::Sinks::SQLite3::SINK
   end
 
-  def with_mocked_scanner(&b)
+  def with_mocked_scanner(for_operation:, &b)
     mock = Minitest::Mock.new
     mock.expect :call, nil,
-      query: String, dialect: :sqlite, sink: @sink, request: Aikido::Agent::Request
+      query: String,
+      dialect: :sqlite,
+      sink: @sink,
+      operation: for_operation,
+      request: Aikido::Agent::Request
 
     @sink.stub(:scanners, [mock]) do
       yield mock
@@ -24,7 +28,7 @@ class Aikido::Firewall::Sinks::SQLite3Test < ActiveSupport::TestCase
   end
 
   test "scans queries via #execute" do
-    with_mocked_scanner do |mock|
+    with_mocked_scanner for_operation: "statement.execute" do |mock|
       @db.execute("SELECT 1")
 
       assert_mock mock
@@ -32,7 +36,7 @@ class Aikido::Firewall::Sinks::SQLite3Test < ActiveSupport::TestCase
   end
 
   test "scans queries via #execute2" do
-    with_mocked_scanner do |mock|
+    with_mocked_scanner for_operation: "statement.execute" do |mock|
       @db.execute2("SELECT 1")
 
       assert_mock mock
@@ -40,7 +44,7 @@ class Aikido::Firewall::Sinks::SQLite3Test < ActiveSupport::TestCase
   end
 
   test "scans queries via #execute_batch" do
-    with_mocked_scanner do |mock|
+    with_mocked_scanner for_operation: "statement.execute" do |mock|
       @db.execute_batch("SELECT 1")
 
       assert_mock mock
@@ -48,7 +52,7 @@ class Aikido::Firewall::Sinks::SQLite3Test < ActiveSupport::TestCase
   end
 
   test "scans queries via #execute_batch2" do
-    with_mocked_scanner do |mock|
+    with_mocked_scanner for_operation: "exec_batch" do |mock|
       @db.execute_batch2("SELECT 1")
 
       assert_mock mock
@@ -56,7 +60,7 @@ class Aikido::Firewall::Sinks::SQLite3Test < ActiveSupport::TestCase
   end
 
   test "scans queries made by a prepared statement" do
-    with_mocked_scanner do |mock|
+    with_mocked_scanner for_operation: "statement.execute" do |mock|
       @db.prepare("SELECT 1") do |statement|
         statement.execute
 

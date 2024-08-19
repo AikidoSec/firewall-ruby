@@ -9,7 +9,7 @@ module Aikido::Firewall
 
       module DatabaseExt
         def exec_batch(sql, *)
-          SINK.scan(query: sql, dialect: :sqlite)
+          SINK.scan(query: sql, dialect: :sqlite, operation: "exec_batch")
 
           super
         end
@@ -17,7 +17,7 @@ module Aikido::Firewall
 
       module StatementExt
         def initialize(_, sql, *)
-          SINK.scan(query: sql, dialect: :sqlite)
+          SINK.scan(query: sql, dialect: :sqlite, operation: "statement.execute")
 
           super
         end

@@ -11,7 +11,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
   end
 
   def stub_sink(name:)
-    Aikido::Firewall::Sink.new(name, scanners: [NOOP])
+    Aikido::Firewall::Sink.new(name, operation: "test", scanners: [NOOP])
   end
 
   def stub_scan(sink: @sink, request: stub_request, duration: 1, attack: nil, errors: [])
@@ -23,8 +23,8 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
     end
   end
 
-  def stub_attack(sink: @sink, request: stub_request)
-    Aikido::Firewall::Attack.new(sink: sink, request: request)
+  def stub_attack(sink: @sink, request: stub_request, operation: "test")
+    Aikido::Firewall::Attack.new(sink: sink, request: request, operation: operation)
   end
 
   def stub_request

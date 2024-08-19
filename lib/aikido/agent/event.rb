@@ -32,6 +32,8 @@ module Aikido::Agent
     end
 
     class Attack < Event
+      attr_reader :attack
+
       def initialize(attack:, **opts)
         @attack = attack
         super(type: "detected_attack", **opts)
