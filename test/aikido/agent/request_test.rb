@@ -55,6 +55,27 @@ class Aikido::Agent::RequestTest < ActiveSupport::TestCase
     assert_empty request.payloads.select { |payload| payload.source == :route }
   end
 
+  test "the path for complex parameter structures is tracked correctly" do
+    env = Rack::MockRequest.env_for("/path?a[n]=1&a[m]=2&b[]=3&b[]=4", {
+      method: "POST",
+      params: {x: ["2", "3"], y: {u: "4", v: "5", w: {i: "6", j: "7"}}}
+    })
+    request = Aikido::Agent::Request.from(env)
+
+    assert_includes request.payloads, stub_payload(:query, "1", "a.n")
+    assert_includes request.payloads, stub_payload(:query, "2", "a.m")
+    assert_includes request.payloads, stub_payload(:query, "3", "b.0")
+    assert_includes request.payloads, stub_payload(:query, "4", "b.1")
+
+    assert_includes request.payloads, stub_payload(:body, "2", "x.0")
+    assert_includes request.payloads, stub_payload(:body, "3", "x.1")
+
+    assert_includes request.payloads, stub_payload(:body, "4", "y.u")
+    assert_includes request.payloads, stub_payload(:body, "5", "y.v")
+    assert_includes request.payloads, stub_payload(:body, "6", "y.w.i")
+    assert_includes request.payloads, stub_payload(:body, "7", "y.w.j")
+  end
+
   class RailsRequestTest < ActiveSupport::TestCase
     setup do
       Aikido::Agent.config.request_builder = Aikido::Agent::Request::RAILS_REQUEST_BUILDER
@@ -103,6 +124,27 @@ class Aikido::Agent::RequestTest < ActiveSupport::TestCase
       assert_includes request.payloads, stub_payload(:route, "json", "format")
       assert_includes request.payloads, stub_payload(:route, "example", "controller")
       assert_includes request.payloads, stub_payload(:route, "test", "action")
+    end
+
+    test "the path for complex parameter structures is tracked correctly" do
+      env = Rack::MockRequest.env_for("/path?a[n]=1&a[m]=2&b[]=3&b[]=4", {
+        method: "POST",
+        params: {x: ["2", "3"], y: {u: "4", v: "5", w: {i: "6", j: "7"}}}
+      })
+      request = Aikido::Agent::Request.from(env)
+
+      assert_includes request.payloads, stub_payload(:query, "1", "a.n")
+      assert_includes request.payloads, stub_payload(:query, "2", "a.m")
+      assert_includes request.payloads, stub_payload(:query, "3", "b.0")
+      assert_includes request.payloads, stub_payload(:query, "4", "b.1")
+
+      assert_includes request.payloads, stub_payload(:body, "2", "x.0")
+      assert_includes request.payloads, stub_payload(:body, "3", "x.1")
+
+      assert_includes request.payloads, stub_payload(:body, "4", "y.u")
+      assert_includes request.payloads, stub_payload(:body, "5", "y.v")
+      assert_includes request.payloads, stub_payload(:body, "6", "y.w.i")
+      assert_includes request.payloads, stub_payload(:body, "7", "y.w.j")
     end
   end
 end
