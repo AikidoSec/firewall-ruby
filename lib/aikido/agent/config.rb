@@ -4,6 +4,8 @@ require "uri"
 require "json"
 require "logger"
 
+require_relative "request"
+
 module Aikido::Agent
   class Config
     # @return [Boolean] whether Aikido should only report infractions or block
@@ -51,6 +53,12 @@ module Aikido::Agent
     #   will discard the oldest samples.
     attr_accessor :max_compressed_stats
 
+    # @api internal
+    # @return [Proc<Hash => Aikido::Agent::Request>] callable that takes a
+    #   Rack-compatible env Hash and returns a Request object. This is meant
+    #   to be overridden by each framework adapter.
+    attr_accessor :request_builder
+
     def initialize
       self.blocking_mode = !!ENV.fetch("AIKIDO_BLOCKING", false)
       self.api_timeouts = 10
@@ -63,6 +71,7 @@ module Aikido::Agent
       self.logger = Logger.new($stdout, progname: "aikido")
       self.max_performance_samples = 5000
       self.max_compressed_stats = 100
+      self.request_builder = Aikido::Agent::Request::RACK_REQUEST_BUILDER
     end
 
     # Set the base URL for API requests.

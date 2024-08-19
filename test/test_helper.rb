@@ -3,12 +3,16 @@
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "aikido/firewall"
 require "minitest/autorun"
+require "active_support"
 require "active_support/test_case"
 require "minitest/stub_const"
 require "webmock/minitest"
 require "active_support/testing/setup_and_teardown"
 require "pathname"
 require "debug"
+require "action_dispatch"
+
+require_relative "support/fake_rails_app"
 
 class ActiveSupport::TestCase
   self.file_fixture_path = "test/fixtures"
