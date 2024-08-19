@@ -14,7 +14,7 @@ module Aikido::Firewall
         ].each do |method|
           module_eval <<~RUBY, __FILE__, __LINE__ + 1
             def #{method}(query, *)
-              SINK.scan(query: query, dialect: :postgresql, operation: #{method.inspect})
+              SINK.scan(query: query, dialect: :postgresql, operation: :#{method})
               super
             rescue Aikido::Firewall::SQLInjectionError
               # The pg adapter does not wrap exceptions in StatementInvalid, which
@@ -31,7 +31,7 @@ module Aikido::Firewall
         ].each do |method|
           module_eval <<~RUBY, __FILE__, __LINE__ + 1
             def #{method}(_, query, *)
-              SINK.scan(query: query, dialect: :postgresql, operation: #{method.inspect})
+              SINK.scan(query: query, dialect: :postgresql, operation: :#{method})
               super
             rescue Aikido::Firewall::SQLInjectionError
               # The pg adapter does not wrap exceptions in StatementInvalid, which
