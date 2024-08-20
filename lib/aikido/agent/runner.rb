@@ -23,6 +23,8 @@ module Aikido::Agent
       @config = config
       @api_client = api_client
       @timer_tasks = []
+      @reporting_pool = nil
+      @heartbeats = nil
     end
 
     def started?
