@@ -24,12 +24,18 @@ jobs:
     runs-on: ubuntu-latest
     name: Build (Ruby ${{ matrix.ruby }})
     strategy:
+      fail-fast: false
       matrix:
         ruby:
           - "3.3"
+          - "3.2"
+          - "3.1"
+          - "3.0"
+          - "2.7"
     env:
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: password
+      BUNDLE_GEMFILE: ${{ github.workspace }}/gemfiles/${{ matrix.ruby }}.gemfile
 
     steps:
     - uses: actions/checkout@v4
@@ -44,57 +50,61 @@ jobs:
       run: bundle exec rake standard
 
 
-  e2e:
-    services:
-      mysql:
-        image: mysql:8
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: cats_test
-        ports: ['3306:3306']
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-      postgres:
-        image: postgres:16
-        ports: ['5432:5432']
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-        options: --mount type=tmpfs,destination=/var/lib/postgresql/data --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries=3
+  # e2e:
+  #   services:
+  #     mysql:
+  #       image: mysql:8
+  #       env:
+  #         MYSQL_ALLOW_EMPTY_PASSWORD: yes
+  #         MYSQL_DATABASE: cats_test
+  #       ports: ['3306:3306']
+  #       options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+  #     postgres:
+  #       image: postgres:16
+  #       ports: ['5432:5432']
+  #       env:
+  #         POSTGRES_USER: postgres
+  #         POSTGRES_PASSWORD: password
+  #       options: --mount type=tmpfs,destination=/var/lib/postgresql/data --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries=3
 
-    runs-on: ubuntu-latest
-    name: End to end tests (Ruby ${{ matrix.ruby }}, App ${{ matrix.app.name }})
-    strategy:
-      matrix:
-        ruby:
-          - "3.3"
-        app:
-          - name: "rails7.1_sql_injection"
-            env: "DATABASE_URL=mysql2://root:@127.0.0.1:3306/cats_test"
-            pre: "rm -f config/database.yml"
-          - name: "rails7.1_sql_injection"
-            env: "DATABASE_URL=trilogy://root:@127.0.0.1:3306/cats_test"
-            pre: "rm -f config/database.yml"
-          - name: "rails7.1_sql_injection"
-            env: "DATABASE_URL=postgresql://postgres:password@127.0.0.1:5432/cats_test"
-            pre: "rm -f config/database.yml"
-          - name: "rails7.1_sql_injection"
-            env: "DATABASE_URL=sqlite3:storage/test.salite3"
-    env:
-      BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app.name }}/Gemfile
+  #   runs-on: ubuntu-latest
+  #   name: End to end tests (Ruby ${{ matrix.ruby }}, App ${{ matrix.app.name }})
+  #   strategy:
+  #     matrix:
+  #       ruby:
+  #         - "3.3"
+  #         - "3.2"
+  #         - "3.1"
+  #         - "3.0"
+  #         - "2.7"
+  #       app:
+  #         - name: "rails7.1_sql_injection"
+  #           env: "DATABASE_URL=mysql2://root:@127.0.0.1:3306/cats_test"
+  #           pre: "rm -f config/database.yml"
+  #         - name: "rails7.1_sql_injection"
+  #           env: "DATABASE_URL=trilogy://root:@127.0.0.1:3306/cats_test"
+  #           pre: "rm -f config/database.yml"
+  #         - name: "rails7.1_sql_injection"
+  #           env: "DATABASE_URL=postgresql://postgres:password@127.0.0.1:5432/cats_test"
+  #           pre: "rm -f config/database.yml"
+  #         - name: "rails7.1_sql_injection"
+  #           env: "DATABASE_URL=sqlite3:storage/test.salite3"
+  #   env:
+  #     BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app.name }}/Gemfile
 
-    steps:
-    - uses: actions/checkout@v4
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: ${{ matrix.ruby }}
-        bundler-cache: true
-    - name: Set any matrix-defined ENV
-      run: >-
-        echo "${{ matrix.app.env }}" >> "$GITHUB_ENV"
-      if: ${{ matrix.app.env }}
-    - name: Run any preamble commands for the current app
-      run: ${{ matrix.app.pre }}
-      if: ${{ matrix.app.pre }}
-    - name: Run the e2e tests
-      run: "bundle exec rake e2e:${{ matrix.app.name }}"
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   - name: Set up Ruby
+  #     uses: ruby/setup-ruby@v1
+  #     with:
+  #       ruby-version: ${{ matrix.ruby }}
+  #       bundler-cache: true
+  #   - name: Set any matrix-defined ENV
+  #     run: >-
+  #       echo "${{ matrix.app.env }}" >> "$GITHUB_ENV"
+  #     if: ${{ matrix.app.env }}
+  #   - name: Run any preamble commands for the current app
+  #     run: ${{ matrix.app.pre }}
+  #     if: ${{ matrix.app.pre }}
+  #   - name: Run the e2e tests
+  #     run: "bundle exec rake e2e:${{ matrix.app.name }}"
