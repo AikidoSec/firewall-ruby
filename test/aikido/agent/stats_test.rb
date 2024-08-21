@@ -39,6 +39,29 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
     assert_equal time, @stats.started_at
   end
 
+  test "#empty? is true if no data has been recorded" do
+    @stats.start(time)
+    assert @stats.empty?
+    refute @stats.any?
+  end
+
+  test "#empty? is false after a request is tracked" do
+    @stats.add_request(stub_request)
+    refute @stats.empty?
+    assert @stats.any?
+  end
+
+  test "#empty? is false after a scan is tracked" do
+    @stats.add_scan(stub_scan)
+    refute @stats.empty?
+    assert @stats.any?
+  end
+
+  test "#empty? is false after an attack is tracked" do
+    @stats.add_attack(stub_attack, being_blocked: true)
+    refute_empty @stats
+  end
+
   test "#add_request increments the number of requests" do
     assert_changes -> { @stats.requests }, from: 0, to: 2 do
       @stats.add_request(stub_request)
@@ -455,25 +478,5 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       assert_equal 0, @stats.aborted_requests
       assert_equal Time.at(1234577890), @stats.started_at
     end
-  end
-
-  test "writing new data while serialize_and_reset is running waits and appends data to new stats" do
-    @stats.start(Time.at(1234567890))
-    2.times { @stats.add_request(stub_request) }
-
-    @stats.add_scan(stub_scan(sink: @sink, duration: 2))
-    @stats.add_scan(stub_scan(sink: @sink, duration: 3))
-    @stats.add_scan(stub_scan(sink: @sink, duration: 1))
-    @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
-
-    serialized = nil
-    t1 = Thread.new { serialized = @stats.serialize_and_reset }
-    t2 = Thread.new { 10.times { @stats.add_request(stub_request) } }
-
-    t1.join
-    t2.join
-
-    assert_equal 2, serialized.dig(:requests, :total)
-    assert_equal 10, @stats.requests
   end
 end

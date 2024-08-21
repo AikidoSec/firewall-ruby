@@ -4,7 +4,7 @@ require "test_helper"
 
 class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
   # Make it easier to test
-  Aikido::Agent::Runner.attr_reader :timer_tasks
+  Aikido::Agent::Runner.attr_reader :timer_tasks, :delayed_tasks
 
   class MockAPIClient < Aikido::Agent::APIClient
     def should_fetch_settings?
@@ -308,6 +308,30 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
     assert_equal 20, second_timer.execution_interval
     refute first_timer.running?
     assert second_timer.running?
+  end
+
+  test "#setup_heartbeat queues a one-off task if the server hasn't received stats yet" do
+    settings = Aikido::Firewall.settings
+    settings.received_any_stats = false
+
+    assert_difference -> { @runner.delayed_tasks.size }, +1 do
+      @runner.setup_heartbeat(settings)
+    end
+
+    task = @runner.delayed_tasks.last
+    assert_equal @config.initial_heartbeat_delay, task.initial_delay
+    assert task.pending? # is queued for execution
+  end
+
+  test "#setup_heartbeat does not queue a one-off task if the server received stats" do
+    settings = Aikido::Firewall.settings
+    settings.received_any_stats = true
+
+    assert_no_difference -> { @runner.delayed_tasks.size } do
+      @runner.setup_heartbeat(settings)
+    end
+
+    assert_empty @runner.delayed_tasks
   end
 
   class TestAttack < Aikido::Firewall::Attack

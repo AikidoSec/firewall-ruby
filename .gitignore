@@ -6,3 +6,5 @@
 /pkg/
 /spec/reports/
 /tmp/
+/Gemfile*
+/sample_apps/*/Gemfile*

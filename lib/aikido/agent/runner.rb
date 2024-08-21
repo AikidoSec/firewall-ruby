@@ -23,6 +23,7 @@ module Aikido::Agent
       @config = config
       @api_client = api_client
       @timer_tasks = []
+      @delayed_tasks = []
       @reporting_pool = nil
       @heartbeats = nil
     end
@@ -135,6 +136,12 @@ module Aikido::Agent
       elsif !@heartbeats&.running?
         @config.logger.debug(format("Heartbeat could not be setup (interval: %p)", settings.heartbeat_interval))
       end
+
+      # If the server hasn't received any stats, we want to also run a one-off
+      # heartbeat request in a minute.
+      if !settings.received_any_stats
+        delay(@config.initial_heartbeat_delay) { send_heartbeat if stats.any? }
+      end
     end
 
     def stop!
@@ -143,6 +150,7 @@ module Aikido::Agent
       @config.logger.info "Stopping Aikido agent"
 
       @timer_tasks.each { |task| task.shutdown }
+      @delayed_tasks.each { |task| task.cancel if task.pending? }
 
       @reporting_pool&.shutdown
       @reporting_pool&.wait_for_termination(30)
@@ -150,6 +158,11 @@ module Aikido::Agent
 
     private def reporting_pool
       @reporting_pool ||= Concurrent::SingleThreadExecutor.new
+    end
+
+    private def delay(delay, &task)
+      Concurrent::ScheduledTask.execute(delay, executor: reporting_pool, &task)
+        .tap { |task| @delayed_tasks << task }
     end
 
     private def timer_task(every:, **opts, &block)

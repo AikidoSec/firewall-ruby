@@ -33,6 +33,10 @@ module Aikido::Agent
     #   settings changes. Defaults to evey 60 seconds.
     attr_accessor :polling_interval
 
+    # @return [Integer] the amount in seconds to wait before sending an initial
+    #   heartbeat event when the server reports no stats have been sent yet.
+    attr_accessor :initial_heartbeat_delay
+
     # @return [#call] Callable that can be passed an Object and returns a String
     #   of JSON. Defaults to the standard library's JSON.dump method.
     attr_accessor :json_encoder
@@ -66,6 +70,7 @@ module Aikido::Agent
       self.runtime_api_base_url = ENV.fetch("AIKIDO_RUNTIME_URL", DEFAULT_RUNTIME_BASE_URL)
       self.api_token = ENV.fetch("AIKIDO_TOKEN", nil)
       self.polling_interval = 60
+      self.initial_heartbeat_delay = 60
       self.json_encoder = DEFAULT_JSON_ENCODER
       self.json_decoder = DEFAULT_JSON_DECODER
       self.logger = Logger.new($stdout, progname: "aikido")
