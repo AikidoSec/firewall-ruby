@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#
+# Now that the canonical gemfiles all live in gemfiles/*, this links the
+# approprate one for the current version of ruby as Gemfile/Gemfile.lock
+# since this provides better ergonomics than setting BUNDLE_GEMFILE.
+#
+# This is meant to be run whenever you switch ruby versions locally. For
+# example: `chruby 3.3; bin/link_gemfile`
+
+RUBY_VERSION="$(ruby -e "puts RUBY_VERSION.split('.')[0,2].join('.')" 2>/dev/null)"
+EXPECTED_GEMFILE="gemfiles/ruby-${RUBY_VERSION}.gemfile"
+
+if [ -f "$EXPECTED_GEMFILE" ]; then
+  ln -nfs "$EXPECTED_GEMFILE" "Gemfile"
+  ln -nfs "${EXPECTED_GEMFILE}.lock" "Gemfile.lock" &>/dev/null || :
+else
+  echo "No gemfile found for ruby $RUBY_VERSION" >&2
+  exit 1
+fi
