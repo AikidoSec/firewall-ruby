@@ -9,7 +9,7 @@ require "minitest/stub_const"
 require "webmock/minitest"
 require "active_support/testing/setup_and_teardown"
 require "pathname"
-require "debug"
+require "debug" if RUBY_VERSION >= "3"
 require "action_dispatch"
 
 require_relative "support/fake_rails_app"

@@ -1,0 +1,19 @@
+source "https://rubygems.org"
+
+gem "rails", "~> 7.0.0", "< 7.1"
+gem "sprockets-rails"
+gem "puma"
+gem "tzinfo-data", platforms: %i[mswin mingw jruby]
+
+# We want to run the SQL Injection tests against all DBs
+gem "sqlite3", "~> 1.4", "< 1.7"
+gem "mysql2"
+gem "trilogy"
+gem "pg"
+
+group :development, :test do
+  gem "debug", platforms: %i[mri mswin mingw]
+  gem "standard"
+end
+
+gem "aikido-firewall", path: "../../..", require: !ENV["DISABLE_FIREWALL"]
