@@ -6,7 +6,7 @@ module Aikido::Firewall
   class SQLInjectionTest < ActiveSupport::TestCase
     setup do
       @query = "SELECT * FROM users WHERE id = '' OR 1=1 --'"
-      @input = "' OR 1=1 --"
+      @input = Aikido::Agent::Payload.new("' OR 1=1 --", :route, "id")
       @dialect = Aikido::Firewall::Vulnerabilities::SQLInjection[:common]
       @request = Aikido::Agent::Request.new({})
       @op = "test.op"
@@ -95,10 +95,10 @@ module Aikido::Firewall
         kind: "sql_injection",
         operation: @op,
         blocked: false,
-        payload: @input,
+        payload: @input.value,
         metadata: {sql: @query},
-        source: nil,
-        pathToPayload: nil
+        source: "routeParams",
+        pathToPayload: "id"
       }
 
       assert_equal expected, attack.as_json
@@ -115,10 +115,10 @@ module Aikido::Firewall
         kind: "sql_injection",
         operation: @op,
         blocked: true,
-        payload: @input,
+        payload: @input.value,
         metadata: {sql: @query},
-        source: nil,
-        pathToPayload: nil
+        source: "routeParams",
+        pathToPayload: "id"
       }
 
       assert_equal expected, attack.as_json

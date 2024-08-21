@@ -12,6 +12,7 @@ module Aikido::Agent
       super()
       @config = config
       @sinks = Hash.new { |h, k| h[k] = SinkStats.new(k, config) }
+      @started_at = nil
       @requests = 0
       @aborted_requests = 0
     end

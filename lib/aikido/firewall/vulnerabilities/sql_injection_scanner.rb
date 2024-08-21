@@ -25,14 +25,14 @@ module Aikido::Firewall
         # pass that input to a query without having a current request in scope.
         return if request.nil?
 
-        request.each_user_input do |input|
-          scanner = new(query, input, dialect)
+        request.payloads.each do |payload|
+          scanner = new(query, payload.value, dialect)
           next unless scanner.attack?
 
           return Attacks::SQLInjectionAttack.new(
             sink: sink,
             query: query,
-            input: input,
+            input: payload,
             dialect: dialect,
             request: request,
             operation: "#{sink.operation}.#{operation}"

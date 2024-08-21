@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = "Embedded Web Application Firewall that autonomously protects Ruby apps against common and critical attacks."
   spec.homepage = "https://aikido.dev"
-  spec.required_ruby_version = ">= 3.0.0"
+  spec.required_ruby_version = ">= 2.7"
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/aikidosec/firewall-ruby"
@@ -30,5 +30,5 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "concurrent-ruby", "~> 1.0"
-  spec.add_dependency "actionpack", ">= 3.0.0"
+  spec.add_dependency "rack"
 end

@@ -62,12 +62,9 @@ module Aikido::Firewall
         {
           kind: "sql_injection",
           blocked: blocked?,
-          payload: @input,
           metadata: {sql: @query},
-          operation: @operation,
-          source: nil,
-          pathToPayload: nil
-        }
+          operation: @operation
+        }.merge(@input.as_json)
       end
 
       def exception(*)

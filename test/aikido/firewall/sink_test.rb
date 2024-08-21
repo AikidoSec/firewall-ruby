@@ -55,7 +55,7 @@ class Aikido::Firewall::SinkTest < ActiveSupport::TestCase
     refute scan.attack?
   end
 
-  # rubocop:disable Link/RaiseException
+  # rubocop:disable Lint/RaiseException
   test "#scan stops after the first Attack is detected" do
     attack = Aikido::Firewall::Attack.new(request: nil, sink: nil, operation: nil)
     sink = Aikido::Firewall::Sink.new("test", reporter: NOOP, scanners: [
@@ -71,7 +71,7 @@ class Aikido::Firewall::SinkTest < ActiveSupport::TestCase
       assert_empty scan.errors
     end
   end
-  # rubocop:enable Link/RaiseException
+  # rubocop:enable Lint/RaiseException
 
   test "#scan reports the scan to the defined reporter" do
     reported_scans = []

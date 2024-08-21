@@ -16,13 +16,16 @@ module Aikido::Agent
   # Rack middleware that keeps the current request in a Thread/Fiber-local
   # variable so that other parts of the agent/firewall can access it.
   class SetCurrentRequest
-    def initialize(app)
+    def initialize(app, config = Aikido::Agent.config)
       @app = app
+      @config = config
     end
 
     def call(env)
-      Aikido::Agent.current_request = Request.new(env)
-      Aikido::Agent.track_request(Aikido::Agent.current_request)
+      request = @config.request_builder.call(env)
+
+      Aikido::Agent.current_request = request
+      Aikido::Agent.track_request(request)
 
       @app.call(env)
     ensure
