@@ -39,6 +39,29 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
     assert_equal time, @stats.started_at
   end
 
+  test "#empty? is true if no data has been recorded" do
+    @stats.start(time)
+    assert @stats.empty?
+    refute @stats.any?
+  end
+
+  test "#empty? is false after a request is tracked" do
+    @stats.add_request(stub_request)
+    refute @stats.empty?
+    assert @stats.any?
+  end
+
+  test "#empty? is false after a scan is tracked" do
+    @stats.add_scan(stub_scan)
+    refute @stats.empty?
+    assert @stats.any?
+  end
+
+  test "#empty? is false after an attack is tracked" do
+    @stats.add_attack(stub_attack, being_blocked: true)
+    refute_empty @stats
+  end
+
   test "#add_request increments the number of requests" do
     assert_changes -> { @stats.requests }, from: 0, to: 2 do
       @stats.add_request(stub_request)

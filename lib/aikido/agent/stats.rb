@@ -17,6 +17,16 @@ module Aikido::Agent
       @aborted_requests = 0
     end
 
+    # @return [Boolean]
+    def empty?
+      synchronize { @requests.zero? && @sinks.empty? }
+    end
+
+    # @return [Boolean]
+    def any?
+      !empty?
+    end
+
     # Track the timestamp we start tracking this series of stats.
     #
     # @return [void]

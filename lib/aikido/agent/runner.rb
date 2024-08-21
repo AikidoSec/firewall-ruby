@@ -140,7 +140,7 @@ module Aikido::Agent
       # If the server hasn't received any stats, we want to also run a one-off
       # heartbeat request in a minute.
       if !settings.received_any_stats
-        delay(@config.initial_heartbeat_delay) { send_heartbeat }
+        delay(@config.initial_heartbeat_delay) { send_heartbeat if stats.any? }
       end
     end
 
