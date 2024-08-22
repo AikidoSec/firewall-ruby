@@ -1,12 +1,17 @@
 # frozen_string_literal: true
 
+require_relative "../request"
+
 module Aikido::Agent
   # @!visibility private
   Context::RACK_REQUEST_BUILDER = ->(env) do
-    Context.new(Rack::Request.new(env)) do |request|
+    delegate = Rack::Request.new(env)
+    request = Aikido::Agent::Request.new(delegate)
+
+    Context.new(request) do |req|
       {
-        query: request.GET,
-        body: request.POST,
+        query: req.GET,
+        body: req.POST,
         route: {}
       }
     end

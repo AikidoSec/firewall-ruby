@@ -23,7 +23,7 @@ module Aikido::Agent
       context = Context.from_rack_env(env)
 
       Aikido::Agent.current_context = context
-      Aikido::Agent.track_request(context)
+      Aikido::Agent.track_request(context.request)
 
       @app.call(env)
     ensure

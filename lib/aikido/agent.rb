@@ -36,13 +36,12 @@ module Aikido
       runner.handle_attack(scan.attack) if scan.attack?
     end
 
-    # Track statistics about an HTTP request the app handled, extracting
-    # information rom the current Context.
+    # Track statistics about an HTTP request the app is handling.
     #
-    # @param context [Aikido::Agent::Context]
+    # @param context [Aikido::Agent::Request]
     # @return [void]
-    def self.track_request(context)
-      runner.stats.add_request(context)
+    def self.track_request(request)
+      runner.stats.add_request(request)
     end
 
     # Starts the background threads that keep the agent running.

@@ -57,6 +57,54 @@ class Aikido::Agent::EventTest < ActiveSupport::TestCase
     end
   end
 
+  class AttackTest < ActiveSupport::TestCase
+    test "sets type to detected_attack" do
+      attack = TestAttack.new
+      event = Aikido::Agent::Events::Attack.new(attack: attack)
+
+      assert_equal "detected_attack", event.type
+    end
+
+    test "includes the attack's JSON representation" do
+      attack = TestAttack.new(context: stub_context)
+      event = Aikido::Agent::Events::Attack.new(attack: attack)
+
+      assert_equal({some: "info"}, event.as_json[:attack])
+    end
+
+    test "includes the request's JSON representation" do
+      context = stub_context
+
+      attack = TestAttack.new(context: context)
+      event = Aikido::Agent::Events::Attack.new(attack: attack)
+
+      assert_equal context.request.as_json, event.as_json[:request]
+    end
+
+    def stub_context(**options)
+      env = Rack::MockRequest.env_for("/test", **options)
+      Aikido::Agent::Context.from_rack_env(env)
+    end
+
+    class TestAttack < Aikido::Firewall::Attack
+      def initialize(sink: nil, context: nil, operation: "test")
+        super
+      end
+
+      def log_message
+        "test attack"
+      end
+
+      def as_json
+        {some: "info"}
+      end
+
+      def exception(*)
+        Aikido::Firewall::UnderAttackError.new(self)
+      end
+    end
+  end
+
   class HeartbeatTest < ActiveSupport::TestCase
     test "sets type to heartbeat" do
       event = Aikido::Agent::Events::Heartbeat.new(serialized_stats: {})

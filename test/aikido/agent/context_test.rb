@@ -22,11 +22,12 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
     assert_equal framework_request, context.request
   end
 
-  test "the Rack::Request builder builds a Rack::Request-based Context" do
+  test "the Rack::Request builder wraps a Rack::Request-based Context" do
     @config.request_builder = Aikido::Agent::Context::RACK_REQUEST_BUILDER
 
     context = Aikido::Agent::Context.from_rack_env({})
-    assert_kind_of Rack::Request, context.request
+    assert_kind_of Aikido::Agent::Request, context.request
+    assert_kind_of Rack::Request, context.request.__getobj__
   end
 
   test "query payloads are read from the query string" do
@@ -83,9 +84,10 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
       Aikido::Agent::Payload.new(value, source, path)
     end
 
-    test "the Rails builder builds an ActionDispatch::Request" do
+    test "the Rails builder wraps a ActionDispatch::Request" do
       context = Aikido::Agent::Context.from_rack_env({})
-      assert_kind_of ActionDispatch::Request, context.request
+      assert_kind_of Aikido::Agent::Request, context.request
+      assert_kind_of ActionDispatch::Request, context.request.__getobj__
     end
 
     test "query payloads are read from the query string" do

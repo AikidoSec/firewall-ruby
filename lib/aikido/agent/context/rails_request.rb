@@ -1,15 +1,18 @@
 # frozen_string_literal: true
 
+require_relative "../request"
+
 module Aikido::Agent
   # @!visibility private
   Context::RAILS_REQUEST_BUILDER = ->(env) do
-    request = ActionDispatch::Request.new(env)
+    delegate = ActionDispatch::Request.new(env)
+    request = Aikido::Agent::Request.new(delegate)
 
-    Context.new(request) do |request|
+    Context.new(request) do |req|
       {
-        query: request.query_parameters,
-        body: request.request_parameters,
-        route: request.path_parameters
+        query: req.query_parameters,
+        body: req.request_parameters,
+        route: req.path_parameters
       }
     end
   end
