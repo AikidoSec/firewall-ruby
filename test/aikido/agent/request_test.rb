@@ -175,24 +175,41 @@ class Aikido::Agent::RequestTest < ActiveSupport::TestCase
 
         assert_nil req.as_json[:body]
       end
+
+      base.test "#as_json includes the framework handling the request as source" do
+        env = Rack::MockRequest.env_for("/test")
+        req = build_request(env)
+
+        assert_equal req.framework, req.as_json[:source]
+      end
     end
   end
 
   class RackRequestTest < ActiveSupport::TestCase
     include Tests
 
+    test "sets the framework to 'rack'" do
+      request = build_request({})
+      assert_equal "rack", request.framework
+    end
+
     def build_request(env)
       framework_request = Rack::Request.new(env)
-      Aikido::Agent::Request.new(framework_request)
+      Aikido::Agent::Request.new(framework_request, framework: "rack")
     end
   end
 
   class ActionDispatchRequestTest < ActiveSupport::TestCase
     include Tests
 
+    test "sets the framework to 'rails'" do
+      request = build_request({})
+      assert_equal "rails", request.framework
+    end
+
     def build_request(env)
       framework_request = ActionDispatch::Request.new(env)
-      Aikido::Agent::Request.new(framework_request)
+      Aikido::Agent::Request.new(framework_request, framework: "rails")
     end
   end
 end

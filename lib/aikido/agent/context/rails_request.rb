@@ -6,7 +6,7 @@ module Aikido::Agent
   # @!visibility private
   Context::RAILS_REQUEST_BUILDER = ->(env) do
     delegate = ActionDispatch::Request.new(env)
-    request = Aikido::Agent::Request.new(delegate)
+    request = Aikido::Agent::Request.new(delegate, framework: "rails")
 
     Context.new(request) do |req|
       {
