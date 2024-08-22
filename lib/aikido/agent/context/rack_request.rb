@@ -12,7 +12,8 @@ module Aikido::Agent
       {
         query: req.GET,
         body: req.POST,
-        route: {}
+        route: {},
+        header: req.normalized_headers
       }
     end
   end

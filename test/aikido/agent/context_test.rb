@@ -54,6 +54,19 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
     assert_empty context.payloads.select { |payload| payload.source == :route }
   end
 
+  test "header params are sourced from the normalized headers" do
+    env = Rack::MockRequest.env_for("/path", {
+      "HTTP_ACCEPT" => "application/json",
+      "HTTP_USER_AGENT" => "Test/UA",
+      "HTTP_AUTHORIZATION" => "Token S3CR37"
+    })
+    context = Aikido::Agent::Context.from_rack_env(env)
+
+    assert_includes context.payloads, stub_payload(:header, "application/json", "Accept")
+    assert_includes context.payloads, stub_payload(:header, "Test/UA", "User-Agent")
+    assert_includes context.payloads, stub_payload(:header, "Token S3CR37", "Authorization")
+  end
+
   test "the path for complex parameter structures is tracked correctly" do
     env = Rack::MockRequest.env_for("/path?a[n]=1&a[m]=2&b[]=3&b[]=4", {
       method: "POST",
@@ -124,6 +137,19 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
       assert_includes context.payloads, stub_payload(:route, "json", "format")
       assert_includes context.payloads, stub_payload(:route, "example", "controller")
       assert_includes context.payloads, stub_payload(:route, "test", "action")
+    end
+
+    test "header params are sourced from the normalized headers" do
+      env = Rack::MockRequest.env_for("/path", {
+        "HTTP_ACCEPT" => "application/json",
+        "HTTP_USER_AGENT" => "Test/UA",
+        "HTTP_AUTHORIZATION" => "Token S3CR37"
+      })
+      context = Aikido::Agent::Context.from_rack_env(env)
+
+      assert_includes context.payloads, stub_payload(:header, "application/json", "Accept")
+      assert_includes context.payloads, stub_payload(:header, "Test/UA", "User-Agent")
+      assert_includes context.payloads, stub_payload(:header, "Token S3CR37", "Authorization")
     end
 
     test "the path for complex parameter structures is tracked correctly" do
