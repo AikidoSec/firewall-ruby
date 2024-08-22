@@ -75,15 +75,15 @@ class ActiveSupport::TestCase
   end
   # rubocop:enable Style/OptionalArguments
 
-  module StubsCurrentRequest
+  module StubsCurrentContext
     # Override in tests to return the desired stub.
-    def current_request
-      @current_request ||= Aikido::Agent::Request.new({})
+    def current_context
+      @current_context ||= Aikido::Agent::Context.new({})
     end
 
     def self.included(base)
-      base.setup { Aikido::Agent.current_request = current_request }
-      base.teardown { Aikido::Agent.current_request = nil }
+      base.setup { Aikido::Agent.current_context = current_context }
+      base.teardown { Aikido::Agent.current_context = nil }
     end
   end
 end

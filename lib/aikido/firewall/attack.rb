@@ -6,12 +6,12 @@ module Aikido::Firewall
   # to the Aikido server, or can be raised as errors to block requests
   # if blocking_mode is on.
   class Attack
-    attr_reader :request
+    attr_reader :context
     attr_reader :operation
     attr_accessor :sink
 
-    def initialize(request:, sink:, operation:)
-      @request = request
+    def initialize(context:, sink:, operation:)
+      @context = context
       @operation = operation
       @sink = sink
       @blocked = false

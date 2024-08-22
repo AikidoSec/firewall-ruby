@@ -6,7 +6,7 @@ require "pg"
 require "aikido/firewall/sinks/pg"
 
 class Aikido::Firewall::Sinks::PGTest < ActiveSupport::TestCase
-  include StubsCurrentRequest
+  include StubsCurrentContext
 
   setup do
     @db = PG.connect(
@@ -26,7 +26,7 @@ class Aikido::Firewall::Sinks::PGTest < ActiveSupport::TestCase
       dialect: :postgresql,
       sink: @sink,
       operation: for_operation,
-      request: Aikido::Agent::Request
+      context: Aikido::Agent::Context
 
     @sink.stub :scanners, [mock] do
       yield mock

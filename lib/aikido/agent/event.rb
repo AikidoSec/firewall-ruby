@@ -42,7 +42,7 @@ module Aikido::Agent
       def as_json
         super.update(
           attack: @attack.as_json,
-          request: @attack.request.as_json
+          request: @attack.context.as_json
         )
       end
     end

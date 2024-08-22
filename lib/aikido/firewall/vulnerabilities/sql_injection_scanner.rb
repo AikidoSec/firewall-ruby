@@ -10,7 +10,7 @@ module Aikido::Firewall
       # and returns an Attack if so, based on the current request.
       #
       # @param query [String]
-      # @param request [Aikido::Agent::Request]
+      # @param context [Aikido::Agent::Context]
       # @param sink [Aikido::Firewall::Sink] the Sink that is running the scan.
       # @param dialect [Symbol] one of +:mysql+, +:postgesql+, or +:sqlite+.
       # @param operation [Symbol, String] name of the method being scanned.
@@ -18,14 +18,14 @@ module Aikido::Firewall
       #
       # @return [Aikido::Firewall::Attack, nil] an Attack if any user input is
       #   detected to be attempting a SQL injection, or nil if this is safe.
-      def self.call(query:, dialect:, sink:, request:, operation:)
+      def self.call(query:, dialect:, sink:, context:, operation:)
         # FIXME: This assumes queries executed outside of an HTTP request are
         # safe, but this is not the case. For example, if an HTTP request
         # enqueues a background job, passing user input verbatim, the job might
         # pass that input to a query without having a current request in scope.
-        return if request.nil?
+        return if context.nil?
 
-        request.payloads.each do |payload|
+        context.payloads.each do |payload|
           scanner = new(query, payload.value, dialect)
           next unless scanner.attack?
 
@@ -34,7 +34,7 @@ module Aikido::Firewall
             query: query,
             input: payload,
             dialect: dialect,
-            request: request,
+            context: context,
             operation: "#{sink.operation}.#{operation}"
           )
         end

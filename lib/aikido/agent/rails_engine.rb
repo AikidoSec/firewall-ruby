@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "action_dispatch"
-require_relative "request/rails_request"
 
 module Aikido::Agent
   class RailsEngine < ::Rails::Engine
@@ -11,7 +10,7 @@ module Aikido::Agent
     end
 
     initializer "aikido.add_middleware" do |app|
-      app.middleware.use Aikido::Agent::SetCurrentRequest
+      app.middleware.use Aikido::Agent::SetContext
 
       # Due to how Rails sets up its middleware chain, the routing is evaluated
       # (and the Request object constructed) in the app that terminates the
@@ -21,13 +20,13 @@ module Aikido::Agent
       # request handling, so that by the time we start evaluating inputs, we
       # have assigned the request correctly.
       ActiveSupport.on_load(:action_controller) do
-        before_action { Aikido::Agent.current_request.__setobj__(request) }
+        before_action { Aikido::Agent.current_context.update_request(request) }
       end
     end
 
     initializer "aikido.configuration" do |app|
       app.config.aikido_agent.logger = Rails.logger.tagged("aikido")
-      app.config.aikido_agent.request_builder = Aikido::Agent::Request::RAILS_REQUEST_BUILDER
+      app.config.aikido_agent.request_builder = Aikido::Agent::Context::RAILS_REQUEST_BUILDER
 
       # Plug Rails' JSON encoder/decoder, but only if the user hasn't changed
       # them for something else.

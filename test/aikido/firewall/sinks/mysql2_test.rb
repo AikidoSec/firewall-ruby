@@ -6,7 +6,7 @@ require "mysql2"
 require "aikido/firewall/sinks/mysql2"
 
 class Aikido::Firewall::Sinks::Mysql2Test < ActiveSupport::TestCase
-  include StubsCurrentRequest
+  include StubsCurrentContext
 
   setup do
     @db = Mysql2::Client.new(
@@ -25,7 +25,7 @@ class Aikido::Firewall::Sinks::Mysql2Test < ActiveSupport::TestCase
       dialect: :mysql,
       sink: @sink,
       operation: "query",
-      request: Aikido::Agent::Request
+      context: Aikido::Agent::Context
 
     @sink.stub :scanners, [mock] do
       @db.query("SELECT 1")

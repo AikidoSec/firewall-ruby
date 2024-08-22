@@ -5,8 +5,8 @@ require_relative "agent/config"
 require_relative "agent/info"
 require_relative "agent/runner"
 require_relative "agent/api_client"
-require_relative "agent/request"
-require_relative "agent/set_current_request"
+require_relative "agent/context"
+require_relative "agent/set_context"
 require_relative "agent/rails_engine" if defined?(::Rails)
 
 module Aikido
@@ -36,12 +36,13 @@ module Aikido
       runner.handle_attack(scan.attack) if scan.attack?
     end
 
-    # Track statistics about an HTTP request the app handled.
+    # Track statistics about an HTTP request the app handled, extracting
+    # information rom the current Context.
     #
-    # @param request [Aikido::Agent::Request]
+    # @param context [Aikido::Agent::Context]
     # @return [void]
-    def self.track_request(request)
-      runner.stats.add_request(request)
+    def self.track_request(context)
+      runner.stats.add_request(context)
     end
 
     # Starts the background threads that keep the agent running.

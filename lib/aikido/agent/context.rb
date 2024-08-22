@@ -1,25 +1,17 @@
 # frozen_string_literal: true
 
-require "delegate"
 require "rack/request"
+
+require_relative "request"
 require_relative "payload"
 
 module Aikido::Agent
-  class Request < SimpleDelegator
-    # @!visibility private
-    RACK_REQUEST_BUILDER = ->(env) do
-      Request.new(Rack::Request.new(env)) do |request|
-        {
-          query: request.GET,
-          body: request.POST,
-          route: {}
-        }
-      end
-    end
-
-    def self.from(env, config = Aikido::Agent.config)
+  class Context
+    def self.from_rack_env(env, config = Aikido::Agent.config)
       config.request_builder.call(env)
     end
+
+    attr_reader :request
 
     # @param [Rack::Request] a Request object that implements the
     #   Rack::Request API, to which we will delegate behavior.
@@ -27,9 +19,21 @@ module Aikido::Agent
     # @yieldparam request [Rack::Request] the given request object.
     # @yieldreturn [Hash<Symbol, #flat_map>] map of payload source types
     #   to the actual data from the request to populate them.
-    def initialize(delegate, &sources)
-      super(delegate)
+    def initialize(request, &sources)
+      @request = request
       @payload_sources = sources
+    end
+
+    # Overrides the current request, and invalidates any memoized data obtained
+    # from it. This is useful for scenarios where setting the request in the
+    # middleware isn't enough, such as Rails, where the router modifies it after
+    # the middleware has seen it.
+    #
+    # @param request [Rack::Request]
+    # @return [void]
+    def update_request(request)
+      @payloads = nil
+      @request = request
     end
 
     # @return [Array<Aikido::Agent::Payload>] list of user inputs from all the
@@ -40,13 +44,9 @@ module Aikido::Agent
       end
     end
 
-    def as_json
-      {method: method}
-    end
-
     # @!visibility private
     def payload_sources
-      @payload_sources.call(self)
+      @payload_sources.call(request)
     end
 
     private
@@ -66,3 +66,6 @@ module Aikido::Agent
     end
   end
 end
+
+require_relative "context/rack_request"
+require_relative "context/rails_request"

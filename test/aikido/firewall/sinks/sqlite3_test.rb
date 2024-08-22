@@ -6,7 +6,7 @@ require "sqlite3"
 require "aikido/firewall/sinks/sqlite3"
 
 class Aikido::Firewall::Sinks::SQLite3Test < ActiveSupport::TestCase
-  include StubsCurrentRequest
+  include StubsCurrentContext
 
   setup do
     @db = SQLite3::Database.new(":memory:")
@@ -20,7 +20,7 @@ class Aikido::Firewall::Sinks::SQLite3Test < ActiveSupport::TestCase
       dialect: :sqlite,
       sink: @sink,
       operation: for_operation,
-      request: Aikido::Agent::Request
+      context: Aikido::Agent::Context
 
     @sink.stub(:scanners, [mock]) do
       yield mock

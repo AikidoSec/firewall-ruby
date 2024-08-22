@@ -66,21 +66,21 @@ module Aikido::Firewall
     # potentially handle the +Attack+, if anything.
     #
     # @param scan_params [Hash] data to pass to all registered scanners.
-    # @option scan_params [Aikido::Agent::Request, nil] :request
-    #   The current HTTP request being inspected, or +nil+ if we're
-    #   scanning outside of an HTTP request.
+    # @option scan_params [Aikido::Agent::Context, nil] :context
+    #   The current Context, including the HTTP request being inspected, or
+    #   +nil+ if we're scanning outside of an HTTP request.
     #
     # @return [Aikido::Firewall::Scan] the result of the scan.
     # @raise [Aikido::UnderAttackError] if an attack is detected and
     #   blocking_mode is enabled.
-    def scan(request: Aikido::Agent.current_request, **scan_params)
-      scan = Scan.new(sink: self, request: request)
+    def scan(context: Aikido::Agent.current_context, **scan_params)
+      scan = Scan.new(sink: self, context: context)
 
       scan.perform do
         result = nil
 
         scanners.each do |scanner|
-          result = scanner.call(sink: self, request: request, **scan_params)
+          result = scanner.call(sink: self, context: context, **scan_params)
           break result if result
         rescue => error
           scan.track_error(error, scanner)
