@@ -47,6 +47,17 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
     assert_includes context.payloads, stub_payload(:body, "2", "b")
   end
 
+  test "JSON bodies are not parsed by the Rack implementation" do
+    env = Rack::MockRequest.env_for("/path?a=1", {
+      :method => "POST",
+      :input => %({"test":"value","nested":{"hash":"data"},"array":[1, 2, 3]}),
+      "CONTENT_TYPE" => "application/json"
+    })
+    context = Aikido::Agent::Context.from_rack_env(env)
+
+    assert_empty context.payloads.select { |payload| payload.source == :body }
+  end
+
   test "route params are empty on the base case as they are framework dependent" do
     env = Rack::MockRequest.env_for("/some/path")
     context = Aikido::Agent::Context.from_rack_env(env)
@@ -147,6 +158,21 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
       context = Aikido::Agent::Context.from_rack_env(env)
 
       assert_includes context.payloads, stub_payload(:body, "2", "b")
+    end
+
+    test "body payloads are read from JSON-encoded bodies" do
+      env = env_for("/example", {
+        :method => "POST",
+        :input => %({"test":"value","nested":{"hash":"data"},"array":[1, 2, 3]}),
+        "CONTENT_TYPE" => "application/json"
+      })
+      context = Aikido::Agent::Context.from_rack_env(env)
+
+      assert_includes context.payloads, stub_payload(:body, "value", "test")
+      assert_includes context.payloads, stub_payload(:body, "data", "nested.hash")
+      assert_includes context.payloads, stub_payload(:body, 1, "array.0")
+      assert_includes context.payloads, stub_payload(:body, 2, "array.1")
+      assert_includes context.payloads, stub_payload(:body, 3, "array.2")
     end
 
     test "route payloads are read from the data extracted by the router" do
