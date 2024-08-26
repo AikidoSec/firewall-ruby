@@ -78,6 +78,13 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
     assert_includes context.payloads, stub_payload(:cookie, "baz", "c3")
   end
 
+  test "subdomain params are empty for the base case as Rack doesn't provide tooling for this" do
+    env = Rack::MockRequest.env_for("https://test.example.com/path")
+    context = Aikido::Agent::Context.from_rack_env(env)
+
+    assert_empty context.payloads.select { |payload| payload.source == :subdomain }
+  end
+
   test "the path for complex parameter structures is tracked correctly" do
     env = Rack::MockRequest.env_for("/path?a[n]=1&a[m]=2&b[]=3&b[]=4", {
       method: "POST",
@@ -219,6 +226,31 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
       assert_includes context.payloads, stub_payload(:cookie, "baz", "c3")
     end
 
+    test "subdomain params are sourced from the request URL, based on the configured TLD length" do
+      with_tld_length 1 do
+        env = env_for("https://test.domain.example.com/path")
+        context = Aikido::Agent::Context.from_rack_env(env)
+
+        assert_includes context.payloads, stub_payload(:subdomain, "test", "0")
+        assert_includes context.payloads, stub_payload(:subdomain, "domain", "1")
+      end
+
+      with_tld_length 2 do
+        env = env_for("https://test.domain.example.com/path")
+        context = Aikido::Agent::Context.from_rack_env(env)
+
+        assert_includes context.payloads, stub_payload(:subdomain, "test", "0")
+        refute_includes context.payloads, stub_payload(:subdomain, "domain", "1")
+      end
+
+      with_tld_length 3 do
+        env = env_for("https://test.domain.example.com/path")
+        context = Aikido::Agent::Context.from_rack_env(env)
+
+        assert_empty context.payloads.select { |payload| payload.source == :subdomain }
+      end
+    end
+
     test "the path for complex parameter structures is tracked correctly" do
       env = env_for("/path?a[n]=1&a[m]=2&b[]=3&b[]=4", {
         method: "POST",
@@ -238,6 +270,16 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
       assert_includes context.payloads, stub_payload(:body, "5", "y.v")
       assert_includes context.payloads, stub_payload(:body, "6", "y.w.i")
       assert_includes context.payloads, stub_payload(:body, "7", "y.w.j")
+    end
+
+    # Set the TLD length when parsing hostnames in order to determine subdomains
+    # for the duration of the passed block.
+    def with_tld_length(value)
+      original_tld_length = ActionDispatch::Http::URL.tld_length
+      ActionDispatch::Http::URL.tld_length = value
+      yield
+    ensure
+      ActionDispatch::Http::URL.tld_length = original_tld_length
     end
   end
 end

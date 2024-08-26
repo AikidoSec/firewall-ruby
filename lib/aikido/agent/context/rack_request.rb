@@ -14,7 +14,8 @@ module Aikido::Agent
         body: req.POST,
         route: {},
         header: req.normalized_headers,
-        cookie: req.cookies
+        cookie: req.cookies,
+        subdomain: []
       }
     end
   end

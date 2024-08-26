@@ -25,7 +25,8 @@ module Aikido::Agent
         body: req.request_parameters,
         route: req.path_parameters,
         header: req.normalized_headers,
-        cookie: decrypt_cookies.call(req)
+        cookie: decrypt_cookies.call(req),
+        subdomain: req.subdomains
       }
     end
   end
