@@ -33,7 +33,7 @@ module Aikido::Agent
     # @return [void]
     def update_request(request)
       @payloads = nil
-      @request = request
+      @request = Aikido::Agent::Request.new(request, framework: self.request.framework)
     end
 
     # @return [Array<Aikido::Agent::Payload>] list of user inputs from all the
