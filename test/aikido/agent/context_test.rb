@@ -67,6 +67,17 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
     assert_includes context.payloads, stub_payload(:header, "Token S3CR37", "Authorization")
   end
 
+  test "cookie params are sourced from the Cookie header" do
+    env = Rack::MockRequest.env_for("/path", {
+      "HTTP_COOKIE" => "c1=foo; c2=bar; c3=baz"
+    })
+    context = Aikido::Agent::Context.from_rack_env(env)
+
+    assert_includes context.payloads, stub_payload(:cookie, "foo", "c1")
+    assert_includes context.payloads, stub_payload(:cookie, "bar", "c2")
+    assert_includes context.payloads, stub_payload(:cookie, "baz", "c3")
+  end
+
   test "the path for complex parameter structures is tracked correctly" do
     env = Rack::MockRequest.env_for("/path?a[n]=1&a[m]=2&b[]=3&b[]=4", {
       method: "POST",
@@ -93,6 +104,17 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
       Aikido::Agent.config.request_builder = Aikido::Agent::Context::RAILS_REQUEST_BUILDER
     end
 
+    def env_for(path, env = {})
+      env.reverse_merge!(Rails.application.env_config)
+      Rack::MockRequest.env_for(path, env)
+    end
+
+    def build_cookie_header(&block)
+      req = ActionDispatch::Request.new(env_for("/", {}))
+      block.call(req.cookie_jar)
+      req.cookie_jar.to_header
+    end
+
     def stub_payload(source, value, path)
       Aikido::Agent::Payload.new(value, source, path)
     end
@@ -104,14 +126,14 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
     end
 
     test "query payloads are read from the query string" do
-      env = Rack::MockRequest.env_for("/example/path?a=1&b=2&c=3")
+      env = env_for("/example/path?a=1&b=2&c=3")
       context = Aikido::Agent::Context.from_rack_env(env)
 
       assert_includes context.payloads, stub_payload(:query, "1", "a")
     end
 
     test "body payloads are read from the request body" do
-      env = Rack::MockRequest.env_for("/example/path?a=1", {
+      env = env_for("/example/path?a=1", {
         method: "POST",
         params: {b: "2", c: "3"}
       })
@@ -127,7 +149,7 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
           to: "example#test"
       end
 
-      env = Rack::MockRequest.env_for("/example/user/23.json")
+      env = env_for("/example/user/23.json")
       env = router.process(env)
 
       context = Aikido::Agent::Context.from_rack_env(env)
@@ -140,7 +162,7 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
     end
 
     test "header params are sourced from the normalized headers" do
-      env = Rack::MockRequest.env_for("/path", {
+      env = env_for("/path", {
         "HTTP_ACCEPT" => "application/json",
         "HTTP_USER_AGENT" => "Test/UA",
         "HTTP_AUTHORIZATION" => "Token S3CR37"
@@ -152,8 +174,53 @@ class Aikido::Agent::ContextTest < ActiveSupport::TestCase
       assert_includes context.payloads, stub_payload(:header, "Token S3CR37", "Authorization")
     end
 
+    test "cookie params are sourced from the Cookie header" do
+      env = env_for("/path", {
+        "HTTP_COOKIE" => build_cookie_header { |cookies|
+          cookies["c1"] = {value: "foo", expires: Date.tomorrow}
+          cookies["c2"] = "bar"
+          cookies["c3"] = "baz"
+        }
+      })
+      context = Aikido::Agent::Context.from_rack_env(env)
+
+      assert_includes context.payloads, stub_payload(:cookie, "foo", "c1")
+      assert_includes context.payloads, stub_payload(:cookie, "bar", "c2")
+      assert_includes context.payloads, stub_payload(:cookie, "baz", "c3")
+    end
+
+    test "cookie params includes the plain-text values of encrypted cookies" do
+      env = env_for("/path", {
+        "HTTP_COOKIE" => build_cookie_header { |cookies|
+          cookies["c1"] = {value: "foo", expires: Date.tomorrow}
+          cookies.encrypted["c2"] = "encrypted_value"
+          cookies["c3"] = "baz"
+        }
+      })
+      context = Aikido::Agent::Context.from_rack_env(env)
+
+      assert_includes context.payloads, stub_payload(:cookie, "foo", "c1")
+      assert_includes context.payloads, stub_payload(:cookie, "encrypted_value", "c2")
+      assert_includes context.payloads, stub_payload(:cookie, "baz", "c3")
+    end
+
+    test "cookie params includes the plain-text values of signed cookies" do
+      env = env_for("/path", {
+        "HTTP_COOKIE" => build_cookie_header { |cookies|
+          cookies["c1"] = {value: "foo", expires: Date.tomorrow}
+          cookies.signed["c2"] = "signed_value"
+          cookies["c3"] = "baz"
+        }
+      })
+      context = Aikido::Agent::Context.from_rack_env(env)
+
+      assert_includes context.payloads, stub_payload(:cookie, "foo", "c1")
+      assert_includes context.payloads, stub_payload(:cookie, "signed_value", "c2")
+      assert_includes context.payloads, stub_payload(:cookie, "baz", "c3")
+    end
+
     test "the path for complex parameter structures is tracked correctly" do
-      env = Rack::MockRequest.env_for("/path?a[n]=1&a[m]=2&b[]=3&b[]=4", {
+      env = env_for("/path?a[n]=1&a[m]=2&b[]=3&b[]=4", {
         method: "POST",
         params: {x: ["2", "3"], y: {u: "4", v: "5", w: {i: "6", j: "7"}}}
       })

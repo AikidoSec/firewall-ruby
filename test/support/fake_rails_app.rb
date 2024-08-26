@@ -1,6 +1,13 @@
 # frozen_string_literal: true
 
+require "rails"
 require "action_controller"
+require "action_dispatch/middleware/cookies"
+
+module Test
+  class Application < Rails::Application
+  end
+end
 
 # This is a hackish little bit to be able to test a request going through the
 # Rails router (to get the env modified with things like parameter parsing),

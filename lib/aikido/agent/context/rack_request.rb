@@ -13,7 +13,8 @@ module Aikido::Agent
         query: req.GET,
         body: req.POST,
         route: {},
-        header: req.normalized_headers
+        header: req.normalized_headers,
+        cookie: req.cookies
       }
     end
   end
