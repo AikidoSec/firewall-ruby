@@ -7,9 +7,9 @@ module Aikido::Firewall
     # @return [Aikido::Firewall::Sink] the originating Sink.
     attr_reader :sink
 
-    # @return [Aikido::Agent::Request] the current HTTP request during
-    #   which this scan was performed.
-    attr_reader :request
+    # @return [Aikido::Agent::Context] the current Context, wrapping the HTTP
+    #   request during which this scan was performed.
+    attr_reader :context
 
     # @return [Aikido::Firewall::Attack, nil] a detected Attack, or
     #   +nil+ if the scan was considered safe.
@@ -22,10 +22,10 @@ module Aikido::Firewall
     attr_reader :errors
 
     # @param sink [Aikido::Firewall::Sink]
-    # @param request [Aikido::Agent::Request]
-    def initialize(sink:, request:)
+    # @param context [Aikido::Agent::Context]
+    def initialize(sink:, context:)
       @sink = sink
-      @request = request
+      @context = context
       @errors = []
       @performed = false
     end

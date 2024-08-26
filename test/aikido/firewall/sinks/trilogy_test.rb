@@ -6,7 +6,7 @@ require "trilogy"
 require "aikido/firewall/sinks/trilogy"
 
 class Aikido::Firewall::Sinks::TrilogyTest < ActiveSupport::TestCase
-  include StubsCurrentRequest
+  include StubsCurrentContext
 
   setup do
     @db = Trilogy.new(
@@ -25,7 +25,7 @@ class Aikido::Firewall::Sinks::TrilogyTest < ActiveSupport::TestCase
       dialect: :mysql,
       sink: @sink,
       operation: "query",
-      request: Aikido::Agent::Request
+      context: Aikido::Agent::Context
 
     @sink.stub :scanners, [mock] do
       @db.query("SELECT 1")

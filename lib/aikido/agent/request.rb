@@ -1,68 +1,63 @@
 # frozen_string_literal: true
 
 require "delegate"
-require "rack/request"
-require_relative "payload"
 
 module Aikido::Agent
+  # Wrapper around Rack::Request-like objects to add some behavior.
   class Request < SimpleDelegator
-    # @!visibility private
-    RACK_REQUEST_BUILDER = ->(env) do
-      Request.new(Rack::Request.new(env)) do |request|
-        {
-          query: request.GET,
-          body: request.POST,
-          route: {}
-        }
-      end
-    end
+    # @return [String] identifier of the framework handling this HTTP request.
+    attr_reader :framework
 
-    def self.from(env, config = Aikido::Agent.config)
-      config.request_builder.call(env)
-    end
-
-    # @param [Rack::Request] a Request object that implements the
-    #   Rack::Request API, to which we will delegate behavior.
-    #
-    # @yieldparam request [Rack::Request] the given request object.
-    # @yieldreturn [Hash<Symbol, #flat_map>] map of payload source types
-    #   to the actual data from the request to populate them.
-    def initialize(delegate, &sources)
+    def initialize(delegate, framework:)
       super(delegate)
-      @payload_sources = sources
+      @framework = framework
     end
 
-    # @return [Array<Aikido::Agent::Payload>] list of user inputs from all the
-    #   different sources we recognize.
-    def payloads
-      @payloads ||= payload_sources.flat_map do |source, data|
-        extract_payloads_from(data, source)
+    # Map the CGI-style env Hash into "pretty-looking" headers, preserving the
+    # values as-is. For example, HTTP_ACCEPT turns into "Accept", CONTENT_TYPE
+    # turns into "Content-Type", and HTTP_X_FORWARDED_FOR turns into
+    # "X-Forwarded-For".
+    #
+    # @return [Hash<String, String>]
+    def normalized_headers
+      @normalized_headers ||= env.slice(*BLESSED_CGI_HEADERS)
+        .merge(env.select { |key, _| key.start_with?("HTTP_") })
+        .transform_keys { |header|
+          name = header.sub(/^HTTP_/, "").downcase
+          name.split("_").map { |part| part[0].upcase + part[1..] }.join("-")
+        }
+    end
+
+    # @return [String] the request body, up to a maximum of 16KiB. If the
+    #   underlying IO object had been partially (or fully) read before,
+    #   this will restore the previous cursor position after reading it.
+    def truncated_body(max_size: 16384)
+      return @truncated_body if defined?(@truncated_body)
+      return nil if body.nil?
+
+      begin
+        initial_pos = body.pos
+        body.rewind
+        @truncated_body = body.read(max_size)
+      ensure
+        body.rewind
+        body.seek(initial_pos)
       end
     end
 
     def as_json
-      {method: method}
+      {
+        method: request_method.downcase,
+        url: url,
+        ipAddress: ip,
+        userAgent: user_agent,
+        headers: normalized_headers.reject { |_, val| val.to_s.empty? },
+        body: truncated_body,
+        source: framework,
+        route: nil
+      }
     end
 
-    # @!visibility private
-    def payload_sources
-      @payload_sources.call(self)
-    end
-
-    private
-
-    def extract_payloads_from(data, source_type, prefix = nil)
-      if data.respond_to?(:to_hash)
-        data.to_hash.flat_map { |name, val|
-          extract_payloads_from(val, source_type, [prefix, name].compact.join("."))
-        }
-      elsif data.respond_to?(:to_ary)
-        data.to_ary.flat_map.with_index { |val, idx|
-          extract_payloads_from(val, source_type, [prefix, idx].compact.join("."))
-        }
-      else
-        Payload.new(data, source_type, prefix.to_s)
-      end
-    end
+    BLESSED_CGI_HEADERS = %w[CONTENT_TYPE CONTENT_LENGTH]
   end
 end

@@ -5,9 +5,9 @@ require "test_helper"
 class Aikido::Firewall::ScanTest < ActiveSupport::TestCase
   setup do
     @sink = Object.new
-    @request = Object.new
+    @context = Object.new
 
-    @scan = Aikido::Firewall::Scan.new(sink: @sink, request: @request)
+    @scan = Aikido::Firewall::Scan.new(sink: @sink, context: @context)
   end
 
   test "knows if it has been performed yet" do
@@ -26,7 +26,7 @@ class Aikido::Firewall::ScanTest < ActiveSupport::TestCase
   end
 
   test "it is considered an attack if the block returns an Attack" do
-    attack = Aikido::Firewall::Attack.new(request: @request, sink: @sink, operation: "test")
+    attack = Aikido::Firewall::Attack.new(context: @context, sink: @sink, operation: "test")
 
     @scan.perform { attack }
 

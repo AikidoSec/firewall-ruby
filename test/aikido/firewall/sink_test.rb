@@ -16,7 +16,7 @@ class Aikido::Firewall::SinkTest < ActiveSupport::TestCase
     end
   end
 
-  test "#scan passes the given params to each scanner, plus sink and request" do
+  test "#scan passes the given params to each scanner, plus sink and context" do
     scan_params = nil
     scanner = ->(**data) {
       scan_params = data
@@ -26,24 +26,24 @@ class Aikido::Firewall::SinkTest < ActiveSupport::TestCase
     sink = Aikido::Firewall::Sink.new("test", scanners: [scanner])
     sink.scan(foo: 1, bar: 2)
 
-    assert_equal({request: nil, foo: 1, bar: 2, sink: sink}, scan_params)
+    assert_equal({context: nil, foo: 1, bar: 2, sink: sink}, scan_params)
   end
 
-  test "#scan passes the current request if present as :request" do
+  test "#scan passes the current context if present as :context" do
     scan_params = nil
     scanner = ->(**data) {
       scan_params = data
       nil
     }
 
-    Aikido::Agent.current_request = Aikido::Agent::Request.new({})
+    Aikido::Agent.current_context = Aikido::Agent::Context.new({})
 
     sink = Aikido::Firewall::Sink.new("test", scanners: [scanner])
     sink.scan(foo: 1, bar: 2)
 
-    assert_equal Aikido::Agent.current_request, scan_params[:request]
+    assert_equal Aikido::Agent.current_context, scan_params[:context]
   ensure
-    Aikido::Agent.current_request = nil
+    Aikido::Agent.current_context = nil
   end
 
   test "#scan returns a Scan object" do
@@ -57,7 +57,7 @@ class Aikido::Firewall::SinkTest < ActiveSupport::TestCase
 
   # rubocop:disable Lint/RaiseException
   test "#scan stops after the first Attack is detected" do
-    attack = Aikido::Firewall::Attack.new(request: nil, sink: nil, operation: nil)
+    attack = Aikido::Firewall::Attack.new(context: nil, sink: nil, operation: nil)
     sink = Aikido::Firewall::Sink.new("test", reporter: NOOP, scanners: [
       ->(**data) { attack },
       ->(**data) { raise Exception, "oops" } # Exception would not be caught

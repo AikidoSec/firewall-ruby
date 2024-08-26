@@ -14,8 +14,8 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
     Aikido::Firewall::Sink.new(name, operation: "test", scanners: [NOOP])
   end
 
-  def stub_scan(sink: @sink, request: stub_request, duration: 1, attack: nil, errors: [])
-    Aikido::Firewall::Scan.new(sink: sink, request: request).tap do |scan|
+  def stub_scan(sink: @sink, context: stub_context, duration: 1, attack: nil, errors: [])
+    Aikido::Firewall::Scan.new(sink: sink, context: context).tap do |scan|
       scan.instance_variable_set(:@performed, true)
       scan.instance_variable_set(:@attack, attack)
       scan.instance_variable_set(:@errors, errors)
@@ -23,12 +23,12 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
     end
   end
 
-  def stub_attack(sink: @sink, request: stub_request, operation: "test")
-    Aikido::Firewall::Attack.new(sink: sink, request: request, operation: operation)
+  def stub_attack(sink: @sink, context: stub_context, operation: "test")
+    Aikido::Firewall::Attack.new(sink: sink, context: context, operation: operation)
   end
 
-  def stub_request
-    Aikido::Agent::Request.new({})
+  def stub_context
+    Aikido::Agent::Context.new({})
   end
 
   test "#start tracks the time at which stats started being collected" do
@@ -46,7 +46,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
   end
 
   test "#empty? is false after a request is tracked" do
-    @stats.add_request(stub_request)
+    @stats.add_request(stub_context)
     refute @stats.empty?
     assert @stats.any?
   end
@@ -64,8 +64,8 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
   test "#add_request increments the number of requests" do
     assert_changes -> { @stats.requests }, from: 0, to: 2 do
-      @stats.add_request(stub_request)
-      @stats.add_request(stub_request)
+      @stats.add_request(stub_context)
+      @stats.add_request(stub_context)
     end
   end
 
@@ -175,7 +175,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
   test "#as_json includes the number of requests" do
     @stats.start(Time.at(1234567890))
-    3.times { @stats.add_request(stub_request) }
+    3.times { @stats.add_request(stub_context) }
 
     expected = {
       startedAt: 1234567890000,
@@ -196,7 +196,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
   test "#as_json includes the scans grouped by sink" do
     @stats.start(Time.at(1234567890))
-    2.times { @stats.add_request(stub_request) }
+    2.times { @stats.add_request(stub_context) }
 
     @stats.add_scan(stub_scan(sink: @sink))
     @stats.add_scan(stub_scan(sink: @sink))
@@ -242,7 +242,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
   test "#as_json includes the number of scans that raised an error" do
     @stats.start(Time.at(1234567890))
-    2.times { @stats.add_request(stub_request) }
+    2.times { @stats.add_request(stub_context) }
 
     @stats.add_scan(stub_scan(sink: @sink))
     @stats.add_scan(stub_scan(sink: @sink, errors: [RuntimeError.new]))
@@ -288,7 +288,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
   test "#as_json includes the attacks grouped by sink" do
     @stats.start(Time.at(1234567890))
-    2.times { @stats.add_request(stub_request) }
+    2.times { @stats.add_request(stub_context) }
 
     @stats.add_scan(stub_scan(sink: @sink))
     @stats.add_scan(stub_scan(sink: @sink))
@@ -337,7 +337,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
   test "#as_json includes the compressed timings grouped by sink" do
     @stats.start(Time.at(1234567890))
-    2.times { @stats.add_request(stub_request) }
+    2.times { @stats.add_request(stub_context) }
 
     @stats.add_scan(stub_scan(sink: @sink, duration: 2))
     @stats.add_scan(stub_scan(sink: @sink, duration: 3))
@@ -428,7 +428,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
   test "#serialize_and_reset includes all current stats and clears the object" do
     @stats.start(Time.at(1234567890))
-    2.times { @stats.add_request(stub_request) }
+    2.times { @stats.add_request(stub_context) }
 
     @stats.add_scan(stub_scan(sink: @sink, duration: 2))
     @stats.add_scan(stub_scan(sink: @sink, duration: 3))

@@ -56,7 +56,7 @@ module Aikido::Agent
       }
     end
 
-    # @param [Aikido::Agent::Request]
+    # @param request [Aikido::Agent::Request]
     # @return [void]
     def add_request(request)
       synchronize { @requests += 1 }

@@ -15,7 +15,10 @@ module Aikido::Agent
     alias_method :to_s, :value
 
     def ==(other)
-      other.is_a?(Payload) && other.value == value && other.source == source
+      other.is_a?(Payload) &&
+        other.value == value &&
+        other.source == source &&
+        other.path == path
     end
 
     def as_json

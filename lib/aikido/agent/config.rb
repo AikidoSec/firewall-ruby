@@ -4,7 +4,7 @@ require "uri"
 require "json"
 require "logger"
 
-require_relative "request"
+require_relative "context"
 
 module Aikido::Agent
   class Config
@@ -58,9 +58,9 @@ module Aikido::Agent
     attr_accessor :max_compressed_stats
 
     # @api internal
-    # @return [Proc<Hash => Aikido::Agent::Request>] callable that takes a
-    #   Rack-compatible env Hash and returns a Request object. This is meant
-    #   to be overridden by each framework adapter.
+    # @return [Proc<Hash => Aikido::Agent::Context>] callable that takes a
+    #   Rack-compatible env Hash and returns a Context object with an HTTP
+    #   request. This is meant to be overridden by each framework adapter.
     attr_accessor :request_builder
 
     def initialize
@@ -76,7 +76,7 @@ module Aikido::Agent
       self.logger = Logger.new($stdout, progname: "aikido")
       self.max_performance_samples = 5000
       self.max_compressed_stats = 100
-      self.request_builder = Aikido::Agent::Request::RACK_REQUEST_BUILDER
+      self.request_builder = Aikido::Agent::Context::RACK_REQUEST_BUILDER
     end
 
     # Set the base URL for API requests.
