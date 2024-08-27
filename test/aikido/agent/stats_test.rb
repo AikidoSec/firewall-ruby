@@ -63,21 +63,21 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
   end
 
   test "#add_request increments the number of requests" do
-    assert_changes -> { @stats.requests }, from: 0, to: 2 do
+    assert_difference -> { @stats.requests }, +2 do
       @stats.add_request(stub_context)
       @stats.add_request(stub_context)
     end
   end
 
   test "#add_scan increments the total number of scans for the sink" do
-    assert_changes -> { @stats.sinks[@sink.name].scans }, from: 0, to: 2 do
+    assert_difference -> { @stats.sinks[@sink.name].scans }, +2 do
       @stats.add_scan(stub_scan(sink: @sink))
       @stats.add_scan(stub_scan(sink: @sink))
     end
   end
 
   test "#add_scan increments the number of errors if a scan caught an internal error" do
-    assert_changes -> { @stats.sinks[@sink.name].errors }, from: 0, to: 1 do
+    assert_difference -> { @stats.sinks[@sink.name].errors }, +1 do
       @stats.add_scan(stub_scan(sink: @sink, errors: [RuntimeError.new]))
       @stats.add_scan(stub_scan(sink: @sink))
     end
@@ -118,14 +118,14 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
   end
 
   test "#add_attack increments the total number of attacks detected for the sink" do
-    assert_changes -> { @stats.sinks[@sink.name].attacks }, from: 0, to: 2 do
+    assert_difference -> { @stats.sinks[@sink.name].attacks }, +2 do
       @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
       @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
     end
   end
 
   test "#add_attack tracks how many attacks is told were blocked per sink" do
-    assert_changes -> { @stats.sinks[@sink.name].blocked_attacks }, from: 0, to: 1 do
+    assert_difference -> { @stats.sinks[@sink.name].blocked_attacks }, +1 do
       @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
       @stats.add_attack(stub_attack(sink: @sink), being_blocked: false)
     end
