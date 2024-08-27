@@ -17,10 +17,19 @@ module Aikido::Agent
       @path = path
     end
 
+    def as_json
+      {method: verb, path: path}
+    end
+
     def ==(other)
       other.is_a?(Route) &&
         other.verb == verb &&
         other.path == path
+    end
+    alias_method :eql?, :==
+
+    def hash
+      [@verb, @path].hash
     end
 
     def inspect
