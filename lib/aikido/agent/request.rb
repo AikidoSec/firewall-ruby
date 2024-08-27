@@ -11,6 +11,13 @@ module Aikido::Agent
     def initialize(delegate, framework:)
       super(delegate)
       @framework = framework
+      @body_read = false
+    end
+
+    def __setobj__(delegate) # :nodoc:
+      super
+      @body_read = false
+      @normalized_header = @truncated_body = nil
     end
 
     # Map the CGI-style env Hash into "pretty-looking" headers, preserving the
@@ -32,7 +39,7 @@ module Aikido::Agent
     #   underlying IO object had been partially (or fully) read before,
     #   this will restore the previous cursor position after reading it.
     def truncated_body(max_size: 16384)
-      return @truncated_body if defined?(@truncated_body)
+      return @truncated_body if @body_read
       return nil if body.nil?
 
       begin
@@ -40,6 +47,7 @@ module Aikido::Agent
         body.rewind
         @truncated_body = body.read(max_size)
       ensure
+        @body_read = true
         body.rewind
         body.seek(initial_pos)
       end
