@@ -25,7 +25,7 @@ module Aikido::Agent
     end
 
     initializer "aikido.configuration" do |app|
-      app.config.aikido_agent.logger = Rails.logger.tagged("aikido")
+      app.config.aikido_agent.logger = ::Rails.logger.tagged("aikido")
       app.config.aikido_agent.request_builder = Aikido::Agent::Context::RAILS_REQUEST_BUILDER
 
       # Plug Rails' JSON encoder/decoder, but only if the user hasn't changed

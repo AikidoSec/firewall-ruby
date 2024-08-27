@@ -8,16 +8,25 @@ module Aikido::Agent
     # @return [String] identifier of the framework handling this HTTP request.
     attr_reader :framework
 
-    def initialize(delegate, framework:)
+    # @return [Aikido::Agent::Router]
+    attr_reader :router
+
+    def initialize(delegate, framework:, router:)
       super(delegate)
       @framework = framework
+      @router = router
       @body_read = false
     end
 
     def __setobj__(delegate) # :nodoc:
       super
       @body_read = false
-      @normalized_header = @truncated_body = nil
+      @route = @normalized_header = @truncated_body = nil
+    end
+
+    # @return [Aikido::Agent::Route] the framework route being requested.
+    def route
+      @route ||= @router.recognize(self)
     end
 
     # Map the CGI-style env Hash into "pretty-looking" headers, preserving the
@@ -62,7 +71,7 @@ module Aikido::Agent
         headers: normalized_headers.reject { |_, val| val.to_s.empty? },
         body: truncated_body,
         source: framework,
-        route: nil
+        route: route&.path
       }
     end
 

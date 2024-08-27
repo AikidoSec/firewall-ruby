@@ -86,7 +86,7 @@ class ActiveSupport::TestCase
   module StubsCurrentContext
     # Override in tests to return the desired stub.
     def current_context
-      @current_context ||= Aikido::Agent::Context.new({})
+      @current_context ||= Aikido::Agent::Context.from_rack_env({})
     end
 
     def self.included(base)

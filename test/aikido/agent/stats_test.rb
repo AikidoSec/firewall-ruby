@@ -28,7 +28,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
   end
 
   def stub_context
-    Aikido::Agent::Context.new({})
+    Aikido::Agent::Context.from_rack_env({})
   end
 
   test "#start tracks the time at which stats started being collected" do

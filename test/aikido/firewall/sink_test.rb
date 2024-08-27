@@ -36,7 +36,7 @@ class Aikido::Firewall::SinkTest < ActiveSupport::TestCase
       nil
     }
 
-    Aikido::Agent.current_context = Aikido::Agent::Context.new({})
+    Aikido::Agent.current_context = Aikido::Agent::Context.from_rack_env({})
 
     sink = Aikido::Firewall::Sink.new("test", scanners: [scanner])
     sink.scan(foo: 1, bar: 2)

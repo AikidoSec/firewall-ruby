@@ -8,7 +8,7 @@ module Aikido::Firewall
       @query = "SELECT * FROM users WHERE id = '' OR 1=1 --'"
       @input = Aikido::Agent::Payload.new("' OR 1=1 --", :route, "id")
       @dialect = Aikido::Firewall::Vulnerabilities::SQLInjection[:common]
-      @context = Aikido::Agent::Context.new({})
+      @context = Aikido::Agent::Context.from_rack_env({})
       @op = "test.op"
       @sink = Sink.new("test", scanners: [NOOP])
     end
