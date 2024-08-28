@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "puma/null_io"
 
 class Aikido::Agent::RequestTest < ActiveSupport::TestCase
   # Run the exact same test cases against multiple Request implementations
@@ -103,6 +104,13 @@ class Aikido::Agent::RequestTest < ActiveSupport::TestCase
 
       base.test "#truncated_body returns nil for GET requests" do
         env = Rack::MockRequest.env_for("/test", method: "GET")
+        req = build_request(env)
+
+        assert_nil req.truncated_body
+      end
+
+      base.test "#truncated_body can handle Puma's NullIO" do
+        env = Rack::MockRequest.env_for("/test", method: "GET", input: Puma::NullIO.new)
         req = build_request(env)
 
         assert_nil req.truncated_body

@@ -30,18 +30,19 @@ module Aikido::Agent
 
     # @return [String] the request body, up to a maximum of 16KiB. If the
     #   underlying IO object had been partially (or fully) read before,
-    #   this will restore the previous cursor position after reading it.
+    #   this will restore the previous cursor position after reading it if
+    #   possible, or left it rewund if not.
     def truncated_body(max_size: 16384)
       return @truncated_body if defined?(@truncated_body)
       return nil if body.nil?
 
       begin
-        initial_pos = body.pos
+        initial_pos = body.pos if body.respond_to?(:pos)
         body.rewind
         @truncated_body = body.read(max_size)
       ensure
         body.rewind
-        body.seek(initial_pos)
+        body.seek(initial_pos) if initial_pos && body.respond_to?(:seek)
       end
     end
 
