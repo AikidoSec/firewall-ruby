@@ -6,16 +6,15 @@ module Aikido::Agent
   # Tracks information about how the Aikido Agent is used in the app.
   class Stats < Concurrent::Synchronization::LockableObject
     # @!visibility private
-    attr_reader :started_at, :requests, :aborted_requests, :sinks, :routes
+    attr_reader :started_at, :ended_at, :requests, :aborted_requests, :sinks, :routes
+
+    # @!visibility private
+    attr_writer :ended_at
 
     def initialize(config = Aikido::Agent.config)
       super()
       @config = config
-      @sinks = Hash.new { |h, k| h[k] = SinkStats.new(k, config) }
-      @started_at = nil
-      @requests = 0
-      @routes = Hash.new(0)
-      @aborted_requests = 0
+      reset_state
     end
 
     # @return [Boolean]
@@ -35,28 +34,29 @@ module Aikido::Agent
       synchronize { @started_at = at }
     end
 
-    # Atomically serializes the stats as JSON and resets them to start
-    # collecting a new set of stats.
+    # Atomically copies the stats and resets them to their initial values, so
+    # you can start gathering a new set while being able to read the old ones
+    # without fear that a thread might modify them.
     #
-    # @return [Array(Hash, Hash)] the result of #as_json and the results of
-    #   serializing the routes.
-    def serialize_and_reset(as_of: Time.now.utc)
+    # @param at [Time] the time at which we're resetting, which is set as the
+    #   ending time for the returned copy.
+    #
+    # @return [Aikido::Agent::Stats] a frozen copy of the object before
+    #   resetting, so you can access the data there, with its +ended_at+
+    #   set to the given timestamp.
+    def reset(at: Time.now.utc)
       synchronize {
-        # Before flushing the stats into JSON we need to compress any
-        # timing stats, as the JSON representation includes these but
-        # not the raw measurements.
+        # Make sure the timing stats are compressed before copying, since we
+        # need these compressed when we serialize this for the API.
         @sinks.each_value(&:compress_timings)
-        serialized = as_json(ended_at: as_of)
-        routes = routes_as_json
 
-        # Reset all the internal state
-        @sinks.clear
-        @requests = 0
-        @routes = Hash.new(0)
-        @aborted_requests = 0
-        start(as_of)
+        copy = clone
+        copy.ended_at = at
 
-        [serialized, routes]
+        reset_state
+        start(at)
+
+        copy
       }
     end
 
@@ -65,7 +65,7 @@ module Aikido::Agent
     def add_request(request)
       synchronize {
         @requests += 1
-        @routes[request.route] += 1 if request.route
+        @routes.add(request.route)
       }
       self
     end
@@ -96,11 +96,11 @@ module Aikido::Agent
       self
     end
 
-    def as_json(ended_at: Time.now.utc)
+    def as_json
       total_attacks, total_blocked = aggregate_attacks_from_sinks
       {
         startedAt: @started_at.to_i * 1000,
-        endedAt: ended_at.to_i * 1000,
+        endedAt: (@ended_at.to_i * 1000 if @ended_at),
         sinks: @sinks.transform_values(&:as_json),
         requests: {
           total: @requests,
@@ -113,17 +113,48 @@ module Aikido::Agent
       }
     end
 
-    # @return [Array<Hash>]
-    def routes_as_json
-      @routes.map do |route, hits|
-        route.as_json.merge(hits: hits)
-      end
+    private def reset_state
+      @sinks = Hash.new { |h, k| h[k] = SinkStats.new(k, @config) }
+      @started_at = @ended_at = nil
+      @requests = 0
+      @routes = Routes.new
+      @aborted_requests = 0
     end
 
     private def aggregate_attacks_from_sinks
       @sinks.each_value.reduce([0, 0]) { |(attacks, blocked), stats|
         [attacks + stats.attacks, blocked + stats.blocked_attacks]
       }
+    end
+
+    # @api private
+    #
+    # Keeps track of the visited routes.
+    class Routes
+      def initialize
+        @routes = Hash.new(0)
+      end
+
+      # @param route [Aikido::Agent::Route, nil] tracks the visit, if given.
+      def add(route)
+        @routes[route] += 1 if route
+      end
+
+      # @!visibility private
+      def [](route)
+        @routes[route]
+      end
+
+      # @!visibility private
+      def empty?
+        @routes.empty?
+      end
+
+      def as_json
+        @routes.map do |route, hits|
+          route.as_json.merge(hits: hits)
+        end
+      end
     end
 
     # @api private

@@ -106,22 +106,33 @@ class Aikido::Agent::EventTest < ActiveSupport::TestCase
   end
 
   class HeartbeatTest < ActiveSupport::TestCase
+    setup do
+      @stats = Aikido::Agent::Stats.new
+      @stats.start(Time.at(1234567890))
+      @stats.ended_at = Time.at(1234577890)
+    end
+
     test "sets type to heartbeat" do
-      event = Aikido::Agent::Events::Heartbeat.new(
-        serialized_stats: {},
-        serialized_routes: []
-      )
+      event = Aikido::Agent::Events::Heartbeat.new(stats: @stats)
 
       assert_equal "heartbeat", event.type
     end
 
     test "sets the stats to the serialized_stats passed" do
-      event = Aikido::Agent::Events::Heartbeat.new(
-        serialized_stats: {sinks: {}, requests: {}},
-        serialized_routes: []
-      )
+      event = Aikido::Agent::Events::Heartbeat.new(stats: @stats)
 
-      assert_equal({sinks: {}, requests: {}}, event.as_json[:stats])
+      expected = {
+        startedAt: 1234567890000,
+        endedAt: 1234577890000,
+        sinks: {},
+        requests: {
+          total: 0,
+          aborted: 0,
+          attacksDetected: {total: 0, blocked: 0}
+        }
+      }
+
+      assert_equal(expected, event.as_json[:stats])
     end
 
     test "includes the outbound hostnames visited by the app" do
@@ -129,19 +140,26 @@ class Aikido::Agent::EventTest < ActiveSupport::TestCase
     end
 
     test "includes the recognized framework routes" do
-      event = Aikido::Agent::Events::Heartbeat.new(
-        serialized_stats: {},
-        serialized_routes: [
-          {path: "/users/:id", method: "GET", hits: 3},
-          {path: "/users", method: "POST", hits: 1},
-          {path: "/", method: "GET", hits: 4}
-        ]
-      )
+      3.times { @stats.add_request(stub_request(route: stub_route("GET", "/users/:id"))) }
+      2.times { @stats.add_request(stub_request(route: stub_route("POST", "/users"))) }
+      4.times { @stats.add_request(stub_request(route: stub_route("GET", "/"))) }
+
+      event = Aikido::Agent::Events::Heartbeat.new(stats: @stats)
 
       assert_includes event.as_json[:routes], {path: "/users/:id", method: "GET", hits: 3}
-      assert_includes event.as_json[:routes], {path: "/users", method: "POST", hits: 1}
+      assert_includes event.as_json[:routes], {path: "/users", method: "POST", hits: 2}
       assert_includes event.as_json[:routes], {path: "/", method: "GET", hits: 4}
     end
+
+    def stub_route(verb, path)
+      Aikido::Agent::Route.new(path: path, verb: verb)
+    end
+
+    def stub_request(route:)
+      StubRequest.new(route)
+    end
+
+    StubRequest = Struct.new(:route)
 
     test "includes the users the developer told us about" do
       skip "Implement support for users"

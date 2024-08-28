@@ -48,16 +48,15 @@ module Aikido::Agent
     end
 
     class Heartbeat < Event
-      def initialize(serialized_stats:, serialized_routes:, **opts)
-        @serialized_stats = serialized_stats
-        @serialized_routes = serialized_routes
+      def initialize(stats:, **opts)
         super(type: "heartbeat", **opts)
+        @stats = stats
       end
 
       def as_json
         super.update(
-          stats: @serialized_stats,
-          routes: @serialized_routes,
+          stats: @stats.as_json,
+          routes: @stats.routes.as_json,
           hostnames: [],
           users: []
         )

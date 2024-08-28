@@ -255,7 +255,7 @@ class Aikido::Agent::RunnerTest < ActiveSupport::TestCase
 
   test "#send_heartbeat flushes the stats before sending them" do
     stats = Minitest::Mock.new
-    stats.expect :serialize_and_reset, [{}, []]
+    stats.expect :reset, Object.new
 
     @runner.stub :stats, stats do
       @runner.send_heartbeat
