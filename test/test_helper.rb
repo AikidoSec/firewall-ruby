@@ -16,6 +16,7 @@ require "debug" if RUBY_VERSION >= "3"
 require "action_dispatch"
 
 require_relative "support/fake_rails_app"
+require_relative "support/puma"
 
 class ActiveSupport::TestCase
   self.file_fixture_path = "test/fixtures"

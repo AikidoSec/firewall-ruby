@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "puma/null_io"
 
 class Aikido::Agent::RequestTest < ActiveSupport::TestCase
   # Run the exact same test cases against multiple Request implementations
