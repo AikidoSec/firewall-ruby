@@ -6,7 +6,7 @@ module Aikido::Agent
   # Tracks information about how the Aikido Agent is used in the app.
   class Stats < Concurrent::Synchronization::LockableObject
     # @!visibility private
-    attr_reader :started_at, :ended_at, :requests, :aborted_requests, :sinks, :routes
+    attr_reader :started_at, :ended_at, :requests, :aborted_requests, :sinks
 
     # @!visibility private
     attr_writer :ended_at
@@ -96,18 +96,26 @@ module Aikido::Agent
       self
     end
 
+    # @return [#as_json] the set of routes visited during this stats-gathering
+    #   period.
+    def routes
+      synchronize { @routes }
+    end
+
     def as_json
-      total_attacks, total_blocked = aggregate_attacks_from_sinks
-      {
-        startedAt: @started_at.to_i * 1000,
-        endedAt: (@ended_at.to_i * 1000 if @ended_at),
-        sinks: @sinks.transform_values(&:as_json),
-        requests: {
-          total: @requests,
-          aborted: @aborted_requests,
-          attacksDetected: {
-            total: total_attacks,
-            blocked: total_blocked
+      synchronize {
+        total_attacks, total_blocked = aggregate_attacks_from_sinks
+        {
+          startedAt: @started_at.to_i * 1000,
+          endedAt: (@ended_at.to_i * 1000 if @ended_at),
+          sinks: @sinks.transform_values(&:as_json),
+          requests: {
+            total: @requests,
+            aborted: @aborted_requests,
+            attacksDetected: {
+              total: total_attacks,
+              blocked: total_blocked
+            }
           }
         }
       }
