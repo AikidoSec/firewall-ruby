@@ -51,7 +51,9 @@ module Aikido::Firewall
     #   using an +operation+ param of their own.
     attr_reader :operation
 
-    def initialize(name, scanners:, operation: name, reporter: Aikido::Agent.method(:track_scan))
+    DEFAULT_REPORTER = ->(scan) { Aikido::Agent.track_scan(scan) }
+
+    def initialize(name, scanners:, operation: name, reporter: DEFAULT_REPORTER)
       raise ArgumentError, "scanners cannot be empty" if scanners.empty?
 
       @name = name

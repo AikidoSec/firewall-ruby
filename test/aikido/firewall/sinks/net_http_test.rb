@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "aikido/firewall/sinks/net_http"
 
 class Aikido::Firewall::Sinks::NetHTTPTest < ActiveSupport::TestCase
   include StubsCurrentContext

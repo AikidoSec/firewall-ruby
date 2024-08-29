@@ -3,23 +3,27 @@
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "aikido/firewall"
 require "minitest/autorun"
+require "minitest/stub_const"
 require "active_support"
 require "active_support/test_case"
 require "active_support/testing/setup_and_teardown"
-require "minitest/stub_const"
-require "webmock/minitest"
 require "action_dispatch"
 require "action_dispatch/routing/inspector"
 require "pathname"
 require "debug" if RUBY_VERSION >= "3"
 
+# Patch HTTP drivers with webmock _before_ we load all the sinks and patch them
+# ourselves.
+require "webmock/minitest"
+require "support/sinks"
+
 require_relative "support/fake_rails_app"
+
+# Utility proc that does nothing.
+NOOP = ->(*args, **opts) {}
 
 class ActiveSupport::TestCase
   self.file_fixture_path = "test/fixtures"
-
-  # Utility proc that does nothing.
-  NOOP = ->(*args, **opts) {}
 
   # Reset any global state before each test
   setup do

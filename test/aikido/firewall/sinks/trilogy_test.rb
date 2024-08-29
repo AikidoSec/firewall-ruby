@@ -2,9 +2,6 @@
 
 require "test_helper"
 
-require "trilogy"
-require "aikido/firewall/sinks/trilogy"
-
 class Aikido::Firewall::Sinks::TrilogyTest < ActiveSupport::TestCase
   include StubsCurrentContext
 

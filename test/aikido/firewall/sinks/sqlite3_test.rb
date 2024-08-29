@@ -2,9 +2,6 @@
 
 require "test_helper"
 
-require "sqlite3"
-require "aikido/firewall/sinks/sqlite3"
-
 class Aikido::Firewall::Sinks::SQLite3Test < ActiveSupport::TestCase
   include StubsCurrentContext
 
