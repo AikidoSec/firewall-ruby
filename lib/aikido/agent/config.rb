@@ -57,6 +57,12 @@ module Aikido::Agent
     #   will discard the oldest samples.
     attr_accessor :max_compressed_stats
 
+    # @return [Integer] maximum number of connections to outbound hosts to keep
+    #   in memory in order to report them in the next heartbeat event. If new
+    #   connections are added to the set before reporting them to Aikido, we
+    #   will discard the oldest data point.
+    attr_accessor :max_outbound_connections
+
     # @api internal
     # @return [Proc<Hash => Aikido::Agent::Context>] callable that takes a
     #   Rack-compatible env Hash and returns a Context object with an HTTP
@@ -76,6 +82,7 @@ module Aikido::Agent
       self.logger = Logger.new($stdout, progname: "aikido")
       self.max_performance_samples = 5000
       self.max_compressed_stats = 100
+      self.max_outbound_connections = 200
       self.request_builder = Aikido::Agent::Context::RACK_REQUEST_BUILDER
     end
 

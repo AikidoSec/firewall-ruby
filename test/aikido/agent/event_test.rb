@@ -136,7 +136,21 @@ class Aikido::Agent::EventTest < ActiveSupport::TestCase
     end
 
     test "includes the outbound hostnames visited by the app" do
-      skip "Implement support for outbound request interception"
+      3.times { @stats.add_outbound(stub_outbound("example.com", 80)) }
+      2.times { @stats.add_outbound(stub_outbound("example.com", 443)) }
+      3.times { @stats.add_outbound(stub_outbound("guard.aikido.dev", 443)) }
+      10.times { @stats.add_outbound(stub_outbound("runtime.aikido.dev", 443)) }
+
+      event = Aikido::Agent::Events::Heartbeat.new(stats: @stats)
+
+      expected = [
+        {hostname: "example.com", port: 80},
+        {hostname: "example.com", port: 443},
+        {hostname: "guard.aikido.dev", port: 443},
+        {hostname: "runtime.aikido.dev", port: 443}
+      ]
+
+      assert_equal expected, event.as_json[:hostnames]
     end
 
     test "includes the recognized framework routes" do
@@ -151,6 +165,14 @@ class Aikido::Agent::EventTest < ActiveSupport::TestCase
       assert_includes event.as_json[:routes], {path: "/", method: "GET", hits: 4}
     end
 
+    test "includes the users the developer told us about" do
+      skip "Implement support for users"
+    end
+
+    def stub_outbound(host, port)
+      Aikido::Agent::OutboundConnection.new(host: host, port: port)
+    end
+
     def stub_route(verb, path)
       Aikido::Agent::Route.new(path: path, verb: verb)
     end
@@ -160,9 +182,5 @@ class Aikido::Agent::EventTest < ActiveSupport::TestCase
     end
 
     StubRequest = Struct.new(:route)
-
-    test "includes the users the developer told us about" do
-      skip "Implement support for users"
-    end
   end
 end

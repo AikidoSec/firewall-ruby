@@ -57,7 +57,7 @@ module Aikido::Agent
         super.update(
           stats: @stats.as_json,
           routes: @stats.routes.as_json,
-          hostnames: [],
+          hostnames: @stats.outbound_connections.as_json,
           users: []
         )
       end

@@ -7,6 +7,7 @@ require_relative "agent/runner"
 require_relative "agent/api_client"
 require_relative "agent/context"
 require_relative "agent/set_context"
+require_relative "agent/outbound_connection"
 require_relative "agent/rails_engine" if defined?(::Rails)
 
 module Aikido
@@ -42,6 +43,14 @@ module Aikido
     # @return [void]
     def self.track_request(request)
       runner.stats.add_request(request)
+    end
+
+    # Tracks a network connection made to an external service.
+    #
+    # @param connection [Aikido::Agent::OutboundConnection]
+    # @return [void]
+    def self.track_outbound(connection)
+      runner.stats.add_outbound(connection)
     end
 
     # Starts the background threads that keep the agent running.

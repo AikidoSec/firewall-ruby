@@ -70,6 +70,13 @@ module Aikido::Agent
       self
     end
 
+    # @param connection [Aikido::Agent::OutboundConnection]
+    # @return [void]
+    def add_outbound(connection)
+      synchronize { @outbound_connections << connection }
+      self
+    end
+
     # @param [Aikido::Firewall::Scan]
     # @return [void]
     def add_scan(scan)
@@ -102,6 +109,12 @@ module Aikido::Agent
       synchronize { @routes }
     end
 
+    # @return [#as_json] the set of connections to outbound hosts that were
+    #   established during this stats-gathering period.
+    def outbound_connections
+      synchronize { @outbound_connections }
+    end
+
     def as_json
       synchronize {
         total_attacks, total_blocked = aggregate_attacks_from_sinks
@@ -126,6 +139,7 @@ module Aikido::Agent
       @started_at = @ended_at = nil
       @requests = 0
       @routes = Routes.new
+      @outbound_connections = CappedSet.new(@config.max_outbound_connections)
       @aborted_requests = 0
     end
 
@@ -167,6 +181,48 @@ module Aikido::Agent
 
     # @api private
     #
+    # Provides a FIFO set with a maximum size. Adding an element after the
+    # capacity has been reached kicks the oldest element in the set out,
+    # while maintaining the uniqueness property of a set (relying on #eql?
+    # and #hash).
+    class CappedSet
+      include Enumerable
+
+      # @return [Integer]
+      attr_reader :capacity
+
+      def initialize(capacity)
+        @capacity = capacity
+        @data = {}
+      end
+
+      def <<(element)
+        @data[element] = nil
+        @data.delete(@data.keys.first) if @data.size > @capacity
+        self
+      end
+      alias_method :add, :<<
+      alias_method :push, :<<
+
+      def each(&b)
+        @data.each_key(&b)
+      end
+
+      def size
+        @data.size
+      end
+
+      def empty?
+        @data.empty?
+      end
+
+      def as_json
+        map(&:as_json)
+      end
+    end
+
+    # @api private
+    #
     # Tracks data specific to a single Sink.
     class SinkStats
       # @return [Integer] number of total calls to Sink#scan.
@@ -202,7 +258,7 @@ module Aikido::Agent
         @blocked_attacks = 0
 
         @timings = Set.new
-        @compressed_timings = []
+        @compressed_timings = CappedSet.new(@config.max_compressed_stats)
       end
 
       def add_timing(duration)
@@ -219,7 +275,6 @@ module Aikido::Agent
         mean = list.sum / list.size
         percentiles = percentiles(list, 50, 75, 90, 95, 99)
 
-        discard_compressed_metrics if @compressed_timings.size >= @config.max_compressed_stats
         @compressed_timings << CompressedTiming.new(mean, percentiles, at)
       end
 
@@ -232,18 +287,8 @@ module Aikido::Agent
             total: @attacks,
             blocked: @blocked_attacks
           },
-          compressedTimings: @compressed_timings.map(&:as_json)
+          compressedTimings: @compressed_timings.as_json
         }
-      end
-
-      private def discard_compressed_metrics
-        message = format(
-          DISCARD_LOG_MESSAGE,
-          @compressed_timings.size,
-          @compressed_timings.first.compressed_at.iso_8601
-        )
-        @logger.config.debug(message)
-        @compressed_timings.shift
       end
 
       private def percentiles(sorted, *scores)
