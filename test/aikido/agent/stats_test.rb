@@ -27,8 +27,8 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
     Aikido::Firewall::Attack.new(sink: sink, context: context, operation: operation)
   end
 
-  def stub_context
-    Aikido::Agent::Context.new({})
+  def stub_context(env = {})
+    Aikido::Agent::Context.from_rack_env(env)
   end
 
   test "#start tracks the time at which stats started being collected" do
@@ -46,7 +46,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
   end
 
   test "#empty? is false after a request is tracked" do
-    @stats.add_request(stub_context)
+    @stats.add_request(stub_context.request)
     refute @stats.empty?
     assert @stats.any?
   end
@@ -63,21 +63,37 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
   end
 
   test "#add_request increments the number of requests" do
-    assert_changes -> { @stats.requests }, from: 0, to: 2 do
-      @stats.add_request(stub_context)
-      @stats.add_request(stub_context)
+    assert_difference -> { @stats.requests }, +2 do
+      @stats.add_request(stub_context.request)
+      @stats.add_request(stub_context.request)
+    end
+  end
+
+  test "#add_request tracks how many times the given route was visited" do
+    ctx_1 = stub_context(Rack::MockRequest.env_for("/get"))
+    route_1 = Aikido::Agent::Route.new(verb: "GET", path: "/get")
+
+    ctx_2 = stub_context(Rack::MockRequest.env_for("/post", "REQUEST_METHOD" => "POST"))
+    route_2 = Aikido::Agent::Route.new(verb: "POST", path: "/post")
+
+    assert_difference -> { @stats.routes[route_1] }, +2 do
+      assert_difference -> { @stats.routes[route_2] }, +1 do
+        @stats.add_request(ctx_1.request)
+        @stats.add_request(ctx_2.request)
+        @stats.add_request(ctx_1.request)
+      end
     end
   end
 
   test "#add_scan increments the total number of scans for the sink" do
-    assert_changes -> { @stats.sinks[@sink.name].scans }, from: 0, to: 2 do
+    assert_difference -> { @stats.sinks[@sink.name].scans }, +2 do
       @stats.add_scan(stub_scan(sink: @sink))
       @stats.add_scan(stub_scan(sink: @sink))
     end
   end
 
   test "#add_scan increments the number of errors if a scan caught an internal error" do
-    assert_changes -> { @stats.sinks[@sink.name].errors }, from: 0, to: 1 do
+    assert_difference -> { @stats.sinks[@sink.name].errors }, +1 do
       @stats.add_scan(stub_scan(sink: @sink, errors: [RuntimeError.new]))
       @stats.add_scan(stub_scan(sink: @sink))
     end
@@ -118,14 +134,14 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
   end
 
   test "#add_attack increments the total number of attacks detected for the sink" do
-    assert_changes -> { @stats.sinks[@sink.name].attacks }, from: 0, to: 2 do
+    assert_difference -> { @stats.sinks[@sink.name].attacks }, +2 do
       @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
       @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
     end
   end
 
   test "#add_attack tracks how many attacks is told were blocked per sink" do
-    assert_changes -> { @stats.sinks[@sink.name].blocked_attacks }, from: 0, to: 1 do
+    assert_difference -> { @stats.sinks[@sink.name].blocked_attacks }, +1 do
       @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
       @stats.add_attack(stub_attack(sink: @sink), being_blocked: false)
     end
@@ -175,7 +191,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
   test "#as_json includes the number of requests" do
     @stats.start(Time.at(1234567890))
-    3.times { @stats.add_request(stub_context) }
+    3.times { @stats.add_request(stub_context.request) }
 
     expected = {
       startedAt: 1234567890000,
@@ -196,7 +212,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
   test "#as_json includes the scans grouped by sink" do
     @stats.start(Time.at(1234567890))
-    2.times { @stats.add_request(stub_context) }
+    2.times { @stats.add_request(stub_context.request) }
 
     @stats.add_scan(stub_scan(sink: @sink))
     @stats.add_scan(stub_scan(sink: @sink))
@@ -242,7 +258,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
   test "#as_json includes the number of scans that raised an error" do
     @stats.start(Time.at(1234567890))
-    2.times { @stats.add_request(stub_context) }
+    2.times { @stats.add_request(stub_context.request) }
 
     @stats.add_scan(stub_scan(sink: @sink))
     @stats.add_scan(stub_scan(sink: @sink, errors: [RuntimeError.new]))
@@ -288,7 +304,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
   test "#as_json includes the attacks grouped by sink" do
     @stats.start(Time.at(1234567890))
-    2.times { @stats.add_request(stub_context) }
+    2.times { @stats.add_request(stub_context.request) }
 
     @stats.add_scan(stub_scan(sink: @sink))
     @stats.add_scan(stub_scan(sink: @sink))
@@ -337,7 +353,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
   test "#as_json includes the compressed timings grouped by sink" do
     @stats.start(Time.at(1234567890))
-    2.times { @stats.add_request(stub_context) }
+    2.times { @stats.add_request(stub_context.request) }
 
     @stats.add_scan(stub_scan(sink: @sink, duration: 2))
     @stats.add_scan(stub_scan(sink: @sink, duration: 3))
@@ -406,10 +422,10 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
     end
   end
 
-  test "#serialize_and_reset returns the JSON serialization" do
+  test "#serialize_and_reset returns the JSON serialization and the routes" do
     @stats.start(Time.at(1234567890))
 
-    expected = {
+    expected_stats = {
       startedAt: 1234567890000,
       endedAt: 1234577890000,
       sinks: {},
@@ -423,12 +439,18 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       }
     }
 
-    assert_equal expected, @stats.serialize_and_reset(as_of: Time.at(1234577890))
+    actual_stats, actual_routes = @stats.serialize_and_reset(as_of: Time.at(1234577890))
+
+    assert_equal expected_stats, actual_stats
+    assert_equal [], actual_routes
   end
 
   test "#serialize_and_reset includes all current stats and clears the object" do
     @stats.start(Time.at(1234567890))
-    2.times { @stats.add_request(stub_context) }
+    2.times {
+      env = Rack::MockRequest.env_for("/")
+      @stats.add_request(stub_context(env).request)
+    }
 
     @stats.add_scan(stub_scan(sink: @sink, duration: 2))
     @stats.add_scan(stub_scan(sink: @sink, duration: 3))
@@ -436,7 +458,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
     @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
 
     freeze_time do
-      expected = {
+      expected_stats = {
         startedAt: 1234567890000,
         endedAt: 1234577890000,
         requests: {
@@ -470,8 +492,14 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
           }
         }
       }
+      expected_routes = [
+        {path: "/", method: "GET", hits: 2}
+      ]
 
-      assert_equal expected, @stats.serialize_and_reset(as_of: Time.at(1234577890))
+      actual_stats, actual_routes = @stats.serialize_and_reset(as_of: Time.at(1234577890))
+
+      assert_equal expected_stats, actual_stats
+      assert_equal expected_routes, actual_routes
 
       assert_empty @stats.sinks
       assert_equal 0, @stats.requests

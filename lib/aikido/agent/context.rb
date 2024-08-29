@@ -29,11 +29,11 @@ module Aikido::Agent
     # middleware isn't enough, such as Rails, where the router modifies it after
     # the middleware has seen it.
     #
-    # @param request [Rack::Request]
+    # @param new_request [Rack::Request]
     # @return [void]
-    def update_request(request)
+    def update_request(new_request)
       @payloads = nil
-      @request = Aikido::Agent::Request.new(request, framework: self.request.framework)
+      request.__setobj__(new_request)
     end
 
     # @return [Array<Aikido::Agent::Payload>] list of user inputs from all the

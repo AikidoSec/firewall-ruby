@@ -100,8 +100,12 @@ module Aikido::Agent
     def send_heartbeat
       return unless @api_client.can_make_requests?
 
-      serialized = stats.serialize_and_reset
-      report(Events::Heartbeat.new(serialized_stats: serialized)) do |response|
+      stats_json, routes_json = stats.serialize_and_reset
+      event = Events::Heartbeat.new(
+        serialized_stats: stats_json,
+        serialized_routes: routes_json
+      )
+      report(event) do |response|
         Aikido::Firewall.settings.update_from_json(response)
         @config.logger.info "Updated firewall settings after heartbeat"
       end

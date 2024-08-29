@@ -8,9 +8,25 @@ module Aikido::Agent
     # @return [String] identifier of the framework handling this HTTP request.
     attr_reader :framework
 
-    def initialize(delegate, framework:)
+    # @return [Aikido::Agent::Router]
+    attr_reader :router
+
+    def initialize(delegate, framework:, router:)
       super(delegate)
       @framework = framework
+      @router = router
+      @body_read = false
+    end
+
+    def __setobj__(delegate) # :nodoc:
+      super
+      @body_read = false
+      @route = @normalized_header = @truncated_body = nil
+    end
+
+    # @return [Aikido::Agent::Route] the framework route being requested.
+    def route
+      @route ||= @router.recognize(self)
     end
 
     # Map the CGI-style env Hash into "pretty-looking" headers, preserving the
@@ -32,7 +48,7 @@ module Aikido::Agent
     #   underlying IO object had been partially (or fully) read before,
     #   this will restore the previous cursor position after reading it.
     def truncated_body(max_size: 16384)
-      return @truncated_body if defined?(@truncated_body)
+      return @truncated_body if @body_read
       return nil if body.nil?
 
       begin
@@ -40,6 +56,7 @@ module Aikido::Agent
         body.rewind
         @truncated_body = body.read(max_size)
       ensure
+        @body_read = true
         body.rewind
         body.seek(initial_pos)
       end
@@ -54,7 +71,7 @@ module Aikido::Agent
         headers: normalized_headers.reject { |_, val| val.to_s.empty? },
         body: truncated_body,
         source: framework,
-        route: nil
+        route: route&.path
       }
     end
 

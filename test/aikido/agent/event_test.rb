@@ -107,14 +107,18 @@ class Aikido::Agent::EventTest < ActiveSupport::TestCase
 
   class HeartbeatTest < ActiveSupport::TestCase
     test "sets type to heartbeat" do
-      event = Aikido::Agent::Events::Heartbeat.new(serialized_stats: {})
+      event = Aikido::Agent::Events::Heartbeat.new(
+        serialized_stats: {},
+        serialized_routes: []
+      )
 
       assert_equal "heartbeat", event.type
     end
 
     test "sets the stats to the serialized_stats passed" do
       event = Aikido::Agent::Events::Heartbeat.new(
-        serialized_stats: {sinks: {}, requests: {}}
+        serialized_stats: {sinks: {}, requests: {}},
+        serialized_routes: []
       )
 
       assert_equal({sinks: {}, requests: {}}, event.as_json[:stats])
@@ -125,7 +129,18 @@ class Aikido::Agent::EventTest < ActiveSupport::TestCase
     end
 
     test "includes the recognized framework routes" do
-      skip "Implement support for routes"
+      event = Aikido::Agent::Events::Heartbeat.new(
+        serialized_stats: {},
+        serialized_routes: [
+          {path: "/users/:id", method: "GET", hits: 3},
+          {path: "/users", method: "POST", hits: 1},
+          {path: "/", method: "GET", hits: 4}
+        ]
+      )
+
+      assert_includes event.as_json[:routes], {path: "/users/:id", method: "GET", hits: 3}
+      assert_includes event.as_json[:routes], {path: "/users", method: "POST", hits: 1}
+      assert_includes event.as_json[:routes], {path: "/", method: "GET", hits: 4}
     end
 
     test "includes the users the developer told us about" do

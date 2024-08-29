@@ -5,12 +5,13 @@ require "aikido/firewall"
 require "minitest/autorun"
 require "active_support"
 require "active_support/test_case"
+require "active_support/testing/setup_and_teardown"
 require "minitest/stub_const"
 require "webmock/minitest"
-require "active_support/testing/setup_and_teardown"
+require "action_dispatch"
+require "action_dispatch/routing/inspector"
 require "pathname"
 require "debug" if RUBY_VERSION >= "3"
-require "action_dispatch"
 
 require_relative "support/fake_rails_app"
 
@@ -39,6 +40,13 @@ class ActiveSupport::TestCase
     Aikido::Agent.stop!
 
     Aikido::Firewall::Sinks.registry.replace(@_old_sinks_registry)
+  end
+
+  # Reset the routes in the test app defined in test/support/fake_rails_app to
+  # avoid any leaks between tests.
+  setup do
+    new_routes = ActionDispatch::Routing::RouteSet.new
+    Rails.application.instance_variable_set(:@routes, new_routes)
   end
 
   # Capture log output and make it testable
@@ -78,7 +86,7 @@ class ActiveSupport::TestCase
   module StubsCurrentContext
     # Override in tests to return the desired stub.
     def current_context
-      @current_context ||= Aikido::Agent::Context.new({})
+      @current_context ||= Aikido::Agent::Context.from_rack_env({})
     end
 
     def self.included(base)

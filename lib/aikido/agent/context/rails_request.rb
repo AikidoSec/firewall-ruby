@@ -1,12 +1,21 @@
 # frozen_string_literal: true
 
 require_relative "../request"
+require_relative "../request/rails_router"
 
 module Aikido::Agent
+  module Rails
+    def self.router
+      @router ||= Request::RailsRouter.new(::Rails.application.routes)
+    end
+  end
+
   # @!visibility private
   Context::RAILS_REQUEST_BUILDER = ->(env) do
     delegate = ActionDispatch::Request.new(env)
-    request = Aikido::Agent::Request.new(delegate, framework: "rails")
+    request = Aikido::Agent::Request.new(
+      delegate, framework: "rails", router: Rails.router
+    )
 
     decrypt_cookies = ->(req) do
       return req.cookies unless req.respond_to?(:cookie_jar)

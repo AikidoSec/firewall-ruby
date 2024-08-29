@@ -193,9 +193,17 @@ class Aikido::Agent::RequestTest < ActiveSupport::TestCase
       assert_equal "rack", request.framework
     end
 
+    test "#as_json includes the paremeterized route being requested" do
+      env = Rack::MockRequest.env_for("/test/123")
+      req = build_request(env)
+
+      assert_equal "/test/:number", req.as_json[:route]
+    end
+
     def build_request(env)
+      router = Aikido::Agent::Request::HeuristicRouter.new
       framework_request = Rack::Request.new(env)
-      Aikido::Agent::Request.new(framework_request, framework: "rack")
+      Aikido::Agent::Request.new(framework_request, framework: "rack", router: router)
     end
   end
 
@@ -207,9 +215,23 @@ class Aikido::Agent::RequestTest < ActiveSupport::TestCase
       assert_equal "rails", request.framework
     end
 
+    test "#as_json includes the parameterized route being requested" do
+      Rails.application.routes.draw do
+        get "/cats/:id", to: "cats#show", as: :cat
+      end
+
+      env = Rack::MockRequest.env_for("/cats/123")
+      req = build_request(env)
+
+      assert_equal "/cats/:id(.:format)", req.as_json[:route]
+    end
+
     def build_request(env)
+      env = Rails.application.env_config.merge(env)
       framework_request = ActionDispatch::Request.new(env)
-      Aikido::Agent::Request.new(framework_request, framework: "rails")
+
+      router = Aikido::Agent::Request::RailsRouter.new(::Rails.application.routes)
+      Aikido::Agent::Request.new(framework_request, framework: "rails", router: router)
     end
   end
 end

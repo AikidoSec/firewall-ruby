@@ -6,7 +6,7 @@ module Aikido::Agent
   # Tracks information about how the Aikido Agent is used in the app.
   class Stats < Concurrent::Synchronization::LockableObject
     # @!visibility private
-    attr_reader :started_at, :requests, :aborted_requests, :sinks
+    attr_reader :started_at, :requests, :aborted_requests, :sinks, :routes
 
     def initialize(config = Aikido::Agent.config)
       super()
@@ -14,6 +14,7 @@ module Aikido::Agent
       @sinks = Hash.new { |h, k| h[k] = SinkStats.new(k, config) }
       @started_at = nil
       @requests = 0
+      @routes = Hash.new(0)
       @aborted_requests = 0
     end
 
@@ -37,7 +38,8 @@ module Aikido::Agent
     # Atomically serializes the stats as JSON and resets them to start
     # collecting a new set of stats.
     #
-    # @return [Hash] the result of #as_json
+    # @return [Array(Hash, Hash)] the result of #as_json and the results of
+    #   serializing the routes.
     def serialize_and_reset(as_of: Time.now.utc)
       synchronize {
         # Before flushing the stats into JSON we need to compress any
@@ -45,21 +47,26 @@ module Aikido::Agent
         # not the raw measurements.
         @sinks.each_value(&:compress_timings)
         serialized = as_json(ended_at: as_of)
+        routes = routes_as_json
 
         # Reset all the internal state
         @sinks.clear
         @requests = 0
+        @routes = Hash.new(0)
         @aborted_requests = 0
         start(as_of)
 
-        serialized
+        [serialized, routes]
       }
     end
 
     # @param request [Aikido::Agent::Request]
     # @return [void]
     def add_request(request)
-      synchronize { @requests += 1 }
+      synchronize {
+        @requests += 1
+        @routes[request.route] += 1 if request.route
+      }
       self
     end
 
@@ -104,6 +111,13 @@ module Aikido::Agent
           }
         }
       }
+    end
+
+    # @return [Array<Hash>]
+    def routes_as_json
+      @routes.map do |route, hits|
+        route.as_json.merge(hits: hits)
+      end
     end
 
     private def aggregate_attacks_from_sinks
