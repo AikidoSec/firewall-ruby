@@ -28,10 +28,19 @@ module Aikido::Agent
         }
     end
 
-    # @return [String] the request body, up to a maximum of 16KiB. If the
-    #   underlying IO object had been partially (or fully) read before,
-    #   this will restore the previous cursor position after reading it if
-    #   possible, or left it rewund if not.
+    # @api private
+    #
+    # Reads the first 16KiB of the request body, to include in attack reports
+    # back to the Aikido server. This method should only be called if an attack
+    # is detected during the current request.
+    #
+    # If the underlying IO object has been partially (or fully) read before,
+    # this will attempt to restore the previous cursor position after reading it
+    # if possible, or leave if rewund if not.
+    #
+    # @param max_size [Integer] number of bytes to read at most.
+    #
+    # @return [String]
     def truncated_body(max_size: 16384)
       return @truncated_body if defined?(@truncated_body)
       return nil if body.nil?
