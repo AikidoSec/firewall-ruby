@@ -28,3 +28,4 @@ gem "trilogy"
 
 # HTTP clients
 gem "http", "~> 5.2"
+gem "httpx", "~> 1.3"
