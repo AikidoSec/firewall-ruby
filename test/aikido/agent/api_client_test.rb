@@ -22,7 +22,40 @@ class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
     assert @client.can_make_requests?
   end
 
+  # The HTTP Request scanner is triggering scans, and reporting on outbound
+  # connections, which due to how the Agent works, automatically starts the
+  # Runner, which tries to make other HTTP requests (like reporting a start
+  # event), that this test doesn't care about.
+  #
+  # This avoids this by replacing the Aikido::Agent methods by NOOP calls.
+  #
+  # FIXME: Make this easier to stub.
+  module DisableAgentReporting
+    def self.included(base)
+      original_agent_interface = {
+        track_scan: Aikido::Agent.method(:track_scan),
+        track_outbound: Aikido::Agent.method(:track_outbound)
+      }
+
+      base.setup do
+        original_agent_interface.each_key do |method|
+          Aikido::Agent.singleton_class.remove_method(method)
+          Aikido::Agent.singleton_class.define_method(method, NOOP)
+        end
+      end
+
+      base.teardown do
+        original_agent_interface.each do |method, implementation|
+          Aikido::Agent.singleton_class.remove_method(method)
+          Aikido::Agent.singleton_class.define_method(method, implementation)
+        end
+      end
+    end
+  end
+
   class CheckIfStaleConfigTest < ActiveSupport::TestCase
+    include DisableAgentReporting
+
     setup do
       Aikido::Agent.config.api_token = "TOKEN"
       Aikido::Firewall.settings.updated_at = Time.at(0)
@@ -121,6 +154,8 @@ class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
   end
 
   class FetchingConfigTest < ActiveSupport::TestCase
+    include DisableAgentReporting
+
     setup do
       Aikido::Agent.config.api_token = "TOKEN"
       @client = Aikido::Agent::APIClient.new
@@ -212,6 +247,8 @@ class Aikido::Agent::APIClientTest < ActiveSupport::TestCase
   end
 
   class ReportStartedEvent < ActiveSupport::TestCase
+    include DisableAgentReporting
+
     setup do
       Aikido::Agent.config.api_token = "TOKEN"
       @client = Aikido::Agent::APIClient.new

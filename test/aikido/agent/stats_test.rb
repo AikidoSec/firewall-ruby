@@ -31,6 +31,10 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
     Aikido::Agent::Context.from_rack_env(env)
   end
 
+  def stub_outbound(**opts)
+    Aikido::Agent::OutboundConnection.new(**opts)
+  end
+
   test "#start tracks the time at which stats started being collected" do
     time = Time.at(1234567890)
 
@@ -129,7 +133,7 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
         2, {50 => 2, 75 => 3, 90 => 3, 95 => 3, 99 => 3}, Time.now.utc
       )
 
-      assert_equal [expected], stats.compressed_timings
+      assert_equal Set.new([expected]), stats.compressed_timings.to_set
     end
   end
 
@@ -147,8 +151,47 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
     end
   end
 
+  test "#add_outbound tracks which connections have been made" do
+    c1 = stub_outbound(host: "example.com", port: 80)
+    c2 = stub_outbound(host: "example.com", port: 443)
+
+    assert_difference -> { @stats.outbound_connections.size }, +2 do
+      @stats.add_outbound(c1)
+      @stats.add_outbound(c2)
+    end
+
+    assert_includes @stats.outbound_connections, c1
+    assert_includes @stats.outbound_connections, c2
+  end
+
+  test "#add_outbound doesn't count the same host/port pair more than once" do
+    conn = stub_outbound(host: "example.com", port: 443)
+
+    assert_difference -> { @stats.outbound_connections.size }, +1 do
+      @stats.add_outbound(conn)
+      @stats.add_outbound(conn)
+    end
+
+    assert_includes @stats.outbound_connections, conn
+  end
+
+  test "#add_outbound limits the amount of connections tracked" do
+    conn = stub_outbound(host: "example.com", port: 0)
+    @stats.add_outbound(conn)
+
+    assert_includes @stats.outbound_connections, conn
+
+    @config.max_outbound_connections.times do |idx|
+      @stats.add_outbound(stub_outbound(host: "test.com", port: idx))
+    end
+
+    assert_equal @config.max_outbound_connections, @stats.outbound_connections.size
+    refute_includes @stats.outbound_connections, conn
+  end
+
   test "#as_json serializes an empty stats set" do
     @stats.start(Time.at(1234567890))
+    @stats.ended_at = Time.at(1234577890)
 
     expected = {
       startedAt: 1234567890000,
@@ -164,33 +207,13 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       }
     }
 
-    assert_equal expected, @stats.as_json(ended_at: Time.at(1234577890))
-  end
-
-  test "#as_json defaults the end time to the current time" do
-    @stats.start(Time.at(1234567890))
-
-    freeze_time do
-      expected = {
-        startedAt: 1234567890000,
-        endedAt: Time.now.utc.to_i * 1000,
-        sinks: {},
-        requests: {
-          total: 0,
-          aborted: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
-          }
-        }
-      }
-
-      assert_equal expected, @stats.as_json
-    end
+    assert_equal expected, @stats.as_json
   end
 
   test "#as_json includes the number of requests" do
     @stats.start(Time.at(1234567890))
+    @stats.ended_at = Time.at(1234577890)
+
     3.times { @stats.add_request(stub_context.request) }
 
     expected = {
@@ -207,11 +230,13 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       }
     }
 
-    assert_equal expected, @stats.as_json(ended_at: Time.at(1234577890))
+    assert_equal expected, @stats.as_json
   end
 
   test "#as_json includes the scans grouped by sink" do
     @stats.start(Time.at(1234567890))
+    @stats.ended_at = Time.at(1234577890)
+
     2.times { @stats.add_request(stub_context.request) }
 
     @stats.add_scan(stub_scan(sink: @sink))
@@ -253,11 +278,13 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       }
     }
 
-    assert_equal expected, @stats.as_json(ended_at: Time.at(1234577890))
+    assert_equal expected, @stats.as_json
   end
 
   test "#as_json includes the number of scans that raised an error" do
     @stats.start(Time.at(1234567890))
+    @stats.ended_at = Time.at(1234577890)
+
     2.times { @stats.add_request(stub_context.request) }
 
     @stats.add_scan(stub_scan(sink: @sink))
@@ -299,11 +326,13 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       }
     }
 
-    assert_equal expected, @stats.as_json(ended_at: Time.at(1234577890))
+    assert_equal expected, @stats.as_json
   end
 
   test "#as_json includes the attacks grouped by sink" do
     @stats.start(Time.at(1234567890))
+    @stats.ended_at = Time.at(1234577890)
+
     2.times { @stats.add_request(stub_context.request) }
 
     @stats.add_scan(stub_scan(sink: @sink))
@@ -348,11 +377,13 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       }
     }
 
-    assert_equal expected, @stats.as_json(ended_at: Time.at(1234577890))
+    assert_equal expected, @stats.as_json
   end
 
   test "#as_json includes the compressed timings grouped by sink" do
     @stats.start(Time.at(1234567890))
+    @stats.ended_at = Time.at(1234577890)
+
     2.times { @stats.add_request(stub_context.request) }
 
     @stats.add_scan(stub_scan(sink: @sink, duration: 2))
@@ -418,39 +449,31 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
         }
       }
 
-      assert_equal expected, @stats.as_json(ended_at: Time.at(1234577890))
+      assert_equal expected, @stats.as_json
     end
   end
 
-  test "#serialize_and_reset returns the JSON serialization and the routes" do
+  test "#reset returns a copy of the stats with ended_at set" do
     @stats.start(Time.at(1234567890))
 
-    expected_stats = {
-      startedAt: 1234567890000,
-      endedAt: 1234577890000,
-      sinks: {},
-      requests: {
-        total: 0,
-        aborted: 0,
-        attacksDetected: {
-          total: 0,
-          blocked: 0
-        }
-      }
-    }
+    copy = @stats.reset(at: Time.at(1234577890))
 
-    actual_stats, actual_routes = @stats.serialize_and_reset(as_of: Time.at(1234577890))
-
-    assert_equal expected_stats, actual_stats
-    assert_equal [], actual_routes
+    assert_kind_of @stats.class, copy
+    refute_same copy, @stats
+    assert_equal Time.at(1234577890), copy.ended_at
   end
 
-  test "#serialize_and_reset includes all current stats and clears the object" do
+  test "#reset includes all current stats and clears the object" do
     @stats.start(Time.at(1234567890))
-    2.times {
+
+    2.times do
       env = Rack::MockRequest.env_for("/")
       @stats.add_request(stub_context(env).request)
-    }
+    end
+
+    3.times do |i|
+      @stats.add_outbound(stub_outbound(host: "example.com", port: i))
+    end
 
     @stats.add_scan(stub_scan(sink: @sink, duration: 2))
     @stats.add_scan(stub_scan(sink: @sink, duration: 3))
@@ -492,16 +515,16 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
           }
         }
       }
-      expected_routes = [
-        {path: "/", method: "GET", hits: 2}
-      ]
 
-      actual_stats, actual_routes = @stats.serialize_and_reset(as_of: Time.at(1234577890))
+      copy = @stats.reset(at: Time.at(1234577890))
 
-      assert_equal expected_stats, actual_stats
-      assert_equal expected_routes, actual_routes
+      assert_equal expected_stats, copy.as_json
+      assert_equal 2, copy.routes[Aikido::Agent::Route.new(path: "/", verb: "GET")]
+      assert_equal 3, copy.outbound_connections.size
 
       assert_empty @stats.sinks
+      assert_empty @stats.routes
+      assert_empty @stats.outbound_connections
       assert_equal 0, @stats.requests
       assert_equal 0, @stats.aborted_requests
       assert_equal Time.at(1234577890), @stats.started_at

@@ -2,9 +2,6 @@
 
 require "test_helper"
 
-require "mysql2"
-require "aikido/firewall/sinks/mysql2"
-
 class Aikido::Firewall::Sinks::Mysql2Test < ActiveSupport::TestCase
   include StubsCurrentContext
 

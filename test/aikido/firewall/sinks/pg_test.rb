@@ -2,9 +2,6 @@
 
 require "test_helper"
 
-require "pg"
-require "aikido/firewall/sinks/pg"
-
 class Aikido::Firewall::Sinks::PGTest < ActiveSupport::TestCase
   include StubsCurrentContext
 

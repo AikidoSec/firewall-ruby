@@ -7,6 +7,7 @@ require_relative "agent"
 require_relative "firewall/version"
 require_relative "firewall/settings"
 require_relative "firewall/vulnerabilities"
+require_relative "firewall/outbound_connection_monitor"
 
 module Aikido
   module Firewall

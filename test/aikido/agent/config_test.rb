@@ -18,6 +18,7 @@ class Aikido::Agent::ConfigTest < ActiveSupport::TestCase
     assert_kind_of ::Logger, @config.logger
     assert_equal 5000, @config.max_performance_samples
     assert_equal 100, @config.max_compressed_stats
+    assert_equal 200, @config.max_outbound_connections
     assert_equal 60, @config.initial_heartbeat_delay
     assert_equal 60, @config.polling_interval
   end

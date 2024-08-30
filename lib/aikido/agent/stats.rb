@@ -2,20 +2,21 @@
 
 require "concurrent"
 
+require_relative "capped_set"
+
 module Aikido::Agent
   # Tracks information about how the Aikido Agent is used in the app.
   class Stats < Concurrent::Synchronization::LockableObject
     # @!visibility private
-    attr_reader :started_at, :requests, :aborted_requests, :sinks, :routes
+    attr_reader :started_at, :ended_at, :requests, :aborted_requests, :sinks
+
+    # @!visibility private
+    attr_writer :ended_at
 
     def initialize(config = Aikido::Agent.config)
       super()
       @config = config
-      @sinks = Hash.new { |h, k| h[k] = SinkStats.new(k, config) }
-      @started_at = nil
-      @requests = 0
-      @routes = Hash.new(0)
-      @aborted_requests = 0
+      reset_state
     end
 
     # @return [Boolean]
@@ -35,28 +36,29 @@ module Aikido::Agent
       synchronize { @started_at = at }
     end
 
-    # Atomically serializes the stats as JSON and resets them to start
-    # collecting a new set of stats.
+    # Atomically copies the stats and resets them to their initial values, so
+    # you can start gathering a new set while being able to read the old ones
+    # without fear that a thread might modify them.
     #
-    # @return [Array(Hash, Hash)] the result of #as_json and the results of
-    #   serializing the routes.
-    def serialize_and_reset(as_of: Time.now.utc)
+    # @param at [Time] the time at which we're resetting, which is set as the
+    #   ending time for the returned copy.
+    #
+    # @return [Aikido::Agent::Stats] a frozen copy of the object before
+    #   resetting, so you can access the data there, with its +ended_at+
+    #   set to the given timestamp.
+    def reset(at: Time.now.utc)
       synchronize {
-        # Before flushing the stats into JSON we need to compress any
-        # timing stats, as the JSON representation includes these but
-        # not the raw measurements.
+        # Make sure the timing stats are compressed before copying, since we
+        # need these compressed when we serialize this for the API.
         @sinks.each_value(&:compress_timings)
-        serialized = as_json(ended_at: as_of)
-        routes = routes_as_json
 
-        # Reset all the internal state
-        @sinks.clear
-        @requests = 0
-        @routes = Hash.new(0)
-        @aborted_requests = 0
-        start(as_of)
+        copy = clone
+        copy.ended_at = at
 
-        [serialized, routes]
+        reset_state
+        start(at)
+
+        copy
       }
     end
 
@@ -65,8 +67,15 @@ module Aikido::Agent
     def add_request(request)
       synchronize {
         @requests += 1
-        @routes[request.route] += 1 if request.route
+        @routes.add(request.route)
       }
+      self
+    end
+
+    # @param connection [Aikido::Agent::OutboundConnection]
+    # @return [void]
+    def add_outbound(connection)
+      synchronize { @outbound_connections << connection }
       self
     end
 
@@ -96,28 +105,44 @@ module Aikido::Agent
       self
     end
 
-    def as_json(ended_at: Time.now.utc)
-      total_attacks, total_blocked = aggregate_attacks_from_sinks
-      {
-        startedAt: @started_at.to_i * 1000,
-        endedAt: ended_at.to_i * 1000,
-        sinks: @sinks.transform_values(&:as_json),
-        requests: {
-          total: @requests,
-          aborted: @aborted_requests,
-          attacksDetected: {
-            total: total_attacks,
-            blocked: total_blocked
+    # @return [#as_json] the set of routes visited during this stats-gathering
+    #   period.
+    def routes
+      synchronize { @routes }
+    end
+
+    # @return [#as_json] the set of connections to outbound hosts that were
+    #   established during this stats-gathering period.
+    def outbound_connections
+      synchronize { @outbound_connections }
+    end
+
+    def as_json
+      synchronize {
+        total_attacks, total_blocked = aggregate_attacks_from_sinks
+        {
+          startedAt: @started_at.to_i * 1000,
+          endedAt: (@ended_at.to_i * 1000 if @ended_at),
+          sinks: @sinks.transform_values(&:as_json),
+          requests: {
+            total: @requests,
+            aborted: @aborted_requests,
+            attacksDetected: {
+              total: total_attacks,
+              blocked: total_blocked
+            }
           }
         }
       }
     end
 
-    # @return [Array<Hash>]
-    def routes_as_json
-      @routes.map do |route, hits|
-        route.as_json.merge(hits: hits)
-      end
+    private def reset_state
+      @sinks = Hash.new { |h, k| h[k] = SinkStats.new(k, @config) }
+      @started_at = @ended_at = nil
+      @requests = 0
+      @routes = Routes.new
+      @outbound_connections = CappedSet.new(@config.max_outbound_connections)
+      @aborted_requests = 0
     end
 
     private def aggregate_attacks_from_sinks
@@ -125,108 +150,8 @@ module Aikido::Agent
         [attacks + stats.attacks, blocked + stats.blocked_attacks]
       }
     end
-
-    # @api private
-    #
-    # Tracks data specific to a single Sink.
-    class SinkStats
-      # @return [Integer] number of total calls to Sink#scan.
-      attr_accessor :scans
-
-      # @return [Integer] number of scans where our scanners raised an
-      #   error that was handled.
-      attr_accessor :errors
-
-      # @return [Integer] number of scans where an attack was detected.
-      attr_accessor :attacks
-
-      # @return [Integer] number of scans where an attack was detected
-      #   _and_ blocked by the Agent.
-      attr_accessor :blocked_attacks
-
-      # @return [Set<Float>] keeps the duration of individual scans. If
-      #   this grows to match Config#max_performance_samples, the set is
-      #   cleared and the data is aggregated into #compressed_timings.
-      attr_accessor :timings
-
-      # @return [Array<CompressedTiming>] list of aggregated stats.
-      attr_accessor :compressed_timings
-
-      def initialize(name, config)
-        @name = name
-        @config = config
-
-        @scans = 0
-        @errors = 0
-
-        @attacks = 0
-        @blocked_attacks = 0
-
-        @timings = Set.new
-        @compressed_timings = []
-      end
-
-      def add_timing(duration)
-        compress_timings if @timings.size >= @config.max_performance_samples
-        @timings << duration
-      end
-
-      def compress_timings(at: Time.now.utc)
-        return if @timings.empty?
-
-        list = @timings.sort
-        @timings.clear
-
-        mean = list.sum / list.size
-        percentiles = percentiles(list, 50, 75, 90, 95, 99)
-
-        discard_compressed_metrics if @compressed_timings.size >= @config.max_compressed_stats
-        @compressed_timings << CompressedTiming.new(mean, percentiles, at)
-      end
-
-      def as_json
-        {
-          total: @scans,
-          interceptorThrewError: @errors,
-          withoutContext: 0,
-          attacksDetected: {
-            total: @attacks,
-            blocked: @blocked_attacks
-          },
-          compressedTimings: @compressed_timings.map(&:as_json)
-        }
-      end
-
-      private def discard_compressed_metrics
-        message = format(
-          DISCARD_LOG_MESSAGE,
-          @compressed_timings.size,
-          @compressed_timings.first.compressed_at.iso_8601
-        )
-        @logger.config.debug(message)
-        @compressed_timings.shift
-      end
-
-      private def percentiles(sorted, *scores)
-        return {} if sorted.empty? || scores.empty?
-
-        scores.map { |p|
-          index = (sorted.size * (p / 100.0)).floor
-          [p, sorted.at(index)]
-        }.to_h
-      end
-
-      CompressedTiming = Struct.new(:mean, :percentiles, :compressed_at) do
-        def as_json
-          {
-            averageInMs: mean * 1000,
-            percentiles: percentiles.transform_values { |t| t * 1000 },
-            compressedAt: compressed_at.to_i * 1000
-          }
-        end
-      end
-
-      DISCARD_LOG_MESSAGE = "Discarding compressed timing data due to overflow (Size: %d, Timing data from: %s)"
-    end
   end
 end
+
+require_relative "stats/routes"
+require_relative "stats/sink_stats"
