@@ -14,6 +14,7 @@ gem "minitest-stub-const"
 gem "webmock", "~> 3.23"
 gem "standard"
 gem "debug"
+gem "puma"
 
 # Gems we patch and require for testing
 gem "mysql2"

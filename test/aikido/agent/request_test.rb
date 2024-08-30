@@ -108,6 +108,13 @@ class Aikido::Agent::RequestTest < ActiveSupport::TestCase
         assert_nil req.truncated_body
       end
 
+      base.test "#truncated_body can handle Puma's NullIO" do
+        env = Rack::MockRequest.env_for("/test", method: "GET", input: Puma::NullIO.new)
+        req = build_request(env)
+
+        assert_nil req.truncated_body
+      end
+
       base.test "#as_json includes the request method and URL" do
         env = Rack::MockRequest.env_for("/test", {
           :method => "POST",
