@@ -28,6 +28,10 @@ module Aikido::Agent
       VERSION
     end
 
+    def platform_version
+      RUBY_VERSION
+    end
+
     def hostname
       @hostname ||= Socket.gethostname
     end
@@ -66,6 +70,7 @@ module Aikido::Agent
         version: library_version,
         hostname: hostname,
         ipAddress: ip_address,
+        platform: {version: platform_version},
         os: {name: os_name, version: os_version},
         packages: packages.reduce({}) { |all, package| all.update(package.as_json) },
         incompatiblePackages: {},
