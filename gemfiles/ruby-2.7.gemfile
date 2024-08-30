@@ -16,8 +16,19 @@ gem "standard"
 gem "debug"
 gem "puma"
 
+# FFI 1.17 is incompatible with the version of rubygems
+# that is included with ruby 2.7 on GitHub Actions.
+gem "ffi", "< 1.17"
+
+##
 # Gems we patch and require for testing
+##
+
+# SQL Adapters
 gem "mysql2"
 gem "pg"
 gem "sqlite3", "~> 1.4", "< 1.7"
 gem "trilogy"
+
+# HTTP clients
+gem "http", "~> 5.2"

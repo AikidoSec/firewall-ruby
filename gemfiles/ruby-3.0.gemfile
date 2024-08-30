@@ -16,8 +16,15 @@ gem "standard"
 gem "debug"
 gem "puma"
 
+##
 # Gems we patch and require for testing
+##
+
+# SQL Adapters
 gem "mysql2"
 gem "pg"
 gem "sqlite3", "~> 1.4"
 gem "trilogy"
+
+# HTTP clients
+gem "http", "~> 5.2"

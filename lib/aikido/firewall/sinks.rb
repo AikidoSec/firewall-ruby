@@ -3,6 +3,7 @@
 require_relative "sink"
 
 require_relative "sinks/net_http" if defined?(::Net::HTTP)
+require_relative "sinks/http" if defined?(::HTTP)
 require_relative "sinks/mysql2" if defined?(::Mysql2)
 require_relative "sinks/pg" if defined?(::PG)
 require_relative "sinks/sqlite3" if defined?(::SQLite3)
