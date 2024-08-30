@@ -27,6 +27,10 @@ class Aikido::Agent::InfoTest < ActiveSupport::TestCase
     assert_equal Aikido::Firewall::VERSION, @info.library_version
   end
 
+  test "platform_version returns the current ruby version" do
+    assert_equal RUBY_VERSION, @info.platform_version
+  end
+
   test "#ip_address returns the first non-loopback address reported" do
     addresses = [
       Addrinfo.ip("::1"),
@@ -89,6 +93,7 @@ class Aikido::Agent::InfoTest < ActiveSupport::TestCase
     assert_equal @info.ip_address, @info.as_json[:ipAddress]
     assert_equal @info.os_name, @info.as_json.dig(:os, :name)
     assert_equal @info.os_version, @info.as_json.dig(:os, :version)
+    assert_equal @info.platform_version, @info.as_json.dig(:platform, :version)
 
     # To keep the test scalable, only test one known dependency.
     assert_kind_of Hash, @info.as_json[:packages]
