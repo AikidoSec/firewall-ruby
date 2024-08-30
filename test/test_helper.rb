@@ -20,8 +20,9 @@ require "debug" if RUBY_VERSION >= "3"
 require "webmock/minitest"
 require "support/sinks"
 
-require_relative "support/fake_rails_app"
 require_relative "support/puma"
+require_relative "support/fake_rails_app"
+require_relative "support/http_connection_tracking_assertions"
 
 # Utility proc that does nothing.
 NOOP = ->(*args, **opts) {}
