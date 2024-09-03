@@ -19,136 +19,136 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
   class ClassMethodsTest < self
     test "tracks GET requests made through .get" do
       assert_tracks_outbound_to "example.com", 443 do
-        response = Excon.get(@https_uri)
+        response = Excon.get(@https_uri.to_s)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        response = Excon.get(@http_uri)
+        response = Excon.get(@http_uri.to_s)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        response = Excon.get(@custom_port_uri)
+        response = Excon.get(@custom_port_uri.to_s)
         assert_equal "OK (8080)", response.body
       end
     end
 
     test "tracks POST requests made through .post" do
       assert_tracks_outbound_to "example.com", 443 do
-        response = Excon.post(@https_uri, body: "test")
+        response = Excon.post(@https_uri.to_s, body: "test")
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        response = Excon.post(@http_uri, body: "test")
+        response = Excon.post(@http_uri.to_s, body: "test")
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        response = Excon.post(@custom_port_uri, body: "test")
+        response = Excon.post(@custom_port_uri.to_s, body: "test")
         assert_equal "OK (8080)", response.body
       end
     end
 
     test "tracks PUT requests made through .put" do
       assert_tracks_outbound_to "example.com", 443 do
-        response = Excon.put(@https_uri, body: "test")
+        response = Excon.put(@https_uri.to_s, body: "test")
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        response = Excon.put(@http_uri, body: "test")
+        response = Excon.put(@http_uri.to_s, body: "test")
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        response = Excon.put(@custom_port_uri, body: "test")
+        response = Excon.put(@custom_port_uri.to_s, body: "test")
         assert_equal "OK (8080)", response.body
       end
     end
 
     test "tracks PATCH requests made through .patch" do
       assert_tracks_outbound_to "example.com", 443 do
-        response = Excon.patch(@https_uri, body: "test")
+        response = Excon.patch(@https_uri.to_s, body: "test")
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        response = Excon.patch(@http_uri, body: "test")
+        response = Excon.patch(@http_uri.to_s, body: "test")
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        response = Excon.patch(@custom_port_uri, body: "test")
+        response = Excon.patch(@custom_port_uri.to_s, body: "test")
         assert_equal "OK (8080)", response.body
       end
     end
 
     test "tracks DELETE requests made through .delete" do
       assert_tracks_outbound_to "example.com", 443 do
-        response = Excon.delete(@https_uri)
+        response = Excon.delete(@https_uri.to_s)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        response = Excon.delete(@http_uri)
+        response = Excon.delete(@http_uri.to_s)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        response = Excon.delete(@custom_port_uri)
+        response = Excon.delete(@custom_port_uri.to_s)
         assert_equal "OK (8080)", response.body
       end
     end
 
     test "tracks OPTIONS requests made through .options" do
       assert_tracks_outbound_to "example.com", 443 do
-        response = Excon.options(@https_uri)
+        response = Excon.options(@https_uri.to_s)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        response = Excon.options(@http_uri)
+        response = Excon.options(@http_uri.to_s)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        response = Excon.options(@custom_port_uri)
+        response = Excon.options(@custom_port_uri.to_s)
         assert_equal "OK (8080)", response.body
       end
     end
 
     test "tracks TRACE requests made through .trace" do
       assert_tracks_outbound_to "example.com", 443 do
-        response = Excon.trace(@https_uri)
+        response = Excon.trace(@https_uri.to_s)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        response = Excon.trace(@http_uri)
+        response = Excon.trace(@http_uri.to_s)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        response = Excon.trace(@custom_port_uri)
+        response = Excon.trace(@custom_port_uri.to_s)
         assert_equal "OK (8080)", response.body
       end
     end
 
     test "tracks CONNECT requests made through .connect" do
       assert_tracks_outbound_to "example.com", 443 do
-        response = Excon.connect(@https_uri)
+        response = Excon.connect(@https_uri.to_s)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        response = Excon.connect(@http_uri)
+        response = Excon.connect(@http_uri.to_s)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        response = Excon.connect(@custom_port_uri)
+        response = Excon.connect(@custom_port_uri.to_s)
         assert_equal "OK (8080)", response.body
       end
     end
@@ -157,19 +157,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
   class InstanceMethodsTest < self
     test "tracks GET requests made through #get" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri)
+        client = Excon.new(@https_uri.to_s)
         response = client.get
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri)
+        client = Excon.new(@http_uri.to_s)
         response = client.get
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri)
+        client = Excon.new(@custom_port_uri.to_s)
         response = client.get
         assert_equal "OK (8080)", response.body
       end
@@ -177,79 +177,79 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks POST requests made through #post" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri, body: "test")
-        response = client.post
+        client = Excon.new(@https_uri.to_s)
+        response = client.post(body: "test")
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri, body: "test")
-        response = client.post
+        client = Excon.new(@http_uri.to_s)
+        response = client.post(body: "test")
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri, body: "test")
-        response = client.post
+        client = Excon.new(@custom_port_uri.to_s)
+        response = client.post(body: "test")
         assert_equal "OK (8080)", response.body
       end
     end
 
     test "tracks PUT requests made through #put" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri, body: "test")
-        response = client.put
+        client = Excon.new(@https_uri.to_s)
+        response = client.put(body: "test")
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri, body: "test")
-        response = client.put
+        client = Excon.new(@http_uri.to_s)
+        response = client.put(body: "test")
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri, body: "test")
-        response = client.put
+        client = Excon.new(@custom_port_uri.to_s)
+        response = client.put(body: "test")
         assert_equal "OK (8080)", response.body
       end
     end
 
     test "tracks PATCH requests made through #patch" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri, body: "test")
-        response = client.patch
+        client = Excon.new(@https_uri.to_s)
+        response = client.patch(body: "test")
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri, body: "test")
-        response = client.patch
+        client = Excon.new(@http_uri.to_s)
+        response = client.patch(body: "test")
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri, body: "test")
-        response = client.patch
+        client = Excon.new(@custom_port_uri.to_s)
+        response = client.patch(body: "test")
         assert_equal "OK (8080)", response.body
       end
     end
 
     test "tracks DELETE requests made through #delete" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri)
+        client = Excon.new(@https_uri.to_s)
         response = client.delete
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri)
+        client = Excon.new(@http_uri.to_s)
         response = client.delete
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri)
+        client = Excon.new(@custom_port_uri.to_s)
         response = client.delete
         assert_equal "OK (8080)", response.body
       end
@@ -257,19 +257,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks OPTIONS requests made through #options" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri)
+        client = Excon.new(@https_uri.to_s)
         response = client.options
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri)
+        client = Excon.new(@http_uri.to_s)
         response = client.options
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri)
+        client = Excon.new(@custom_port_uri.to_s)
         response = client.options
         assert_equal "OK (8080)", response.body
       end
@@ -277,19 +277,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks TRACE requests made through #trace" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri)
+        client = Excon.new(@https_uri.to_s)
         response = client.trace
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri)
+        client = Excon.new(@http_uri.to_s)
         response = client.trace
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri)
+        client = Excon.new(@custom_port_uri.to_s)
         response = client.trace
         assert_equal "OK (8080)", response.body
       end
@@ -297,19 +297,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks CONNECT requests made through #connect" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri)
+        client = Excon.new(@https_uri.to_s)
         response = client.connect
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri)
+        client = Excon.new(@http_uri.to_s)
         response = client.connect
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri)
+        client = Excon.new(@custom_port_uri.to_s)
         response = client.connect
         assert_equal "OK (8080)", response.body
       end
@@ -317,21 +317,34 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
   end
 
   class PassingOptionsTest < self
+    # URI#origin is only available since ruby 3.1
+    def origin(uri)
+      if uri.respond_to?(:origin)
+        uri.origin
+      else
+        format("%<scheme>s://%<hostname>s%<port>s", {
+          scheme: uri.scheme,
+          hostname: uri.hostname,
+          port: (":#{uri.port}" if uri.port != uri.default_port)
+        })
+      end
+    end
+
     test "tracks GET requests made through .get" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri.origin)
+        client = Excon.new(origin(@https_uri))
         response = client.get(path: @https_uri.path)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri.origin)
+        client = Excon.new(origin(@http_uri))
         response = client.get(path: @http_uri.path)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri.origin)
+        client = Excon.new(origin(@custom_port_uri))
         response = client.get(path: @custom_port_uri.path)
         assert_equal "OK (8080)", response.body
       end
@@ -339,19 +352,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks POST requests made through .post" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri)
+        client = Excon.new(origin(@https_uri))
         response = client.post(path: @https_uri.path, body: "test")
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri.origin)
+        client = Excon.new(origin(@http_uri))
         response = client.post(path: @http_uri.path, body: "test")
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri.origin)
+        client = Excon.new(origin(@custom_port_uri))
         response = client.post(path: @custom_port_uri.path, body: "test")
         assert_equal "OK (8080)", response.body
       end
@@ -359,19 +372,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks PUT requests made through .put" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri.origin)
+        client = Excon.new(origin(@https_uri))
         response = client.put(path: @https_uri.path, body: "test")
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri.origin)
+        client = Excon.new(origin(@http_uri))
         response = client.put(path: @http_uri.path, body: "test")
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri.origin)
+        client = Excon.new(origin(@custom_port_uri))
         response = client.put(path: @custom_port_uri.path, body: "test")
         assert_equal "OK (8080)", response.body
       end
@@ -379,19 +392,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks PATCH requests made through .patch" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri.origin)
+        client = Excon.new(origin(@https_uri))
         response = client.patch(path: @https_uri.path, body: "test")
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri.origin)
+        client = Excon.new(origin(@http_uri))
         response = client.patch(path: @http_uri.path, body: "test")
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri.origin)
+        client = Excon.new(origin(@custom_port_uri))
         response = client.patch(path: @custom_port_uri.path, body: "test")
         assert_equal "OK (8080)", response.body
       end
@@ -399,19 +412,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks DELETE requests made through .delete" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri.origin)
+        client = Excon.new(origin(@https_uri))
         response = client.delete(path: @https_uri.path)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri.origin)
+        client = Excon.new(origin(@http_uri))
         response = client.delete(path: @http_uri.path)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri.origin)
+        client = Excon.new(origin(@custom_port_uri))
         response = client.delete(path: @custom_port_uri.path)
         assert_equal "OK (8080)", response.body
       end
@@ -419,19 +432,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks OPTIONS requests made through .options" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri.origin)
+        client = Excon.new(origin(@https_uri))
         response = client.options(path: @https_uri.path)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri.origin)
+        client = Excon.new(origin(@http_uri))
         response = client.options(path: @http_uri.path)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri.origin)
+        client = Excon.new(origin(@custom_port_uri))
         response = client.options(path: @custom_port_uri.path)
         assert_equal "OK (8080)", response.body
       end
@@ -439,19 +452,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks TRACE requests made through .trace" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri.origin)
+        client = Excon.new(origin(@https_uri))
         response = client.trace(path: @https_uri.path)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri.origin)
+        client = Excon.new(origin(@http_uri))
         response = client.trace(path: @http_uri.path)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri.origin)
+        client = Excon.new(origin(@custom_port_uri))
         response = client.trace(path: @custom_port_uri.path)
         assert_equal "OK (8080)", response.body
       end
@@ -459,19 +472,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks CONNECT requests made through .connect" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(@https_uri.origin)
+        client = Excon.new(origin(@https_uri))
         response = client.connect(path: @https_uri.path)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(@http_uri.origin)
+        client = Excon.new(origin(@http_uri))
         response = client.connect(path: @http_uri.path)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(@custom_port_uri.origin)
+        client = Excon.new(origin(@custom_port_uri))
         response = client.connect(path: @custom_port_uri.path)
         assert_equal "OK (8080)", response.body
       end
