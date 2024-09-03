@@ -11,6 +11,7 @@ require "httpx"
 require "httpclient"
 require "excon"
 require "curb"
+require "patron"
 
 # Keep this at the end of the file
 require "aikido/firewall/sinks"
