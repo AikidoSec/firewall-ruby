@@ -14,14 +14,16 @@ require "action_dispatch"
 require "action_dispatch/routing/inspector"
 require "pathname"
 require "debug" if RUBY_VERSION >= "3"
+require "support/capture_stream"
 
+# Silence warnings that result from loading HTTPClient.
+ActiveSupport::Testing::Stream.quietly { require "webmock" }
 # For the HTTP adapters shipped with WebMock by default, requiring webmock first
 # and then requiring our sinks works great (because we patch the namespace that
 # webmock patched, so we run our code and then delegate to it).
 #
 # However, HTTPX does things… differently, and if we don't require things in
 # _just_ the correct order, the webmock adapter won't be set up correctly.
-require "webmock"
 require "httpx"
 require "webmock/minitest"
 require "support/sinks"
