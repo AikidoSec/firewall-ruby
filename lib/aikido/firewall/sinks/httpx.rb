@@ -10,20 +10,9 @@ module Aikido::Firewall
         Aikido::Firewall::OutboundConnectionMonitor
       ])
 
-      # Maps an HTTPX Request to an Aikido OutboundConnection.
-      #
-      # @param request [HTTPX::Request]
-      # @return [Aikido::Agent::OutboundConnection]
-      def self.build_outbound(request)
-        Aikido::Agent::OutboundConnection.new(
-          host: request.uri.hostname,
-          port: request.uri.port
-        )
-      end
-
       module Extensions
         def send_request(request, *)
-          conn = Aikido::Firewall::Sinks::HTTPX.build_outbound(request)
+          conn = Aikido::Agent::OutboundConnection.from_uri(request.uri)
           SINK.scan(connection: conn, operation: "request")
 
           super

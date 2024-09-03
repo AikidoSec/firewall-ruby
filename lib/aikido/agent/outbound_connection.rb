@@ -3,6 +3,14 @@
 module Aikido::Agent
   # Simple data object to identify connections performed to outbound servers.
   class OutboundConnection
+    # Convenience factory to create connection descriptions out of URI objects.
+    #
+    # @param uri [URI]
+    # @return [Aikido::Agent::OutboundConnection]
+    def self.from_uri(uri)
+      new(host: uri.hostname, port: uri.port)
+    end
+
     # @return [String] the hostname or IP address to which the connection was
     #   attempted.
     attr_reader :host
