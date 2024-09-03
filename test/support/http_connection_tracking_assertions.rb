@@ -10,7 +10,7 @@ module HTTPConnectionTrackingAssertions
     fake_runner = OpenStruct.new(stats: stats)
 
     Aikido::Agent.stub(:runner, fake_runner) do
-      assert_difference -> { stats.outbound_connections.size }, +1 do
+      assert_difference "stats.outbound_connections.size", +1 do
         2.times(&block) # run the block twice to ensure we only count it once.
       end
 

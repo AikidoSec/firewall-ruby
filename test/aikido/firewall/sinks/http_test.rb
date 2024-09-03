@@ -7,8 +7,6 @@ class Aikido::Firewall::Sinks::HTTPTest < ActiveSupport::TestCase
   include HTTPConnectionTrackingAssertions
 
   setup do
-    @sink = Aikido::Firewall::Sinks::HTTP::SINK
-
     @https_uri = URI("https://example.com/path")
     @http_uri = URI("http://example.com/path")
     @custom_port_uri = URI("http://example.com:8080/path")
