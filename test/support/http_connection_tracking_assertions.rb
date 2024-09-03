@@ -1,19 +1,21 @@
 # frozen_string_literal: true
 
+require "ostruct"
+
 # Assertion to track our outbound connection tracking is working as expected
 # around a block. Used by Sink tests that perform network connections.
 module HTTPConnectionTrackingAssertions
-  def stub_outbound(host, port)
-    Aikido::Agent::OutboundConnection.new(host: host, port: port)
-  end
-
   def assert_tracks_outbound_to(host, port, &block)
-    outbounds = Aikido::Agent.send(:runner).stats.outbound_connections
+    stats = Aikido::Agent::Stats.new
+    fake_runner = OpenStruct.new(stats: stats)
 
-    assert_difference -> { outbounds.size }, +1 do
-      2.times(&block) # run the block twice to ensure we only count it once.
+    Aikido::Agent.stub(:runner, fake_runner) do
+      assert_difference -> { stats.outbound_connections.size }, +1 do
+        2.times(&block) # run the block twice to ensure we only count it once.
+      end
+
+      expected = Aikido::Agent::OutboundConnection.new(host: host, port: port)
+      assert_includes stats.outbound_connections, expected
     end
-
-    assert_includes outbounds, stub_outbound(host, port)
   end
 end
