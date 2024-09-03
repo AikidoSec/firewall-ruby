@@ -90,6 +90,7 @@ GEM
     parser (3.3.4.2)
       ast (~> 2.4.1)
       racc
+    patron (0.13.3)
     pg (1.5.7)
     psych (5.1.2)
       stringio
@@ -184,6 +185,7 @@ DEPENDENCIES
   minitest
   minitest-stub-const
   mysql2
+  patron (~> 0.13.3)
   pg
   puma
   rack-test
