@@ -12,6 +12,7 @@ require "httpclient"
 require "excon"
 require "curb"
 require "patron"
+require "typhoeus"
 
 # Keep this at the end of the file
 require "aikido/firewall/sinks"
