@@ -53,6 +53,8 @@ GEM
     domain_name (0.6.20240107)
     drb (2.2.1)
     erubi (1.13.0)
+    ethon (0.16.0)
+      ffi (>= 1.15.0)
     excon (0.111.0)
     ffi (1.17.0)
     ffi-compiler (1.3.2)
@@ -175,6 +177,8 @@ GEM
     strscan (3.1.0)
     thor (1.3.1)
     trilogy (2.8.1)
+    typhoeus (1.4.1)
+      ethon (>= 0.9.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (2.5.0)
@@ -211,6 +215,7 @@ DEPENDENCIES
   sqlite3 (~> 1.4)
   standard
   trilogy
+  typhoeus (~> 1.4)
   webmock (~> 3.23)
 
 BUNDLED WITH
