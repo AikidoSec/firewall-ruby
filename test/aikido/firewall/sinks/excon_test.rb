@@ -317,34 +317,21 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
   end
 
   class PassingOptionsTest < self
-    # URI#origin is only available since ruby 3.1
-    def origin(uri)
-      if uri.respond_to?(:origin)
-        uri.origin
-      else
-        format("%<scheme>s://%<hostname>s%<port>s", {
-          scheme: uri.scheme,
-          hostname: uri.hostname,
-          port: (":#{uri.port}" if uri.port != uri.default_port)
-        })
-      end
-    end
-
     test "tracks GET requests made through .get" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(origin(@https_uri))
+        client = Excon.new(@https_uri.origin)
         response = client.get(path: @https_uri.path)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(origin(@http_uri))
+        client = Excon.new(@http_uri.origin)
         response = client.get(path: @http_uri.path)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(origin(@custom_port_uri))
+        client = Excon.new(@custom_port_uri.origin)
         response = client.get(path: @custom_port_uri.path)
         assert_equal "OK (8080)", response.body
       end
@@ -352,19 +339,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks POST requests made through .post" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(origin(@https_uri))
+        client = Excon.new(@https_uri.origin)
         response = client.post(path: @https_uri.path, body: "test")
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(origin(@http_uri))
+        client = Excon.new(@http_uri.origin)
         response = client.post(path: @http_uri.path, body: "test")
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(origin(@custom_port_uri))
+        client = Excon.new(@custom_port_uri.origin)
         response = client.post(path: @custom_port_uri.path, body: "test")
         assert_equal "OK (8080)", response.body
       end
@@ -372,19 +359,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks PUT requests made through .put" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(origin(@https_uri))
+        client = Excon.new(@https_uri.origin)
         response = client.put(path: @https_uri.path, body: "test")
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(origin(@http_uri))
+        client = Excon.new(@http_uri.origin)
         response = client.put(path: @http_uri.path, body: "test")
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(origin(@custom_port_uri))
+        client = Excon.new(@custom_port_uri.origin)
         response = client.put(path: @custom_port_uri.path, body: "test")
         assert_equal "OK (8080)", response.body
       end
@@ -392,19 +379,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks PATCH requests made through .patch" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(origin(@https_uri))
+        client = Excon.new(@https_uri.origin)
         response = client.patch(path: @https_uri.path, body: "test")
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(origin(@http_uri))
+        client = Excon.new(@http_uri.origin)
         response = client.patch(path: @http_uri.path, body: "test")
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(origin(@custom_port_uri))
+        client = Excon.new(@custom_port_uri.origin)
         response = client.patch(path: @custom_port_uri.path, body: "test")
         assert_equal "OK (8080)", response.body
       end
@@ -412,19 +399,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks DELETE requests made through .delete" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(origin(@https_uri))
+        client = Excon.new(@https_uri.origin)
         response = client.delete(path: @https_uri.path)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(origin(@http_uri))
+        client = Excon.new(@http_uri.origin)
         response = client.delete(path: @http_uri.path)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(origin(@custom_port_uri))
+        client = Excon.new(@custom_port_uri.origin)
         response = client.delete(path: @custom_port_uri.path)
         assert_equal "OK (8080)", response.body
       end
@@ -432,19 +419,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks OPTIONS requests made through .options" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(origin(@https_uri))
+        client = Excon.new(@https_uri.origin)
         response = client.options(path: @https_uri.path)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(origin(@http_uri))
+        client = Excon.new(@http_uri.origin)
         response = client.options(path: @http_uri.path)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(origin(@custom_port_uri))
+        client = Excon.new(@custom_port_uri.origin)
         response = client.options(path: @custom_port_uri.path)
         assert_equal "OK (8080)", response.body
       end
@@ -452,19 +439,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks TRACE requests made through .trace" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(origin(@https_uri))
+        client = Excon.new(@https_uri.origin)
         response = client.trace(path: @https_uri.path)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(origin(@http_uri))
+        client = Excon.new(@http_uri.origin)
         response = client.trace(path: @http_uri.path)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(origin(@custom_port_uri))
+        client = Excon.new(@custom_port_uri.origin)
         response = client.trace(path: @custom_port_uri.path)
         assert_equal "OK (8080)", response.body
       end
@@ -472,19 +459,19 @@ class Aikido::Firewall::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "tracks CONNECT requests made through .connect" do
       assert_tracks_outbound_to "example.com", 443 do
-        client = Excon.new(origin(@https_uri))
+        client = Excon.new(@https_uri.origin)
         response = client.connect(path: @https_uri.path)
         assert_equal "OK (443)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 80 do
-        client = Excon.new(origin(@http_uri))
+        client = Excon.new(@http_uri.origin)
         response = client.connect(path: @http_uri.path)
         assert_equal "OK (80)", response.body
       end
 
       assert_tracks_outbound_to "example.com", 8080 do
-        client = Excon.new(origin(@custom_port_uri))
+        client = Excon.new(@custom_port_uri.origin)
         response = client.connect(path: @custom_port_uri.path)
         assert_equal "OK (8080)", response.body
       end
