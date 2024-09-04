@@ -38,3 +38,5 @@ gem "excon", "~> 0.111.0"
 gem "curb", "~> 1.0"
 gem "patron", "~> 0.13.3"
 gem "typhoeus", "~> 1.4"
+
+gem "em-http-request", "~> 1.1"
