@@ -63,6 +63,17 @@ module Aikido::Agent
     #   will discard the oldest data point.
     attr_accessor :max_outbound_connections
 
+    # @return [Integer] maximum number of users tracked via Agent.track_user to
+    #   share with the Aikido servers on the next heartbeat event. If more
+    #   unique users (by their ID) are tracked than this number, we will discard
+    #   the oldest seen users.
+    attr_accessor :max_users_tracked
+
+    # @return [Hash<Symbol, Symbol>] maps which attributes we should read
+    #   from a "user" object when converting it to an Aikido::Agent::Actor.
+    # @see Aikido::Agent.Actor
+    attr_reader :user_attribute_mappings
+
     # @api internal
     # @return [Proc<Hash => Aikido::Agent::Context>] callable that takes a
     #   Rack-compatible env Hash and returns a Context object with an HTTP
@@ -83,7 +94,9 @@ module Aikido::Agent
       self.max_performance_samples = 5000
       self.max_compressed_stats = 100
       self.max_outbound_connections = 200
+      self.max_users_tracked = 1000
       self.request_builder = Aikido::Agent::Context::RACK_REQUEST_BUILDER
+      @user_attribute_mappings = {id: :id, name: :name}
     end
 
     # Set the base URL for API requests.
