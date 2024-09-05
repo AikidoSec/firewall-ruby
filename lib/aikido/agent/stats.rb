@@ -2,7 +2,7 @@
 
 require "concurrent"
 
-require_relative "capped_set"
+require_relative "capped_collections"
 
 module Aikido::Agent
   # Tracks information about how the Aikido Agent is used in the app.
