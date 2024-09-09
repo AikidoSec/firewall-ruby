@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative "lib/aikido/firewall/version"
+require_relative "lib/aikido/zen/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "aikido-firewall"
-  spec.version = Aikido::Firewall::VERSION
+  spec.name = "aikido-zen"
+  spec.version = Aikido::Zen::VERSION
   spec.authors = ["Nicolas Sanguinetti"]
   spec.email = ["foca@foca.io"]
 

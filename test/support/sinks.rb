@@ -17,4 +17,4 @@ require "async/http" if RUBY_VERSION >= "3.1"
 require "em-http"
 
 # Keep this at the end of the file
-require "aikido/firewall/sinks"
+require "aikido/zen/sinks"

@@ -1,0 +1,186 @@
+# frozen_string_literal: true
+
+require "test_helper"
+
+class Aikido::Zen::EventTest < ActiveSupport::TestCase
+  test "it exposes its type and time" do
+    event = Aikido::Zen::Event.new(type: "test", time: Time.at(1234567890))
+
+    assert_equal "test", event.type
+    assert_equal Time.at(1234567890), event.time
+  end
+
+  test "#time defaults to the current time if not given" do
+    freeze_time do
+      event = Aikido::Zen::Event.new(type: "test")
+      assert_equal Time.now.utc, event.time
+    end
+  end
+
+  test "it captures the agent information" do
+    event = Aikido::Zen::Event.new(type: "test")
+
+    assert_kind_of Aikido::Zen::Info, event.agent_info
+    assert_equal "firewall-ruby", event.agent_info.library_name
+  end
+
+  test "#as_json includes the type" do
+    event = Aikido::Zen::Event.new(type: "test")
+
+    assert_equal "test", event.as_json[:type]
+  end
+
+  test "#as_json serializes the time in milliseconds" do
+    event = Aikido::Zen::Event.new(type: "test", time: Time.at(123))
+
+    assert_equal 123000, event.as_json[:time]
+  end
+
+  test "#as_json serializes the agent info" do
+    event = Aikido::Zen::Event.new(type: "test")
+    info = Aikido::Zen::Info.new
+
+    refute_nil info.as_json, event.as_json[:agent]
+  end
+
+  class StartedTest < ActiveSupport::TestCase
+    test "sets type to started" do
+      event = Aikido::Zen::Events::Started.new
+
+      assert_equal "started", event.type
+    end
+
+    test "allows overriding time" do
+      event = Aikido::Zen::Events::Started.new(time: Time.at(1234567890))
+
+      assert_equal Time.at(1234567890), event.time
+    end
+  end
+
+  class AttackTest < ActiveSupport::TestCase
+    test "sets type to detected_attack" do
+      attack = TestAttack.new
+      event = Aikido::Zen::Events::Attack.new(attack: attack)
+
+      assert_equal "detected_attack", event.type
+    end
+
+    test "includes the attack's JSON representation" do
+      attack = TestAttack.new(context: stub_context)
+      event = Aikido::Zen::Events::Attack.new(attack: attack)
+
+      assert_equal({some: "info"}, event.as_json[:attack])
+    end
+
+    test "includes the request's JSON representation" do
+      context = stub_context
+
+      attack = TestAttack.new(context: context)
+      event = Aikido::Zen::Events::Attack.new(attack: attack)
+
+      assert_equal context.request.as_json, event.as_json[:request]
+    end
+
+    def stub_context(**options)
+      env = Rack::MockRequest.env_for("/test", **options)
+      Aikido::Zen::Context.from_rack_env(env)
+    end
+
+    class TestAttack < Aikido::Zen::Attack
+      def initialize(sink: nil, context: nil, operation: "test")
+        super
+      end
+
+      def log_message
+        "test attack"
+      end
+
+      def as_json
+        {some: "info"}
+      end
+
+      def exception(*)
+        Aikido::Zen::UnderAttackError.new(self)
+      end
+    end
+  end
+
+  class HeartbeatTest < ActiveSupport::TestCase
+    setup do
+      @stats = Aikido::Zen::Stats.new
+      @stats.start(Time.at(1234567890))
+      @stats.ended_at = Time.at(1234577890)
+    end
+
+    test "sets type to heartbeat" do
+      event = Aikido::Zen::Events::Heartbeat.new(stats: @stats)
+
+      assert_equal "heartbeat", event.type
+    end
+
+    test "sets the stats to the serialized_stats passed" do
+      event = Aikido::Zen::Events::Heartbeat.new(stats: @stats)
+
+      expected = {
+        startedAt: 1234567890000,
+        endedAt: 1234577890000,
+        sinks: {},
+        requests: {
+          total: 0,
+          aborted: 0,
+          attacksDetected: {total: 0, blocked: 0}
+        }
+      }
+
+      assert_equal(expected, event.as_json[:stats])
+    end
+
+    test "includes the outbound hostnames visited by the app" do
+      3.times { @stats.add_outbound(stub_outbound("example.com", 80)) }
+      2.times { @stats.add_outbound(stub_outbound("example.com", 443)) }
+      3.times { @stats.add_outbound(stub_outbound("guard.aikido.dev", 443)) }
+      10.times { @stats.add_outbound(stub_outbound("runtime.aikido.dev", 443)) }
+
+      event = Aikido::Zen::Events::Heartbeat.new(stats: @stats)
+
+      expected = [
+        {hostname: "example.com", port: 80},
+        {hostname: "example.com", port: 443},
+        {hostname: "guard.aikido.dev", port: 443},
+        {hostname: "runtime.aikido.dev", port: 443}
+      ]
+
+      assert_equal expected, event.as_json[:hostnames]
+    end
+
+    test "includes the recognized framework routes" do
+      3.times { @stats.add_request(stub_request(route: stub_route("GET", "/users/:id"))) }
+      2.times { @stats.add_request(stub_request(route: stub_route("POST", "/users"))) }
+      4.times { @stats.add_request(stub_request(route: stub_route("GET", "/"))) }
+
+      event = Aikido::Zen::Events::Heartbeat.new(stats: @stats)
+
+      assert_includes event.as_json[:routes], {path: "/users/:id", method: "GET", hits: 3}
+      assert_includes event.as_json[:routes], {path: "/users", method: "POST", hits: 2}
+      assert_includes event.as_json[:routes], {path: "/", method: "GET", hits: 4}
+    end
+
+    test "includes the users the developer told us about" do
+      skip "Implement support for users"
+    end
+
+    def stub_outbound(host, port)
+      Aikido::Zen::OutboundConnection.new(host: host, port: port)
+    end
+
+    def stub_route(verb, path)
+      Aikido::Zen::Route.new(path: path, verb: verb)
+    end
+
+    def stub_request(route:)
+      StubRequest.new(route)
+    end
+
+    StubRequest = Struct.new(:route)
+  end
+end

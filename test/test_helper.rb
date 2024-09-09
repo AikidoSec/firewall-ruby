@@ -4,7 +4,7 @@ require "bundler"
 Bundler.setup
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
-require "aikido/firewall"
+require "aikido/zen"
 require "minitest/autorun"
 require "minitest/stub_const"
 require "active_support"
@@ -41,13 +41,13 @@ class ActiveSupport::TestCase
 
   # Reset any global state before each test
   setup do
-    Aikido::Agent.instance_variable_set(:@info, nil)
-    Aikido::Agent.instance_variable_set(:@config, nil)
-    Aikido::Agent.instance_variable_set(:@runner, nil)
-    Aikido::Firewall.instance_variable_set(:@settings, nil)
+    Aikido::Zen.instance_variable_set(:@info, nil)
+    Aikido::Zen.instance_variable_set(:@config, nil)
+    Aikido::Zen.instance_variable_set(:@runner, nil)
+    Aikido::Zen.instance_variable_set(:@settings, nil)
 
-    @_old_sinks_registry = Aikido::Firewall::Sinks.registry.dup
-    Aikido::Firewall::Sinks.registry.clear
+    @_old_sinks_registry = Aikido::Zen::Sinks.registry.dup
+    Aikido::Zen::Sinks.registry.clear
 
     WebMock.reset!
   end
@@ -55,9 +55,9 @@ class ActiveSupport::TestCase
   teardown do
     # In case any test starts the agent background thread as a side effect, this
     # should make sure we're cleaning things up.
-    Aikido::Agent.stop!
+    Aikido::Zen.stop!
 
-    Aikido::Firewall::Sinks.registry.replace(@_old_sinks_registry)
+    Aikido::Zen::Sinks.registry.replace(@_old_sinks_registry)
   end
 
   # Reset the routes in the test app defined in test/support/fake_rails_app to
@@ -70,7 +70,7 @@ class ActiveSupport::TestCase
   # Capture log output and make it testable
   setup do
     @log_output = StringIO.new
-    Aikido::Agent.config.logger.reopen(@log_output)
+    Aikido::Zen.config.logger.reopen(@log_output)
   end
 
   # rubocop:disable Style/OptionalArguments
@@ -104,20 +104,20 @@ class ActiveSupport::TestCase
   module StubsCurrentContext
     # Override in tests to return the desired stub.
     def current_context
-      @current_context ||= Aikido::Agent::Context.from_rack_env({})
+      @current_context ||= Aikido::Zen::Context.from_rack_env({})
     end
 
     def with_context(context)
-      old_context = Aikido::Agent.current_context
-      Aikido::Agent.current_context = context
+      old_context = Aikido::Zen.current_context
+      Aikido::Zen.current_context = context
       yield
     ensure
-      Aikido::Agent.current_context = old_context
+      Aikido::Zen.current_context = old_context
     end
 
     def self.included(base)
-      base.setup { Aikido::Agent.current_context = current_context }
-      base.teardown { Aikido::Agent.current_context = nil }
+      base.setup { Aikido::Zen.current_context = current_context }
+      base.teardown { Aikido::Zen.current_context = nil }
     end
   end
 end

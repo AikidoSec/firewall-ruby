@@ -1,0 +1,114 @@
+# frozen_string_literal: true
+
+require "net/http"
+
+module Aikido::Zen
+  # Implements all communication with the Aikido servers.
+  class APIClient
+    def initialize(config = Aikido::Zen.config, info = Aikido::Zen.info)
+      @config = config
+      @info = info
+    end
+
+    # @return [Boolean] whether we have a configured token.
+    def can_make_requests?
+      @config.api_token.to_s.size > 0
+    end
+
+    # Checks with the Aikido Runtime API the timestamp of the last settings
+    # update, and compares against the given value.
+    #
+    # @param last_updated_at [Time]
+    #
+    # @return [Boolean]
+    # @raise (see #request)
+    def should_fetch_settings?(last_updated_at = Aikido::Zen.settings.updated_at)
+      @config.logger.debug("Polling for new firewall settings to fetch")
+
+      return false unless can_make_requests?
+      return true if last_updated_at.nil?
+
+      response = request(
+        Net::HTTP::Get.new("/config", default_headers),
+        base_url: @config.runtime_api_base_url
+      )
+
+      new_updated_at = Time.at(response["configUpdatedAt"].to_i / 1000)
+      new_updated_at > last_updated_at
+    end
+
+    # Fetches the Zen settings from the server. In case of a timeout or
+    # other low-lever error, the request will be automatically retried up to two
+    # times, after which it will raise an error.
+    #
+    # @return [Hash] decoded JSON response from the server with the Firewall
+    #   settings.
+    # @raise (see #request)
+    def fetch_settings
+      @config.logger.debug("Fetching new firewall settings")
+
+      request(Net::HTTP::Get.new("/api/runtime/config", default_headers))
+    end
+
+    # @overload report(event)
+    #   Reports an event to the server.
+    #
+    #   @param event [Aikido::Zen::Event]
+    #   @return [void]
+    #   @raise (see #request)
+    #
+    # @overload report(agent_started_event)
+    #   Reports the Agent has started.
+    #
+    #   @param agent_started_event [Aikido::Zen::Events::Started]
+    #   @return (see #fetch_settings)
+    #   @raise (see #request)
+    def report(event)
+      @config.logger.debug("Reporting #{event.type.upcase} event")
+
+      req = Net::HTTP::Post.new("/api/runtime/events", default_headers)
+      req.content_type = "application/json"
+      req.body = @config.json_encoder.call(event.as_json)
+
+      request(req)
+    end
+
+    # Perform an HTTP request against one of our API endpoints, and process the
+    # response.
+    #
+    # @param request [Net::HTTPRequest]
+    # @param base_url [URI] which API to use. Defaults to +Config#api_base_url+.
+    #
+    # @return [Object] the result of decoding the JSON response from the server.
+    #
+    # @raise [Aikido::Zen::APIError] in case of a 4XX or 5XX response.
+    # @raise [Aikido::Zen::NetworkError] if an error occurs trying to make the
+    #   request.
+    private def request(request, base_url: @config.api_base_url)
+      Net::HTTP.start(base_url.host, base_url.port, http_settings) do |http|
+        response = http.request(request)
+
+        case response
+        when Net::HTTPSuccess
+          @config.json_decoder.call(response.body)
+        else
+          raise APIError.new(request, response)
+        end
+      end
+    rescue Timeout::Error, IOError, SystemCallError, OpenSSL::OpenSSLError => err
+      raise NetworkError, err.message
+    end
+
+    private def http_settings
+      @http_settings ||= {use_ssl: true, max_retries: 2}.merge(@config.api_timeouts)
+    end
+
+    private def default_headers
+      @default_headers ||= {
+        "Authorization" => @config.api_token,
+        "Accept" => "application/json",
+        "User-Agent" => "#{@info.library_name} v#{@info.library_version}"
+      }
+    end
+  end
+end
