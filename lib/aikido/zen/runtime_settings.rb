@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require_relative "route"
+require_relative "route/protection_settings"
+
 module Aikido::Zen
   # Stores the firewall configuration sourced from the Aikido dashboard. This
   # object is updated by the Agent regularly.
@@ -19,6 +22,7 @@ module Aikido::Zen
     def initialize(*)
       self.observers = Concurrent::Collection::CopyOnWriteObserverSet.new
       super
+      self.endpoints ||= Endpoints.new
     end
 
     # @!attribute [rw] updated_at
@@ -33,7 +37,7 @@ module Aikido::Zen
     #     this application.
 
     # @!attribute [rw] endpoints
-    #   @return [Array]
+    #   @return [Aikido::Zen::RuntimeSettings::Endpoints]
 
     # @!attribute [rw] blocked_user_ids
     #   @return [Array]
@@ -54,7 +58,7 @@ module Aikido::Zen
 
       self.updated_at = Time.at(data["configUpdatedAt"].to_i / 1000)
       self.heartbeat_interval = (data["heartbeatIntervalInMS"].to_i / 1000)
-      self.endpoints = data["endpoints"]
+      self.endpoints = Endpoints.from_json(data["endpoints"])
       self.blocked_user_ids = data["blockedUserIds"]
       self.allowed_ip_addresses = data["allowedIPAddresses"]
       self.received_any_stats = data["receivedAnyStats"]
@@ -63,3 +67,5 @@ module Aikido::Zen
     end
   end
 end
+
+require_relative "runtime_settings/endpoints"

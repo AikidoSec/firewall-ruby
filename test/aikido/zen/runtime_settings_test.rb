@@ -15,13 +15,13 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
       "heartbeatIntervalInMS" => 60000,
       "endpoints" => [],
       "blockedUserIds" => [],
-      "allowedIpAddresses" => [],
+      "allowedIPAddresses" => [],
       "receivedAnyStats" => false
     })
 
     assert_equal Time.utc(2024, 5, 31, 16, 8, 37), @settings.updated_at
     assert_equal 60, @settings.heartbeat_interval
-    assert_equal [], @settings.endpoints
+    assert_equal Aikido::Zen::RuntimeSettings::Endpoints.new, @settings.endpoints
     assert_equal [], @settings.blocked_user_ids
     assert_equal [], @settings.allowed_ip_addresses
     assert_equal false, @settings.received_any_stats
