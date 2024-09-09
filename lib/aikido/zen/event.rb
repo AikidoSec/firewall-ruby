@@ -6,19 +6,19 @@ module Aikido::Zen
   class Event
     attr_reader :type
     attr_reader :time
-    attr_reader :agent_info
+    attr_reader :system_info
 
-    def initialize(type:, agent_info: Aikido::Zen.info, time: Time.now.utc)
+    def initialize(type:, system_info: Aikido::Zen.system_info, time: Time.now.utc)
       @type = type
       @time = time
-      @agent_info = agent_info
+      @system_info = system_info
     end
 
     def as_json
       {
         type: type,
         time: time.to_i * 1000,
-        agent: agent_info.as_json
+        agent: system_info.as_json
       }
     end
   end

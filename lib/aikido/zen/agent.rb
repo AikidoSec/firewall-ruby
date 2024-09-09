@@ -3,6 +3,8 @@
 require "concurrent"
 require_relative "event"
 require_relative "stats"
+require_relative "config"
+require_relative "system_info"
 
 module Aikido::Zen
   # Handles the background processes that communicate with the Aikido servers,
@@ -14,7 +16,7 @@ module Aikido::Zen
     def initialize(
       stats: Aikido::Zen::Stats.new,
       config: Aikido::Zen.config,
-      info: Aikido::Zen.info,
+      info: Aikido::Zen.system_info,
       api_client: Aikido::Zen::APIClient.new
     )
       @started_at = nil

@@ -4,7 +4,7 @@ require_relative "zen/version"
 require_relative "zen/errors"
 require_relative "zen/actor"
 require_relative "zen/config"
-require_relative "zen/info"
+require_relative "zen/system_info"
 require_relative "zen/agent"
 require_relative "zen/api_client"
 require_relative "zen/context"
@@ -22,10 +22,10 @@ module Aikido
       @config ||= Config.new
     end
 
-    # Gets information about the current configuration of the agent, which is
-    # sent to the server along with any events.
-    def self.info
-      @info ||= Info.new
+    # Gets information about the current system configuration, which is sent to
+    # the server along with any events.
+    def self.system_info
+      @system_info ||= SystemInfo.new
     end
 
     # Track statistics about the result of a Sink's scan, and report it as an

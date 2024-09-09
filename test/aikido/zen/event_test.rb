@@ -17,11 +17,11 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
     end
   end
 
-  test "it captures the agent information" do
+  test "it captures the system information" do
     event = Aikido::Zen::Event.new(type: "test")
 
-    assert_kind_of Aikido::Zen::Info, event.agent_info
-    assert_equal "firewall-ruby", event.agent_info.library_name
+    assert_kind_of Aikido::Zen::SystemInfo, event.system_info
+    assert_equal "firewall-ruby", event.system_info.library_name
   end
 
   test "#as_json includes the type" do
@@ -36,11 +36,11 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
     assert_equal 123000, event.as_json[:time]
   end
 
-  test "#as_json serializes the agent info" do
+  test "#as_json serializes the system info" do
     event = Aikido::Zen::Event.new(type: "test")
-    info = Aikido::Zen::Info.new
+    system_info = Aikido::Zen::SystemInfo.new
 
-    refute_nil info.as_json, event.as_json[:agent]
+    refute_nil system_info.as_json, event.as_json[:agent]
   end
 
   class StartedTest < ActiveSupport::TestCase

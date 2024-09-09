@@ -296,7 +296,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
       assert_requested :post, "https://guard.aikido.dev/api/runtime/events",
         body: hash_including(
           type: "started",
-          agent: Aikido::Zen.info.as_json
+          agent: Aikido::Zen.system_info.as_json
         )
     end
 

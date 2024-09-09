@@ -4,7 +4,7 @@ require "test_helper"
 
 class Aikido::Zen::InfoTest < ActiveSupport::TestCase
   setup do
-    @info = Aikido::Zen::Info.new
+    @info = Aikido::Zen::SystemInfo.new
   end
 
   test "by default, attacks do not block requests" do

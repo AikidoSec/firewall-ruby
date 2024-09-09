@@ -7,7 +7,7 @@ require_relative "package"
 
 module Aikido::Zen
   # Provides information about the currently running Agent.
-  class Info
+  class SystemInfo
     def initialize(config = Aikido::Zen.config)
       @config = config
     end

@@ -5,9 +5,9 @@ require "net/http"
 module Aikido::Zen
   # Implements all communication with the Aikido servers.
   class APIClient
-    def initialize(config = Aikido::Zen.config, info = Aikido::Zen.info)
+    def initialize(config: Aikido::Zen.config, system_info: Aikido::Zen.system_info)
       @config = config
-      @info = info
+      @system_info = system_info
     end
 
     # @return [Boolean] whether we have a configured token.
@@ -107,7 +107,7 @@ module Aikido::Zen
       @default_headers ||= {
         "Authorization" => @config.api_token,
         "Accept" => "application/json",
-        "User-Agent" => "#{@info.library_name} v#{@info.library_version}"
+        "User-Agent" => "#{@system_info.library_name} v#{@system_info.library_version}"
       }
     end
   end
