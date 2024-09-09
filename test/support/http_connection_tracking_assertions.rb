@@ -7,9 +7,9 @@ require "ostruct"
 module HTTPConnectionTrackingAssertions
   def assert_tracks_outbound_to(host, port, &block)
     stats = Aikido::Zen::Stats.new
-    fake_runner = OpenStruct.new(stats: stats)
+    fake_agent = OpenStruct.new(stats: stats)
 
-    Aikido::Zen.stub(:runner, fake_runner) do
+    Aikido::Zen.stub(:agent, fake_agent) do
       assert_difference "stats.outbound_connections.size", +1 do
         2.times(&block) # run the block twice to ensure we only count it once.
       end

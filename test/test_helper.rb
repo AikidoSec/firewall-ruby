@@ -42,9 +42,9 @@ class ActiveSupport::TestCase
   # Reset any global state before each test
   setup do
     Aikido::Zen.instance_variable_set(:@info, nil)
+    Aikido::Zen.instance_variable_set(:@agent, nil)
     Aikido::Zen.instance_variable_set(:@config, nil)
-    Aikido::Zen.instance_variable_set(:@runner, nil)
-    Aikido::Zen.instance_variable_set(:@settings, nil)
+    Aikido::Zen.instance_variable_set(:@runtime_settings, nil)
 
     @_old_sinks_registry = Aikido::Zen::Sinks.registry.dup
     Aikido::Zen::Sinks.registry.clear

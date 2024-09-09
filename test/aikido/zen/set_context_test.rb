@@ -42,9 +42,9 @@ class Aikido::Zen::SetContextText < ActiveSupport::TestCase
   end
 
   test "requests get tracked in our stats funnel" do
-    runner = Aikido::Zen.send(:runner)
+    agent = Aikido::Zen.send(:agent)
 
-    assert_difference -> { runner.stats.requests }, +3 do
+    assert_difference -> { agent.stats.requests }, +3 do
       @middleware.call({"PATH_INFO" => "/"})
       @middleware.call({"PATH_INFO" => "/"})
       @middleware.call({"PATH_INFO" => "/"})

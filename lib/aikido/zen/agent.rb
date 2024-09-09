@@ -5,8 +5,9 @@ require_relative "event"
 require_relative "stats"
 
 module Aikido::Zen
-  # Handles the background threads that are run by the Agent.
-  class Runner
+  # Handles the background processes that communicate with the Aikido servers,
+  # including managing the runtime settings that keep the app protected.
+  class Agent
     # @return [Aikido::Zen::Stats] the statistics collected by the agent.
     attr_reader :stats
 

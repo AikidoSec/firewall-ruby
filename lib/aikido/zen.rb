@@ -5,7 +5,7 @@ require_relative "zen/errors"
 require_relative "zen/actor"
 require_relative "zen/config"
 require_relative "zen/info"
-require_relative "zen/runner"
+require_relative "zen/agent"
 require_relative "zen/api_client"
 require_relative "zen/context"
 require_relative "zen/set_context"
@@ -36,8 +36,8 @@ module Aikido
     # @raise [Aikido::Zen::UnderAttackError] if the scan detected an Attack
     #   and blocking_mode is enabled.
     def self.track_scan(scan)
-      runner.stats.add_scan(scan)
-      runner.handle_attack(scan.attack) if scan.attack?
+      agent.stats.add_scan(scan)
+      agent.handle_attack(scan.attack) if scan.attack?
     end
 
     # Track statistics about an HTTP request the app is handling.
@@ -45,7 +45,7 @@ module Aikido
     # @param context [Aikido::Zen::Request]
     # @return [void]
     def self.track_request(request)
-      runner.stats.add_request(request)
+      agent.stats.add_request(request)
     end
 
     # Tracks a network connection made to an external service.
@@ -53,7 +53,7 @@ module Aikido
     # @param connection [Aikido::Zen::OutboundConnection]
     # @return [void]
     def self.track_outbound(connection)
-      runner.stats.add_outbound(connection)
+      agent.stats.add_outbound(connection)
     end
 
     # Track the user making the current request.
@@ -64,7 +64,7 @@ module Aikido
       actor = Aikido::Zen::Actor(user)
 
       if actor
-        runner.stats.add_user(actor)
+        agent.stats.add_user(actor)
       else
         id_attr, name_attr = config.user_attribute_mappings.values_at(:id, :name)
         config.logger.warn(format(<<~LOG, obj: user, id: id_attr, name: name_attr))
@@ -81,21 +81,21 @@ module Aikido
 
     # Starts the background threads that keep the agent running.
     #
-    # @return [Aikido::Zen::Runner]
+    # @return [void]
     def self.initialize!
-      @runner ||= Runner.new
-      @runner.start!
+      @agent ||= Agent.new
+      @agent.start!
     end
 
     # Stop any background threads.
     def self.stop!
-      @runner&.stop!
+      @agent&.stop!
     end
 
     # @return [Aikido::Zen::RuntimeSettings] the firewall configuration sourced
     #   from your Aikido dashboard. This is periodically polled for updates.
     def self.runtime_settings
-      @settings ||= RuntimeSettings.new
+      @runtime_settings ||= RuntimeSettings.new
     end
 
     # Load all sinks matching libraries loaded into memory. This method should
@@ -109,11 +109,11 @@ module Aikido
       require_relative "zen/sinks"
     end
 
-    private_class_method def self.runner
-      # We shouldn't start collecting data before we even initialize the runner,
-      # but might as well make sure we have a @runner going to report to.
-      @runner or initialize!
-      @runner
+    private_class_method def self.agent
+      # We shouldn't start collecting data before we even initialize the agent,
+      # but might as well make sure we have a @agent going to report to.
+      @agent or initialize!
+      @agent
     end
   end
 end
