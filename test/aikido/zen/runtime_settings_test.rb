@@ -40,7 +40,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
       "heartbeatIntervalInMS" => 60000,
       "endpoints" => [],
       "blockedUserIds" => [],
-      "allowedIpAddresses" => [],
+      "allowedIPAddresses" => [],
       "receivedAnyStats" => false
     })
 
@@ -60,7 +60,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
       "heartbeatIntervalInMS" => 60000,
       "endpoints" => [],
       "blockedUserIds" => [],
-      "allowedIpAddresses" => [],
+      "allowedIPAddresses" => [],
       "receivedAnyStats" => false
     }
 

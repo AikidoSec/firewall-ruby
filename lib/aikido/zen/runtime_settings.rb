@@ -56,7 +56,7 @@ module Aikido::Zen
       self.heartbeat_interval = (data["heartbeatIntervalInMS"].to_i / 1000)
       self.endpoints = data["endpoints"]
       self.blocked_user_ids = data["blockedUserIds"]
-      self.allowed_ip_addresses = data["allowedIpAddresses"]
+      self.allowed_ip_addresses = data["allowedIPAddresses"]
       self.received_any_stats = data["receivedAnyStats"]
 
       observers.notify_observers(self) if updated_at != last_updated_at
