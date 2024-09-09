@@ -2,9 +2,9 @@
 
 require "test_helper"
 
-class Aikido::Zen::SettingsTest < ActiveSupport::TestCase
+class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
   setup do
-    @settings = Aikido::Zen::Settings.new
+    @settings = Aikido::Zen::RuntimeSettings.new
   end
 
   test "building from a JSON response" do
@@ -64,7 +64,7 @@ class Aikido::Zen::SettingsTest < ActiveSupport::TestCase
       "receivedAnyStats" => false
     }
 
-    assert_changes -> { observer_notifications }, from: 0, to: 1 do
+    assert_difference "observer_notifications", +1 do
       @settings.update_from_json(payload)
       @settings.update_from_json(payload)
       @settings.update_from_json(payload)
@@ -72,7 +72,7 @@ class Aikido::Zen::SettingsTest < ActiveSupport::TestCase
 
     payload["configUpdatedAt"] = 1726354453000
 
-    assert_changes -> { observer_notifications }, from: 1, to: 2 do
+    assert_difference "observer_notifications", +1 do
       @settings.update_from_json(payload)
       @settings.update_from_json(payload)
     end

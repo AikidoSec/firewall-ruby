@@ -58,7 +58,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
 
     setup do
       Aikido::Zen.config.api_token = "TOKEN"
-      Aikido::Zen.settings.updated_at = Time.at(0)
+      Aikido::Zen.runtime_settings.updated_at = Time.at(0)
 
       @client = Aikido::Zen::APIClient.new
     end
@@ -74,7 +74,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
       assert @client.should_fetch_settings?(nil)
       assert_not_requested :get, "https://runtime.aikido.dev/config"
 
-      Aikido::Zen.settings.updated_at = nil
+      Aikido::Zen.runtime_settings.updated_at = nil
       assert @client.should_fetch_settings?
       assert_not_requested :get, "https://runtime.aikido.dev/config"
     end
@@ -83,10 +83,10 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
       stub_request(:get, "https://runtime.aikido.dev/config")
         .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890000))
 
-      Aikido::Zen.settings.updated_at = Time.at(1234567890)
+      Aikido::Zen.runtime_settings.updated_at = Time.at(1234567890)
       assert_not @client.should_fetch_settings?
 
-      Aikido::Zen.settings.updated_at = Time.at(1234567890 + 1)
+      Aikido::Zen.runtime_settings.updated_at = Time.at(1234567890 + 1)
       assert_not @client.should_fetch_settings?
     end
 
@@ -94,7 +94,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
       stub_request(:get, "https://runtime.aikido.dev/config")
         .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890000))
 
-      Aikido::Zen.settings.updated_at = Time.at(1234567890 - 1)
+      Aikido::Zen.runtime_settings.updated_at = Time.at(1234567890 - 1)
       assert @client.should_fetch_settings?
     end
 
@@ -149,7 +149,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
 
       @client.should_fetch_settings?
 
-      assert_logged :debug, /polling for new firewall settings/i
+      assert_logged :debug, /polling for new runtime settings/i
     end
   end
 
@@ -242,7 +242,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
 
       @client.fetch_settings
 
-      assert_logged :debug, /fetching new firewall settings/i
+      assert_logged :debug, /fetching new runtime settings/i
     end
   end
 

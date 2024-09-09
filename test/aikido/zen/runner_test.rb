@@ -104,18 +104,18 @@ class Aikido::Zen::RunnerTest < ActiveSupport::TestCase
     end
   end
 
-  test "#start! takes the response of the STARTED event as firewall settings" do
+  test "#start! takes the response of the STARTED event as runtime settings" do
     @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
       @api_client.expect :report,
         {"configUpdatedAt" => 1234567890000},
         [Aikido::Zen::Events::Started]
 
-      assert_changes -> { Aikido::Zen.settings.updated_at }, to: Time.at(1234567890) do
+      assert_changes -> { Aikido::Zen.runtime_settings.updated_at }, to: Time.at(1234567890) do
         @runner.start!
       end
 
       assert_mock @api_client
-      assert_logged :info, /updated firewall settings/i
+      assert_logged :info, /updated runtime settings/i
     end
   end
 
@@ -142,22 +142,22 @@ class Aikido::Zen::RunnerTest < ActiveSupport::TestCase
       timer = @runner.timer_tasks.first
       assert_equal @config.polling_interval, timer.execution_interval
 
-      refute_logged :info, /updated firewall settings after polling/i
+      refute_logged :info, /updated runtime settings after polling/i
 
       assert_mock @api_client
     end
   end
 
-  test "#start! updates the firewall settings after polling if needed" do
+  test "#start! updates the runtime settings after polling if needed" do
     @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
       @api_client.expect :should_fetch_settings?, true
       @api_client.expect :fetch_settings, {"configUpdatedAt" => 1234567890000}
 
-      assert_changes -> { Aikido::Zen.settings.updated_at }, to: Time.at(1234567890) do
+      assert_changes -> { Aikido::Zen.runtime_settings.updated_at }, to: Time.at(1234567890) do
         @runner.start!
       end
 
-      assert_logged :info, /updated firewall settings after polling/i
+      assert_logged :info, /updated runtime settings after polling/i
 
       assert_mock @api_client
     end
@@ -245,7 +245,7 @@ class Aikido::Zen::RunnerTest < ActiveSupport::TestCase
     @runner.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
       @api_client.expect :report, {"receivedAnyStats" => true}, [Aikido::Zen::Events::Heartbeat]
 
-      assert_changes -> { Aikido::Zen.settings.received_any_stats }, to: true do
+      assert_changes -> { Aikido::Zen.runtime_settings.received_any_stats }, to: true do
         @runner.send_heartbeat
       end
 
@@ -275,7 +275,7 @@ class Aikido::Zen::RunnerTest < ActiveSupport::TestCase
   end
 
   test "#setup_heartbeat configures a timer for the configured frequency" do
-    settings = Aikido::Zen.settings
+    settings = Aikido::Zen.runtime_settings
     settings.heartbeat_interval = 10
 
     assert_difference -> { @runner.timer_tasks.size }, +1 do
@@ -289,7 +289,7 @@ class Aikido::Zen::RunnerTest < ActiveSupport::TestCase
   end
 
   test "#setup_heartbeat resets the timer if the interval changes" do
-    settings = Aikido::Zen.settings
+    settings = Aikido::Zen.runtime_settings
     settings.heartbeat_interval = 10
     assert_difference -> { @runner.timer_tasks.size }, +1 do
       @runner.setup_heartbeat(settings)
@@ -311,7 +311,7 @@ class Aikido::Zen::RunnerTest < ActiveSupport::TestCase
   end
 
   test "#setup_heartbeat queues a one-off task if the server hasn't received stats yet" do
-    settings = Aikido::Zen.settings
+    settings = Aikido::Zen.runtime_settings
     settings.received_any_stats = false
 
     assert_difference -> { @runner.delayed_tasks.size }, +1 do
@@ -324,7 +324,7 @@ class Aikido::Zen::RunnerTest < ActiveSupport::TestCase
   end
 
   test "#setup_heartbeat does not queue a one-off task if the server received stats" do
-    settings = Aikido::Zen.settings
+    settings = Aikido::Zen.runtime_settings
     settings.received_any_stats = true
 
     assert_no_difference -> { @runner.delayed_tasks.size } do

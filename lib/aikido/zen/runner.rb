@@ -85,13 +85,13 @@ module Aikido::Zen
 
       # Subscribe to firewall setting changes so we can correctly re-configure
       # the heartbeat process.
-      Aikido::Zen.settings.add_observer(self, :setup_heartbeat)
+      Aikido::Zen.runtime_settings.add_observer(self, :setup_heartbeat)
 
       at_exit { stop! if started? }
 
       report(Events::Started.new(time: @started_at)) do |response|
-        Aikido::Zen.settings.update_from_json(response)
-        @config.logger.info "Updated firewall settings."
+        Aikido::Zen.runtime_settings.update_from_json(response)
+        @config.logger.info "Updated runtime settings."
       end
 
       poll_for_setting_updates
@@ -102,16 +102,16 @@ module Aikido::Zen
 
       flushed_stats = stats.reset
       report(Events::Heartbeat.new(stats: flushed_stats)) do |response|
-        Aikido::Zen.settings.update_from_json(response)
-        @config.logger.info "Updated firewall settings after heartbeat"
+        Aikido::Zen.runtime_settings.update_from_json(response)
+        @config.logger.info "Updated runtime settings after heartbeat"
       end
     end
 
     def poll_for_setting_updates
       timer_task(every: @config.polling_interval) do
         if @api_client.should_fetch_settings?
-          Aikido::Zen.settings.update_from_json(@api_client.fetch_settings)
-          @config.logger.info "Updated firewall settings after polling"
+          Aikido::Zen.runtime_settings.update_from_json(@api_client.fetch_settings)
+          @config.logger.info "Updated runtime settings after polling"
         end
       end
     end

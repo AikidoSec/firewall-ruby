@@ -4,14 +4,14 @@ module Aikido::Zen
   # Stores the firewall configuration sourced from the Aikido dashboard. This
   # object is updated by the Agent regularly.
   #
-  # Because the Settings object can be modified in runtime, it implements the
-  # {Observable} API, allowing you to subscribe to updates. These are triggered
-  # whenever #update_from_json makes a change (i.e. if the settings don't
-  # change, no update is triggered).
+  # Because the RuntimeSettings object can be modified in runtime, it implements
+  # the {Observable} API, allowing you to subscribe to updates. These are
+  # triggered whenever #update_from_json makes a change (i.e. if the settings
+  # don't change, no update is triggered).
   #
   # You can subscribe to changes with +#add_observer(object, func_name)+, which
   # will call the function passing the settings as an argument.
-  class Settings < Concurrent::MutableStruct.new(
+  class RuntimeSettings < Concurrent::MutableStruct.new(
     :updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :allowed_ip_addresses, :received_any_stats
   )
     include Concurrent::Concern::Observable

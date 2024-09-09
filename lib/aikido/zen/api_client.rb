@@ -22,8 +22,8 @@ module Aikido::Zen
     #
     # @return [Boolean]
     # @raise (see #request)
-    def should_fetch_settings?(last_updated_at = Aikido::Zen.settings.updated_at)
-      @config.logger.debug("Polling for new firewall settings to fetch")
+    def should_fetch_settings?(last_updated_at = Aikido::Zen.runtime_settings.updated_at)
+      @config.logger.debug("Polling for new runtime settings to fetch")
 
       return false unless can_make_requests?
       return true if last_updated_at.nil?
@@ -37,15 +37,15 @@ module Aikido::Zen
       new_updated_at > last_updated_at
     end
 
-    # Fetches the Zen settings from the server. In case of a timeout or
+    # Fetches the runtime settings from the server. In case of a timeout or
     # other low-lever error, the request will be automatically retried up to two
     # times, after which it will raise an error.
     #
-    # @return [Hash] decoded JSON response from the server with the Firewall
+    # @return [Hash] decoded JSON response from the server with the runtime
     #   settings.
     # @raise (see #request)
     def fetch_settings
-      @config.logger.debug("Fetching new firewall settings")
+      @config.logger.debug("Fetching new runtime settings")
 
       request(Net::HTTP::Get.new("/api/runtime/config", default_headers))
     end
