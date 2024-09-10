@@ -29,7 +29,7 @@ module Aikido::Zen
     alias_method :eql?, :==
 
     def hash
-      [@verb, @path].hash
+      [verb, path].hash
     end
 
     def inspect

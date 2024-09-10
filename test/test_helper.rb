@@ -65,6 +65,10 @@ class ActiveSupport::TestCase
   setup do
     new_routes = ActionDispatch::Routing::RouteSet.new
     Rails.application.instance_variable_set(:@routes, new_routes)
+
+    # Also reset the reference to the Rails router, so we pick up the new
+    # RouteSet object in each test.
+    Aikido::Zen::Rails.instance_variable_set(:@router, nil)
   end
 
   # Capture log output and make it testable
