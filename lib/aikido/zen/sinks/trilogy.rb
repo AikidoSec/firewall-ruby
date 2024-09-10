@@ -5,7 +5,7 @@ require_relative "../sink"
 module Aikido::Zen
   module Sinks
     module Trilogy
-      SINK = Sinks.add("trilogy", scanners: [Vulnerabilities::SQLInjectionScanner])
+      SINK = Sinks.add("trilogy", scanners: [Scanners::SQLInjectionScanner])
 
       module Extensions
         def query(query, *)

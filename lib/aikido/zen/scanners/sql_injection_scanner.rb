@@ -4,7 +4,7 @@ require_relative "sql_injection/sql_dialect"
 require_relative "../attack"
 
 module Aikido::Zen
-  module Vulnerabilities
+  module Scanners
     class SQLInjectionScanner
       # Checks if the given SQL query may have dangerous user input injected,
       # and returns an Attack if so, based on the current request.

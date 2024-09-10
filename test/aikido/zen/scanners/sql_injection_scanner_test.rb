@@ -2,15 +2,15 @@
 
 require "test_helper"
 
-class Aikido::Zen::Vulnerabilities::SQLInjectionScannerTest < ActiveSupport::TestCase
+class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
   module Assertions
     def assert_attack(query, input = query, dialect = :common, reason = "`#{input}` was not blocked (#{dialect})")
-      scanner = Aikido::Zen::Vulnerabilities::SQLInjectionScanner.new(query, input, dialect)
+      scanner = Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, dialect)
       assert scanner.attack?, reason
     end
 
     def refute_attack(query, input = query, dialect = :common, reason = "`#{input}` was blocked (#{dialect})")
-      scanner = Aikido::Zen::Vulnerabilities::SQLInjectionScanner.new(query, input, dialect)
+      scanner = Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, dialect)
       refute scanner.attack?, reason
     end
   end
@@ -233,7 +233,7 @@ class Aikido::Zen::Vulnerabilities::SQLInjectionScannerTest < ActiveSupport::Tes
   end
 
   test "it flags dangerous strings as attacks" do
-    Aikido::Zen::Vulnerabilities::SQLInjection[:common].dangerous_syntax.each do |token|
+    Aikido::Zen::Scanners::SQLInjection[:common].dangerous_syntax.each do |token|
       input = "#{token} a" # needs to be longer than one character
       assert_attack "SELECT * FROM users WHERE #{input}", input
     end
@@ -313,18 +313,18 @@ class Aikido::Zen::Vulnerabilities::SQLInjectionScannerTest < ActiveSupport::Tes
   end
 
   test "it does not flag keywords by themselves as they don't pose any risk" do
-    Aikido::Zen::Vulnerabilities::SQLInjection[:common].keywords.each do |keyword|
+    Aikido::Zen::Scanners::SQLInjection[:common].keywords.each do |keyword|
       refute_attack "SELECT id FROM #{keyword}", keyword
       refute_attack "SELECT id FROM #{keyword}", keyword.downcase
     end
   end
 
   test "it flags keywords when the input contains other characters" do
-    Aikido::Zen::Vulnerabilities::SQLInjection[:common].keywords.each do |keyword|
+    Aikido::Zen::Scanners::SQLInjection[:common].keywords.each do |keyword|
       assert_attack "SELECT id FROM #{keyword}", " #{keyword}"
       assert_attack "SELECT id FROM #{keyword}", " #{keyword.downcase}"
 
-      Aikido::Zen::Vulnerabilities::SQLInjection[:common].dangerous_syntax.each do |token|
+      Aikido::Zen::Scanners::SQLInjection[:common].dangerous_syntax.each do |token|
         payload = "#{keyword}#{token}"
         assert_attack "SELECT id FROM #{payload}", payload
         assert_attack "SELECT id FROM #{payload}", payload.downcase
@@ -459,12 +459,12 @@ class Aikido::Zen::Vulnerabilities::SQLInjectionScannerTest < ActiveSupport::Tes
 
   class TestEncapsulation < ActiveSupport::TestCase
     def assert_encapsulated(query, input, reason = "`#{input}` not correctly encapsulated in `#{query}`")
-      scanner = Aikido::Zen::Vulnerabilities::SQLInjectionScanner.new(query, input, :mysql)
+      scanner = Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, :mysql)
       assert scanner.input_quoted_or_escaped_within_query?, reason
     end
 
     def refute_encapsulated(query, input, reason = "`#{input}` correctly encapsulated in `#{query}`")
-      scanner = Aikido::Zen::Vulnerabilities::SQLInjectionScanner.new(query, input, :mysql)
+      scanner = Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, :mysql)
       refute scanner.input_quoted_or_escaped_within_query?, reason
     end
 
