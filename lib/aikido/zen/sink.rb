@@ -67,15 +67,21 @@ module Aikido::Zen
     # findings back to the Sink's +reporter+ to track statistics and
     # potentially handle the +Attack+, if anything.
     #
+    # This checks if runtime protection has been turned off for the current
+    # route first, and if so skips the scanning altogether, returning nil.
+    #
     # @param scan_params [Hash] data to pass to all registered scanners.
     # @option scan_params [Aikido::Zen::Context, nil] :context
     #   The current Context, including the HTTP request being inspected, or
     #   +nil+ if we're scanning outside of an HTTP request.
     #
-    # @return [Aikido::Zen::Scan] the result of the scan.
+    # @return [Aikido::Zen::Scan, nil] the result of the scan, or +nil+ if the
+    #   scan was skipped due to protection being disabled for the current route.
     # @raise [Aikido::UnderAttackError] if an attack is detected and
     #   blocking_mode is enabled.
     def scan(context: Aikido::Zen.current_context, **scan_params)
+      return if context&.protection_disabled?
+
       scan = Scan.new(sink: self, context: context)
 
       scan.perform do
