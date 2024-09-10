@@ -73,6 +73,19 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       assert_includes context.payloads, stub_payload(:body, "6", "y.w.i")
       assert_includes context.payloads, stub_payload(:body, "7", "y.w.j")
     end
+
+    test "#protection_disabled? allows requests from allowed IPs" do
+      settings = Aikido::Zen.runtime_settings
+      settings.update_from_json({
+        "allowedIPAddresses" => ["10.0.0.1"]
+      })
+
+      unprotected_ctx = build_context_for("/", "REMOTE_ADDR" => "10.0.0.1")
+      assert unprotected_ctx.protection_disabled?
+
+      protected_ctx = build_context_for("/", "REMOTE_ADDR" => "1.2.3.4")
+      refute protected_ctx.protection_disabled?
+    end
   end
 
   class RackRequestTest < ActiveSupport::TestCase

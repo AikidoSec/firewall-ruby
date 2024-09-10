@@ -47,11 +47,13 @@ module Aikido::Zen
     end
 
     # @return [Boolean] whether attack protection for the currently requested
-    #   endpoint was disabled on the Aikido dashboard.
+    #   endpoint was disabled on the Aikido dashboard, or if the source IP for
+    #   this request is in the "Bypass List".
     def protection_disabled?
       return false if request.nil?
 
-      !@settings.endpoints[request.route].protected?
+      !@settings.endpoints[request.route].protected? ||
+        @settings.skip_protection_for_ips.include?(request.ip)
     end
 
     # @!visibility private
