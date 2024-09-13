@@ -80,6 +80,11 @@ module Aikido::Zen
     #   request. This is meant to be overridden by each framework adapter.
     attr_accessor :request_builder
 
+    # @return [Proc<Array(Aikido::Zen::Request) => Array(Integer, Hash, #each)]
+    #   Rack handler used to respond to requests from IPs blocked in the Aikido
+    #   dashboard.
+    attr_accessor :blocked_ip_responder
+
     def initialize
       self.blocking_mode = !!ENV.fetch("AIKIDO_BLOCKING", false)
       self.api_timeouts = 10
@@ -96,6 +101,7 @@ module Aikido::Zen
       self.max_outbound_connections = 200
       self.max_users_tracked = 1000
       self.request_builder = Aikido::Zen::Context::RACK_REQUEST_BUILDER
+      self.blocked_ip_responder = DEFAULT_BLOCKED_IP_RESPONDER
       @user_attribute_mappings = {id: :id, name: :name}
     end
 
@@ -143,5 +149,11 @@ module Aikido::Zen
 
     # @!visibility private
     DEFAULT_JSON_DECODER = JSON.method(:parse)
+
+    # @!visibility private
+    DEFAULT_BLOCKED_IP_RESPONDER = ->(request) do
+      message = "Your IP address is not allowed to access this resource. (Your IP: %s)"
+      [403, {"Content-Type" => "text/plain"}, [format(message, request.ip)]]
+    end
   end
 end

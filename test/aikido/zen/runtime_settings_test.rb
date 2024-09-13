@@ -98,4 +98,91 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_includes @settings.skip_protection_for_ips, "10.0.0.1"
     refute_includes @settings.skip_protection_for_ips, "10.0.0.2"
   end
+
+  test "parsing endpoint data" do
+    @settings.update_from_json({
+      "success" => true,
+      "serviceId" => 1234,
+      "configUpdatedAt" => 1717171717000,
+      "heartbeatIntervalInMS" => 60000,
+      "endpoints" => [
+        {
+          "method" => "GET",
+          "route" => "/",
+          "forceProtectionOff" => true,
+          "graphql" => nil,
+          "allowedIPAddresses" => [],
+          "rateLimiting" => {
+            "enabled" => false,
+            "maxRequests" => 100,
+            "windowSizeInMS" => 60000
+          }
+        },
+        {
+          "method" => "GET",
+          "route" => "/admin",
+          "forceProtectionOff" => false,
+          "graphql" => nil,
+          "allowedIPAddresses" => [
+            "10.0.0.0/8"
+          ],
+          "rateLimiting" => {
+            "enabled" => false,
+            "maxRequests" => 100,
+            "windowSizeInMS" => 60000
+          }
+        },
+        {
+          "method" => "POST",
+          "route" => "/users/sign_in",
+          "forceProtectionOff" => false,
+          "graphql" => nil,
+          "allowedIPAddresses" => [],
+          "rateLimiting" => {
+            "enabled" => true,
+            "maxRequests" => 10,
+            "windowSizeInMS" => 60000
+          }
+        }
+      ],
+      "blockedUserIds" => [],
+      "allowedIPAddresses" => [],
+      "receivedAnyStats" => false
+    })
+
+    root_settings = @settings.endpoints[build_route("GET", "/")]
+    auth_settings = @settings.endpoints[build_route("POST", "/users/sign_in")]
+    admin_settings = @settings.endpoints[build_route("GET", "/admin")]
+
+    refute root_settings.protected?
+    assert auth_settings.protected?
+    assert admin_settings.protected?
+
+    assert_empty root_settings.allowed_ips
+    assert_empty auth_settings.allowed_ips
+    assert_includes admin_settings.allowed_ips, IPAddr.new("10.0.0.0/8")
+  end
+
+  test "endpoints without an explicit config get a reasonable default value" do
+    @settings.update_from_json({
+      "success" => true,
+      "serviceId" => 1234,
+      "configUpdatedAt" => 1717171717000,
+      "heartbeatIntervalInMS" => 60000,
+      "endpoints" => [],
+      "blockedUserIds" => [],
+      "allowedIPAddresses" => [],
+      "receivedAnyStats" => false
+    })
+
+    root = build_route("GET", "/")
+    root_settings = @settings.endpoints[root]
+
+    assert root_settings.protected?
+    assert_empty root_settings.allowed_ips
+  end
+
+  def build_route(verb, path)
+    Aikido::Zen::Route.new(verb: verb, path: path)
+  end
 end

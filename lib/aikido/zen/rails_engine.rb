@@ -11,6 +11,7 @@ module Aikido::Zen
 
     initializer "aikido.add_middleware" do |app|
       app.middleware.use Aikido::Zen::SetContext
+      app.middleware.use Aikido::Zen::Middleware::CheckAllowedAddresses
 
       # Due to how Rails sets up its middleware chain, the routing is evaluated
       # (and the Request object constructed) in the app that terminates the
