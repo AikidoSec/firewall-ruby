@@ -8,6 +8,7 @@ class Aikido::Zen::Route::ProtectionSettingsTest < ActiveSupport::TestCase
 
     assert settings.protected?
     assert_empty settings.allowed_ips
+    refute settings.rate_limiting.enabled?
   end
 
   test ".from_json parses the correct fields" do
@@ -23,6 +24,7 @@ class Aikido::Zen::Route::ProtectionSettingsTest < ActiveSupport::TestCase
 
     assert settings.protected?
     refute_empty settings.allowed_ips
+    refute settings.rate_limiting.enabled?
   end
 
   test ".from_json ignores extra fields in the Hash" do
@@ -82,6 +84,17 @@ class Aikido::Zen::Route::ProtectionSettingsTest < ActiveSupport::TestCase
     assert_raises IPAddr::InvalidAddressError do
       Aikido::Zen::Route::ProtectionSettings.from_json(data)
     end
+  end
+
+  test ".from_json parses rate limiting settings" do
+    data = build_api_response("rateLimiting" => {
+      "enabled" => true, "maxRequests" => 50, "windowSizeInMS" => 120000
+    })
+    settings = Aikido::Zen::Route::ProtectionSettings.from_json(data)
+
+    assert settings.rate_limiting.enabled?
+    assert_equal 50, settings.rate_limiting.max_requests
+    assert_equal 120, settings.rate_limiting.period
   end
 
   def build_api_response(overrides = {})

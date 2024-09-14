@@ -161,6 +161,10 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_empty root_settings.allowed_ips
     assert_empty auth_settings.allowed_ips
     assert_includes admin_settings.allowed_ips, IPAddr.new("10.0.0.0/8")
+
+    refute root_settings.rate_limiting.enabled?
+    assert auth_settings.rate_limiting.enabled?
+    refute admin_settings.rate_limiting.enabled?
   end
 
   test "endpoints without an explicit config get a reasonable default value" do
@@ -180,6 +184,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
 
     assert root_settings.protected?
     assert_empty root_settings.allowed_ips
+    refute root_settings.rate_limiting.enabled?
   end
 
   def build_route(verb, path)

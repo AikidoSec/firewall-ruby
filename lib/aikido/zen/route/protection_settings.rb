@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../runtime_settings/ip_set"
+require_relative "rate_limit_settings"
 
 module Aikido::Zen
   class Route
@@ -20,16 +20,20 @@ module Aikido::Zen
       #   disabled attack protection for this route.
       # @option data [Array<String>] "allowedIPAddresses" the list of IPs that
       #   can make requests to this endpoint.
+      # @option data [Hash] "rateLimiting" the rate limiting options for this
+      #   endpoint. See {Aikido::Zen::Route::RateLimitSettings.from_json}.
       #
       # @return [Aikido::Zen::Route::ProtectionSettings]
       # @raise [IPAddr::InvalidAddressError] if any of the IPs in
       #   "allowedIPAddresses" is not a valid address or family.
       def self.from_json(data)
         ips = RuntimeSettings::IPSet.from_json(data["allowedIPAddresses"])
+        rate_limiting = RateLimitSettings.from_json(data["rateLimiting"])
 
         new(
           protected: !data["forceProtectionOff"],
-          allowed_ips: ips
+          allowed_ips: ips,
+          rate_limiting: rate_limiting
         )
       end
 
@@ -38,11 +42,16 @@ module Aikido::Zen
       #   are allowed.
       attr_reader :allowed_ips
 
+      # @return [Aikido::Zen::Route::RateLimitSettings]
+      attr_reader :rate_limiting
+
       def initialize(
         protected: true,
-        allowed_ips: RuntimeSettings::IPSet.new
+        allowed_ips: RuntimeSettings::IPSet.new,
+        rate_limiting: RateLimitSettings.disabled
       )
         @protected = !!protected
+        @rate_limiting = rate_limiting
         @allowed_ips = allowed_ips
       end
 
