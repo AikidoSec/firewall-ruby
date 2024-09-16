@@ -6,23 +6,7 @@ class Aikido::Agent::ActorTest < ActiveSupport::TestCase
   include StubsCurrentContext
 
   class CastingTest < ActiveSupport::TestCase
-    User = Struct.new(:id, :name, :email) do
-      def to_model
-        self
-      end
-    end
-
-    NamelessModel = Struct.new(:id) do
-      def to_model
-        self
-      end
-    end
-
     AdminUser = Struct.new(:id) do
-      def to_model
-        self
-      end
-
       def to_aikido_actor
         Aikido::Agent::Actor.new(id: "admin:#{id}")
       end
@@ -47,46 +31,6 @@ class Aikido::Agent::ActorTest < ActiveSupport::TestCase
       assert_nil actor.name
     end
 
-    test "extracts the #id and #name attributes from objects that implement #to_model" do
-      user = User.new(234, "Jane Doe", "jane@example.com")
-
-      actor = Aikido::Agent::Actor(user)
-      assert_kind_of Aikido::Agent::Actor, actor
-      assert_equal "234", actor.id
-      assert_equal "Jane Doe", actor.name
-    end
-
-    test "ignores the name if the model does not implement #name" do
-      model = NamelessModel.new(567)
-
-      actor = Aikido::Agent::Actor(model)
-      assert_kind_of Aikido::Agent::Actor, actor
-      assert_equal "567", actor.id
-      assert_nil actor.name
-    end
-
-    test "extracts the attributes mapped in the config from objects that implement #to_model" do
-      Aikido::Agent.config.user_attribute_mappings.update(name: :email)
-
-      user = User.new(234, "Jane Doe", "jane@example.com")
-
-      actor = Aikido::Agent::Actor(user)
-      assert_kind_of Aikido::Agent::Actor, actor
-      assert_equal "234", actor.id
-      assert_equal "jane@example.com", actor.name
-    end
-
-    test "ignores the name if the model does not implement the configured attribute" do
-      Aikido::Agent.config.user_attribute_mappings.update(name: :full_name)
-
-      model = NamelessModel.new(567)
-
-      actor = Aikido::Agent::Actor(model)
-      assert_kind_of Aikido::Agent::Actor, actor
-      assert_equal "567", actor.id
-      assert_nil actor.name
-    end
-
     test "extracts :id and :name if given a Hash" do
       data = {id: 123, name: "Jane Doe"}
 
@@ -105,34 +49,20 @@ class Aikido::Agent::ActorTest < ActiveSupport::TestCase
       assert_equal "Jane Doe", actor.name
     end
 
-    test "disregards attribute mappings when given a Hash" do
-      Aikido::Agent.config.user_attribute_mappings.update(name: :full_name)
-
-      data = {id: 123, name: "Jane", full_name: "Jane Doe"}
-
-      actor = Aikido::Agent::Actor(data)
-      assert_kind_of Aikido::Agent::Actor, actor
-      assert_equal "123", actor.id
-      assert_equal "Jane", actor.name
-    end
-
     test "returns nil if given an incompatible object" do
       assert_nil Aikido::Agent::Actor(Object.new)
     end
 
-    test "returns nil if given an object with a nil id" do
-      user = User.new(nil, "Jane Doe", "jane@example.com")
-      assert_nil Aikido::Agent::Actor(user)
+    test "returns nil if given a hash with a nil id" do
+      assert_nil Aikido::Agent::Actor(id: nil)
     end
 
-    test "returns nil if given an object with an empty id" do
-      user = User.new("", "Jane Doe", "jane@example.com")
-      assert_nil Aikido::Agent::Actor(user)
+    test "returns nil if given a hash with an empty id" do
+      assert_nil Aikido::Agent::Actor(id: "")
     end
 
-    test "returns nil if given an object with a blank id" do
-      user = User.new(" ", "Jane Doe", "jane@example.com")
-      assert_nil Aikido::Agent::Actor(user)
+    test "returns nil if given a hash with a blank id" do
+      assert_nil Aikido::Agent::Actor(id: " ")
     end
   end
 
