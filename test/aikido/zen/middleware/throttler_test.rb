@@ -168,7 +168,7 @@ class Aikido::Zen::Middleware::ThrottlerTest < ActiveSupport::TestCase
     route = Aikido::Zen::Route.new(verb: verb, path: endpoint)
 
     endpoints = @settings.endpoints.send(:to_h)
-    endpoints[route] = Aikido::Zen::Route::ProtectionSettings.from_json(
+    endpoints[route] = Aikido::Zen::RuntimeSettings::ProtectionSettings.from_json(
       "forceProtectionOff" => false,
       "allowedIPAddresses" => [],
       "rateLimiting" => {

@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "route"
-require_relative "route/protection_settings"
-
 module Aikido::Zen
   # Stores the firewall configuration sourced from the Aikido dashboard. This
   # object is updated by the Agent regularly.

@@ -151,7 +151,7 @@ class Aikido::Zen::RateLimiterTest < ActiveSupport::TestCase
   def configure(verb, endpoint, max_requests: 20, period: 5, enabled: true)
     route = Aikido::Zen::Route.new(verb: verb, path: endpoint)
 
-    settings = Aikido::Zen::Route::ProtectionSettings.from_json(
+    settings = Aikido::Zen::RuntimeSettings::ProtectionSettings.from_json(
       "forceProtectionOff" => false,
       "allowedIPAddresses" => [],
       "rateLimiting" => {
