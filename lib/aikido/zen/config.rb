@@ -80,10 +80,19 @@ module Aikido::Zen
     #   request. This is meant to be overridden by each framework adapter.
     attr_accessor :request_builder
 
-    # @return [Proc<Array(Aikido::Zen::Request) => Array(Integer, Hash, #each)]
+    # @return [Proc{Aikido::Zen::Request => Array(Integer, Hash, #each)}]
     #   Rack handler used to respond to requests from IPs blocked in the Aikido
     #   dashboard.
     attr_accessor :blocked_ip_responder
+
+    # @return [Proc{Aikido::Zen::Request => Array(Integer, Hash, #each)}]
+    #   Rack handler used to respond to requests that have been rate limited.
+    attr_accessor :rate_limited_responder
+
+    # @return [Proc{Aikido::Zen::Request => String}] a proc that reads
+    #   information off the current request and returns a String to
+    #   differentiate different clients. By default this uses the request IP.
+    attr_accessor :rate_limiting_discriminator
 
     def initialize
       self.blocking_mode = !!ENV.fetch("AIKIDO_BLOCKING", false)
@@ -102,6 +111,8 @@ module Aikido::Zen
       self.max_users_tracked = 1000
       self.request_builder = Aikido::Zen::Context::RACK_REQUEST_BUILDER
       self.blocked_ip_responder = DEFAULT_BLOCKED_IP_RESPONDER
+      self.rate_limited_responder = DEFAULT_RATE_LIMITED_RESPONDER
+      self.rate_limiting_discriminator = DEFAULT_RATE_LIMITING_DISCRIMINATOR
       @user_attribute_mappings = {id: :id, name: :name}
     end
 
@@ -155,5 +166,13 @@ module Aikido::Zen
       message = "Your IP address is not allowed to access this resource. (Your IP: %s)"
       [403, {"Content-Type" => "text/plain"}, [format(message, request.ip)]]
     end
+
+    # @!visibility private
+    DEFAULT_RATE_LIMITED_RESPONDER = ->(request) do
+      [429, {"Content-Type" => "text/plain"}, ["Too many requests."]]
+    end
+
+    # @!visibility private
+    DEFAULT_RATE_LIMITING_DISCRIMINATOR = ->(request) { request.ip }
   end
 end

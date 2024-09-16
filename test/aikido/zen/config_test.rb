@@ -23,6 +23,8 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 60, @config.initial_heartbeat_delay
     assert_equal 60, @config.polling_interval
     assert_kind_of Proc, @config.blocked_ip_responder
+    assert_kind_of Proc, @config.rate_limited_responder
+    assert_kind_of Proc, @config.rate_limiting_discriminator
     assert_equal({id: :id, name: :name}, @config.user_attribute_mappings)
   end
 
@@ -121,6 +123,24 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
       ["Your IP address is not allowed to access this resource. (Your IP: 1.2.3.4)"],
       body
 
+    assert_mock request
+  end
+
+  test " the default #rate_limited_responder returns the expected Rack response" do
+    status, headers, body = @config.rate_limited_responder.call(Object.new)
+
+    assert_equal 429, status
+    assert_equal({"Content-Type" => "text/plain"}, headers)
+    assert_equal ["Too many requests."], body
+  end
+
+  test "the default rate limiting discriminator returns the request IP" do
+    request = Minitest::Mock.new
+    request.expect :ip, "1.2.3.4"
+
+    value = @config.rate_limiting_discriminator.call(request)
+
+    assert_equal "1.2.3.4", value
     assert_mock request
   end
 

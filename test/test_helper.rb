@@ -32,6 +32,7 @@ require_relative "support/puma"
 require_relative "support/uri_origin"
 require_relative "support/fake_rails_app"
 require_relative "support/http_connection_tracking_assertions"
+require_relative "support/rate_limiting_assertions"
 
 # Utility proc that does nothing.
 NOOP = ->(*args, **opts) {}
