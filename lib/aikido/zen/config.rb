@@ -74,12 +74,6 @@ module Aikido::Zen
     # @see Aikido::Zen.Actor
     attr_reader :user_attribute_mappings
 
-    # @api internal
-    # @return [Proc<Hash => Aikido::Zen::Context>] callable that takes a
-    #   Rack-compatible env Hash and returns a Context object with an HTTP
-    #   request. This is meant to be overridden by each framework adapter.
-    attr_accessor :request_builder
-
     # @return [Proc{Aikido::Zen::Request => Array(Integer, Hash, #each)}]
     #   Rack handler used to respond to requests from IPs blocked in the Aikido
     #   dashboard.
@@ -93,6 +87,27 @@ module Aikido::Zen
     #   information off the current request and returns a String to
     #   differentiate different clients. By default this uses the request IP.
     attr_accessor :rate_limiting_discriminator
+
+    # @api private
+    # @return [Proc<Hash => Aikido::Zen::Context>] callable that takes a
+    #   Rack-compatible env Hash and returns a Context object with an HTTP
+    #   request. This is meant to be overridden by each framework adapter.
+    attr_accessor :request_builder
+
+    # @api private
+    # @return [Integer] number of seconds to perform client-side rate limiting
+    #   of events sent to the server.
+    attr_accessor :client_rate_limit_period
+
+    # @api private
+    # @return [Integer] max number of events sent during a sliding
+    #   {client_rate_limit_period} window.
+    attr_accessor :client_rate_limit_max_events
+
+    # @api private
+    # @return [Integer] number of seconds to wait before sending an event after
+    #   the server returns a 429 response.
+    attr_accessor :server_rate_limit_deadline
 
     def initialize
       self.blocking_mode = !!ENV.fetch("AIKIDO_BLOCKING", false)
@@ -113,6 +128,9 @@ module Aikido::Zen
       self.blocked_ip_responder = DEFAULT_BLOCKED_IP_RESPONDER
       self.rate_limited_responder = DEFAULT_RATE_LIMITED_RESPONDER
       self.rate_limiting_discriminator = DEFAULT_RATE_LIMITING_DISCRIMINATOR
+      self.server_rate_limit_deadline = 1800 # 30 min
+      self.client_rate_limit_period = 3600 # 1 hour
+      self.client_rate_limit_max_events = 100
       @user_attribute_mappings = {id: :id, name: :name}
     end
 

@@ -52,3 +52,4 @@ module Aikido::Zen
 end
 
 require_relative "rate_limiter/bucket"
+require_relative "rate_limiter/breaker"
