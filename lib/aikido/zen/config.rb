@@ -69,11 +69,6 @@ module Aikido::Zen
     #   the oldest seen users.
     attr_accessor :max_users_tracked
 
-    # @return [Hash<Symbol, Symbol>] maps which attributes we should read
-    #   from a "user" object when converting it to an Aikido::Zen::Actor.
-    # @see Aikido::Zen.Actor
-    attr_reader :user_attribute_mappings
-
     # @return [Proc{Aikido::Zen::Request => Array(Integer, Hash, #each)}]
     #   Rack handler used to respond to requests from IPs blocked in the Aikido
     #   dashboard.
@@ -131,7 +126,6 @@ module Aikido::Zen
       self.server_rate_limit_deadline = 1800 # 30 min
       self.client_rate_limit_period = 3600 # 1 hour
       self.client_rate_limit_max_events = 100
-      @user_attribute_mappings = {id: :id, name: :name}
     end
 
     # Set the base URL for API requests.
