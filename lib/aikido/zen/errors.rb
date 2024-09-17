@@ -49,6 +49,9 @@ module Aikido
       end
     end
 
+    # Raised whenever a response to the API results in a 429 response.
+    class RateLimitedError < APIError; end
+
     class UnderAttackError < StandardError
       include Error
 
