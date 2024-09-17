@@ -22,7 +22,6 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 1000, @config.max_users_tracked
     assert_equal 60, @config.initial_heartbeat_delay
     assert_equal 60, @config.polling_interval
-    assert_equal({id: :id, name: :name}, @config.user_attribute_mappings)
   end
 
   test "can overwrite the api_base_url" do

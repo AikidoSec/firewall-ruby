@@ -69,11 +69,6 @@ module Aikido::Zen
     #   the oldest seen users.
     attr_accessor :max_users_tracked
 
-    # @return [Hash<Symbol, Symbol>] maps which attributes we should read
-    #   from a "user" object when converting it to an Aikido::Zen::Actor.
-    # @see Aikido::Zen.Actor
-    attr_reader :user_attribute_mappings
-
     # @api internal
     # @return [Proc<Hash => Aikido::Zen::Context>] callable that takes a
     #   Rack-compatible env Hash and returns a Context object with an HTTP
@@ -96,7 +91,6 @@ module Aikido::Zen
       self.max_outbound_connections = 200
       self.max_users_tracked = 1000
       self.request_builder = Aikido::Zen::Context::RACK_REQUEST_BUILDER
-      @user_attribute_mappings = {id: :id, name: :name}
     end
 
     # Set the base URL for API requests.

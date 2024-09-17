@@ -11,13 +11,6 @@ module Aikido::Zen
   #     will have that method called and its value returned.
   #   @return Aikido::Zen::Actor
   #
-  # @overload Actor(model)
-  #   @param model [#to_model] any ActiveModel object that implements #to_model
-  #     will have that method called, and the result will have its attributes
-  #     mapped via {Aikido::Zen::Config#user_attribute_mappings} to build an
-  #     Actor object.
-  #   @return Aikido::Zen::Actor
-  #
   # @overload Actor(data)
   #   @param data [Hash<Symbol, String>]
   #   @option data [String] :id a unique identifier for this user.
@@ -28,16 +21,7 @@ module Aikido::Zen
     return data.to_aikido_actor if data.respond_to?(:to_aikido_actor)
 
     attrs = {}
-    if data.respond_to?(:to_model)
-      model = data.to_model
-      id_attr, name_attr = config.user_attribute_mappings.values_at(:id, :name)
-
-      # Normalize objects with composite keys whose #id might be an Array.
-      id = Array(model.public_send(id_attr))&.join(":")
-      name = model.public_send(name_attr) if name_attr && model.respond_to?(name_attr)
-
-      attrs = {id: id, name: name}
-    elsif data.respond_to?(:to_hash)
+    if data.respond_to?(:to_hash)
       attrs = data.to_hash
         .slice("id", "name", :id, :name)
         .compact
