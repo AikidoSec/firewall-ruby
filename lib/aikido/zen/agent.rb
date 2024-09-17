@@ -61,9 +61,10 @@ module Aikido::Zen
     #   of a successful request.
     #
     # @return [void]
-    def report(event, &on_response)
+    def report(event)
       reporting_pool.post do
-        @api_client.report(event).then(&on_response)
+        response = @api_client.report(event)
+        yield response if response && block_given?
       rescue Aikido::Zen::APIError, Aikido::Zen::NetworkError => err
         @config.logger.error(err.message)
       end

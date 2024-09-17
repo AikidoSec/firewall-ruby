@@ -274,6 +274,21 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     end
   end
 
+  test "#send_heartbeat does not try to update stats if the API returns null" do
+    # this happens e.g. when events are rate limited
+    @api_client.expect :report, nil, [Aikido::Zen::Events::Heartbeat]
+
+    @agent.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
+      assert_nothing_raised do
+        @agent.send_heartbeat
+      end
+    end
+
+    refute_logged :info, /Updated runtime settings after heartbeat/
+
+    assert_mock @api_client
+  end
+
   test "#setup_heartbeat configures a timer for the configured frequency" do
     settings = Aikido::Zen.runtime_settings
     settings.heartbeat_interval = 10
