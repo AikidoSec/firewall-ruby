@@ -18,6 +18,12 @@ module Aikido
     # can access the original error by calling #cause.
     class NetworkError < StandardError
       include Error
+
+      def initialize(request, cause = nil)
+        @request = request.dup
+
+        super("Error in #{request.method} #{request.path}: #{cause.message}")
+      end
     end
 
     # Raised whenever a request to the API results in a 4XX or 5XX response.

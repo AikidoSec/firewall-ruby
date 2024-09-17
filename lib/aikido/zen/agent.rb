@@ -62,7 +62,11 @@ module Aikido::Zen
     #
     # @return [void]
     def report(event, &on_response)
-      reporting_pool.post { @api_client.report(event).then(&on_response) }
+      reporting_pool.post do
+        @api_client.report(event).then(&on_response)
+      rescue Aikido::Zen::APIError, Aikido::Zen::NetworkError => err
+        @config.logger.error(err.message)
+      end
     end
 
     def start!

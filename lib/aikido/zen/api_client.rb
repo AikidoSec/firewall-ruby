@@ -96,7 +96,7 @@ module Aikido::Zen
         end
       end
     rescue Timeout::Error, IOError, SystemCallError, OpenSSL::OpenSSLError => err
-      raise NetworkError, err.message
+      raise NetworkError.new(request, err)
     end
 
     private def http_settings
