@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    aikido-firewall (0.1.0)
+    aikido-zen (0.1.0)
       concurrent-ruby (~> 1.0)
       rack
 
@@ -249,7 +249,7 @@ PLATFORMS
 DEPENDENCIES
   actionpack
   activesupport
-  aikido-firewall!
+  aikido-zen!
   async-http (~> 0.75.0)
   curb (~> 1.0)
   debug

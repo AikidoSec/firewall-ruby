@@ -1,7 +1,7 @@
 PATH
   remote: ../../..
   specs:
-    aikido-firewall (0.1.0)
+    aikido-zen (0.1.0)
       concurrent-ruby (~> 1.0)
       rack
 
@@ -246,7 +246,7 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  aikido-firewall!
+  aikido-zen!
   debug
   mysql2
   pg

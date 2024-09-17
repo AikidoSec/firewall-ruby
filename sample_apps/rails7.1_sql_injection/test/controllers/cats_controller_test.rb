@@ -11,6 +11,6 @@ class CatsControllerTest < ActionDispatch::IntegrationTest
       get cat_url("1' OR ''='")
     end
 
-    assert_kind_of Aikido::Firewall::SQLInjectionError, err.cause
+    assert_kind_of Aikido::Zen::SQLInjectionError, err.cause
   end
 end
