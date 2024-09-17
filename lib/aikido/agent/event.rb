@@ -58,7 +58,7 @@ module Aikido::Agent
           stats: @stats.as_json,
           routes: @stats.routes.as_json,
           hostnames: @stats.outbound_connections.as_json,
-          users: []
+          users: @stats.users.as_json
         )
       end
     end

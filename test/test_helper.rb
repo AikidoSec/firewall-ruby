@@ -107,6 +107,14 @@ class ActiveSupport::TestCase
       @current_context ||= Aikido::Agent::Context.from_rack_env({})
     end
 
+    def with_context(context)
+      old_context = Aikido::Agent.current_context
+      Aikido::Agent.current_context = context
+      yield
+    ensure
+      Aikido::Agent.current_context = old_context
+    end
+
     def self.included(base)
       base.setup { Aikido::Agent.current_context = current_context }
       base.teardown { Aikido::Agent.current_context = nil }

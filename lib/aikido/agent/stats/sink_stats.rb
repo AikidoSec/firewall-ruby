@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../capped_set"
+require_relative "../capped_collections"
 
 module Aikido::Agent
   # @api private

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "firewall/version"
+require_relative "agent/actor"
 require_relative "agent/config"
 require_relative "agent/info"
 require_relative "agent/runner"
@@ -51,6 +52,29 @@ module Aikido
     # @return [void]
     def self.track_outbound(connection)
       runner.stats.add_outbound(connection)
+    end
+
+    # Track the user making the current request.
+    #
+    # @param (see Aikido::Agent.Actor)
+    # @return [void]
+    def self.track_user(user)
+      actor = Aikido::Agent::Actor(user)
+
+      if actor
+        runner.stats.add_user(actor)
+      else
+        id_attr, name_attr = config.user_attribute_mappings.values_at(:id, :name)
+        config.logger.warn(format(<<~LOG, obj: user, id: id_attr, name: name_attr))
+          Incompatible object sent to Aikido::Agent.track_user: %<obj>p
+
+          The object must satisfy one of the following:
+
+          * Implement #to_aikido_actor
+          * Implement #to_model and have %<id>p and %<name>p attributes
+          * Be a Hash with :id (or "id") and, optionally, :name (or "name") keys
+        LOG
+      end
     end
 
     # Starts the background threads that keep the agent running.

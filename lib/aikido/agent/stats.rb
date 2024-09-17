@@ -2,7 +2,7 @@
 
 require "concurrent"
 
-require_relative "capped_set"
+require_relative "capped_collections"
 
 module Aikido::Agent
   # Tracks information about how the Aikido Agent is used in the app.
@@ -105,10 +105,22 @@ module Aikido::Agent
       self
     end
 
+    # @param actor [Aikido::Agent::Actor]
+    # @return [void]
+    def add_user(actor)
+      synchronize { @users.add(actor) }
+    end
+
     # @return [#as_json] the set of routes visited during this stats-gathering
     #   period.
     def routes
       synchronize { @routes }
+    end
+
+    # @return [Enumerable<#as_json>] the set of users that had an active session
+    #   during this stats-gathering period.
+    def users
+      synchronize { @users }
     end
 
     # @return [#as_json] the set of connections to outbound hosts that were
@@ -141,6 +153,7 @@ module Aikido::Agent
       @started_at = @ended_at = nil
       @requests = 0
       @routes = Routes.new
+      @users = Users.new(@config.max_users_tracked)
       @outbound_connections = CappedSet.new(@config.max_outbound_connections)
       @aborted_requests = 0
     end
@@ -153,5 +166,6 @@ module Aikido::Agent
   end
 end
 
+require_relative "stats/users"
 require_relative "stats/routes"
 require_relative "stats/sink_stats"

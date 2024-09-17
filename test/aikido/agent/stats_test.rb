@@ -3,6 +3,8 @@
 require "test_helper"
 
 class Aikido::Agent::StatsTest < ActiveSupport::TestCase
+  include StubsCurrentContext
+
   setup do
     @config = Aikido::Agent.config
 
@@ -33,6 +35,10 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
   def stub_outbound(**opts)
     Aikido::Agent::OutboundConnection.new(**opts)
+  end
+
+  def stub_actor(**opts)
+    Aikido::Agent::Actor.new(**opts)
   end
 
   test "#start tracks the time at which stats started being collected" do
@@ -187,6 +193,57 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
 
     assert_equal @config.max_outbound_connections, @stats.outbound_connections.size
     refute_includes @stats.outbound_connections, conn
+  end
+
+  test "#add_user tracks which users have visited the app" do
+    initial_time = Time.utc(2024, 9, 1, 16, 20, 42)
+
+    u1 = stub_actor(id: "123", name: "Alice", seen_at: initial_time, ip: "1.2.3.4")
+    u2 = stub_actor(id: "345", name: "Bob", seen_at: initial_time + 5, ip: "2.3.4.5")
+
+    assert_difference -> { @stats.users.size }, +2 do
+      @stats.add_user(u1)
+      @stats.add_user(u2)
+    end
+
+    assert_includes @stats.users, u1
+    assert_includes @stats.users, u2
+  end
+
+  test "#add_user doesn't count a user more than once" do
+    initial_time = Time.utc(2024, 9, 1, 16, 20, 42)
+
+    user = stub_actor(id: "123", name: "Alice", seen_at: initial_time, ip: "1.2.3.4")
+
+    assert_difference -> { @stats.users.size }, +1 do
+      @stats.add_user(user)
+      @stats.add_user(user)
+    end
+  end
+
+  test "#add_user updates the user's last_seen_at when the user is added multiple times" do
+    user = stub_actor(id: "123", seen_at: Time.utc(2024, 9, 1, 16, 20, 42))
+    @stats.add_user(user)
+
+    travel_to(user.last_seen_at + 20) do
+      assert_difference "user.last_seen_at", +20 do
+        same_user_in_diff_request = stub_actor(id: user.id)
+        @stats.add_user(same_user_in_diff_request)
+      end
+    end
+  end
+
+  test "#add_user updates the user's ip to the current context's request IP" do
+    user = stub_actor(id: "123", ip: "1.2.3.4")
+    @stats.add_user(user)
+
+    env = Rack::MockRequest.env_for("/", "REMOTE_ADDR" => "6.7.8.9")
+    with_context Aikido::Agent::Context.from_rack_env(env) do
+      assert_changes "user.ip", to: "6.7.8.9" do
+        same_user_in_diff_request = stub_actor(id: user.id)
+        @stats.add_user(same_user_in_diff_request)
+      end
+    end
   end
 
   test "#as_json serializes an empty stats set" do
@@ -475,6 +532,9 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       @stats.add_outbound(stub_outbound(host: "example.com", port: i))
     end
 
+    @stats.add_user(stub_actor(id: "123"))
+    @stats.add_user(stub_actor(id: "234"))
+
     @stats.add_scan(stub_scan(sink: @sink, duration: 2))
     @stats.add_scan(stub_scan(sink: @sink, duration: 3))
     @stats.add_scan(stub_scan(sink: @sink, duration: 1))
@@ -521,8 +581,11 @@ class Aikido::Agent::StatsTest < ActiveSupport::TestCase
       assert_equal expected_stats, copy.as_json
       assert_equal 2, copy.routes[Aikido::Agent::Route.new(path: "/", verb: "GET")]
       assert_equal 3, copy.outbound_connections.size
+      assert_equal 2, copy.users.size
+      assert_equal ["123", "234"], copy.users.as_json.map { |user| user[:id] }
 
       assert_empty @stats.sinks
+      assert_empty @stats.users
       assert_empty @stats.routes
       assert_empty @stats.outbound_connections
       assert_equal 0, @stats.requests
