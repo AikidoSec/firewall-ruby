@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Aikido::Zen::Vulnerabilities
+module Aikido::Zen::Scanners
   module SQLInjection
     # Fetches a dialect implementation by key.
     #

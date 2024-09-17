@@ -22,6 +22,12 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 1000, @config.max_users_tracked
     assert_equal 60, @config.initial_heartbeat_delay
     assert_equal 60, @config.polling_interval
+    assert_kind_of Proc, @config.blocked_ip_responder
+    assert_kind_of Proc, @config.rate_limited_responder
+    assert_kind_of Proc, @config.rate_limiting_discriminator
+    assert_equal 3600, @config.client_rate_limit_period
+    assert_equal 100, @config.client_rate_limit_max_events
+    assert_equal 1800, @config.server_rate_limit_deadline
   end
 
   test "can overwrite the api_base_url" do
@@ -105,6 +111,39 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
 
     @config.json_encoder = ->(obj) { obj.class.to_s }
     assert_equal "Array", @config.json_encoder.call([1, 2])
+  end
+
+  test "the default #blocked_ip_responder returns the expected Rack response" do
+    request = Minitest::Mock.new
+    request.expect :ip, "1.2.3.4"
+
+    status, headers, body = @config.blocked_ip_responder.call(request)
+
+    assert_equal 403, status
+    assert_equal({"Content-Type" => "text/plain"}, headers)
+    assert_equal \
+      ["Your IP address is not allowed to access this resource. (Your IP: 1.2.3.4)"],
+      body
+
+    assert_mock request
+  end
+
+  test " the default #rate_limited_responder returns the expected Rack response" do
+    status, headers, body = @config.rate_limited_responder.call(Object.new)
+
+    assert_equal 429, status
+    assert_equal({"Content-Type" => "text/plain"}, headers)
+    assert_equal ["Too many requests."], body
+  end
+
+  test "the default rate limiting discriminator returns the request IP" do
+    request = Minitest::Mock.new
+    request.expect :ip, "1.2.3.4"
+
+    value = @config.rate_limiting_discriminator.call(request)
+
+    assert_equal "1.2.3.4", value
+    assert_mock request
   end
 
   def with_env(data = {})

@@ -5,7 +5,7 @@ require_relative "../sink"
 module Aikido::Zen
   module Sinks
     module PG
-      SINK = Sinks.add("pg", scanners: [Vulnerabilities::SQLInjectionScanner])
+      SINK = Sinks.add("pg", scanners: [Scanners::SQLInjectionScanner])
 
       module Extensions
         %i[

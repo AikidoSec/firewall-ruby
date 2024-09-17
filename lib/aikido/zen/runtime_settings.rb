@@ -12,13 +12,15 @@ module Aikido::Zen
   # You can subscribe to changes with +#add_observer(object, func_name)+, which
   # will call the function passing the settings as an argument.
   class RuntimeSettings < Concurrent::MutableStruct.new(
-    :updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :allowed_ip_addresses, :received_any_stats
+    :updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :skip_protection_for_ips, :received_any_stats
   )
     include Concurrent::Concern::Observable
 
     def initialize(*)
       self.observers = Concurrent::Collection::CopyOnWriteObserverSet.new
       super
+      self.endpoints ||= Endpoints.new
+      self.skip_protection_for_ips ||= IPSet.new
     end
 
     # @!attribute [rw] updated_at
@@ -33,13 +35,13 @@ module Aikido::Zen
     #     this application.
 
     # @!attribute [rw] endpoints
-    #   @return [Array]
+    #   @return [Aikido::Zen::RuntimeSettings::Endpoints]
 
     # @!attribute [rw] blocked_user_ids
     #   @return [Array]
 
-    # @!attribute [rw] allowed_ip_addresses
-    #   @return [Array]
+    # @!attribute [rw] skip_protection_for_ips
+    #   @return [Aikido::Zen::RuntimeSettings::IPSet]
 
     # Parse and interpret the JSON response from the core API with updated
     # settings, and apply the changes. This will also notify any subscriber
@@ -54,12 +56,15 @@ module Aikido::Zen
 
       self.updated_at = Time.at(data["configUpdatedAt"].to_i / 1000)
       self.heartbeat_interval = (data["heartbeatIntervalInMS"].to_i / 1000)
-      self.endpoints = data["endpoints"]
+      self.endpoints = Endpoints.from_json(data["endpoints"])
       self.blocked_user_ids = data["blockedUserIds"]
-      self.allowed_ip_addresses = data["allowedIpAddresses"]
+      self.skip_protection_for_ips = IPSet.from_json(data["allowedIPAddresses"])
       self.received_any_stats = data["receivedAnyStats"]
 
       observers.notify_observers(self) if updated_at != last_updated_at
     end
   end
 end
+
+require_relative "runtime_settings/ip_set"
+require_relative "runtime_settings/endpoints"

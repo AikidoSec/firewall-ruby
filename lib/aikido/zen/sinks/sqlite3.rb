@@ -5,7 +5,7 @@ require_relative "../sink"
 module Aikido::Zen
   module Sinks
     module SQLite3
-      SINK = Sinks.add("sqlite3", scanners: [Vulnerabilities::SQLInjectionScanner])
+      SINK = Sinks.add("sqlite3", scanners: [Scanners::SQLInjectionScanner])
 
       module DatabaseExt
         def exec_batch(sql, *)

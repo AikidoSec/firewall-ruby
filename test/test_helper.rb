@@ -32,6 +32,7 @@ require_relative "support/puma"
 require_relative "support/uri_origin"
 require_relative "support/fake_rails_app"
 require_relative "support/http_connection_tracking_assertions"
+require_relative "support/rate_limiting_assertions"
 
 # Utility proc that does nothing.
 NOOP = ->(*args, **opts) {}
@@ -65,6 +66,10 @@ class ActiveSupport::TestCase
   setup do
     new_routes = ActionDispatch::Routing::RouteSet.new
     Rails.application.instance_variable_set(:@routes, new_routes)
+
+    # Also reset the reference to the Rails router, so we pick up the new
+    # RouteSet object in each test.
+    Aikido::Zen::Rails.instance_variable_set(:@router, nil)
   end
 
   # Capture log output and make it testable

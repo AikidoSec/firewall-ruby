@@ -7,7 +7,7 @@ module Aikido::Zen
     setup do
       @query = "SELECT * FROM users WHERE id = '' OR 1=1 --'"
       @input = Aikido::Zen::Payload.new("' OR 1=1 --", :route, "id")
-      @dialect = Aikido::Zen::Vulnerabilities::SQLInjection[:common]
+      @dialect = Aikido::Zen::Scanners::SQLInjection[:common]
       @context = Aikido::Zen::Context.from_rack_env({})
       @op = "test.op"
       @sink = Sink.new("test", scanners: [NOOP])
@@ -37,7 +37,7 @@ module Aikido::Zen
     end
 
     test "correctly identifies the MySQL dialect in the log message" do
-      dialect = Aikido::Zen::Vulnerabilities::SQLInjection[:mysql]
+      dialect = Aikido::Zen::Scanners::SQLInjection[:mysql]
       attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
         query: @query, input: @input, dialect: dialect, sink: @sink, context: @context, operation: @op
       )
@@ -46,7 +46,7 @@ module Aikido::Zen
     end
 
     test "correctly identifies the PostgreSQL dialect in the log message" do
-      dialect = Aikido::Zen::Vulnerabilities::SQLInjection[:postgresql]
+      dialect = Aikido::Zen::Scanners::SQLInjection[:postgresql]
       attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
         query: @query, input: @input, dialect: dialect, sink: @sink, context: @context, operation: @op
       )
@@ -55,7 +55,7 @@ module Aikido::Zen
     end
 
     test "correctly identifies the SQLite dialect in the log message" do
-      dialect = Aikido::Zen::Vulnerabilities::SQLInjection[:sqlite]
+      dialect = Aikido::Zen::Scanners::SQLInjection[:sqlite]
       attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
         query: @query, input: @input, dialect: dialect, sink: @sink, context: @context, operation: @op
       )

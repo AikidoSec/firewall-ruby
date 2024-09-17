@@ -12,7 +12,9 @@ require_relative "zen/set_context"
 require_relative "zen/outbound_connection"
 require_relative "zen/outbound_connection_monitor"
 require_relative "zen/runtime_settings"
-require_relative "zen/vulnerabilities"
+require_relative "zen/rate_limiter"
+require_relative "zen/scanners"
+require_relative "zen/middleware/check_allowed_addresses"
 require_relative "zen/rails_engine" if defined?(::Rails)
 
 module Aikido

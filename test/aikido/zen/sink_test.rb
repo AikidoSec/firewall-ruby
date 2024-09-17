@@ -56,11 +56,29 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
   end
 
   # rubocop:disable Lint/RaiseException
+  test "#scan returns nil if protection is disabled for the current context" do
+    context = Minitest::Mock.new
+    context.expect :protection_disabled?, true
+
+    sink = Aikido::Zen::Sink.new("test", reporter: NOOP, scanners: [
+      ->(**data) { raise Exception, "oops" } # StandardError would be caught
+    ])
+
+    assert_nothing_raised do
+      scan = sink.scan(context: context)
+      assert_nil scan
+    end
+
+    assert_mock context
+  end
+  # rubocop:enable Lint/RaiseException
+
+  # rubocop:disable Lint/RaiseException
   test "#scan stops after the first Attack is detected" do
     attack = Aikido::Zen::Attack.new(context: nil, sink: nil, operation: nil)
     sink = Aikido::Zen::Sink.new("test", reporter: NOOP, scanners: [
       ->(**data) { attack },
-      ->(**data) { raise Exception, "oops" } # Exception would not be caught
+      ->(**data) { raise Exception, "oops" } # StandardError would be caught
     ])
 
     assert_nothing_raised do

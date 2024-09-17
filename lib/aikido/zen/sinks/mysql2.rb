@@ -5,7 +5,7 @@ require_relative "../sink"
 module Aikido::Zen
   module Sinks
     module Mysql2
-      SINK = Sinks.add("mysql2", scanners: [Vulnerabilities::SQLInjectionScanner])
+      SINK = Sinks.add("mysql2", scanners: [Scanners::SQLInjectionScanner])
 
       module Extensions
         def query(query, *)

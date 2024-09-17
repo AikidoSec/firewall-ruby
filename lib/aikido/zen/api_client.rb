@@ -1,13 +1,19 @@
 # frozen_string_literal: true
 
 require "net/http"
+require_relative "rate_limiter"
 
 module Aikido::Zen
   # Implements all communication with the Aikido servers.
   class APIClient
-    def initialize(config: Aikido::Zen.config, system_info: Aikido::Zen.system_info)
+    def initialize(
+      config: Aikido::Zen.config,
+      rate_limiter: Aikido::Zen::RateLimiter::Breaker.new,
+      system_info: Aikido::Zen.system_info
+    )
       @config = config
       @system_info = system_info
+      @rate_limiter = rate_limiter
     end
 
     # @return [Boolean] whether we have a configured token.
@@ -57,13 +63,20 @@ module Aikido::Zen
     #   @return [void]
     #   @raise (see #request)
     #
-    # @overload report(agent_started_event)
-    #   Reports the Agent has started.
+    # @overload report(settings_updating_event)
+    #   Reports an event that responds with updated runtime settings, and
+    #   requires us to update settings afterwards.
     #
-    #   @param agent_started_event [Aikido::Zen::Events::Started]
+    #   @param settings_updating_event [Aikido::Zen::Events::Started,
+    #     Aikido::Zen::Events::Heartbeat]
     #   @return (see #fetch_settings)
     #   @raise (see #request)
     def report(event)
+      if @rate_limiter.throttle?(event)
+        @config.logger.error("Not reporting #{event.type.upcase} event due to rate limiting")
+        return
+      end
+
       @config.logger.debug("Reporting #{event.type.upcase} event")
 
       req = Net::HTTP::Post.new("/api/runtime/events", default_headers)
@@ -71,6 +84,9 @@ module Aikido::Zen
       req.body = @config.json_encoder.call(event.as_json)
 
       request(req)
+    rescue Aikido::Zen::RateLimitedError
+      @rate_limiter.open!
+      raise
     end
 
     # Perform an HTTP request against one of our API endpoints, and process the
@@ -91,12 +107,14 @@ module Aikido::Zen
         case response
         when Net::HTTPSuccess
           @config.json_decoder.call(response.body)
+        when Net::HTTPTooManyRequests
+          raise RateLimitedError.new(request, response)
         else
           raise APIError.new(request, response)
         end
       end
     rescue Timeout::Error, IOError, SystemCallError, OpenSSL::OpenSSLError => err
-      raise NetworkError, err.message
+      raise NetworkError.new(request, err)
     end
 
     private def http_settings

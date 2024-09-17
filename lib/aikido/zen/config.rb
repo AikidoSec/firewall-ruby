@@ -69,11 +69,40 @@ module Aikido::Zen
     #   the oldest seen users.
     attr_accessor :max_users_tracked
 
-    # @api internal
+    # @return [Proc{Aikido::Zen::Request => Array(Integer, Hash, #each)}]
+    #   Rack handler used to respond to requests from IPs blocked in the Aikido
+    #   dashboard.
+    attr_accessor :blocked_ip_responder
+
+    # @return [Proc{Aikido::Zen::Request => Array(Integer, Hash, #each)}]
+    #   Rack handler used to respond to requests that have been rate limited.
+    attr_accessor :rate_limited_responder
+
+    # @return [Proc{Aikido::Zen::Request => String}] a proc that reads
+    #   information off the current request and returns a String to
+    #   differentiate different clients. By default this uses the request IP.
+    attr_accessor :rate_limiting_discriminator
+
+    # @api private
     # @return [Proc<Hash => Aikido::Zen::Context>] callable that takes a
     #   Rack-compatible env Hash and returns a Context object with an HTTP
     #   request. This is meant to be overridden by each framework adapter.
     attr_accessor :request_builder
+
+    # @api private
+    # @return [Integer] number of seconds to perform client-side rate limiting
+    #   of events sent to the server.
+    attr_accessor :client_rate_limit_period
+
+    # @api private
+    # @return [Integer] max number of events sent during a sliding
+    #   {client_rate_limit_period} window.
+    attr_accessor :client_rate_limit_max_events
+
+    # @api private
+    # @return [Integer] number of seconds to wait before sending an event after
+    #   the server returns a 429 response.
+    attr_accessor :server_rate_limit_deadline
 
     def initialize
       self.blocking_mode = !!ENV.fetch("AIKIDO_BLOCKING", false)
@@ -91,6 +120,12 @@ module Aikido::Zen
       self.max_outbound_connections = 200
       self.max_users_tracked = 1000
       self.request_builder = Aikido::Zen::Context::RACK_REQUEST_BUILDER
+      self.blocked_ip_responder = DEFAULT_BLOCKED_IP_RESPONDER
+      self.rate_limited_responder = DEFAULT_RATE_LIMITED_RESPONDER
+      self.rate_limiting_discriminator = DEFAULT_RATE_LIMITING_DISCRIMINATOR
+      self.server_rate_limit_deadline = 1800 # 30 min
+      self.client_rate_limit_period = 3600 # 1 hour
+      self.client_rate_limit_max_events = 100
     end
 
     # Set the base URL for API requests.
@@ -137,5 +172,19 @@ module Aikido::Zen
 
     # @!visibility private
     DEFAULT_JSON_DECODER = JSON.method(:parse)
+
+    # @!visibility private
+    DEFAULT_BLOCKED_IP_RESPONDER = ->(request) do
+      message = "Your IP address is not allowed to access this resource. (Your IP: %s)"
+      [403, {"Content-Type" => "text/plain"}, [format(message, request.ip)]]
+    end
+
+    # @!visibility private
+    DEFAULT_RATE_LIMITED_RESPONDER = ->(request) do
+      [429, {"Content-Type" => "text/plain"}, ["Too many requests."]]
+    end
+
+    # @!visibility private
+    DEFAULT_RATE_LIMITING_DISCRIMINATOR = ->(request) { request.ip }
   end
 end

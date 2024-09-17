@@ -323,6 +323,18 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
         headers: {"User-Agent" => "firewall-ruby v#{Aikido::Zen::VERSION}"}
     end
 
+    test "logs an error and skips making a request if the rate limiter decides to throttle" do
+      rate_limiter = Minitest::Mock.new
+      rate_limiter.expect :throttle?, true, [Aikido::Zen::Event]
+
+      @client = Aikido::Zen::APIClient.new(rate_limiter: rate_limiter)
+      assert_nil @client.report(Aikido::Zen::Events::Started.new)
+
+      assert_logged :error, /Not reporting STARTED event due to rate limiting/
+      assert_not_requested :post, "https://guard.aikido.dev/api/runtime/events"
+      assert_mock rate_limiter
+    end
+
     test "raises Aikido::Zen::APIError on 4XX requests" do
       stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
         .to_return(status: 401, body: "")
@@ -332,6 +344,22 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
       end
 
       assert 401, err.response.code
+      assert "********************OKEN", err.request["Authorization"]
+    end
+
+    test "trips open the rate limiter on 429 requests" do
+      stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
+        .to_return(status: 429, body: "")
+
+      circuit_breaker = @client.instance_variable_get(:@rate_limiter)
+      refute circuit_breaker.open?
+
+      err = assert_raises Aikido::Zen::APIError do
+        @client.report(Aikido::Zen::Events::Started.new)
+      end
+
+      assert circuit_breaker.open?
+      assert 429, err.response.code
       assert "********************OKEN", err.request["Authorization"]
     end
 

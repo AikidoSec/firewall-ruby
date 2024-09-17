@@ -15,12 +15,14 @@ module Aikido::Zen
 
     # @param [Rack::Request] a Request object that implements the
     #   Rack::Request API, to which we will delegate behavior.
+    # @param settings [Aikido::Zen::RuntimeSettings]
     #
     # @yieldparam request [Rack::Request] the given request object.
     # @yieldreturn [Hash<Symbol, #flat_map>] map of payload source types
     #   to the actual data from the request to populate them.
-    def initialize(request, &sources)
+    def initialize(request, settings: Aikido::Zen.runtime_settings, &sources)
       @request = request
+      @settings = settings
       @payload_sources = sources
     end
 
@@ -42,6 +44,16 @@ module Aikido::Zen
       @payloads ||= payload_sources.flat_map do |source, data|
         extract_payloads_from(data, source)
       end
+    end
+
+    # @return [Boolean] whether attack protection for the currently requested
+    #   endpoint was disabled on the Aikido dashboard, or if the source IP for
+    #   this request is in the "Bypass List".
+    def protection_disabled?
+      return false if request.nil?
+
+      !@settings.endpoints[request.route].protected? ||
+        @settings.skip_protection_for_ips.include?(request.ip)
     end
 
     # @!visibility private

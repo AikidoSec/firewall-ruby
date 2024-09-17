@@ -20,10 +20,11 @@ class MockedRailsRouter
 
       # Define classes for every controller so the app doesn't raise when trying
       # to find a class to process the requests.
-      routes.set.each { |route|
-        class_name = route.defaults[:controller].to_s.camelize << "Controller"
-        MockedRailsRouter.const_set(class_name, Class.new(ActionController::Base))
-      }
+      routes.set
+        .map { |route| route.defaults[:controller].to_s.camelize << "Controller" }.uniq
+        .reject { |name| MockedRailsRouter.const_defined?(name) }
+        .each { |name| MockedRailsRouter.const_set(name, Class.new(ActionController::Base)) }
+
       Wrapper.new(routes)
     end
   end
