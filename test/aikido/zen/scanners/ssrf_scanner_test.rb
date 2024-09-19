@@ -1,0 +1,159 @@
+# frozen_string_literal: true
+
+require "test_helper"
+
+class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
+  setup { @redirects = Aikido::Zen::Scanners::SSRFScanner::RedirectChains.new }
+
+  def build_request(uri, **opts)
+    Aikido::Zen::HTTP::OutboundRequest.new(uri: URI(uri), verb: "GET", headers: {}, **opts)
+  end
+
+  def assert_attack(request_uri, input, reason = "`#{input}` was not blocked")
+    scanner = Aikido::Zen::Scanners::SSRFScanner.new(
+      build_request(request_uri), input, @redirects
+    )
+    assert scanner.attack?, reason
+  end
+
+  def refute_attack(request_uri, input, reason = "`#{input}` was blocked")
+    scanner = Aikido::Zen::Scanners::SSRFScanner.new(
+      build_request(request_uri), input, @redirects
+    )
+    refute scanner.attack?, reason
+  end
+
+  test "allows the request when either the hostname or input are empty" do
+    refute_attack "", ""
+    refute_attack "http://example.com", ""
+    refute_attack "", "example.com"
+  end
+
+  test "allows user input in the path" do
+    refute_attack "http://example.com/localhost", "localhost"
+  end
+
+  test "allows user input that is bigger than the hostname" do
+    refute_attack "http://localhost", "localhost localhost"
+  end
+
+  test "it ignores URIs that can't be parsed correctly" do
+    # URI.parse will either fail or return URIs without a "hostname" for these,
+    # so HTTP libs will fail to make a request, so we can ignore these cases.
+    refute_attack "http:/localhost", "localhost"
+    refute_attack "http:localhost", "localhost"
+    refute_attack "localhost", "localhost"
+    refute_attack "http://", "localhost"
+  end
+
+  test "detects when the input is the request hostname" do
+    assert_attack "http://localhost/", "localhost"
+    assert_attack "https://localhost/", "localhost"
+  end
+
+  test "detects when the input is in the request hostname regardless of path" do
+    assert_attack "http://localhost/path", "localhost"
+    assert_attack "https://localhost/path", "localhost"
+  end
+
+  test "it detects the input in URIs with a different protocol" do
+    assert_attack "ftp://localhost/path", "localhost"
+  end
+
+  test "it detects IP addresses in user input" do
+    assert_attack "http://169.254.169.254/latest/meta-data/", "169.254.169.254"
+    assert_attack "http://[::1]/", "::1"
+    assert_attack "http://[::1]/", "[::1]"
+    assert_attack \
+      "http://[2a02:a018:14b:fe00:1823:e142:94cc:f088]", "2a02:a018:14b:fe00:1823:e142:94cc:f088"
+    assert_attack \
+      "http://[2a02:a018:14b:fe00:1823:e142:94cc:f088]", "[2a02:a018:14b:fe00:1823:e142:94cc:f088]"
+  end
+
+  test "it detects the input if it doesn't include a port but the connection does" do
+    assert_attack "http://localhost:8080/", "localhost"
+  end
+
+  test "it detects inputs with ports only if they match the connection's port" do
+    assert_attack "http://localhost/", "localhost:80"
+    assert_attack "https://localhost/", "localhost:443"
+    assert_attack "https://localhost:8080/", "localhost:8080"
+  end
+
+  test "it allows connections if the input has a port but that's not used" do
+    refute_attack "http://localhost/", "localhost:8080"
+    refute_attack "http://[::1]/", "[::1]:8080"
+  end
+
+  test "it checks the input against the origin of any matching redirect chain" do
+    @redirects
+      .add(source: URI("https://harmless.com/foo"), destination: URI("https://harmless.com/bar"))
+      .add(source: URI("https://harmless.com/bar"), destination: URI("http://hacker.com/bar"))
+
+    assert_attack "http://hacker.com/bar", "harmless.com"
+  end
+
+  class RedirectChainTest < ActiveSupport::TestCase
+    setup { @redirects = Aikido::Zen::Scanners::SSRFScanner::RedirectChains.new }
+
+    test "#origin returns nil for an empty chain" do
+      uri = URI("http://example.com")
+      assert_nil @redirects.origin(uri)
+    end
+
+    test "#origin returns the correct value when there was a single redirect" do
+      source = URI("https://example.com")
+      dest = URI("https://hackers.com")
+
+      @redirects.add(source: source, destination: dest)
+
+      assert_equal source, @redirects.origin(dest)
+    end
+
+    test "#origin tracks the correct value for a longer chain" do
+      links = [
+        URI("https://example.com"),
+        URI("https://intermediary.com"),
+        URI("https://other.com"),
+        URI("https://hackers.com")
+      ]
+
+      links.each_cons(2) { |from, to| @redirects.add(source: from, destination: to) }
+
+      assert_equal links.first, @redirects.origin(links[1])
+      assert_equal links.first, @redirects.origin(links[2])
+      assert_equal links.first, @redirects.origin(links[3])
+    end
+
+    test "#origin tracks the correct value for a chain with same-host redirects" do
+      links = [
+        URI("https://example.com/one"),
+        URI("https://example.com/two"),
+        URI("https://hackers.com")
+      ]
+
+      links.each_cons(2) { |from, to| @redirects.add(source: from, destination: to) }
+
+      assert_equal links.first, @redirects.origin(links[1])
+      assert_equal links.first, @redirects.origin(links[2])
+    end
+
+    test "multiple chains can be tracked simultaneously" do
+      chain_1 = [
+        URI("https://example.com/one"),
+        URI("https://example.com/two"),
+        URI("https://hackers.com")
+      ]
+      chain_2 = [
+        URI("https://example.com/three"),
+        URI("https://itsfine.com")
+      ]
+
+      chain_1.each_cons(2) { |from, to| @redirects.add(source: from, destination: to) }
+      chain_2.each_cons(2) { |from, to| @redirects.add(source: from, destination: to) }
+
+      assert_equal chain_1.first, @redirects.origin(chain_1.last)
+      assert_equal chain_2.first, @redirects.origin(chain_2.last)
+    end
+  end
+end
