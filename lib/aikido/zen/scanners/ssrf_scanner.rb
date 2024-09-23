@@ -5,6 +5,57 @@ require "delegate"
 module Aikido::Zen
   module Scanners
     class SSRFScanner
+      # Checks if the connection being made is to a hostname supplied from user
+      # input.
+      #
+      # @param request [Aikido::Zen::HTTP::OutboundRequest]
+      # @param context [Aikido::Zen::Context]
+      # @param sink [Aikido::Zen::Sink] the Sink that is running the scan.
+      # @param operation [Symbol, String] name of the method being scanned.
+      #   Expects +sink.operation+ being set to get the full module/name combo.
+      #
+      # @return [Aikido::Zen::Attacks::SSRFAttack, nil] an Attack if any user
+      #   input is detected to be attempting SSRF, or +nil+ if not.
+      def self.call(request:, sink:, context:, operation:, **)
+        return if context.nil?
+
+        context["ssrf.redirects"] ||= RedirectChains.new
+
+        context.payloads.each do |payload|
+          scanner = new(request, payload.value, context["ssrf.redirects"])
+          next unless scanner.attack?
+
+          attack = Attacks::SSRFAttack.new(
+            sink: sink,
+            request: request,
+            input: payload,
+            context: context,
+            operation: "#{sink.operation}.#{operation}"
+          )
+
+          return attack
+        end
+
+        nil
+      end
+
+      # Track the origin of a redirection so we know if an attacker is using
+      # redirect chains to mask their use of a (seemingly) safe domain.
+      #
+      # @param request [Aikido::Zen::HTTP::OutboundRequest]
+      # @param response [Aikido::Zen::HTTP::OutboundResponse]
+      # @param context [Aikido::Zen::Context]
+      #
+      # @return [void]
+      def self.track_redirects(request:, response:, context: Aikido::Zen.current_context)
+        return unless response.redirect?
+
+        context["ssrf.redirects"] ||= RedirectChains.new
+        context["ssrf.redirects"].add(
+          source: request.uri,
+          destination: response.redirect_to
+        )
+      end
 
       # @api private
       def initialize(request, input, redirects)
