@@ -12,12 +12,10 @@ module Aikido::Zen
 
       attr_reader :verb
       attr_reader :uri
-      attr_reader :proxy
 
-      def initialize(verb:, uri:, proxy: nil)
+      def initialize(verb:, uri:)
         @verb = verb
         @uri = uri
-        @proxy = proxy
       end
     end
   end
