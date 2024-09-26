@@ -5,38 +5,13 @@ require "test_helper"
 class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
   class SSRFDetectionTest < ActiveSupport::TestCase
     include StubsCurrentContext
+    include SinkAttackHelpers
 
     setup do
       stub_request(:get, "https://example.com/safe")
         .to_return(status: 200, body: "OK")
 
       @outbound_connections = Aikido::Zen.send(:agent).stats.outbound_connections
-    end
-
-    def set_context_from_request_to(request_uri, env = {})
-      env = Rack::MockRequest.env_for(request_uri, env)
-      Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(env)
-    end
-
-    def assert_attack(matcher, &block)
-      Aikido::Zen.config.blocking_mode = true
-
-      exception = assert_raises Aikido::Zen::UnderAttackError do
-        yield
-      end
-
-      assert matcher === exception.attack,
-        "Expected #{exception.attack.inspect} to match #{matcher.inspect}"
-
-      exception
-    end
-
-    def refute_attack(&block)
-      Aikido::Zen.config.blocking_mode = true
-
-      assert_nothing_raised do
-        yield
-      end
     end
 
     test "allows normal requests" do
