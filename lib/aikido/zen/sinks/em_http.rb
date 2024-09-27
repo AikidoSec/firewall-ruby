@@ -15,12 +15,12 @@ module Aikido::Zen
         class Middleware
           def response(client)
             Aikido::Zen::Scanners::SSRFScanner.track_redirects(
-              request: Aikido::Zen::HTTP::OutboundRequest.new(
+              request: Aikido::Zen::Scanners::SSRFScanner::Request.new(
                 verb: client.req.method,
                 uri: URI(client.req.uri),
                 headers: client.req.headers
               ),
-              response: Aikido::Zen::HTTP::OutboundResponse.new(
+              response: Aikido::Zen::Scanners::SSRFScanner::Response.new(
                 status: client.response_header.status,
                 headers: client.response_header.to_h
               )
@@ -35,7 +35,7 @@ module Aikido::Zen
                 host: req.host,
                 port: req.port
               ),
-              request: Aikido::Zen::HTTP::OutboundRequest.new(
+              request: Aikido::Zen::Scanners::SSRFScanner::Request.new(
                 verb: req.method.to_s,
                 uri: URI(req.uri),
                 headers: req.headers

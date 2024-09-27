@@ -26,9 +26,9 @@ module Aikido::Zen
         # Wraps the HTTP request with an API we can depend on.
         #
         # @param req [HTTP::Request]
-        # @return [Aikido::Zen::HTTP::OutboundRequest]
+        # @return [Aikido::Zen::Scanners::SSRFScanner::Request]
         def self.wrap_request(req)
-          Aikido::Zen::HTTP::OutboundRequest.new(
+          Aikido::Zen::Scanners::SSRFScanner::Request.new(
             verb: req.verb,
             uri: URI(req.uri.to_s),
             headers: req.headers.to_h
@@ -36,7 +36,7 @@ module Aikido::Zen
         end
 
         def self.wrap_response(resp)
-          Aikido::Zen::HTTP::OutboundResponse.new(
+          Aikido::Zen::Scanners::SSRFScanner::Response.new(
             status: resp.status,
             headers: resp.headers.to_h
           )

@@ -12,7 +12,7 @@ module Aikido::Zen
       ])
 
       before_callback = ->(request) {
-        wrapped_request = Aikido::Zen::HTTP::OutboundRequest.new(
+        wrapped_request = Aikido::Zen::Scanners::SSRFScanner::Request.new(
           verb: request.options[:method],
           uri: URI(request.url),
           headers: request.options[:headers]
@@ -27,7 +27,7 @@ module Aikido::Zen
         request.on_headers do |response|
           Aikido::Zen::Scanners::SSRFScanner.track_redirects(
             request: wrapped_request,
-            response: Aikido::Zen::HTTP::OutboundResponse.new(
+            response: Aikido::Zen::Scanners::SSRFScanner::Response.new(
               status: response.code,
               headers: response.headers.to_h
             )

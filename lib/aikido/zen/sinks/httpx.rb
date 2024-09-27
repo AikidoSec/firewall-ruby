@@ -13,7 +13,7 @@ module Aikido::Zen
 
       module Extensions
         def self.wrap_request(request)
-          Aikido::Zen::HTTP::OutboundRequest.new(
+          Aikido::Zen::Scanners::SSRFScanner::Request.new(
             verb: request.verb,
             uri: request.uri,
             headers: request.headers.to_hash
@@ -21,7 +21,7 @@ module Aikido::Zen
         end
 
         def self.wrap_response(response)
-          Aikido::Zen::HTTP::OutboundResponse.new(
+          Aikido::Zen::Scanners::SSRFScanner::Response.new(
             status: response.status,
             headers: response.headers.to_hash
           )

@@ -6,7 +6,7 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
   setup { @redirects = Aikido::Zen::Scanners::SSRFScanner::RedirectChains.new }
 
   def build_request(uri, **opts)
-    Aikido::Zen::HTTP::OutboundRequest.new(uri: URI(uri), verb: "GET", headers: {}, **opts)
+    Aikido::Zen::Scanners::SSRFScanner::Request.new(uri: URI(uri), verb: "GET", headers: {}, **opts)
   end
 
   def assert_attack(request_uri, input, reason = "`#{input}` was not blocked")
@@ -91,6 +91,116 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
       .add(source: URI("https://harmless.com/bar"), destination: URI("http://hacker.com/bar"))
 
     assert_attack "http://hacker.com/bar", "harmless.com"
+  end
+
+  module HeaderNormalizationTests
+    extend ActiveSupport::Testing::Declarative
+
+    test "it normalizes header keys to be downcase" do
+      wrapper = build_wrapper(headers: {"Content-Length" => "1", "CONTENT-TYPE" => "text/html"})
+
+      assert_equal ["content-length", "content-type"], wrapper.headers.keys
+    end
+
+    test "it defaults to normalizing values to strings" do
+      wrapper = build_wrapper(headers: {"Content-Length" => 1})
+
+      assert_equal "1", wrapper.headers["content-length"]
+    end
+
+    test "it can receive a proc to normalize the value" do
+      wrapper = build_wrapper(
+        headers: {"Content-Length" => "1234"},
+        header_normalizer: ->(value) { value.reverse }
+      )
+
+      assert_equal "4321", wrapper.headers["content-length"]
+    end
+
+    test "it only normalizes the headers once" do
+      counter = 0
+      normalizer = ->(value) {
+        counter += 1
+        value
+      }
+
+      wrapper = build_wrapper(
+        headers: {"Content-Length" => "100"},
+        header_normalizer: normalizer
+      )
+
+      assert_difference "counter", +1 do
+        wrapper.headers
+        wrapper.headers
+      end
+    end
+  end
+
+  class RequestWrapperTest < ActiveSupport::TestCase
+    include HeaderNormalizationTests
+
+    def build_wrapper(verb: "GET", uri: URI("https://example.com"), headers: {}, **opts)
+      Aikido::Zen::Scanners::SSRFScanner::Request.new(
+        verb: verb, uri: uri, headers: headers, **opts
+      )
+    end
+
+    test "it enforces the URI being a URI" do
+      req = build_wrapper(uri: "http://example.com/path")
+      assert_kind_of URI, req.uri
+      assert_equal "http://example.com/path", req.uri.to_s
+    end
+
+    test "it enforces the verb is in uppercase" do
+      req = build_wrapper(verb: :get)
+      assert_equal "GET", req.verb
+    end
+  end
+
+  class ResponseWrapperTest < ActiveSupport::TestCase
+    include HeaderNormalizationTests
+
+    def build_wrapper(status: "200", headers: {}, **opts)
+      Aikido::Zen::Scanners::SSRFScanner::Response.new(
+        status: status, headers: headers, **opts
+      )
+    end
+
+    test "it enforces the status code is a string" do
+      resp = build_wrapper(status: 200)
+      assert_equal "200", resp.status
+    end
+
+    test "it expects a 3XX status to consider itself a redirect" do
+      ok_resp = build_wrapper(status: 200, headers: {"Location" => "/"})
+      refute ok_resp.redirect?
+
+      moved_resp = build_wrapper(status: 301, headers: {"Location" => "/"})
+      assert moved_resp.redirect?
+    end
+
+    test "it does not consider it a redirect if there's no Location header" do
+      resp = build_wrapper(status: 301, headers: {})
+      refute resp.redirect?
+    end
+
+    test "it knows the redirect URI" do
+      resp = build_wrapper(status: 301, headers: {"Location" => "/"})
+      assert_equal "/", resp.redirect_to
+    end
+
+    test "the redirect URI is nil if the status is not 3XX" do
+      resp = build_wrapper(status: 200, headers: {"Location" => "/"})
+      assert_nil resp.redirect_to
+    end
+
+    test "it does not check the headers unless the status is 3XX" do
+      resp = build_wrapper(status: 200, headers: {})
+      assert_nil resp.redirect_to
+
+      # This is to avoid normalizing the headers unless we absolutely need to
+      refute resp.instance_variable_get(:@normalized_headers)
+    end
   end
 
   class RedirectChainTest < ActiveSupport::TestCase

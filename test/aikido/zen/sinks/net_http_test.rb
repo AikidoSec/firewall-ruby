@@ -33,6 +33,18 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
       assert_not_requested :get, "https://example.com/safe"
     end
 
+    test "prevents requests to hosts using the session API" do
+      set_context_from_request_to "/?host=example.com"
+
+      assert_attack Aikido::Zen::Attacks::SSRFAttack do
+        Net::HTTP.start("example.com", use_ssl: true) do |http|
+          http.get("/safe")
+        end
+      end
+
+      assert_not_requested :get, "https://example.com/safe"
+    end
+
     test "raises a useful error message" do
       set_context_from_request_to "/?host=example.com"
 

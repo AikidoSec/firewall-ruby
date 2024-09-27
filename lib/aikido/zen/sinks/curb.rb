@@ -13,7 +13,7 @@ module Aikido::Zen
 
       module Extensions
         def self.wrap_request(curl)
-          Aikido::Zen::HTTP::OutboundRequest.new(
+          Aikido::Zen::Scanners::SSRFScanner::Request.new(
             verb: nil, # Curb hides this by directly setting an option in C
             uri: URI(curl.url),
             headers: curl.headers
@@ -26,7 +26,7 @@ module Aikido::Zen
           _, *headers = curl.header_str.split(/[\r\n]+/).map(&:strip)
           headers = headers.flat_map { |str| str.scan(/\A(\S+): (.+)\z/) }.to_h
 
-          Aikido::Zen::HTTP::OutboundResponse.new(
+          Aikido::Zen::Scanners::SSRFScanner::Response.new(
             status: curl.status.to_i,
             headers: headers
           )

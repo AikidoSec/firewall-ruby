@@ -35,7 +35,7 @@ module Aikido::Zen
           }))
           uri.query = request.fetch(:query) { connection[:query] }
 
-          Aikido::Zen::HTTP::OutboundRequest.new(
+          Aikido::Zen::Scanners::SSRFScanner::Request.new(
             verb: request.fetch(:method) { connection[:method] },
             uri: uri,
             headers: connection[:headers].to_h.merge(request[:headers].to_h)
@@ -55,7 +55,7 @@ module Aikido::Zen
 
           Aikido::Zen::Scanners::SSRFScanner.track_redirects(
             request: request,
-            response: Aikido::Zen::HTTP::OutboundResponse.new(
+            response: Aikido::Zen::Scanners::SSRFScanner::Response.new(
               status: response.status,
               headers: response.headers.to_h
             )

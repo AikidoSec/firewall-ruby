@@ -13,7 +13,7 @@ module Aikido::Zen
 
       module Extensions
         def handle_request(request)
-          wrapped_request = Aikido::Zen::HTTP::OutboundRequest.new(
+          wrapped_request = Aikido::Zen::Scanners::SSRFScanner::Request.new(
             verb: request.action,
             uri: URI(request.url),
             headers: request.headers
@@ -29,7 +29,7 @@ module Aikido::Zen
 
           Aikido::Zen::Scanners::SSRFScanner.track_redirects(
             request: wrapped_request,
-            response: Aikido::Zen::HTTP::OutboundResponse.new(
+            response: Aikido::Zen::Scanners::SSRFScanner::Response.new(
               status: response.status,
               headers: response.headers
             )

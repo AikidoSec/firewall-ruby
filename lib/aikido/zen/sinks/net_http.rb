@@ -25,17 +25,25 @@ module Aikido::Zen
             )
           end
 
-          def self.wrap_request(req)
-            Aikido::Zen::HTTP::OutboundRequest.new(
+          def self.wrap_request(req, session)
+            uri = req.uri if req.uri.is_a?(URI)
+            uri ||= URI(format("%<scheme>s://%<hostname>s:%<port>s%<path>s", {
+              scheme: session.use_ssl? ? "https" : "http",
+              hostname: session.address,
+              port: session.port,
+              path: req.path
+            }))
+
+            Aikido::Zen::Scanners::SSRFScanner::Request.new(
               verb: req.method,
-              uri: req.uri,
+              uri: uri,
               headers: req.to_hash,
               header_normalizer: ->(val) { Array(val).join(", ") }
             )
           end
 
           def self.wrap_response(response)
-            Aikido::Zen::HTTP::OutboundResponse.new(
+            Aikido::Zen::Scanners::SSRFScanner::Response.new(
               status: response.code.to_i,
               headers: response.to_hash,
               header_normalizer: ->(val) { Array(val).join(", ") }
@@ -43,7 +51,7 @@ module Aikido::Zen
           end
 
           def request(req, *)
-            wrapped_request = Extensions.wrap_request(req)
+            wrapped_request = Extensions.wrap_request(req, self)
 
             SINK.scan(
               connection: Extensions.build_outbound(self),
