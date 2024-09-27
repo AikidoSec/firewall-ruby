@@ -8,24 +8,43 @@ module Aikido::Zen
     module Async
       module HTTP
         SINK = Sinks.add("async-http", scanners: [
+          Aikido::Zen::Scanners::SSRFScanner,
           Aikido::Zen::OutboundConnectionMonitor
         ])
 
         module Extensions
-          # Maps an Async::HTTP request to an Aikido OutboundConnection.
-          #
-          # @param request [Async::HTTP::Protocol::Request]
-          # @return [Aikido::Zen::OutboundConnection]
-          def self.build_outbound(request)
-            uri = URI(format("%s://%s", request.scheme, request.authority))
-            Aikido::Zen::OutboundConnection.from_uri(uri)
-          end
-
           def call(request)
-            conn = Extensions.build_outbound(request)
-            SINK.scan(connection: conn, operation: "request")
+            uri = URI(format("%<scheme>s://%<authority>s%<path>s", {
+              scheme: request.scheme || scheme,
+              authority: request.authority || authority,
+              path: request.path
+            }))
 
-            super
+            wrapped_request = Aikido::Zen::HTTP::OutboundRequest.new(
+              verb: request.method,
+              uri: uri,
+              headers: request.headers.to_h,
+              header_normalizer: ->(value) { Array(value).join(", ") }
+            )
+
+            SINK.scan(
+              connection: Aikido::Zen::OutboundConnection.from_uri(uri),
+              request: wrapped_request,
+              operation: "request"
+            )
+
+            response = super
+
+            Aikido::Zen::Scanners::SSRFScanner.track_redirects(
+              request: wrapped_request,
+              response: Aikido::Zen::HTTP::OutboundResponse.new(
+                status: response.status,
+                headers: response.headers.to_h,
+                header_normalizer: ->(value) { Array(value).join(", ") }
+              )
+            )
+
+            response
           end
         end
       end

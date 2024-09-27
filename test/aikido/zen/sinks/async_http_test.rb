@@ -1,25 +1,116 @@
 # frozen_string_literal: true
 
+# Async::HTTP only supports ruby 3.1+
+return if RUBY_VERSION < "3.1"
+
 require "test_helper"
+require "async/http/middleware/location_redirector"
 
 class Aikido::Zen::Sinks::AsyncHTTPTest < ActiveSupport::TestCase
-  include StubsCurrentContext
-  include HTTPConnectionTrackingAssertions
+  class SSRFDetectionTest < ActiveSupport::TestCase
+    include StubsCurrentContext
+    include SinkAttackHelpers
 
-  setup do
-    @https_uri = URI("https://example.com/path")
-    @http_uri = URI("http://example.com/path")
-    @custom_port_uri = URI("http://example.com:8080/path")
+    setup do
+      stub_request(:get, "https://example.com/safe")
+        .to_return(status: 200, body: "OK")
 
-    stub_request(:any, @https_uri).to_return(status: 200, body: "OK (443)")
-    stub_request(:any, @http_uri).to_return(status: 200, body: "OK (80)")
-    stub_request(:any, @custom_port_uri).to_return(status: 200, body: "OK (8080)")
+      @outbound_connections = Aikido::Zen.send(:agent).stats.outbound_connections
+    end
 
-    @client = Async::HTTP::Internet.new
+    test "allows normal requests" do
+      Sync do
+        refute_attack do
+          client = Async::HTTP::Internet.new
+          client.get(URI("https://example.com/safe")) do |response|
+            assert_equal "OK", response.body.read
+          end
+        end
+
+        assert_requested :get, "https://example.com/safe"
+      end
+    end
+
+    test "prevents requests to hosts that come from user input" do
+      Sync do
+        set_context_from_request_to "/?host=example.com"
+
+        assert_attack Aikido::Zen::Attacks::SSRFAttack do
+          client = Async::HTTP::Internet.new
+          client.get(URI("https://example.com/safe"))
+        end
+
+        assert_not_requested :get, "https://example.com/safe"
+      end
+    end
+
+    test "raises a useful error message" do
+      Sync do
+        set_context_from_request_to "/?host=example.com"
+
+        error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
+          client = Async::HTTP::Internet.new
+          client.get(URI("https://example.com/safe"))
+        end
+
+        assert_equal \
+          "SSRF: Request to user-supplied hostname «example.com» detected in async-http.request.",
+          error.message
+      end
+    end
+
+    test "does not log an outbound connection if the request was blocked" do
+      Sync do
+        set_context_from_request_to "/?host=example.com"
+
+        assert_no_difference -> { @outbound_connections.size } do
+          assert_attack Aikido::Zen::Attacks::SSRFAttack do
+            client = Async::HTTP::Internet.new
+            client.get(URI("https://example.com/safe"))
+          end
+        end
+      end
+    end
+
+    test "prevents requests to redirected domains when the origin is user input" do
+      Sync do
+        stub_request(:get, "https://example.com")
+          .to_return(status: 301, headers: {"Location" => "https://this-is-harmless-i-swear.com/"})
+        stub_request(:get, "https://this-is-harmless-i-swear.com/")
+          .to_return(status: 200, body: "you've been pwnd")
+
+        set_context_from_request_to "/?host=this-is-harmless-i-swear.com"
+
+        assert_attack Aikido::Zen::Attacks::SSRFAttack do
+          client = Async::HTTP::Internet.new
+          client.get(URI("https://example.com")) do |response|
+            assert_equal 301, response.status
+            client.get(URI(response.headers["location"]))
+          end
+        end
+
+        assert_requested :get, "https://example.com"
+        assert_not_requested :get, "https://this-is-harmless-i-swear.com"
+      end
+    end
   end
 
-  # Async::HTTP only supports ruby 3.1+
-  if RUBY_VERSION >= "3.1"
+  class ConnectionTrackingTest < ActiveSupport::TestCase
+    include StubsCurrentContext
+    include HTTPConnectionTrackingAssertions
+
+    setup do
+      @https_uri = URI("https://example.com/path")
+      @http_uri = URI("http://example.com/path")
+      @custom_port_uri = URI("http://example.com:8080/path")
+
+      stub_request(:any, @https_uri).to_return(status: 200, body: "OK (443)")
+      stub_request(:any, @http_uri).to_return(status: 200, body: "OK (80)")
+      stub_request(:any, @custom_port_uri).to_return(status: 200, body: "OK (8080)")
+
+      @client = Async::HTTP::Internet.new
+    end
+
     test "tracks HEAD requests made through .head" do
       Sync do
         assert_tracks_outbound_to "example.com", 443 do
