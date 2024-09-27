@@ -7,6 +7,7 @@ module Aikido::Zen
   module Sinks
     module Excon
       SINK = Sinks.add("excon", scanners: [
+        Aikido::Zen::Scanners::SSRFScanner,
         Aikido::Zen::OutboundConnectionMonitor
       ])
 
@@ -25,11 +26,42 @@ module Aikido::Zen
           )
         end
 
-        def request(params = {}, *)
-          conn = Extensions.build_outbound(@data, params)
-          SINK.scan(connection: conn, operation: "request")
+        def self.build_request(connection, request)
+          uri = URI(format("%<scheme>s://%<host>s:%<port>i/%<path>s", {
+            scheme: request.fetch(:scheme) { connection[:scheme] },
+            host: request.fetch(:hostname) { connection[:hostname] },
+            port: request.fetch(:port) { connection[:port] },
+            path: request.fetch(:path) { connection[:path] }
+          }))
+          uri.query = request.fetch(:query) { connection[:query] }
 
-          super
+          Aikido::Zen::HTTP::OutboundRequest.new(
+            verb: request.fetch(:method) { connection[:method] },
+            uri: uri,
+            headers: connection[:headers].to_h.merge(request[:headers].to_h)
+          )
+        end
+
+        def request(params = {}, *)
+          request = Extensions.build_request(@data, params)
+
+          SINK.scan(
+            connection: Aikido::Zen::OutboundConnection.from_uri(request.uri),
+            request: request,
+            operation: "request"
+          )
+
+          response = super
+
+          Aikido::Zen::Scanners::SSRFScanner.track_redirects(
+            request: request,
+            response: Aikido::Zen::HTTP::OutboundResponse.new(
+              status: response.status,
+              headers: response.headers.to_h
+            )
+          )
+
+          response
         end
       end
     end
