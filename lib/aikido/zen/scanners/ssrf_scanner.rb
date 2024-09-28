@@ -22,7 +22,7 @@ module Aikido::Zen
         context["ssrf.redirects"] ||= RedirectChains.new
 
         context.payloads.each do |payload|
-          scanner = new(request, payload.value, context["ssrf.redirects"])
+          scanner = new(request.uri, payload.value, context["ssrf.redirects"])
           next unless scanner.attack?
 
           attack = Attacks::SSRFAttack.new(
@@ -58,8 +58,8 @@ module Aikido::Zen
       end
 
       # @api private
-      def initialize(request, input, redirects)
-        @request = request
+      def initialize(request_uri, input, redirects)
+        @request_uri = request_uri
         @input = input
         @redirects = redirects
       end
@@ -89,7 +89,7 @@ module Aikido::Zen
       end
 
       def origins_for_request
-        [@request.uri, @redirects.origin(@request.uri)].compact
+        [@request_uri, @redirects.origin(@request_uri)].compact
       end
 
       # Maps the current user input into a Set of URIs we can check against:

@@ -5,21 +5,13 @@ require "test_helper"
 class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
   setup { @redirects = Aikido::Zen::Scanners::SSRFScanner::RedirectChains.new }
 
-  def build_request(uri, **opts)
-    Aikido::Zen::Scanners::SSRFScanner::Request.new(uri: URI(uri), verb: "GET", headers: {}, **opts)
-  end
-
   def assert_attack(request_uri, input, reason = "`#{input}` was not blocked")
-    scanner = Aikido::Zen::Scanners::SSRFScanner.new(
-      build_request(request_uri), input, @redirects
-    )
+    scanner = Aikido::Zen::Scanners::SSRFScanner.new(URI(request_uri), input, @redirects)
     assert scanner.attack?, reason
   end
 
   def refute_attack(request_uri, input, reason = "`#{input}` was blocked")
-    scanner = Aikido::Zen::Scanners::SSRFScanner.new(
-      build_request(request_uri), input, @redirects
-    )
+    scanner = Aikido::Zen::Scanners::SSRFScanner.new(URI(request_uri), input, @redirects)
     refute scanner.attack?, reason
   end
 
