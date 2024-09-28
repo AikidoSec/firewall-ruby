@@ -12,7 +12,7 @@ class Aikido::Zen::Sinks::AsyncHTTPTest < ActiveSupport::TestCase
     include SinkAttackHelpers
 
     setup do
-      stub_request(:get, "https://example.com/safe")
+      stub_request(:get, "https://localhost/safe")
         .to_return(status: 200, body: "OK")
 
       @outbound_connections = Aikido::Zen.send(:agent).stats.outbound_connections
@@ -22,51 +22,51 @@ class Aikido::Zen::Sinks::AsyncHTTPTest < ActiveSupport::TestCase
       Sync do
         refute_attack do
           client = Async::HTTP::Internet.new
-          client.get(URI("https://example.com/safe")) do |response|
+          client.get(URI("https://localhost/safe")) do |response|
             assert_equal "OK", response.body.read
           end
         end
 
-        assert_requested :get, "https://example.com/safe"
+        assert_requested :get, "https://localhost/safe"
       end
     end
 
     test "prevents requests to hosts that come from user input" do
       Sync do
-        set_context_from_request_to "/?host=example.com"
+        set_context_from_request_to "/?host=localhost"
 
         assert_attack Aikido::Zen::Attacks::SSRFAttack do
           client = Async::HTTP::Internet.new
-          client.get(URI("https://example.com/safe"))
+          client.get(URI("https://localhost/safe"))
         end
 
-        assert_not_requested :get, "https://example.com/safe"
+        assert_not_requested :get, "https://localhost/safe"
       end
     end
 
     test "raises a useful error message" do
       Sync do
-        set_context_from_request_to "/?host=example.com"
+        set_context_from_request_to "/?host=localhost"
 
         error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
           client = Async::HTTP::Internet.new
-          client.get(URI("https://example.com/safe"))
+          client.get(URI("https://localhost/safe"))
         end
 
         assert_equal \
-          "SSRF: Request to user-supplied hostname «example.com» detected in async-http.request (GET https://example.com/safe).",
+          "SSRF: Request to user-supplied hostname «localhost» detected in async-http.request (GET https://localhost/safe).",
           error.message
       end
     end
 
     test "does not log an outbound connection if the request was blocked" do
       Sync do
-        set_context_from_request_to "/?host=example.com"
+        set_context_from_request_to "/?host=localhost"
 
         assert_no_difference -> { @outbound_connections.size } do
           assert_attack Aikido::Zen::Attacks::SSRFAttack do
             client = Async::HTTP::Internet.new
-            client.get(URI("https://example.com/safe"))
+            client.get(URI("https://localhost/safe"))
           end
         end
       end
@@ -74,23 +74,24 @@ class Aikido::Zen::Sinks::AsyncHTTPTest < ActiveSupport::TestCase
 
     test "prevents requests to redirected domains when the origin is user input" do
       Sync do
-        stub_request(:get, "https://example.com")
-          .to_return(status: 301, headers: {"Location" => "https://this-is-harmless-i-swear.com/"})
         stub_request(:get, "https://this-is-harmless-i-swear.com/")
+          .to_return(status: 301, headers: {"Location" => "http://localhost/"})
+        stub_request(:get, "http://localhost/")
           .to_return(status: 200, body: "you've been pwnd")
 
         set_context_from_request_to "/?host=this-is-harmless-i-swear.com"
 
+        client = Async::HTTP::Internet.new
+
         assert_attack Aikido::Zen::Attacks::SSRFAttack do
-          client = Async::HTTP::Internet.new
-          client.get(URI("https://example.com")) do |response|
-            assert_equal 301, response.status
-            client.get(URI(response.headers["location"]))
-          end
+          response = client.get(URI("https://this-is-harmless-i-swear.com/"))
+          assert_equal 301, response.status
+
+          client.get(URI(response.headers["location"]))
         end
 
-        assert_requested :get, "https://example.com"
-        assert_not_requested :get, "https://this-is-harmless-i-swear.com"
+        assert_requested :get, "https://this-is-harmless-i-swear.com"
+        assert_not_requested :get, "http://localhost"
       end
     end
   end

@@ -8,7 +8,7 @@ class Aikido::Zen::Sinks::ExconTest < ActiveSupport::TestCase
     include SinkAttackHelpers
 
     setup do
-      stub_request(:get, "https://example.com/safe")
+      stub_request(:get, "https://localhost/safe")
         .to_return(status: 200, body: "OK")
 
       @outbound_connections = Aikido::Zen.send(:agent).stats.outbound_connections
@@ -16,62 +16,62 @@ class Aikido::Zen::Sinks::ExconTest < ActiveSupport::TestCase
 
     test "allows normal requests" do
       refute_attack do
-        response = Excon.get("https://example.com/safe")
+        response = Excon.get("https://localhost/safe")
         assert_equal "OK", response.body
       end
 
-      assert_requested :get, "https://example.com/safe"
+      assert_requested :get, "https://localhost/safe"
     end
 
     test "prevents requests to hosts that come from user input" do
-      set_context_from_request_to "/?host=example.com"
+      set_context_from_request_to "/?host=localhost"
 
       assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        Excon.get("https://example.com/safe")
+        Excon.get("https://localhost/safe")
       end
 
-      assert_not_requested :get, "https://example.com/safe"
+      assert_not_requested :get, "https://localhost/safe"
     end
 
     test "raises a useful error message" do
-      set_context_from_request_to "/?host=example.com"
+      set_context_from_request_to "/?host=localhost"
 
       error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        Excon.get("https://example.com/safe")
+        Excon.get("https://localhost/safe")
       end
 
       assert_equal \
-        "SSRF: Request to user-supplied hostname «example.com» detected in excon.request (GET https://example.com/safe).",
+        "SSRF: Request to user-supplied hostname «localhost» detected in excon.request (GET https://localhost/safe).",
         error.message
     end
 
     test "does not log an outbound connection if the request was blocked" do
-      set_context_from_request_to "/?host=example.com"
+      set_context_from_request_to "/?host=localhost"
 
       assert_no_difference -> { @outbound_connections.size } do
         assert_attack Aikido::Zen::Attacks::SSRFAttack do
-          Excon.get("https://example.com/safe")
+          Excon.get("https://localhost/safe")
         end
       end
     end
 
     test "prevents requests to redirected domains when the origin is user input" do
-      stub_request(:get, "https://example.com")
-        .to_return(status: 301, headers: {"Location" => "https://this-is-harmless-i-swear.com/"})
       stub_request(:get, "https://this-is-harmless-i-swear.com/")
+        .to_return(status: 301, headers: {"Location" => "http://localhost/"})
+      stub_request(:get, "http://localhost/")
         .to_return(status: 200, body: "you've been pwnd")
 
       set_context_from_request_to "/?host=this-is-harmless-i-swear.com"
 
       assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        response = Excon.get("https://example.com")
+        response = Excon.get("https://this-is-harmless-i-swear.com/")
         assert_equal 301, response.status
 
         Excon.get(response.headers["Location"])
       end
 
-      assert_requested :get, "https://example.com"
-      assert_not_requested :get, "https://this-is-harmless-i-swear.com"
+      assert_requested :get, "https://this-is-harmless-i-swear.com"
+      assert_not_requested :get, "http://localhost"
     end
 
     test "prevents automated requests to redirected domains when the origin is user input" do
@@ -81,20 +81,20 @@ class Aikido::Zen::Sinks::ExconTest < ActiveSupport::TestCase
         since they happen in the C layer.
       REASON
 
-      stub_request(:get, "https://example.com")
-        .to_return(status: 301, headers: {"Location" => "https://this-is-harmless-i-swear.com/"})
       stub_request(:get, "https://this-is-harmless-i-swear.com/")
+        .to_return(status: 301, headers: {"Location" => "http://localhost/"})
+      stub_request(:get, "http://localhost/")
         .to_return(status: 200, body: "you've been pwnd")
 
       set_context_from_request_to "/?host=this-is-harmless-i-swear.com"
 
       assert_attack Aikido::Zen::Attacks::SSRFAttack do
         stack = Excon.defaults[:middlewares] + [Excon::Middleware::RedirectFollower]
-        Excon.get("https://example.com", middlewares: stack)
+        Excon.get("https://this-is-harmless-i-swear.com/", middlewares: stack)
       end
 
-      assert_requested :get, "https://example.com"
-      assert_not_requested :get, "https://this-is-harmless-i-swear.com"
+      assert_requested :get, "https://this-is-harmless-i-swear.com"
+      assert_not_requested :get, "http://localhost"
     end
   end
 

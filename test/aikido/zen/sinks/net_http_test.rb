@@ -8,7 +8,7 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
     include SinkAttackHelpers
 
     setup do
-      stub_request(:get, "https://example.com/safe")
+      stub_request(:get, "https://localhost/safe")
         .to_return(status: 200, body: "OK")
 
       @outbound_connections = Aikido::Zen.send(:agent).stats.outbound_connections
@@ -16,74 +16,74 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
 
     test "allows normal requests" do
       refute_attack do
-        response = Net::HTTP.get(URI("https://example.com/safe"))
+        response = Net::HTTP.get(URI("https://localhost/safe"))
         assert_equal "OK", response
       end
 
-      assert_requested :get, "https://example.com/safe"
+      assert_requested :get, "https://localhost/safe"
     end
 
     test "prevents requests to hosts that come from user input" do
-      set_context_from_request_to "/?host=example.com"
+      set_context_from_request_to "/?host=localhost"
 
       assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        Net::HTTP.get(URI("https://example.com/safe"))
+        Net::HTTP.get(URI("https://localhost/safe"))
       end
 
-      assert_not_requested :get, "https://example.com/safe"
+      assert_not_requested :get, "https://localhost/safe"
     end
 
     test "prevents requests to hosts using the session API" do
-      set_context_from_request_to "/?host=example.com"
+      set_context_from_request_to "/?host=localhost"
 
       assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        Net::HTTP.start("example.com", use_ssl: true) do |http|
+        Net::HTTP.start("localhost", use_ssl: true) do |http|
           http.get("/safe")
         end
       end
 
-      assert_not_requested :get, "https://example.com/safe"
+      assert_not_requested :get, "https://localhost/safe"
     end
 
     test "raises a useful error message" do
-      set_context_from_request_to "/?host=example.com"
+      set_context_from_request_to "/?host=localhost"
 
       error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        Net::HTTP.get(URI("https://example.com/safe"))
+        Net::HTTP.get(URI("https://localhost/safe"))
       end
 
       assert_equal \
-        "SSRF: Request to user-supplied hostname «example.com» detected in net-http.request (GET https://example.com/safe).",
+        "SSRF: Request to user-supplied hostname «localhost» detected in net-http.request (GET https://localhost/safe).",
         error.message
     end
 
     test "does not log an outbound connection if the request was blocked" do
-      set_context_from_request_to "/?host=example.com"
+      set_context_from_request_to "/?host=localhost"
 
       assert_no_difference -> { @outbound_connections.size } do
         assert_attack Aikido::Zen::Attacks::SSRFAttack do
-          Net::HTTP.get(URI("https://example.com/safe"))
+          Net::HTTP.get(URI("https://localhost/safe"))
         end
       end
     end
 
     test "prevents requests to redirected domains after if the origin is user input" do
-      stub_request(:get, "https://example.com")
-        .to_return(status: 301, headers: {"Location" => "https://this-is-harmless-i-swear.com/"})
       stub_request(:get, "https://this-is-harmless-i-swear.com/")
+        .to_return(status: 301, headers: {"Location" => "http://localhost/"})
+      stub_request(:get, "http://localhost")
         .to_return(status: 200, body: "you've been pwnd")
 
       set_context_from_request_to "/?host=this-is-harmless-i-swear.com"
 
       assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        response = Net::HTTP.get_response(URI("https://example.com"))
+        response = Net::HTTP.get_response(URI("https://this-is-harmless-i-swear.com"))
         assert_equal "301", response.code
 
         Net::HTTP.get(URI(response["Location"]))
       end
 
-      assert_requested :get, "https://example.com"
-      assert_not_requested :get, "https://this-is-harmless-i-swear.com"
+      assert_requested :get, "https://this-is-harmless-i-swear.com"
+      assert_not_requested :get, "http://localhost"
     end
   end
 

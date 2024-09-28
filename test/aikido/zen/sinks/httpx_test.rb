@@ -8,7 +8,7 @@ class Aikido::Zen::Sinks::HTTPXTest < ActiveSupport::TestCase
     include SinkAttackHelpers
 
     setup do
-      stub_request(:get, "https://example.com/safe")
+      stub_request(:get, "https://localhost/safe")
         .to_return(status: 200, body: "OK")
 
       @outbound_connections = Aikido::Zen.send(:agent).stats.outbound_connections
@@ -16,68 +16,68 @@ class Aikido::Zen::Sinks::HTTPXTest < ActiveSupport::TestCase
 
     test "allows normal requests" do
       refute_attack do
-        response = HTTPX.get("https://example.com/safe")
+        response = HTTPX.get("https://localhost/safe")
         assert_equal "OK", response.body.to_s
       end
 
-      assert_requested :get, "https://example.com/safe"
+      assert_requested :get, "https://localhost/safe"
     end
 
     test "prevents requests to hosts that come from user input" do
-      set_context_from_request_to "/?host=example.com"
+      set_context_from_request_to "/?host=localhost"
 
       assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        HTTPX.get("https://example.com/safe")
+        HTTPX.get("https://localhost/safe")
       end
 
-      assert_not_requested :get, "https://example.com/safe"
+      assert_not_requested :get, "https://localhost/safe"
     end
 
     test "raises a useful error message" do
-      set_context_from_request_to "/?host=example.com"
+      set_context_from_request_to "/?host=localhost"
 
       error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        HTTPX.get("https://example.com/safe")
+        HTTPX.get("https://localhost/safe")
       end
 
       assert_equal \
-        "SSRF: Request to user-supplied hostname «example.com» detected in httpx.request (GET https://example.com/safe).",
+        "SSRF: Request to user-supplied hostname «localhost» detected in httpx.request (GET https://localhost/safe).",
         error.message
     end
 
     test "does not log an outbound connection if the request was blocked" do
-      set_context_from_request_to "/?host=example.com"
+      set_context_from_request_to "/?host=localhost"
 
       assert_no_difference -> { @outbound_connections.size } do
         assert_attack Aikido::Zen::Attacks::SSRFAttack do
-          HTTPX.get("https://example.com/safe")
+          HTTPX.get("https://localhost/safe")
         end
       end
     end
 
     test "prevents requests to redirected domains when the origin is user input" do
-      stub_request(:get, "https://example.com")
-        .to_return(status: 301, headers: {"Location" => "https://this-is-harmless-i-swear.com/"})
       stub_request(:get, "https://this-is-harmless-i-swear.com/")
+        .to_return(status: 301, headers: {"Location" => "http://localhost/"})
+      stub_request(:get, "http://localhost/")
         .to_return(status: 200, body: "you've been pwnd")
 
       set_context_from_request_to "/?host=this-is-harmless-i-swear.com"
 
       assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        response = HTTPX.get("https://example.com")
+        response = HTTPX.get("https://this-is-harmless-i-swear.com/")
         assert_equal 301, response.status
 
         HTTPX.get(response.headers["Location"])
       end
 
-      assert_requested :get, "https://example.com"
-      assert_not_requested :get, "https://this-is-harmless-i-swear.com"
+      assert_requested :get, "https://this-is-harmless-i-swear.com"
+      assert_not_requested :get, "http://localhost"
     end
 
     test "prevents automated requests to redirected domains when the origin is user input" do
-      stub_request(:get, "https://example.com")
-        .to_return(status: 301, headers: {"Location" => "https://this-is-harmless-i-swear.com/"})
       stub_request(:get, "https://this-is-harmless-i-swear.com/")
+        .to_return(status: 301, headers: {"Location" => "https://localhost/"})
+      stub_request(:get, "https://localhost/")
         .to_return(status: 200, body: "you've been pwnd")
 
       set_context_from_request_to "/?host=this-is-harmless-i-swear.com"
@@ -85,11 +85,11 @@ class Aikido::Zen::Sinks::HTTPXTest < ActiveSupport::TestCase
       assert_attack Aikido::Zen::Attacks::SSRFAttack do
         HTTPX
           .plugin(:follow_redirects)
-          .get("https://example.com")
+          .get("https://this-is-harmless-i-swear.com/")
       end
 
-      assert_requested :get, "https://example.com"
-      assert_not_requested :get, "https://this-is-harmless-i-swear.com"
+      assert_requested :get, "https://this-is-harmless-i-swear.com"
+      assert_not_requested :get, "https://localhost"
     end
   end
 
