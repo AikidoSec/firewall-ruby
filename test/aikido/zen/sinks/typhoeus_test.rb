@@ -41,7 +41,7 @@ class Aikido::Zen::Sinks::TyphoeusTest < ActiveSupport::TestCase
       end
 
       assert_equal \
-        "SSRF: Request to user-supplied hostname «example.com» detected in typhoeus.request.",
+        "SSRF: Request to user-supplied hostname «example.com» detected in typhoeus.request (GET https://example.com/safe).",
         error.message
     end
 

@@ -41,7 +41,7 @@ class Aikido::Zen::Sinks::CurbTest < ActiveSupport::TestCase
       end
 
       assert_equal \
-        "SSRF: Request to user-supplied hostname «example.com» detected in curb.request.",
+        "SSRF: Request to user-supplied hostname «example.com» detected in curb.request (https://example.com/safe).",
         error.message
     end
 

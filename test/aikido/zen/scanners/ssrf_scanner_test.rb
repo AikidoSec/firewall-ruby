@@ -155,6 +155,16 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
       req = build_wrapper(verb: :get)
       assert_equal "GET", req.verb
     end
+
+    test "#to_s includes the verb and URI" do
+      req = build_wrapper(verb: :post, uri: "https://example.com/path")
+      assert_equal "POST https://example.com/path", req.to_s
+    end
+
+    test "#to_s behaves well if the verb is empty (see Curb's sink)" do
+      req = build_wrapper(verb: nil, uri: "https://example.com/path")
+      assert_equal "https://example.com/path", req.to_s
+    end
   end
 
   class ResponseWrapperTest < ActiveSupport::TestCase

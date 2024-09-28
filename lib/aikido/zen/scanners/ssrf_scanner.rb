@@ -160,6 +160,10 @@ module Aikido::Zen
           @verb = verb.to_s.upcase
           @uri = URI(uri)
         end
+
+        def to_s
+          [@verb, @uri.to_s].join(" ").strip
+        end
       end
 
       # @api private

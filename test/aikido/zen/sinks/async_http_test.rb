@@ -54,7 +54,7 @@ class Aikido::Zen::Sinks::AsyncHTTPTest < ActiveSupport::TestCase
         end
 
         assert_equal \
-          "SSRF: Request to user-supplied hostname «example.com» detected in async-http.request.",
+          "SSRF: Request to user-supplied hostname «example.com» detected in async-http.request (GET https://example.com/safe).",
           error.message
       end
     end

@@ -27,7 +27,7 @@ module Aikido::Zen
         end
 
         def self.build_request(connection, request)
-          uri = URI(format("%<scheme>s://%<host>s:%<port>i/%<path>s", {
+          uri = URI(format("%<scheme>s://%<host>s:%<port>i%<path>s", {
             scheme: request.fetch(:scheme) { connection[:scheme] },
             host: request.fetch(:hostname) { connection[:hostname] },
             port: request.fetch(:port) { connection[:port] },

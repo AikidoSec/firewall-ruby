@@ -83,7 +83,10 @@ module Aikido::Zen
       end
 
       def log_message
-        format("SSRF: Request to user-supplied hostname «%s» detected in %s.", @input, @operation)
+        format(
+          "SSRF: Request to user-supplied hostname «%s» detected in %s (%s).",
+          @input, @operation, @request
+        ).strip
       end
 
       def exception(*)

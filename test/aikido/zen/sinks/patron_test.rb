@@ -44,7 +44,7 @@ class Aikido::Zen::Sinks::PatronTest < ActiveSupport::TestCase
       end
 
       assert_equal \
-        "SSRF: Request to user-supplied hostname «example.com» detected in patron.request.",
+        "SSRF: Request to user-supplied hostname «example.com» detected in patron.request (GET https://example.com/safe).",
         error.message
     end
 

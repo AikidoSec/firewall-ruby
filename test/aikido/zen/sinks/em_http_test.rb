@@ -51,7 +51,7 @@ class Aikido::Zen::Sinks::EmHttpRequestTest < ActiveSupport::TestCase
       end
 
       assert_equal \
-        "SSRF: Request to user-supplied hostname «example.com» detected in em-http-request.request.",
+        "SSRF: Request to user-supplied hostname «example.com» detected in em-http-request.request (GET https://example.com/safe).",
         error.message
     end
 

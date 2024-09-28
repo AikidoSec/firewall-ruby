@@ -41,7 +41,7 @@ class Aikido::Zen::Sinks::HTTPXTest < ActiveSupport::TestCase
       end
 
       assert_equal \
-        "SSRF: Request to user-supplied hostname «example.com» detected in httpx.request.",
+        "SSRF: Request to user-supplied hostname «example.com» detected in httpx.request (GET https://example.com/safe).",
         error.message
     end
 

@@ -41,7 +41,7 @@ class Aikido::Zen::Sinks::ExconTest < ActiveSupport::TestCase
       end
 
       assert_equal \
-        "SSRF: Request to user-supplied hostname «example.com» detected in excon.request.",
+        "SSRF: Request to user-supplied hostname «example.com» detected in excon.request (GET https://example.com/safe).",
         error.message
     end
 
