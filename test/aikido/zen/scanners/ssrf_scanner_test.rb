@@ -29,6 +29,10 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
     refute_attack "http://localhost", "localhost localhost"
   end
 
+  test "allows requests to hosts that don't resolve to internal IPs" do
+    refute_attack "http://google.com/search?q=test", "google.com"
+  end
+
   test "it ignores URIs that can't be parsed correctly" do
     # URI.parse will either fail or return URIs without a "hostname" for these,
     # so HTTP libs will fail to make a request, so we can ignore these cases.
@@ -56,10 +60,8 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
     assert_attack "http://169.254.169.254/latest/meta-data/", "169.254.169.254"
     assert_attack "http://[::1]/", "::1"
     assert_attack "http://[::1]/", "[::1]"
-    assert_attack \
-      "http://[2a02:a018:14b:fe00:1823:e142:94cc:f088]", "2a02:a018:14b:fe00:1823:e142:94cc:f088"
-    assert_attack \
-      "http://[2a02:a018:14b:fe00:1823:e142:94cc:f088]", "[2a02:a018:14b:fe00:1823:e142:94cc:f088]"
+    assert_attack "http://[fe80::3e8]", "fe80::3e8"
+    assert_attack "http://[fe80::3e8]", "[fe80::3e8]"
   end
 
   test "it detects the input if it doesn't include a port but the connection does" do
@@ -80,9 +82,9 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
   test "it checks the input against the origin of any matching redirect chain" do
     @redirects
       .add(source: URI("https://harmless.com/foo"), destination: URI("https://harmless.com/bar"))
-      .add(source: URI("https://harmless.com/bar"), destination: URI("http://hacker.com/bar"))
+      .add(source: URI("https://harmless.com/bar"), destination: URI("http://localhost/bar"))
 
-    assert_attack "http://hacker.com/bar", "harmless.com"
+    assert_attack "http://localhost/bar", "harmless.com"
   end
 
   module HeaderNormalizationTests
@@ -186,9 +188,9 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
       refute resp.redirect?
     end
 
-    test "it knows the redirect URI" do
+    test "it knows the redirect URI (and makes sure it's a URI)" do
       resp = build_wrapper(status: 301, headers: {"Location" => "/"})
-      assert_equal "/", resp.redirect_to
+      assert_equal URI("/"), resp.redirect_to
     end
 
     test "the redirect URI is nil if the status is not 3XX" do

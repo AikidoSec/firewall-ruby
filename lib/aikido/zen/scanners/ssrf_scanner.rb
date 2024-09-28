@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "delegate"
+require_relative "ssrf/private_ip_checker"
 
 module Aikido::Zen
   module Scanners
@@ -68,9 +68,15 @@ module Aikido::Zen
       def attack?
         return false if @input.nil? || @input.to_s.empty?
 
+        # If the request is not aimed at an internal IP, we can ignore it. (It
+        # might still be an SSRF if defined strictly, but it's unlikely to be
+        # exfiltrating data from the app's servers, and the risk for false
+        # positives is too high.)
+        return false unless private_ip?(@request_uri.hostname)
+
         origins_for_request
           .product(uris_from_input)
-          .any? { |(conn, uri)| match?(conn, uri) }
+          .any? { |(conn_uri, candidate)| match?(conn_uri, candidate) }
       end
 
       private
@@ -86,6 +92,11 @@ module Aikido::Zen
         return false if is_port_relevant && input_uri.port != conn_uri.port
 
         conn_uri.hostname == input_uri.hostname
+      end
+
+      def private_ip?(hostname)
+        @private_ip_checker ||= SSRF::PrivateIPChecker.new
+        @private_ip_checker.private?(hostname)
       end
 
       def origins_for_request
@@ -182,7 +193,9 @@ module Aikido::Zen
         end
 
         def redirect_to
-          headers["location"] if redirect?
+          URI(headers["location"]) if redirect?
+        rescue URI::BadURIError
+          nil
         end
       end
 
