@@ -28,6 +28,7 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 3600, @config.client_rate_limit_period
     assert_equal 100, @config.client_rate_limit_max_events
     assert_equal 1800, @config.server_rate_limit_deadline
+    assert_equal ["metadata.google.internal", "metadata.goog"], @config.imds_allowed_hosts
   end
 
   test "can overwrite the api_base_url" do
