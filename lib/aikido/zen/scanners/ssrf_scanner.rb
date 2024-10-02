@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "ssrf/private_ip_checker"
+require_relative "ssrf/dns_lookups"
 
 module Aikido::Zen
   module Scanners

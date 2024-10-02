@@ -3,6 +3,8 @@
 require "test_helper"
 
 class Aikido::Zen::Scanners::SSRF::PrivateIPCheckerTest < ActiveSupport::TestCase
+  include StubsCurrentContext
+
   setup do
     @resolver = Minitest::Mock.new(Resolv::Hosts.new)
     @subject = Aikido::Zen::Scanners::SSRF::PrivateIPChecker.new(@resolver)
@@ -30,6 +32,35 @@ class Aikido::Zen::Scanners::SSRF::PrivateIPCheckerTest < ActiveSupport::TestCas
     refute_private "external.myservice.com"
 
     assert_mock @resolver
+  end
+
+  test "detects hostnames that have already been resolved and stored in the context" do
+    current_context["dns.lookups"] = Aikido::Zen::Scanners::SSRF::DNSLookups.new
+    current_context["dns.lookups"].add("harmless.com", "10.0.0.1")
+
+    assert_private "harmless.com"
+  end
+
+  test "ignores hostnames that have been resolved and don't point to a private address" do
+    current_context["dns.lookups"] = Aikido::Zen::Scanners::SSRF::DNSLookups.new
+    current_context["dns.lookups"].add("example.com", "1.2.3.4")
+
+    refute_private "example.com"
+  end
+
+  test "detects hostnames that previously resolved to an internal IP to mitigate TOCTOU attacks" do
+    current_context["dns.lookups"] = Aikido::Zen::Scanners::SSRF::DNSLookups.new
+    current_context["dns.lookups"].add("example.com", "1.2.3.4")
+    current_context["dns.lookups"].add("example.com", "10.0.0.1")
+    current_context["dns.lookups"].add("example.com", "1.2.3.4")
+
+    assert_private "example.com"
+  end
+
+  test "does not fail if there's no current_context" do
+    Aikido::Zen.current_context = nil
+
+    refute_private "example.com"
   end
 
   test "ignores invalid input without errors" do

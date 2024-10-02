@@ -19,6 +19,11 @@ module Aikido::Zen
             yield address
           end
         ensure
+          if (context = Aikido::Zen.current_context)
+            context["dns.lookups"] ||= Aikido::Zen::Scanners::SSRF::DNSLookups.new
+            context["dns.lookups"].add(name, addresses)
+          end
+
           SINK.scan(hostname: name, addresses: addresses, operation: "lookup")
         end
       end

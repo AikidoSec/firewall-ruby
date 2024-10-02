@@ -6,15 +6,22 @@ require "ipaddr"
 module Aikido::Zen
   module Scanners
     module SSRF
-      # Little helper to check if a given address is either an obvious local
-      # address (127.0.0.1, ::1, etc), in one of the "special-use" IP ranges
-      # as per RFCs 5735 (which goes beyond the "normal" private ranges defined
-      # in RFC 1918: 10.0.0.0/8, 127.16.0.0/12, 192.168.0.0/16) or RFC 4193
-      # (fc00::/7).
+      # Little helper to check if a given hostname or address is to be
+      # considered "dangerous" when used for an outbound HTTP request.
       #
-      # If instead of given an address it's given a hostname, it will try to
-      # resolve it against the local hosts file (i.e. /etc/hosts). If it
-      # resolves to an address, it will check if that is a "private" address.
+      # When given a hostname:
+      #
+      # * If any DNS lookups have been performed and stored in the current Zen
+      #   context (under the "dns.lookups" metadata key), we will map it to the
+      #   list of IPs that we've resolved it to.
+      #
+      # * If not, we'll still try to map it to any statically defined address in
+      #   the system hosts file (e.g. /etc/hosts).
+      #
+      # Once we mapped the hostname to an IP address (or, if given an IP
+      # address), this will check that it's not a loopback address, a private IP
+      # address (as defined by RFCs 1918 and 4193), or in one of the
+      # "special-use" IP ranges defined in RFC 5735.
       class PrivateIPChecker
         def initialize(resolver = Resolv::Hosts.new)
           @resolver = resolver
@@ -53,10 +60,20 @@ module Aikido::Zen
           IPAddr.new("::ffff:127.0.0.1/128") # IPv4-mapped address
         ]
 
+        def resolved_in_current_context
+          context = Aikido::Zen.current_context
+          context && context["dns.lookups"]
+        end
+
         def resolve(hostname_or_address)
+          return [] if hostname_or_address.nil?
+
           case hostname_or_address
           when Resolv::AddressRegex
             [IPAddr.new(hostname_or_address)]
+          when resolved_in_current_context
+            resolved_in_current_context[hostname_or_address]
+              .map { |address| IPAddr.new(address) }
           else
             @resolver.getaddresses(hostname_or_address.to_s)
               .map { |address| IPAddr.new(address) }
