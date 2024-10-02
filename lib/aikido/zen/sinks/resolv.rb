@@ -2,12 +2,14 @@
 
 require_relative "../sink"
 require_relative "../scanners/stored_ssrf_scanner"
+require_relative "../scanners/ssrf_scanner"
 
 module Aikido::Zen
   module Sinks
     module Resolv
       SINK = Sinks.add("resolv", scanners: [
-        Aikido::Zen::Scanners::StoredSSRFScanner
+        Aikido::Zen::Scanners::StoredSSRFScanner,
+        Aikido::Zen::Scanners::SSRFScanner
       ])
 
       module Extensions
@@ -24,7 +26,12 @@ module Aikido::Zen
             context["dns.lookups"].add(name, addresses)
           end
 
-          SINK.scan(hostname: name, addresses: addresses, operation: "lookup")
+          SINK.scan(
+            hostname: name,
+            addresses: addresses,
+            request: context && context["ssrf.request"],
+            operation: "lookup"
+          )
         end
       end
     end
