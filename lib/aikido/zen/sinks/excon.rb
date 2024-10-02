@@ -45,6 +45,12 @@ module Aikido::Zen
         def request(params = {}, *)
           request = Extensions.build_request(@data, params)
 
+          # Store the request information so the DNS sinks can pick it up.
+          if (context = Aikido::Zen.current_context)
+            prev_request = context["ssrf.request"]
+            context["ssrf.request"] = request
+          end
+
           SINK.scan(
             connection: Aikido::Zen::OutboundConnection.from_uri(request.uri),
             request: request,
@@ -62,6 +68,8 @@ module Aikido::Zen
           )
 
           response
+        ensure
+          context["ssrf.request"] = prev_request if context
         end
       end
     end

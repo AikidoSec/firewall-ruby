@@ -27,24 +27,29 @@ module Aikido::Zen
           )
         end
 
-        def do_get_block(req, *)
-          SINK.scan(
-            connection: Aikido::Zen::OutboundConnection.from_uri(req.http_header.request_uri),
-            request: Extensions.wrap_request(req),
-            operation: "request"
-          )
+        def self.perform_scan(req, &block)
+          wrapped_request = wrap_request(req)
+          connection = Aikido::Zen::OutboundConnection.from_uri(req.http_header.request_uri)
 
-          super
+          # Store the request information so the DNS sinks can pick it up.
+          if (context = Aikido::Zen.current_context)
+            prev_request = context["ssrf.request"]
+            context["ssrf.request"] = wrapped_request
+          end
+
+          SINK.scan(connection: connection, request: wrapped_request, operation: "request")
+
+          yield
+        ensure
+          context["ssrf.request"] = prev_request if context
+        end
+
+        def do_get_block(req, *)
+          Extensions.perform_scan(req) { super }
         end
 
         def do_get_stream(req, *)
-          SINK.scan(
-            connection: Aikido::Zen::OutboundConnection.from_uri(req.http_header.request_uri),
-            request: Extensions.wrap_request(req),
-            operation: "request"
-          )
-
-          super
+          Extensions.perform_scan(req) { super }
         end
 
         def do_get_header(req, res, *)
