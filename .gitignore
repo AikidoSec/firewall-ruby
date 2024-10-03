@@ -8,3 +8,6 @@
 /tmp/
 /Gemfile*
 /sample_apps/*/Gemfile*
+
+# Precompiled libzen_internals
+/lib/aikido/zen/libzen.*
