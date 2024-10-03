@@ -95,6 +95,11 @@ module Aikido::Zen
           .any? { |(conn_uri, candidate)| match?(conn_uri, candidate) }
       end
 
+      # @!visibility private
+      def self.private_ip_checker
+        @private_ip_checker ||= SSRF::PrivateIPChecker.new
+      end
+
       private
 
       def match?(conn_uri, input_uri)
@@ -111,8 +116,7 @@ module Aikido::Zen
       end
 
       def private_ip?(hostname)
-        @private_ip_checker ||= SSRF::PrivateIPChecker.new
-        @private_ip_checker.private?(hostname)
+        self.class.private_ip_checker.private?(hostname)
       end
 
       def origins_for_request
