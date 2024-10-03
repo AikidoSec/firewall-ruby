@@ -3,6 +3,8 @@
 # Helpers to test attacks in sink tests.
 module SinkAttackHelpers
   def set_context_from_request_to(request_uri, env = {})
+    self.class.teardown { Aikido::Zen.current_context = nil }
+
     env = Rack::MockRequest.env_for(request_uri, env)
     Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(env)
   end

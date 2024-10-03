@@ -2,6 +2,8 @@
 
 require_relative "sink"
 
+require_relative "sinks/socket"
+
 require_relative "sinks/resolv" if defined?(::Resolv)
 require_relative "sinks/net_http" if defined?(::Net::HTTP)
 require_relative "sinks/http" if defined?(::HTTP)
