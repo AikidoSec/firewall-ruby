@@ -42,6 +42,33 @@ module Aikido::Zen
           )
         end
 
+        # When Typhoeus is configured with followlocation: true, the redirect
+        # following happens between the on_headers and the on_complete callback,
+        # so we need this one to detect if the request resulted in an automatic
+        # redirect that was followed.
+        request.on_complete do |response|
+          break if response.effective_url == request.url
+
+          last_effective_request = Aikido::Zen::Scanners::SSRFScanner::Request.new(
+            verb: request.options[:method],
+            uri: URI(response.effective_url),
+            headers: request.options[:headers]
+          )
+          context["ssrf.request"] = last_effective_request if context
+
+          # In this case, we can't actually stop the request from happening, but
+          # we can scan again (now that we know another request happened), to
+          # stop the response from being exposed to the user. This downgrades
+          # the SSRF into a blind SSRF, which is better than doing nothing.
+          SINK.scan(
+            connection: Aikido::Zen::OutboundConnection.from_uri(URI(response.effective_url)),
+            request: last_effective_request,
+            operation: "request"
+          )
+        ensure
+          context["ssrf.request"] = nil
+        end
+
         true
       }
 
