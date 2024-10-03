@@ -3,6 +3,7 @@ PATH
   specs:
     aikido-zen (0.1.0)
       concurrent-ruby (~> 1.0)
+      ffi
       rack
 
 GEM
