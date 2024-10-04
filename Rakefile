@@ -14,26 +14,38 @@ namespace :build do
   end
 
   namespace :internals do
-    libraries = %w[lib/aikido/zen/libzen.dylib lib/aikido/zen/libzen.so lib/aikido/zen/libzen.dll]
-
+    version = Aikido::Zen::LIBZEN_VERSION
     url_base = "https://github.com/AikidoSec/zen-internals/releases/download"
     artifacts = {
-      ".dylib" => "libzen_internals_x86_64-apple-darwin.dylib",
-      ".dll" => "libzen_internals_x86_64-pc-windows-gnu.dll",
-      ".so" => "libzen_internals_x86_64-unknown-linux-gnu.so"
+      ".aarch64.dylib" => "libzen_internals_aarch64-apple-darwin.dylib",
+      ".x86_64.dylib" => "libzen_internals_x86_64-apple-darwin.dylib",
+
+      ".aarch64.so" => "libzen_internals_aarch64-unknown-linux-gnu.so",
+      ".x86_64.so" => "libzen_internals_x86_64-unknown-linux-gnu.so",
+
+      ".x86_64.dll" => "libzen_internals_x86_64-pc-windows-gnu.dll"
     }
-    rule %r{lib/aikido/zen/libzen\.(.+)$} do |task|
-      version = Aikido::Zen::LIBZEN_VERSION
-      uri = File.join(url_base, "v#{version}", artifacts[File.extname(task.name)])
-      file_name = task.name.gsub(/.*:/, "") # remove rake namespace
-      puts "Downloading #{file_name}"
-      File.open(file_name, "wb") { |file| copy_stream(URI(uri).open("rb"), file) }
-    end
+    prefix = "lib/aikido/zen/libzen"
+
+    libraries = artifacts.each_key.map { |ext| prefix + ext }
 
     task download: libraries
 
     task :clean do
       libraries.each { |lib| rm_f lib }
+    end
+
+    rule(/#{prefix}\..*$/) do |task|
+      file_name = task.name.gsub(/.*:/, "") # remove rake namespace
+      uri = File.join(url_base, "v#{version}", artifacts[file_name.sub(prefix, "")])
+      puts "Downloading #{file_name}"
+      File.open(file_name, "wb") { |file| copy_stream(URI(uri).open("rb"), file) }
+
+      expected_checksum = URI(uri + ".sha256sum").read.split(/\s+/).first
+      actual_checksum = Digest::SHA256.file(file_name).to_s
+      if expected_checksum != actual_checksum
+        abort "Checksum mismatch on #{file_name}. Expected #{expected_checksum}, got #{actual_checksum}."
+      end
     end
   end
 end
