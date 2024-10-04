@@ -83,7 +83,7 @@ GEM
       irb (~> 1.10)
       reline (>= 0.3.8)
     erubi (1.13.0)
-    ffi (1.17.0-arm64-darwin)
+    ffi (1.16.3)
     globalid (1.2.1)
       activesupport (>= 6.1)
     i18n (1.14.5)
@@ -233,6 +233,7 @@ PLATFORMS
 DEPENDENCIES
   aikido-zen!
   debug
+  ffi (< 1.17)
   mysql2
   pg
   puma
