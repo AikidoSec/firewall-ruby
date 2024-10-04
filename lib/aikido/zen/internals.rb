@@ -7,6 +7,14 @@ module Aikido::Zen
     extend FFI::Library
     ffi_lib "lib/aikido/zen/libzen." + FFI::Platform::LIBSUFFIX
 
-    attach_function :detect_sql_injection, [:string, :string, :string], :boolean
+    # @!method self.detect_sql_injection(query, input, dialect)
+    #
+    # @param query [String]
+    # @param input [String]
+    # @param dialect [Integer, #to_int] the SQL Dialect identifier in libzen.
+    #   See {Aikido::Zen::Scanners::SQLInjectionScanner::DIALECTS}.
+    #
+    # @returns [Boolean]
+    attach_function :detect_sql_injection, [:string, :string, :int], :bool
   end
 end
