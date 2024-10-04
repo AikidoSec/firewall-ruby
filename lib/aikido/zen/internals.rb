@@ -5,7 +5,9 @@ require "ffi"
 module Aikido::Zen
   module Internals
     extend FFI::Library
-    ffi_lib ["lib/aikido/zen/libzen", FFI::Platform::ARCH, FFI::Platform::LIBSUFFIX].join(".")
+
+    lib_name = ["libzen", FFI::Platform::ARCH, FFI::Platform::LIBSUFFIX].join(".")
+    ffi_lib File.expand_path(lib_name, __dir__)
 
     # @!method self.detect_sql_injection(query, input, dialect)
     #
