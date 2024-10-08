@@ -6,12 +6,12 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
   module Assertions
     def assert_attack(query, input = query, dialect = :common, reason = "`#{input}` was not blocked (#{dialect})")
       dialect = Aikido::Zen::Scanners::SQLInjectionScanner::DIALECTS.fetch(dialect)
-      assert Aikido::Zen::Scanners::SQLInjectionScanner.attack?(query, input, dialect), reason
+      assert Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, dialect).attack?, reason
     end
 
     def refute_attack(query, input = query, dialect = :common, reason = "`#{input}` was blocked (#{dialect})")
       dialect = Aikido::Zen::Scanners::SQLInjectionScanner::DIALECTS.fetch(dialect)
-      refute Aikido::Zen::Scanners::SQLInjectionScanner.attack?(query, input, dialect), reason
+      refute Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, dialect).attack?, reason
     end
   end
 

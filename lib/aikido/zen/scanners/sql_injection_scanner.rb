@@ -31,7 +31,7 @@ module Aikido::Zen
         end
 
         context.payloads.each do |payload|
-          next unless attack?(query, payload.value, dialect)
+          next unless new(query, payload.value, dialect).attack?
 
           return Attacks::SQLInjectionAttack.new(
             sink: sink,
@@ -46,9 +46,23 @@ module Aikido::Zen
         nil
       end
 
-      # @!visibility private
-      def self.attack?(query, input, dialect)
-        Internals.detect_sql_injection(query.downcase, input.downcase, dialect)
+      def initialize(query, input, dialect)
+        @query = query.downcase
+        @input = input.downcase
+        @dialect = dialect
+      end
+
+      def attack?
+        # Ignore single char inputs since they shouldn't be able to do much harm
+        return false if @input.length <= 1
+
+        # If the input is longer than the query, then it is not part of it
+        return false if @input.length > @query.length
+
+        # If the input is not included in the query at all, then we are safe
+        return false unless @query.include?(@input)
+
+        Internals.detect_sql_injection(@query, @input, @dialect)
       end
 
       # @api private
