@@ -10,7 +10,7 @@ module Aikido::Zen
     end
 
     initializer "aikido.add_middleware" do |app|
-      app.middleware.use Aikido::Zen::SetContext
+      app.middleware.use Aikido::Zen::Middleware::SetContext
       app.middleware.use Aikido::Zen::Middleware::CheckAllowedAddresses
       app.middleware.use Aikido::Zen::Middleware::Throttler
 

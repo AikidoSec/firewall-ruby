@@ -8,7 +8,7 @@ require_relative "zen/system_info"
 require_relative "zen/agent"
 require_relative "zen/api_client"
 require_relative "zen/context"
-require_relative "zen/set_context"
+require_relative "zen/middleware/set_context"
 require_relative "zen/outbound_connection"
 require_relative "zen/outbound_connection_monitor"
 require_relative "zen/runtime_settings"
@@ -28,6 +28,23 @@ module Aikido
     # the server along with any events.
     def self.system_info
       @system_info ||= SystemInfo.new
+    end
+
+    # Gets the current context object that holds all information about the
+    # current request.
+    #
+    # @return [Aikido::Zen::Context, nil]
+    def self.current_context
+      Thread.current[:_aikido_current_context_]
+    end
+
+    # Sets the current context object that holds all information about the
+    # current request, or +nil+ to clear the current context.
+    #
+    # @param context [Aikido::Zen::Context, nil]
+    # @return [Aikido::Zen::Context, nil]
+    def self.current_context=(context)
+      Thread.current[:_aikido_current_context_] = context
     end
 
     # Track statistics about the result of a Sink's scan, and report it as an
