@@ -46,6 +46,7 @@ class ActiveSupport::TestCase
     Aikido::Zen.instance_variable_set(:@agent, nil)
     Aikido::Zen.instance_variable_set(:@config, nil)
     Aikido::Zen.instance_variable_set(:@runtime_settings, nil)
+    Aikido::Zen.current_context = nil
 
     @_old_sinks_registry = Aikido::Zen::Sinks.registry.dup
     Aikido::Zen::Sinks.registry.clear
