@@ -190,6 +190,24 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
 
       assert_equal req.framework, req.as_json[:source]
     end
+
+    test "#schema builds the request schema if the feature is enabled" do
+      Aikido::Zen.config.api_schema_collection_enabled = true
+
+      env = Rack::MockRequest.env_for("/test")
+      req = build_request(env)
+
+      assert_kind_of Aikido::Zen::Request::Schema, req.schema
+    end
+
+    test "#schema does nothing if the feature is disabled" do
+      Aikido::Zen.config.api_schema_collection_enabled = false
+
+      env = Rack::MockRequest.env_for("/test")
+      req = build_request(env)
+
+      assert_nil req.schema
+    end
   end
 
   class RackRequestTest < ActiveSupport::TestCase
@@ -230,6 +248,57 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       req = build_request(env)
 
       assert_equal "/cats/:id(.:format)", req.as_json[:route]
+    end
+
+    test "#schema gets built from the request body" do
+      Aikido::Zen.config.api_schema_collection_enabled = true
+
+      env = Rack::MockRequest.env_for("/users?test=true", {
+        "CONTENT_TYPE" => "application/json",
+        :method => "POST",
+        :input => %(
+          {
+            "user": {
+              "email": "alice@example.com",
+              "name": "Alice",
+              "accepts_terms": true,
+              "age": 35,
+              "interests": ["foo", "bar", "baz"]
+            }
+          }
+        )
+      })
+      req = build_request(env)
+
+      assert_equal req.schema.as_json, {
+        body: {
+          type: :json,
+          schema: {
+            "type" => "object",
+            "properties" => {
+              "user" => {
+                "type" => "object",
+                "properties" => {
+                  "email" => {"type" => "string"},
+                  "name" => {"type" => "string"},
+                  "accepts_terms" => {"type" => "boolean"},
+                  "age" => {"type" => "integer"},
+                  "interests" => {
+                    "type" => "array",
+                    "items" => {"type" => "string"}
+                  }
+                }
+              }
+            }
+          }
+        },
+        query: {
+          "type" => "object",
+          "properties" => {
+            "test" => {"type" => "string"}
+          }
+        }
+      }
     end
 
     def build_request(env)
