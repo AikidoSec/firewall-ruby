@@ -83,6 +83,22 @@ module Aikido::Zen
     #   differentiate different clients. By default this uses the request IP.
     attr_accessor :rate_limiting_discriminator
 
+    # @return [Boolean] whether Zen should infer the schema from request bodies
+    #   sent to the app. Defaults to +false+ or the value of the environment
+    #   variable AIKIDO_FEATURE_COLLECT_API_SCHEMA.
+    attr_accessor :api_schema_collection_enabled
+    alias_method :api_schema_collection_enabled?, :api_schema_collection_enabled
+
+    # @api private
+    # @return [Integer] max number of levels deep we want to read a nested
+    #   strcture for performance reasons.
+    attr_accessor :api_schema_collection_max_depth
+
+    # @api private
+    # @return [Integer] max number of properties that we want to inspect per
+    #   level of the structure for performance reasons.
+    attr_accessor :api_schema_collection_max_properties
+
     # @api private
     # @return [Proc<Hash => Aikido::Zen::Context>] callable that takes a
     #   Rack-compatible env Hash and returns a Context object with an HTTP
@@ -126,6 +142,9 @@ module Aikido::Zen
       self.server_rate_limit_deadline = 1800 # 30 min
       self.client_rate_limit_period = 3600 # 1 hour
       self.client_rate_limit_max_events = 100
+      self.api_schema_collection_enabled = read_boolean_from_env(ENV.fetch("AIKIDO_FEATURE_COLLECT_API_SCHEMA", false))
+      self.api_schema_collection_max_depth = 20
+      self.api_schema_collection_max_properties = 20
     end
 
     # Set the base URL for API requests.
@@ -159,6 +178,19 @@ module Aikido::Zen
 
       @api_timeouts ||= {}
       @api_timeouts.update(value)
+    end
+
+    private
+
+    def read_boolean_from_env(value)
+      return value unless value.respond_to?(:to_str)
+
+      case value.to_str.strip
+      when "false", "", "0", "f"
+        false
+      else
+        true
+      end
     end
 
     # @!visibility private
