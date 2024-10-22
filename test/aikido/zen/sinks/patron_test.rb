@@ -83,9 +83,11 @@ class Aikido::Zen::Sinks::PatronTest < ActiveSupport::TestCase
 
     test "prevents automated requests to redirected domains when the origin is user input" do
       skip <<~REASON.tr("\n", " ")
-        We have no way to hook into libcurl's internals from Ruby, so we can't
-        actually intercept Patron's internal handling of automatic redirects,
-        since they happen in the C layer.
+        Patron's WebMock adapter does not support Patron's "max_redirects" key,
+        so although the feature works / has been tested manually, we can't write
+        an automated test for it.
+
+        See https://github.com/bblimke/webmock/issues/1071
       REASON
 
       stub_request(:get, "https://this-is-harmless-i-swear.com/")
@@ -101,7 +103,10 @@ class Aikido::Zen::Sinks::PatronTest < ActiveSupport::TestCase
       end
 
       assert_requested :get, "https://this-is-harmless-i-swear.com"
-      assert_not_requested :get, "http://localhost"
+
+      # With libcurl wrappers, we can't stop the problematic request from
+      # happening, but we can stop the attacker from getting the response.
+      assert_requested :get, "http://localhost"
     end
   end
 
