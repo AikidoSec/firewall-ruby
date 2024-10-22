@@ -67,5 +67,10 @@ module Aikido
       extend Forwardable
       def_delegators :@attack, :query, :input, :dialect
     end
+
+    class SSRFDetectedError < UnderAttackError
+      extend Forwardable
+      def_delegators :@attack, :request, :input
+    end
   end
 end

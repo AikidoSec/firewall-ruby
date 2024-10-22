@@ -120,6 +120,10 @@ module Aikido::Zen
     #   the server returns a 429 response.
     attr_accessor :server_rate_limit_deadline
 
+    # @return [Array<String>] when checking for stored SSRF attacks, we want to
+    #   allow known hosts that should be able to resolve to the IMDS service.
+    attr_accessor :imds_allowed_hosts
+
     def initialize
       self.blocking_mode = !!ENV.fetch("AIKIDO_BLOCKING", false)
       self.api_timeouts = 10
@@ -142,9 +146,13 @@ module Aikido::Zen
       self.server_rate_limit_deadline = 1800 # 30 min
       self.client_rate_limit_period = 3600 # 1 hour
       self.client_rate_limit_max_events = 100
+
       self.api_schema_collection_enabled = read_boolean_from_env(ENV.fetch("AIKIDO_FEATURE_COLLECT_API_SCHEMA", false))
       self.api_schema_collection_max_depth = 20
       self.api_schema_collection_max_properties = 20
+
+      self.imds_allowed_hosts = ["metadata.google.internal", "metadata.goog"]
+
     end
 
     # Set the base URL for API requests.
