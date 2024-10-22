@@ -67,7 +67,7 @@ module Aikido::Zen
     def add_request(request)
       synchronize {
         @requests += 1
-        @routes.add(request.route)
+        @routes.add(request.route, request.schema)
       }
       self
     end

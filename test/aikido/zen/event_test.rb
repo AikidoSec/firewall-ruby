@@ -165,6 +165,76 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
       assert_includes event.as_json[:routes], {path: "/", method: "GET", hits: 4}
     end
 
+    test "when API discovery is enabled, includes the API spec with the routes" do
+      Aikido::Zen.config.api_schema_collection_enabled = true
+
+      @stats.add_request(
+        build_request_for("/", stub_route("GET", "/"))
+      )
+      @stats.add_request(
+        build_request_for("/users", stub_route("POST", "/users(.:format)"), {
+          :method => "POST",
+          :input => "user[name]=Alice&user[email]=alice@example.com",
+          "CONTENT_TYPE" => "multipart/form-data"
+        })
+      )
+      @stats.add_request(
+        build_request_for("/users", stub_route("POST", "/users(.:format)"), {
+          :method => "POST",
+          :input => %({"user":{"name":"Alice","email":"alice@example.com","age":35}}),
+          "CONTENT_TYPE" => "application/json"
+        })
+      )
+      @stats.add_request(
+        build_request_for("/users?search=alice&page=2", stub_route("GET", "/users(.:format)"))
+      )
+
+      event = Aikido::Zen::Events::Heartbeat.new(stats: @stats)
+      serialized = event.as_json
+
+      assert_includes serialized[:routes],
+        {path: "/", method: "GET", hits: 1, apispec: {}}
+      assert_includes serialized[:routes],
+        {
+          path: "/users(.:format)",
+          method: "GET",
+          hits: 1,
+          apispec: {
+            query: {
+              "type" => "object",
+              "properties" => {
+                "search" => {"type" => "string"},
+                "page" => {"type" => "string"}
+              }
+            }
+          }
+        }
+      assert_includes serialized[:routes],
+        {
+          path: "/users(.:format)",
+          method: "POST",
+          hits: 2,
+          apispec: {
+            body: {
+              type: :json,
+              schema: {
+                "type" => "object",
+                "properties" => {
+                  "user" => {
+                    "type" => "object",
+                    "properties" => {
+                      "name" => {"type" => "string"},
+                      "email" => {"type" => "string"},
+                      "age" => {"type" => "integer", "optional" => true}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+    end
+
     test "includes the users the developer told us about" do
       skip "Implement support for users"
     end
@@ -177,10 +247,20 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
       Aikido::Zen::Route.new(path: path, verb: verb)
     end
 
-    def stub_request(route:)
-      StubRequest.new(route)
+    def stub_request(route:, schema: nil)
+      StubRequest.new(route, schema)
     end
 
-    StubRequest = Struct.new(:route)
+    def build_request_for(path, route, env = {})
+      env = Rack::MockRequest.env_for(path, env)
+      env = Rails.application.env_config.merge(env)
+
+      Aikido::Zen.current_context = Aikido::Zen::Context::RAILS_REQUEST_BUILDER.call(env)
+      Aikido::Zen.current_context.request.tap do |req|
+        req.singleton_class.define_method(:route) { route }
+      end
+    end
+
+    StubRequest = Struct.new(:route, :schema)
   end
 end

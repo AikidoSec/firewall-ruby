@@ -86,8 +86,8 @@ class Aikido::Zen::StatsTest < ActiveSupport::TestCase
     ctx_2 = stub_context(Rack::MockRequest.env_for("/post", "REQUEST_METHOD" => "POST"))
     route_2 = Aikido::Zen::Route.new(verb: "POST", path: "/post")
 
-    assert_difference -> { @stats.routes[route_1] }, +2 do
-      assert_difference -> { @stats.routes[route_2] }, +1 do
+    assert_difference -> { @stats.routes[route_1].hits }, +2 do
+      assert_difference -> { @stats.routes[route_2].hits }, +1 do
         @stats.add_request(ctx_1.request)
         @stats.add_request(ctx_2.request)
         @stats.add_request(ctx_1.request)
@@ -579,7 +579,7 @@ class Aikido::Zen::StatsTest < ActiveSupport::TestCase
       copy = @stats.reset(at: Time.at(1234577890))
 
       assert_equal expected_stats, copy.as_json
-      assert_equal 2, copy.routes[Aikido::Zen::Route.new(path: "/", verb: "GET")]
+      assert_equal 2, copy.routes[Aikido::Zen::Route.new(path: "/", verb: "GET")].hits
       assert_equal 3, copy.outbound_connections.size
       assert_equal 2, copy.users.size
       assert_equal ["123", "234"], copy.users.as_json.map { |user| user[:id] }

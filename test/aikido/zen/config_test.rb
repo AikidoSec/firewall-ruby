@@ -28,7 +28,12 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 3600, @config.client_rate_limit_period
     assert_equal 100, @config.client_rate_limit_max_events
     assert_equal 1800, @config.server_rate_limit_deadline
+
+    assert_equal false, @config.api_schema_collection_enabled?
+    assert_equal 20, @config.api_schema_collection_max_depth
+
     assert_equal ["metadata.google.internal", "metadata.goog"], @config.imds_allowed_hosts
+
   end
 
   test "can overwrite the api_base_url" do
@@ -145,6 +150,43 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
 
     assert_equal "1.2.3.4", value
     assert_mock request
+  end
+
+  test "reads the value of #api_schema_collection_enabled from the ENV" do
+    with_env "AIKIDO_FEATURE_COLLECT_API_SCHEMA" => "true" do
+      config = Aikido::Zen::Config.new
+      assert config.api_schema_collection_enabled?
+    end
+
+    with_env "AIKIDO_FEATURE_COLLECT_API_SCHEMA" => "1" do
+      config = Aikido::Zen::Config.new
+      assert config.api_schema_collection_enabled?
+    end
+
+    with_env "AIKIDO_FEATURE_COLLECT_API_SCHEMA" => "t" do
+      config = Aikido::Zen::Config.new
+      assert config.api_schema_collection_enabled?
+    end
+
+    with_env "AIKIDO_FEATURE_COLLECT_API_SCHEMA" => "false" do
+      config = Aikido::Zen::Config.new
+      refute config.api_schema_collection_enabled?
+    end
+
+    with_env "AIKIDO_FEATURE_COLLECT_API_SCHEMA" => "0" do
+      config = Aikido::Zen::Config.new
+      refute config.api_schema_collection_enabled?
+    end
+
+    with_env "AIKIDO_FEATURE_COLLECT_API_SCHEMA" => "f" do
+      config = Aikido::Zen::Config.new
+      refute config.api_schema_collection_enabled?
+    end
+
+    with_env "AIKIDO_FEATURE_COLLECT_API_SCHEMA" => "" do
+      config = Aikido::Zen::Config.new
+      refute config.api_schema_collection_enabled?
+    end
   end
 
   def with_env(data = {})

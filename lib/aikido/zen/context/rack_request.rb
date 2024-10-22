@@ -8,7 +8,7 @@ module Aikido::Zen
   Context::RACK_REQUEST_BUILDER = ->(env) do
     delegate = Rack::Request.new(env)
     router = Aikido::Zen::Request::HeuristicRouter.new
-    request = Aikido::Zen::Request.new(delegate, framework: "rails", router: router)
+    request = Aikido::Zen::Request.new(delegate, framework: "rack", router: router)
 
     Context.new(request) do |req|
       {
