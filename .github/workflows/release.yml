@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: "./.github/workflows/main.yml"
+  internal_release:
+    runs-on: ubuntu-latest
+    name: publish-to-github-packages
+    needs:
+      - build
+
+    steps:
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.3
+          bundler-cache: true
+      - name: Set up GitHub package access
+        run: |
+          mkdir -p ~/.gem
+          echo ":github: Bearer ${{ secrets.GITHUB_TOKEN }}" >> ~/.gem/credentials
+          chmod 0600 ~/.gem/credentials
+      - uses: actions/download-artifact@v4
+        id: download
+        with:
+          name: built-gem
+          path: ./pkg/
+      - name: Publish gem to GitHub packages
+        run: |
+          gem push --key github \
+            --host https://rubygems.pkg.github.com/${{ github.repository_owner }} \
+            ${{steps.download.outputs.download-path}}/*.gem
+

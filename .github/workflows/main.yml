@@ -1,7 +1,8 @@
 name: Ruby
 
 on:
-  push:
+  - push
+  - workflow_call
 
 jobs:
   build:
