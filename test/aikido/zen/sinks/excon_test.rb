@@ -75,12 +75,6 @@ class Aikido::Zen::Sinks::ExconTest < ActiveSupport::TestCase
     end
 
     test "prevents automated requests to redirected domains when the origin is user input" do
-      skip <<~REASON.tr("\n", " ")
-        We have no way to hook into libcurl's internals from Ruby, so we can't
-        actually intercept Excon's internal handling of automatic redirects,
-        since they happen in the C layer.
-      REASON
-
       stub_request(:get, "https://this-is-harmless-i-swear.com/")
         .to_return(status: 301, headers: {"Location" => "http://localhost/"})
       stub_request(:get, "http://localhost/")

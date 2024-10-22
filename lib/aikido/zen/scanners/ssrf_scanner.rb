@@ -1,14 +1,29 @@
 # frozen_string_literal: true
 
 require_relative "ssrf/private_ip_checker"
+require_relative "ssrf/dns_lookups"
 
 module Aikido::Zen
   module Scanners
     class SSRFScanner
-      # Checks if the connection being made is to a hostname supplied from user
-      # input.
+      # Checks if an outbound HTTP request is to a hostname supplied from user
+      # input that resolves to a "dangerous" address. This is called from two
+      # different places:
       #
-      # @param request [Aikido::Zen::Scanners::SSRFScanner::Request]
+      # * HTTP library sinks, before we make a request. In these cases we can
+      #   detect very obvious attempts such as a request that attempts to access
+      #   localhost or an internal IP.
+      # * DNS lookup sinks, after we resolve a hostname. For HTTP requests that
+      #   are not obviously an attack, we let the DNS resolution happen, and
+      #   then check again, now knowing if the domain name provided actually
+      #   resolves to an internal IP or not.
+      #
+      # NOTE: Because not all DNS resolutions might be happening in the context
+      # of a protected HTTP request, the +request+ argument below *might* be nil
+      # and we can then skip this scan.
+      #
+      # @param request [Aikido::Zen::Scanners::SSRFScanner::Request, nil]
+      #   the ongoing outbound HTTP request.
       # @param context [Aikido::Zen::Context]
       # @param sink [Aikido::Zen::Sink] the Sink that is running the scan.
       # @param operation [Symbol, String] name of the method being scanned.
@@ -18,6 +33,7 @@ module Aikido::Zen
       #   input is detected to be attempting SSRF, or +nil+ if not.
       def self.call(request:, sink:, context:, operation:, **)
         return if context.nil?
+        return if request.nil? # See NOTE above.
 
         context["ssrf.redirects"] ||= RedirectChains.new
 
@@ -79,6 +95,11 @@ module Aikido::Zen
           .any? { |(conn_uri, candidate)| match?(conn_uri, candidate) }
       end
 
+      # @!visibility private
+      def self.private_ip_checker
+        @private_ip_checker ||= SSRF::PrivateIPChecker.new
+      end
+
       private
 
       def match?(conn_uri, input_uri)
@@ -95,8 +116,7 @@ module Aikido::Zen
       end
 
       def private_ip?(hostname)
-        @private_ip_checker ||= SSRF::PrivateIPChecker.new
-        @private_ip_checker.private?(hostname)
+        self.class.private_ip_checker.private?(hostname)
       end
 
       def origins_for_request

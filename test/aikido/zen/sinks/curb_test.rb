@@ -76,12 +76,6 @@ class Aikido::Zen::Sinks::CurbTest < ActiveSupport::TestCase
     end
 
     test "prevents automated requests to redirected domains when the origin is user input" do
-      skip <<~REASON.tr("\n", " ")
-        We have no way to hook into libcurl's internals from Ruby, so we can't
-        actually intercept Curb's handling of automatic redirects, since they
-        happen in the C layer.
-      REASON
-
       stub_request(:get, "https://this-is-harmless-i-swear.com/")
         .to_return(status: 301, headers: {"Location" => "http://localhost/"})
       stub_request(:get, "http://localhost/")
@@ -90,11 +84,16 @@ class Aikido::Zen::Sinks::CurbTest < ActiveSupport::TestCase
       set_context_from_request_to "/?host=this-is-harmless-i-swear.com"
 
       assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        Curl.get("https://localhost", follow_location: 1)
+        Curl.get("https://this-is-harmless-i-swear.com/") do |curl|
+          curl.follow_location = true
+        end
       end
 
       assert_requested :get, "https://this-is-harmless-i-swear.com"
-      assert_not_requested :get, "http://localhost"
+
+      # With libcurl wrappers, we can't stop the problematic request from
+      # happening, but we can stop the attacker from getting the response.
+      assert_requested :get, "http://localhost"
     end
   end
 

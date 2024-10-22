@@ -12,8 +12,37 @@ module Aikido::Zen
           Aikido::Zen::OutboundConnectionMonitor
         ])
 
+        module Extensions
+          def send_request(*)
+            wrapped_request = Aikido::Zen::Scanners::SSRFScanner::Request.new(
+              verb: req.method.to_s,
+              uri: URI(req.uri),
+              headers: req.headers
+            )
+
+            # Store the request information so the DNS sinks can pick it up.
+            context = Aikido::Zen.current_context
+            context["ssrf.request"] = wrapped_request if context
+
+            SINK.scan(
+              connection: Aikido::Zen::OutboundConnection.new(
+                host: req.host,
+                port: req.port
+              ),
+              request: wrapped_request,
+              operation: "request"
+            )
+
+            super
+          end
+        end
+
         class Middleware
           def response(client)
+            # Store the request information so the DNS sinks can pick it up.
+            context = Aikido::Zen.current_context
+            context["ssrf.request"] = nil if context
+
             Aikido::Zen::Scanners::SSRFScanner.track_redirects(
               request: Aikido::Zen::Scanners::SSRFScanner::Request.new(
                 verb: client.req.method,
@@ -25,25 +54,6 @@ module Aikido::Zen
                 headers: client.response_header.to_h
               )
             )
-          end
-        end
-
-        module Extensions
-          def send_request(*)
-            SINK.scan(
-              connection: Aikido::Zen::OutboundConnection.new(
-                host: req.host,
-                port: req.port
-              ),
-              request: Aikido::Zen::Scanners::SSRFScanner::Request.new(
-                verb: req.method.to_s,
-                uri: URI(req.uri),
-                headers: req.headers
-              ),
-              operation: "request"
-            )
-
-            super
           end
         end
       end

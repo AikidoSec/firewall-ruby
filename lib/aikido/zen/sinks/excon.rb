@@ -45,6 +45,12 @@ module Aikido::Zen
         def request(params = {}, *)
           request = Extensions.build_request(@data, params)
 
+          # Store the request information so the DNS sinks can pick it up.
+          if (context = Aikido::Zen.current_context)
+            prev_request = context["ssrf.request"]
+            context["ssrf.request"] = request
+          end
+
           SINK.scan(
             connection: Aikido::Zen::OutboundConnection.from_uri(request.uri),
             request: request,
@@ -62,6 +68,31 @@ module Aikido::Zen
           )
 
           response
+        rescue ::Excon::Error::Socket => err
+          # Excon wraps errors inside the lower level layer. This only happens
+          # to our scanning exceptions when a request is using RedirectFollower,
+          # so we unwrap them when it happens so host apps can handle errors
+          # consistently.
+          raise err.cause if err.cause.is_a?(Aikido::Zen::UnderAttackError)
+          raise
+        ensure
+          context["ssrf.request"] = prev_request if context
+        end
+      end
+
+      module RedirectFollowerExtensions
+        def response_call(data)
+          if (response = data[:response])
+            Aikido::Zen::Scanners::SSRFScanner.track_redirects(
+              request: Extensions.build_request(data, {}),
+              response: Aikido::Zen::Scanners::SSRFScanner::Response.new(
+                status: response[:status],
+                headers: response[:headers]
+              )
+            )
+          end
+
+          super
         end
       end
     end
@@ -69,3 +100,4 @@ module Aikido::Zen
 end
 
 ::Excon::Connection.prepend(Aikido::Zen::Sinks::Excon::Extensions)
+::Excon::Middleware::RedirectFollower.prepend(Aikido::Zen::Sinks::Excon::RedirectFollowerExtensions)
