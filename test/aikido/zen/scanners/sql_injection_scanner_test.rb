@@ -249,6 +249,16 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     SQL
   end
 
+  test "ignores purely alphanumeric input" do
+    refute_attack "SELECT * FROM users123", "users123"
+    refute_attack "SELECT * FROM users_123", "users_123"
+  end
+
+  test "ignores input that does not show up in the SQL query" do
+    assert_attack "SELECT * FROM users WHERE id IN (1,2,3)", "1,2,3"
+    refute_attack "SELECT * FROM users", "1,2,3"
+  end
+
   class TestMySQLDialect < ActiveSupport::TestCase
     include Assertions
 
