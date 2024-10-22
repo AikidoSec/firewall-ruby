@@ -8,31 +8,21 @@ on:
 jobs:
   build:
     uses: "./.github/workflows/main.yml"
-  internal_release:
+  release:
     runs-on: ubuntu-latest
-    name: publish-to-github-packages
+    name: release-gem
+
+    permissions:
+      contents: write
+      id-token: write
+
     needs:
       - build
-
     steps:
+      - uses: actions/checkout@v4
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 3.3
+          ruby-version: ruby
           bundler-cache: true
-      - name: Set up GitHub package access
-        run: |
-          mkdir -p ~/.gem
-          echo ":github: Bearer ${{ secrets.GITHUB_TOKEN }}" >> ~/.gem/credentials
-          chmod 0600 ~/.gem/credentials
-      - uses: actions/download-artifact@v4
-        id: download
-        with:
-          name: built-gem
-          path: ./pkg/
-      - name: Publish gem to GitHub packages
-        run: |
-          gem push --key github \
-            --host https://rubygems.pkg.github.com/${{ github.repository_owner }} \
-            ${{steps.download.outputs.download-path}}/*.gem
-
+      - uses: rubygems/release-gem@v1
