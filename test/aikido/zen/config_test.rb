@@ -33,7 +33,6 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 20, @config.api_schema_collection_max_depth
 
     assert_equal ["metadata.google.internal", "metadata.goog"], @config.imds_allowed_hosts
-
   end
 
   test "can overwrite the api_base_url" do

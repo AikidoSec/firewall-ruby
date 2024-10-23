@@ -152,7 +152,6 @@ module Aikido::Zen
       self.api_schema_collection_max_properties = 20
 
       self.imds_allowed_hosts = ["metadata.google.internal", "metadata.goog"]
-
     end
 
     # Set the base URL for API requests.

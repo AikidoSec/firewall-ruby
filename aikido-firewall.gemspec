@@ -25,10 +25,13 @@ Gem::Specification.new do |spec|
         f.start_with?(*%w[bin/ test/ spec/ features/ sample_apps/ .git .github appveyor Gemfile])
     end
   end
+  spec.files += Dir["lib/aikido/zen/libzen.*"]
+
   spec.bindir = "exe"
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
   spec.add_dependency "concurrent-ruby", "~> 1.0"
   spec.add_dependency "rack"
+  spec.add_dependency "ffi"
 end

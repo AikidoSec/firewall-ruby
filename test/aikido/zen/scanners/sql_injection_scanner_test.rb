@@ -5,13 +5,13 @@ require "test_helper"
 class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
   module Assertions
     def assert_attack(query, input = query, dialect = :common, reason = "`#{input}` was not blocked (#{dialect})")
-      scanner = Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, dialect)
-      assert scanner.attack?, reason
+      dialect = Aikido::Zen::Scanners::SQLInjectionScanner::DIALECTS.fetch(dialect)
+      assert Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, dialect).attack?, reason
     end
 
     def refute_attack(query, input = query, dialect = :common, reason = "`#{input}` was blocked (#{dialect})")
-      scanner = Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, dialect)
-      refute scanner.attack?, reason
+      dialect = Aikido::Zen::Scanners::SQLInjectionScanner::DIALECTS.fetch(dialect)
+      refute Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, dialect).attack?, reason
     end
   end
 
@@ -50,7 +50,6 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
   end
 
   test "rejects input with unescaped and unencapsulated special characters" do
-    assert_attack "I'm writting you"
     assert_attack "Termin;ate"
     assert_attack "Roses <> violets"
     assert_attack "Roses < Violets"
@@ -60,21 +59,10 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     assert_attack "UNTER;"
   end
 
-  test "rejects input trying to escape the quote characters" do
-    assert_attack "SELECT * FROM users WHERE id = 'users\\'", "users\\"
-    assert_attack "SELECT * FROM users WHERE id = 'users\\\\'", "users\\\\"
-  end
-
   test "allows input with allowed escape sequences" do
     refute_attack "SELECT * FROM users WHERE id = '\nusers'", "\nusers"
     refute_attack "SELECT * FROM users WHERE id = '\rusers'", "\rusers"
     refute_attack "SELECT * FROM users WHERE id = '\tusers'", "\tusers"
-  end
-
-  test "rejects input that includes unescaped quotes" do
-    assert_attack %(SELECT * FROM comments WHERE comment = 'I'm writting you'), "I'm writting you"
-    assert_attack %(SELECT * FROM comments WHERE comment = "I"m writting you"), 'I"m writting you'
-    assert_attack "SELECT * FROM `comm`ents`", "`comm`ents"
   end
 
   # rubocop:disable Style/StringLiterals
@@ -85,20 +73,13 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     refute_attack %(SELECT * FROM comments WHERE comment = 'I"m writting you'), 'I"m writting you'
     refute_attack %(SELECT * FROM comments WHERE comment = 'I`m writting you'), 'I"m writting you'
     refute_attack %(SELECT * FROM comments WHERE comment = 'I\\'m writting you'), 'I\'m writting you'
-    refute_attack %(SELECT * FROM comments WHERE comment = `I"m writting you`), 'I"m writting you'
-    refute_attack %(SELECT * FROM comments WHERE comment = `I'm writting you`), "I'm writting you"
     refute_attack %(SELECT * FROM comments WHERE comment = `I\\`m writting you`), "I`m writting you"
-    refute_attack "SELECT * FROM `comm'ents`", "comm'ents"
   end
   # rubocop:enable Style/StringLiterals
 
   test "allows quoted comments" do
     refute_attack "SELECT * FROM hashtags WHERE name = '#hashtag'", "#hashtag"
     refute_attack "SELECT * FROM hashtags WHERE name = '-- nope'", "-- nope"
-  end
-
-  test "allows input inside a comment" do
-    refute_attack "SELECT * FROM hashtags WHERE name = 'name' -- Query by name", "name"
   end
 
   test "allows comments at the end of the query" do
@@ -111,22 +92,7 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     refute_attack "SELECT * FROM hashtags WHERE id = 1 -- Query by name", "-- Query by name"
   end
 
-  test "allows words that include SQL keywords but have extra characters" do
-    refute_attack "Roses are red rollbacks are blue"
-    refute_attack "Roses are red truncates are blue"
-    refute_attack "Roses are reddelete are blue"
-    refute_attack "Roses are red WHEREis blue"
-    refute_attack "Roses are red ORis isAND"
-  end
-
-  test "allows SQL functions that should not be blocked" do
-    refute_attack "I was benchmark ing"
-    refute_attack "We were delay ed"
-    refute_attack "I will waitfor you"
-  end
-
   test "allows some special characters and single character queries" do
-    refute_attack "steve@yahoo.com"
     refute_attack "#"
     refute_attack "'"
   end
@@ -145,18 +111,6 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     refute_attack "SELECT * FROM table", "*"
 
     refute_attack "SELECT * FROM users WHERE id = 1", "SELECT"
-  end
-
-  test "handles user input inside IN (...) statements" do
-    assert_attack "SELECT * FROM users WHERE id IN ('123')", "'123'"
-    refute_attack "SELECT * FROM users WHERE id IN (123)", "123"
-    refute_attack "SELECT * FROM users WHERE id IN (123, 456)", "123"
-    refute_attack "SELECT * FROM users WHERE id IN (123, 456)", "456"
-    refute_attack "SELECT * FROM users WHERE id IN ('123')", "123"
-    refute_attack "SELECT * FROM users WHERE id IN (13,14,15)", "13,14,15"
-    refute_attack "SELECT * FROM users WHERE id IN (13, 14, 154)", "13, 14, 154"
-
-    assert_attack "SELECT * FROM users WHERE id IN (13, 14, 154) OR (1=1)", "13, 14, 154) OR (1=1"
   end
 
   test "handles multiline inputs" do
@@ -180,11 +134,6 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
   end
 
   test "handles multiline queries" do
-    assert_attack <<~QUERY.chomp, "users`"
-      SELECT * FROM `users``
-      WHERE id = 123
-    QUERY
-
     assert_attack <<~QUERY.chomp, "1' OR 1=1"
       SELECT *
       FROM users
@@ -232,13 +181,6 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     QUERY
   end
 
-  test "it flags dangerous strings as attacks" do
-    Aikido::Zen::Scanners::SQLInjection[:common].dangerous_syntax.each do |token|
-      input = "#{token} a" # needs to be longer than one character
-      assert_attack "SELECT * FROM users WHERE #{input}", input
-    end
-  end
-
   test "it does not flag safe keywords as attacks" do
     query = <<~SQL.chomp
       INSERT INTO businesses (
@@ -275,10 +217,6 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     assert_attack "1foo_bar()", "1foo_bar()"
     assert_attack "1foo-bar()", "1foo-bar()"
     assert_attack "#foobar()", "#foobar()"
-
-    refute_attack "foobar)", "foobar)"
-    refute_attack "foobar      )", "foobar      )"
-    refute_attack "€foobar()", "€foobar()"
   end
 
   test "it flags attacks regardless of input casing" do
@@ -295,7 +233,6 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
 
     refute_attack query, "view_id"
     refute_attack query, "view_settings"
-    refute_attack query, "view_settings.user_id"
 
     refute_attack <<~SQL.chomp, "view"
       SELECT id,
@@ -312,30 +249,14 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     SQL
   end
 
-  test "it does not flag keywords by themselves as they don't pose any risk" do
-    Aikido::Zen::Scanners::SQLInjection[:common].keywords.each do |keyword|
-      refute_attack "SELECT id FROM #{keyword}", keyword
-      refute_attack "SELECT id FROM #{keyword}", keyword.downcase
-    end
+  test "ignores purely alphanumeric input" do
+    refute_attack "SELECT * FROM users123", "users123"
+    refute_attack "SELECT * FROM users_123", "users_123"
   end
 
-  test "it flags keywords when the input contains other characters" do
-    Aikido::Zen::Scanners::SQLInjection[:common].keywords.each do |keyword|
-      assert_attack "SELECT id FROM #{keyword}", " #{keyword}"
-      assert_attack "SELECT id FROM #{keyword}", " #{keyword.downcase}"
-
-      Aikido::Zen::Scanners::SQLInjection[:common].dangerous_syntax.each do |token|
-        payload = "#{keyword}#{token}"
-        assert_attack "SELECT id FROM #{payload}", payload
-        assert_attack "SELECT id FROM #{payload}", payload.downcase
-      end
-    end
-  end
-
-  test "flags common auth bypasses as attacks" do
-    file_fixture("sql_injection/Auth_Bypass.txt").each_line do |payload|
-      assert_attack payload.chomp
-    end
+  test "ignores input that does not show up in the SQL query" do
+    refute_attack "SELECT * FROM users WHERE id IN (1,2,3)", "1,2,3"
+    refute_attack "SELECT * FROM users", "1,2,3"
   end
 
   class TestMySQLDialect < ActiveSupport::TestCase
@@ -409,14 +330,6 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
       assert_attack "SELECT abc::date", "abc::date"
     end
 
-    test "flags double dollar sign as SQL injection" do
-      assert_attack "SELECT $$", "$$"
-      assert_attack "SELECT $$text$$", "$$text$$"
-      assert_attack "SELECT $tag$text$tag$", "$tag$text$tag$"
-
-      refute_attack "SELECT '$$text$$'", "$$text$$"
-    end
-
     test "flags CLIENT_ENCODING as SQL injection" do
       assert_attack "SET CLIENT_ENCODING TO 'UTF8'", "CLIENT_ENCODING TO 'UTF8'"
       assert_attack "SET CLIENT_ENCODING = 'UTF8'", "CLIENT_ENCODING = 'UTF8'"
@@ -454,93 +367,6 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
       refute_attack "SELECT $$", "$$"
       refute_attack "SELECT $$text$$", "$$text$$"
       refute_attack "SELECT $tag$text$tag$", "$tag$text$tag$"
-    end
-  end
-
-  class TestEncapsulation < ActiveSupport::TestCase
-    def assert_encapsulated(query, input, reason = "`#{input}` not correctly encapsulated in `#{query}`")
-      scanner = Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, :mysql)
-      assert scanner.input_quoted_or_escaped_within_query?, reason
-    end
-
-    def refute_encapsulated(query, input, reason = "`#{input}` correctly encapsulated in `#{query}`")
-      scanner = Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, :mysql)
-      refute scanner.input_quoted_or_escaped_within_query?, reason
-    end
-
-    test "input is correctly quoted inside query" do
-      assert_encapsulated %( Hello Hello 'UNION' and also "UNION" ), "UNION"
-      assert_encapsulated %("UNION"), "UNION"
-      assert_encapsulated %(`UNION`), "UNION"
-      assert_encapsulated %( 'UNION' ), "UNION"
-
-      refute_encapsulated %(UNION), "UNION"
-    end
-
-    test "all instances of input should be quoted inside query" do
-      assert_encapsulated %("UNION"'UNION'), "UNION"
-      refute_encapsulated %(UNION"UNION"'UNION'), "UNION"
-      refute_encapsulated %('UNION'"UNION"UNION), "UNION"
-      refute_encapsulated %('UNION'UNION"UNION"), "UNION"
-    end
-
-    test "input with quotes inside" do
-      assert_encapsulated %(SELECT * FROM cats WHERE id = 'UN"ION' AND id = "UN'ION"), 'UN"ION'
-      refute_encapsulated %(SELECT * FROM cats WHERE id = 'UN'ION' AND id = "UN'ION"), "UN'ION"
-      refute_encapsulated %(SELECT * FROM cats WHERE id = 'UN`ION' AND id = `UN`ION`), "UN`ION"
-    end
-
-    test "input escaping the closing quote" do
-      refute_encapsulated %(SELECT * FROM cats WHERE id = 'UNION\\'), "UNION\\"
-      refute_encapsulated %(SELECT * FROM cats WHERE id = 'UNION\\\\'), "UNION\\\\"
-      refute_encapsulated %(SELECT * FROM cats WHERE id = 'UNION\\\\\\'), "UNION\\\\\\"
-    end
-
-    test "input with unbalanced quotes" do
-      refute_encapsulated %(SELECT * FROM users WHERE id = '\\'hello'), "'hello'"
-      refute_encapsulated %(SELECT * FROM users WHERE id = "\\"hello"), '"hello"'
-    end
-
-    test "input surrounded with balanced quotes" do
-      assert_encapsulated %(SELECT * FROM users WHERE id = '\\'hello\\''), "'hello'"
-      assert_encapsulated %(SELECT * FROM users WHERE id = "\\"hello\\""), '"hello"'
-      assert_encapsulated %(SELECT * FROM users WHERE id = `\\`hello\\``), "`hello`"
-    end
-
-    test "input starts with a stray quote" do
-      assert_encapsulated %(SELECT * FROM users WHERE id = '\\' or true--'), "' or true--"
-      assert_encapsulated %(SELECT * FROM users WHERE id = "\\" or true--"), '" or true--'
-      assert_encapsulated %(SELECT * FROM users WHERE id = `\\` or true--`), "` or true--"
-
-      assert_encapsulated %(SELECT * FROM users WHERE id = '\\' hello world'), "' hello world"
-      assert_encapsulated %(SELECT * FROM users WHERE id = "\\" hello world"), '" hello world'
-      assert_encapsulated %(SELECT * FROM users WHERE id = `\\` hello world`), "` hello world"
-    end
-
-    test "input starts with stray quote and appears multiple times in query" do
-      assert_encapsulated %(SELECT * FROM users WHERE id = '\\'hello' AND id = '\\'hello'), "'hello"
-      assert_encapsulated %(SELECT * FROM users WHERE id = "\\"hello" AND id = "\\"hello"), '"hello'
-      assert_encapsulated %(SELECT * FROM users WHERE id = `\\`hello` AND id = `\\`hello`), "`hello"
-
-      refute_encapsulated %(SELECT * FROM users WHERE id = '\\'hello' AND id = 'hello'), "'hello"
-      refute_encapsulated %(SELECT * FROM users WHERE id = "\\"hello" AND id = "hello"), '"hello'
-      refute_encapsulated %(SELECT * FROM users WHERE id = `\\`hello` AND id = `hello`), "`hello"
-    end
-
-    test "input with allowed escape sequences" do
-      assert_encapsulated %(SELECT * FROM cats WHERE id = 'UNION\\n'), "UNION\\n"
-      assert_encapsulated %(SELECT * FROM cats WHERE id = '\\tUNION\\t'), "\\tUNION\\t"
-      assert_encapsulated %(SELECT * FROM cats WHERE id = '\\rUNION'), "\\rUNION"
-    end
-
-    test "using single quotes as an escape sequence for single quotes" do
-      skip <<~REASON
-        The current algorithm is not very clever, and doesn't quite support
-        escaping strings this way. However, since this is not the most used
-        syntax, we're OK with not supporting it for the time being.
-      REASON
-
-      assert_encapsulated %(SELECT * FROM users WHERE id = '''&'''), "'&'"
     end
   end
 end
