@@ -71,5 +71,68 @@ module Aikido::Zen
         SQLInjectionError.new(self)
       end
     end
+
+    class SSRFAttack < Attack
+      attr_reader :input
+      attr_reader :request
+
+      def initialize(request:, input:, **opts)
+        super(**opts)
+        @input = input
+        @request = request
+      end
+
+      def log_message
+        format(
+          "SSRF: Request to user-supplied hostname «%s» detected in %s (%s).",
+          @input, @operation, @request
+        ).strip
+      end
+
+      def exception(*)
+        SSRFDetectedError.new(self)
+      end
+
+      def as_json
+        {
+          kind: "ssrf",
+          metadata: {host: @request.uri.hostname, port: @request.uri.port},
+          blocked: blocked?,
+          operation: @operation
+        }.merge(@input.as_json)
+      end
+    end
+
+    # Special case of an SSRF attack where we don't have a context—we're just
+    # detecting a request to a particularly sensitive address.
+    class StoredSSRFAttack < Attack
+      attr_reader :hostname
+      attr_reader :address
+
+      def initialize(hostname:, address:, **opts)
+        super(**opts)
+        @hostname = hostname
+        @address = address
+      end
+
+      def log_message
+        format(
+          "Stored SSRF: Request to sensitive host «%s» (%s) detected from unknown source in %s",
+          @hostname, @address, @operation
+        )
+      end
+
+      def exception(*)
+        SSRFDetectedError.new(self)
+      end
+
+      def as_json
+        {
+          kind: "ssrf",
+          blocked: blocked?,
+          operation: @operation
+        }
+      end
+    end
   end
 end

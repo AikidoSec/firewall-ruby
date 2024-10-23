@@ -86,6 +86,13 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       protected_ctx = build_context_for("/", "REMOTE_ADDR" => "1.2.3.4")
       refute protected_ctx.protection_disabled?
     end
+
+    test "the context can store metadata" do
+      context = build_context_for("/path")
+
+      context["foo"] = "bar"
+      assert_equal "bar", context["foo"]
+    end
   end
 
   class RackRequestTest < ActiveSupport::TestCase

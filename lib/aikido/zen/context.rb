@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "rack/request"
+require "forwardable"
 
 require_relative "request"
 require_relative "payload"
@@ -24,6 +24,24 @@ module Aikido::Zen
       @request = request
       @settings = settings
       @payload_sources = sources
+      @metadata = {}
+    end
+
+    # Fetch some metadata stored in the Context.
+    #
+    # @param key [String]
+    # @return [Object, nil]
+    def [](key)
+      @metadata[key]
+    end
+
+    # Store some metadata in the Context so other Scanners can use it.
+    #
+    # @param key [String]
+    # @param value [Object]
+    # @return [void]
+    def []=(key, value)
+      @metadata[key] = value
     end
 
     # Overrides the current request, and invalidates any memoized data obtained

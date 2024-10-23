@@ -33,6 +33,7 @@ require_relative "support/uri_origin"
 require_relative "support/fake_rails_app"
 require_relative "support/http_connection_tracking_assertions"
 require_relative "support/rate_limiting_assertions"
+require_relative "support/sink_attack_helpers"
 
 # Utility proc that does nothing.
 NOOP = ->(*args, **opts) {}
@@ -46,6 +47,7 @@ class ActiveSupport::TestCase
     Aikido::Zen.instance_variable_set(:@agent, nil)
     Aikido::Zen.instance_variable_set(:@config, nil)
     Aikido::Zen.instance_variable_set(:@runtime_settings, nil)
+    Aikido::Zen.current_context = nil
 
     @_old_sinks_registry = Aikido::Zen::Sinks.registry.dup
     Aikido::Zen::Sinks.registry.clear

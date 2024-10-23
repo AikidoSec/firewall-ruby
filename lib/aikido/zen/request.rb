@@ -29,6 +29,11 @@ module Aikido::Zen
       @route ||= @router.recognize(self)
     end
 
+    # @return [Aikido::Zen::Request::Schema, nil]
+    def schema
+      @schema ||= Aikido::Zen::Request::Schema.build
+    end
+
     # Map the CGI-style env Hash into "pretty-looking" headers, preserving the
     # values as-is. For example, HTTP_ACCEPT turns into "Accept", CONTENT_TYPE
     # turns into "Content-Type", and HTTP_X_FORWARDED_FOR turns into
@@ -88,3 +93,5 @@ module Aikido::Zen
     BLESSED_CGI_HEADERS = %w[CONTENT_TYPE CONTENT_LENGTH]
   end
 end
+
+require_relative "request/schema"
