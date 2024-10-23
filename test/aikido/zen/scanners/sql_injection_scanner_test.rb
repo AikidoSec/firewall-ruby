@@ -255,7 +255,7 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
   end
 
   test "ignores input that does not show up in the SQL query" do
-    assert_attack "SELECT * FROM users WHERE id IN (1,2,3)", "1,2,3"
+    refute_attack "SELECT * FROM users WHERE id IN (1,2,3)", "1,2,3"
     refute_attack "SELECT * FROM users", "1,2,3"
   end
 
