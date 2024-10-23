@@ -73,12 +73,14 @@ module Aikido
       def_delegators :@attack, :request, :input
     end
 
-    # Raised when a scanner tries to call Zen::Internals but the library could
-    # not be loaded.
-    class InternalsMissingError < ZenError
-      def initialize(target, libzen_path)
-        super(format(<<~MSG.chomp, target, libzen_path))
-          Zen is not scanning %s due to a problem loading binary extension `%s'
+    # Raised when there's any problem communicating (or loading) libzen.
+    class InternalsError < ZenError
+      # @param attempt [String] description of what we were trying to do.
+      # @param problem [String] what couldn't be done.
+      # @param libname [String] the name of the file (including the arch).
+      def initialize(attempt, problem, libname)
+        super(format(<<~MSG.chomp, attempt, problem, libname))
+          Zen could not scan %s due to a problem %s the library `%s'
         MSG
       end
     end

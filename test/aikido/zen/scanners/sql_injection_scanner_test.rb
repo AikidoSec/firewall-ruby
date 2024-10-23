@@ -5,13 +5,16 @@ require "test_helper"
 class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
   module Assertions
     def assert_attack(query, input = query, dialect = :common, reason = "`#{input}` was not blocked (#{dialect})")
-      dialect = Aikido::Zen::Scanners::SQLInjectionScanner::DIALECTS.fetch(dialect)
-      assert Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, dialect).attack?, reason
+      assert scan(query, input, dialect), reason
     end
 
     def refute_attack(query, input = query, dialect = :common, reason = "`#{input}` was blocked (#{dialect})")
+      refute scan(query, input, dialect), reason
+    end
+
+    def scan(query, input = query, dialect = :common)
       dialect = Aikido::Zen::Scanners::SQLInjectionScanner::DIALECTS.fetch(dialect)
-      refute Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, dialect).attack?, reason
+      Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, dialect).attack?
     end
   end
 
@@ -264,16 +267,26 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
 
     fail_to_load_error = ->(query, *) {
       err = format("%p for SQL injection", query)
-      raise Aikido::Zen::InternalsMissingError.new(err, "libzen.dylib")
+      raise Aikido::Zen::InternalsError.new(err, "loading", "libzen.dylib")
     }
 
-    err = assert_raise Aikido::Zen::InternalsMissingError do
+    err = assert_raise Aikido::Zen::InternalsError do
       Aikido::Zen::Internals.stub(:detect_sql_injection, fail_to_load_error) do
         refute_attack "SELECT * FROM users WHERE id = '' OR true; --'", "' OR true; --'"
       end
     end
 
-    assert_equal %(Zen is not scanning "select * from users where id = '' or true; --'" for SQL injection due to a problem loading binary extension `libzen.dylib'), err.message
+    assert_equal %(Zen could not scan "select * from users where id = '' or true; --'" for SQL injection due to a problem loading the library `libzen.dylib'), err.message
+  end
+
+  test "internal errors are raised as InternalError" do
+    Aikido::Zen::Internals.stub(:detect_sql_injection_native, 2) do
+      err = assert_raise Aikido::Zen::InternalsError do
+        scan "SELECT * FROM users WHERE <something>", "<something>", :common
+      end
+
+      assert_equal %(Zen could not scan SQL query "select * from users where <something>" with input "<something>" due to a problem calling detect_sql_injection in the library `#{Aikido::Zen::Internals.libzen_name}'), err.message
+    end
   end
 
   class TestMySQLDialect < ActiveSupport::TestCase

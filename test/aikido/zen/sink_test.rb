@@ -114,8 +114,8 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
     end
   end
 
-  test "#scan logs for errors like InternalsMissingError" do
-    error = Aikido::Zen::InternalsMissingError.new("<query> for SQLi", "libzen.so")
+  test "#scan logs InternalsErrors besides capturing them" do
+    error = Aikido::Zen::InternalsError.new("<query> for SQLi", "loading", "libzen.so")
     scanner = ->(**) { raise error }
     sink = Aikido::Zen::Sink.new("test", scanners: [scanner])
 
