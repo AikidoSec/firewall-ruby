@@ -72,5 +72,15 @@ module Aikido
       extend Forwardable
       def_delegators :@attack, :request, :input
     end
+
+    # Raised when a scanner tries to call Zen::Internals but the library could
+    # not be loaded.
+    class InternalsMissingError < ZenError
+      def initialize(target, libzen_path)
+        super(format(<<~MSG.chomp, target, libzen_path))
+          Zen is not scanning %s due to a problem loading binary extension `%s'
+        MSG
+      end
+    end
   end
 end

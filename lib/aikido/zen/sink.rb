@@ -90,6 +90,9 @@ module Aikido::Zen
         scanners.each do |scanner|
           result = scanner.call(sink: self, context: context, **scan_params)
           break result if result
+        rescue *LOGGABLE_ERRORS => error
+          Aikido::Zen.config.logger.warn(error.message)
+          scan.track_error(error, scanner)
         rescue => error
           scan.track_error(error, scanner)
         end
@@ -101,5 +104,7 @@ module Aikido::Zen
 
       scan
     end
+
+    LOGGABLE_ERRORS = [Aikido::Zen::InternalsMissingError]
   end
 end

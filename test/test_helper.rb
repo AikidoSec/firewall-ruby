@@ -84,11 +84,13 @@ class ActiveSupport::TestCase
   def assert_logged(level = nil, pattern)
     @log_output.rewind
 
+    pattern = /#{pattern}/ unless pattern.is_a?(Regexp)
+
     lines = @log_output.readlines.map(&:chomp)
     match_level = level.to_s.upcase if level
 
-    reason = "no #{level.inspect if level} log message" +
-      "matches #{pattern.inspect}".squeeze("\s") +
+    reason = "no #{level.inspect if level} log message " +
+      "matches #{pattern.inspect}. ".squeeze("\s") +
       "Log messages:\n#{lines.map { |line| "\t* #{line}" }.join("\n")}"
 
     assert lines.any? { |line| pattern === line && (match_level === line or true) }, reason

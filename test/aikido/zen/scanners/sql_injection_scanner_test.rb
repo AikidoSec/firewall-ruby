@@ -259,6 +259,23 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     refute_attack "SELECT * FROM users", "1,2,3"
   end
 
+  test "attacks are not prevented if libzen can't be loaded" do
+    assert_attack "SELECT * FROM users WHERE id = '' OR true; --'", "' OR true; --'"
+
+    fail_to_load_error = ->(query, *) {
+      err = format("%p for SQL injection", query)
+      raise Aikido::Zen::InternalsMissingError.new(err, "libzen.dylib")
+    }
+
+    err = assert_raise Aikido::Zen::InternalsMissingError do
+      Aikido::Zen::Internals.stub(:detect_sql_injection, fail_to_load_error) do
+        refute_attack "SELECT * FROM users WHERE id = '' OR true; --'", "' OR true; --'"
+      end
+    end
+
+    assert_equal %(Zen is not scanning "select * from users where id = '' or true; --'" for SQL injection due to a problem loading binary extension `libzen.dylib'), err.message
+  end
+
   class TestMySQLDialect < ActiveSupport::TestCase
     include Assertions
 
