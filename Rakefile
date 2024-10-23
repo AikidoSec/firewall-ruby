@@ -3,6 +3,7 @@
 require "bundler/gem_tasks"
 require "minitest/test_task"
 require "standard/rake"
+require "rake/clean"
 
 require_relative "lib/aikido/zen/version"
 require "open-uri"
@@ -28,12 +29,9 @@ namespace :build do
     prefix = "lib/aikido/zen/libzen-#{version}"
 
     libraries = artifacts.each_key.map { |ext| prefix + ext }
+    CLEAN.include(libraries)
 
     task download: libraries
-
-    task :clean do
-      libraries.each { |lib| rm_f lib }
-    end
 
     rule(/#{prefix}\..*$/) do |task|
       file_name = task.name.gsub(/.*:/, "") # remove rake namespace
