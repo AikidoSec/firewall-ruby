@@ -13,7 +13,12 @@ module Aikido::Zen
       attr_accessor :libzen_name
     end
 
-    self.libzen_name = ["libzen", FFI::Platform::ARCH, FFI::Platform::LIBSUFFIX].join(".")
+    self.libzen_name = [
+      "libzen-#{LIBZEN_VERSION}",
+      FFI::Platform::ARCH,
+      FFI::Platform::LIBSUFFIX
+    ].join(".")
+
     begin
       ffi_lib File.expand_path(libzen_name, __dir__)
 

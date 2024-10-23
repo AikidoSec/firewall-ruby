@@ -25,7 +25,7 @@ namespace :build do
 
       ".x86_64.dll" => "libzen_internals_x86_64-pc-windows-gnu.dll"
     }
-    prefix = "lib/aikido/zen/libzen"
+    prefix = "lib/aikido/zen/libzen-#{version}"
 
     libraries = artifacts.each_key.map { |ext| prefix + ext }
 
