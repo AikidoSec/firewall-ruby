@@ -114,6 +114,19 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
     end
   end
 
+  test "#scan logs InternalsErrors besides capturing them" do
+    error = Aikido::Zen::InternalsError.new("<query> for SQLi", "loading", "libzen.so")
+    scanner = ->(**) { raise error }
+    sink = Aikido::Zen::Sink.new("test", scanners: [scanner])
+
+    assert_nothing_raised do
+      scan = sink.scan(foo: 1, bar: 2)
+      assert_includes scan.errors, {error: error, scanner: scanner}
+
+      assert_logged :warn, error.message
+    end
+  end
+
   test "#scan tracks how long it takes to run the scanners" do
     scanner = ->(**data) { sleep 0.001 and nil }
     sink = Aikido::Zen::Sink.new("test", scanners: [scanner])

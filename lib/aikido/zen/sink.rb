@@ -90,6 +90,9 @@ module Aikido::Zen
         scanners.each do |scanner|
           result = scanner.call(sink: self, context: context, **scan_params)
           break result if result
+        rescue Aikido::Zen::InternalsError => error
+          Aikido::Zen.config.logger.warn(error.message)
+          scan.track_error(error, scanner)
         rescue => error
           scan.track_error(error, scanner)
         end
