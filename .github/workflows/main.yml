@@ -56,11 +56,6 @@ jobs:
       run: bundle exec rake standard
     - name: Build the gem
       run: bundle exec rake build
-    - uses: actions/upload-artifact@v4
-      if: ${{ matrix.latest }}
-      with:
-        name: built-gem
-        path: pkg/*.gem
 
   e2e:
     services:
