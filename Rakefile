@@ -18,6 +18,13 @@ task build: ["build:update_gem_lockfile", "libzen:download:all"]
 # Build all the native gems as well
 Rake::Task["build"].enhance(["libzen:gems"])
 
+# rake release wants to tag the commit and push the tag, but we run the release
+# workflow after creating the tag, and so we don't need another one.
+Rake::Task["release:source_control_push"].clear
+task "release:source_control_push" do
+  # do nothing
+end
+
 # Push all the native gems before the libzen-less one.
 task "release:rubygems_push" => "libzen:release"
 
