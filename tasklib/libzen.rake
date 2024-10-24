@@ -66,4 +66,16 @@ namespace :libzen do
 
   desc "Download the libzen pre-built library for all platforms"
   task "download:all" => LIBZEN.map(&:path)
+
+  desc "Downloads the libzen library for the current platform"
+  task "download:current" do
+    require "rbconfig"
+    os = case RbConfig::CONFIG["host_os"]
+    when /darwin/ then :darwin
+    when /mingw|cygwin|mswin/ then :windows
+    else :linux
+    end
+
+    Rake::Task["libzen:#{os}:#{RbConfig::CONFIG["build_cpu"]}"].invoke
+  end
 end
