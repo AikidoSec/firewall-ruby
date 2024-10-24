@@ -26,7 +26,7 @@ task "release:source_control_push" do
 end
 
 # Push all the native gems before the libzen-less one.
-task "release:rubygems_push" => "libzen:release"
+task "release:rubygem_push" => "libzen:release"
 
 Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
   namespace :build do
