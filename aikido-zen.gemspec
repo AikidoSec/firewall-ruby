@@ -7,6 +7,7 @@ Gem::Specification.new do |spec|
   spec.version = Aikido::Zen::VERSION
   spec.authors = ["Nicolas Sanguinetti"]
   spec.email = ["foca@foca.io"]
+  spec.license = "AGPL-3.0-or-later"
 
   spec.summary = "Embedded Web Application Firewall that autonomously protects Ruby apps against common and critical attacks."
   spec.homepage = "https://aikido.dev"
