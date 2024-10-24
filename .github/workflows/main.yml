@@ -50,8 +50,6 @@ jobs:
       with:
         ruby-version: ${{ matrix.ruby }}
         bundler-cache: true
-    - name: Download libzen_internal
-      run: "bundle exec rake build:internals:download"
     - name: Run the unit tests
       run: bundle exec rake test
     - name: Lint the code
@@ -130,7 +128,7 @@ jobs:
       if: ${{ matrix.env }}
     - name: Remove the in-repo database config
       run: rm -f ${{ github.workspace }}/sample_apps/${{ matrix.app }}/config/database.yml
-    - name: Download libzen_internal
-      run: "bundle exec rake build:internals:download"
+    - name: Download libzen
+      run: "bundle exec rake libzen:download:current"
     - name: Run the e2e tests
       run: "bundle exec rake e2e:${{ matrix.app }}"
