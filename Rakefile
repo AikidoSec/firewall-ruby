@@ -18,6 +18,9 @@ task build: ["build:update_gem_lockfile", "libzen:download:all"]
 # Build all the native gems as well
 Rake::Task["build"].enhance(["libzen:gems"])
 
+# Push all the native gems before the libzen-less one.
+task release: "libzen:release"
+
 Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
   namespace :build do
     desc "Ensure Gemfile.lock is up-to-date in the #{dir.basename} sample app"

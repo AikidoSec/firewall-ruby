@@ -63,6 +63,10 @@ LibZenDL = Struct.new(:os, :arch, :artifact) do
     @spec.files << path
     @spec
   end
+
+  def namespace
+    "#{os}:#{arch}"
+  end
 end
 
 LIBZEN = [
@@ -75,7 +79,7 @@ LIBZEN = [
 namespace :libzen do
   LIBZEN.each do |lib|
     desc "Download libzen for #{lib.os}-#{lib.arch} if necessary"
-    task("#{lib.os}:#{lib.arch}" => lib.path)
+    task(lib.namespace => lib.path)
 
     file(lib.path) {
       lib.download
@@ -91,10 +95,17 @@ namespace :libzen do
 
     directory "pkg"
     CLOBBER.include("pkg")
+
+    task("#{lib.namespace}:release" => [lib.gem_path, "release:guard_clean"]) {
+      sh "gem", "push", lib.gem_path
+    }
   end
 
   desc "Build all the native gems for the different libzen versions"
   task gems: LIBZEN.map(&:gem_path)
+
+  desc "Push all the native gems to RubyGems"
+  task release: LIBZEN.map { |lib| "#{lib.namespace}:release" }
 
   desc "Download the libzen pre-built library for all platforms"
   task "download:all" => LIBZEN.map(&:path)
