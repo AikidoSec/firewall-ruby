@@ -14,7 +14,7 @@ module Aikido::Zen
     end
 
     self.libzen_name = [
-      "libzen-#{LIBZEN_VERSION}",
+      "libzen-v#{LIBZEN_VERSION}",
       FFI::Platform::ARCH,
       FFI::Platform::LIBSUFFIX
     ].join(".")
