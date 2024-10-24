@@ -25,7 +25,6 @@ Gem::Specification.new do |spec|
         f.start_with?(*%w[bin/ test/ spec/ features/ sample_apps/ .git .github appveyor Gemfile gemfiles/])
     end
   end
-  spec.files += Dir["lib/aikido/zen/libzen*"]
 
   spec.bindir = "exe"
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }

@@ -28,6 +28,11 @@ LibZenDL = Struct.new(:os, :arch, :artifact) do
     [prefix, arch, ext].join(".")
   end
 
+  def gem_path
+    platform = "-#{gemspec.platform}" unless gemspec.platform.to_s == "ruby"
+    "pkg/#{gemspec.name}-#{gemspec.version}#{platform}.gem"
+  end
+
   def prefix
     "lib/aikido/zen/libzen-#{version}"
   end
@@ -42,6 +47,21 @@ LibZenDL = Struct.new(:os, :arch, :artifact) do
 
   def url
     File.join("https://github.com/AikidoSec/zen-internals/releases/download", version, artifact)
+  end
+
+  def gem_platform
+    gem_os = (os == :windows) ? "mingw64" : os
+    platform = (arch == "aarch64") ? "arm64" : arch
+    Gem::Platform.new("#{platform}-#{gem_os}")
+  end
+
+  def gemspec(source = Bundler.load_gemspec("aikido-zen.gemspec"))
+    return @spec if defined?(@spec)
+
+    @spec = source.dup
+    @spec.platform = gem_platform
+    @spec.files << path
+    @spec
   end
 end
 
@@ -62,7 +82,19 @@ namespace :libzen do
       lib.verify
     }
     CLEAN.include(lib.path)
+
+    file(lib.gem_path => [lib.path, "pkg"]) {
+      path = Gem::Package.build(lib.gemspec)
+      mv path, "pkg"
+    }
+    CLOBBER.include(lib.gem_path)
+
+    directory "pkg"
+    CLOBBER.include("pkg")
   end
+
+  desc "Build all the native gems for the different libzen versions"
+  task gems: LIBZEN.map(&:gem_path)
 
   desc "Download the libzen pre-built library for all platforms"
   task "download:all" => LIBZEN.map(&:path)
