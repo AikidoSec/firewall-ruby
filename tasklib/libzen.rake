@@ -33,6 +33,10 @@ LibZenDL = Struct.new(:os, :arch, :artifact) do
     "pkg/#{gemspec.name}-#{gemspec.version}#{platform}.gem"
   end
 
+  def pkg_dir
+    File.dirname(gem_path)
+  end
+
   def prefix
     "lib/aikido/zen/libzen-#{version}"
   end
@@ -87,18 +91,18 @@ namespace :libzen do
     }
     CLEAN.include(lib.path)
 
-    file(lib.gem_path => [lib.path, "pkg"]) {
+    directory lib.pkg_dir
+    CLOBBER.include(lib.pkg_dir)
+
+    file(lib.gem_path => [lib.path, lib.pkg_dir]) {
       path = Gem::Package.build(lib.gemspec)
-      mv path, "pkg"
+      mv path, lib.pkg_dir
     }
-    CLOBBER.include(lib.gem_path)
+    CLOBBER.include(lib.pkg_dir)
 
-    directory "pkg"
-    CLOBBER.include("pkg")
-
-    task("#{lib.namespace}:release" => [lib.gem_path, "release:guard_clean"]) {
+    task "#{lib.namespace}:release" => [lib.gem_path, "release:guard_clean"] do
       sh "gem", "push", lib.gem_path
-    }
+    end
   end
 
   desc "Build all the native gems for the different libzen versions"
