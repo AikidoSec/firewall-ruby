@@ -3,53 +3,30 @@
 require "bundler/gem_tasks"
 require "minitest/test_task"
 require "standard/rake"
+require "rake/clean"
 
-require_relative "lib/aikido/zen/version"
-require "open-uri"
+load "tasklib/libzen.rake"
 
 namespace :build do
   desc "Ensure Gemfile.lock is up-to-date"
   task "update_gem_lockfile" do
     sh "bundle check >/dev/null || bundle"
   end
-
-  namespace :internals do
-    version = Aikido::Zen::LIBZEN_VERSION
-    url_base = "https://github.com/AikidoSec/zen-internals/releases/download"
-    artifacts = {
-      ".aarch64.dylib" => "libzen_internals_aarch64-apple-darwin.dylib",
-      ".x86_64.dylib" => "libzen_internals_x86_64-apple-darwin.dylib",
-
-      ".aarch64.so" => "libzen_internals_aarch64-unknown-linux-gnu.so",
-      ".x86_64.so" => "libzen_internals_x86_64-unknown-linux-gnu.so",
-
-      ".x86_64.dll" => "libzen_internals_x86_64-pc-windows-gnu.dll"
-    }
-    prefix = "lib/aikido/zen/libzen"
-
-    libraries = artifacts.each_key.map { |ext| prefix + ext }
-
-    task download: libraries
-
-    task :clean do
-      libraries.each { |lib| rm_f lib }
-    end
-
-    rule(/#{prefix}\..*$/) do |task|
-      file_name = task.name.gsub(/.*:/, "") # remove rake namespace
-      uri = File.join(url_base, "v#{version}", artifacts[file_name.sub(prefix, "")])
-      puts "Downloading #{file_name}"
-      File.open(file_name, "wb") { |file| copy_stream(URI(uri).open("rb"), file) }
-
-      expected_checksum = URI(uri + ".sha256sum").read.split(/\s+/).first
-      actual_checksum = Digest::SHA256.file(file_name).to_s
-      if expected_checksum != actual_checksum
-        abort "Checksum mismatch on #{file_name}. Expected #{expected_checksum}, got #{actual_checksum}."
-      end
-    end
-  end
 end
-task build: ["build:update_gem_lockfile", "build:internals:download"]
+task build: ["build:update_gem_lockfile", "libzen:download:all"]
+
+# Build all the native gems as well
+Rake::Task["build"].enhance(["libzen:gems"])
+
+# rake release wants to tag the commit and push the tag, but we run the release
+# workflow after creating the tag, and so we don't need another one.
+Rake::Task["release:source_control_push"].clear
+task "release:source_control_push" do
+  # do nothing
+end
+
+# Push all the native gems before the libzen-less one.
+task "release:rubygem_push" => "libzen:release"
 
 Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
   namespace :build do
@@ -66,6 +43,7 @@ Minitest::TestTask.create do |test_task|
   test_task.test_globs = FileList["test/**/{test_*,*_test}.rb"]
     .exclude("test/e2e/**/*.rb")
 end
+task test: "libzen:download:current"
 
 Pathname.glob("test/e2e/*").select(&:directory?).each do |dir|
   namespace :e2e do
