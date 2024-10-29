@@ -36,9 +36,9 @@ module Aikido::Zen
       synchronize { @started_at = at }
     end
 
-    # Atomically copies the stats and resets them to their initial values, so
-    # you can start gathering a new set while being able to read the old ones
-    # without fear that a thread might modify them.
+    # Sets the end time for these stats block, freezes it to avoid any more
+    # writing to them, and compresses the timing stats in anticipation of
+    # sending these to the Aikido servers.
     #
     # @param at [Time] the time at which we're resetting, which is set as the
     #   ending time for the returned copy.
@@ -46,19 +46,13 @@ module Aikido::Zen
     # @return [Aikido::Zen::Stats] a frozen copy of the object before
     #   resetting, so you can access the data there, with its +ended_at+
     #   set to the given timestamp.
-    def reset(at: Time.now.utc)
+    def flush(at: Time.now.utc)
       synchronize {
         # Make sure the timing stats are compressed before copying, since we
         # need these compressed when we serialize this for the API.
         @sinks.each_value(&:compress_timings)
-
-        copy = clone
-        copy.ended_at = at
-
-        reset_state
-        start(at)
-
-        copy
+        @ended_at = at
+        freeze
       }
     end
 

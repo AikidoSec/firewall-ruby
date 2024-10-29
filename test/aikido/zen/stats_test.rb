@@ -510,17 +510,34 @@ class Aikido::Zen::StatsTest < ActiveSupport::TestCase
     end
   end
 
-  test "#reset returns a copy of the stats with ended_at set" do
+  test "#flush sets ended_at and freezes the stats" do
     @stats.start(Time.at(1234567890))
 
-    copy = @stats.reset(at: Time.at(1234577890))
+    flushed = @stats.flush(at: Time.at(1234577890))
 
-    assert_kind_of @stats.class, copy
-    refute_same copy, @stats
-    assert_equal Time.at(1234577890), copy.ended_at
+    assert flushed.frozen?
+    assert_same @stats, flushed
+    assert_equal Time.at(1234577890), flushed.ended_at
   end
 
-  test "#reset includes all current stats and clears the object" do
+  test "#flush compresses all timing metrics" do
+    @stats.start(Time.at(1234567890))
+
+    raw_timings = @stats.sinks[@sink.name].timings
+    compressed_timings = @stats.sinks[@sink.name].compressed_timings
+
+    @stats.add_scan(stub_scan(sink: @sink, duration: 2))
+    @stats.add_scan(stub_scan(sink: @sink, duration: 3))
+    @stats.add_scan(stub_scan(sink: @sink, duration: 1))
+
+    assert_difference -> { compressed_timings.size }, +1 do
+      assert_difference -> { raw_timings.size }, -3 do
+        @stats.flush
+      end
+    end
+  end
+
+  test "#as_json after flushing includes all the data" do
     @stats.start(Time.at(1234567890))
 
     2.times do
@@ -576,21 +593,8 @@ class Aikido::Zen::StatsTest < ActiveSupport::TestCase
         }
       }
 
-      copy = @stats.reset(at: Time.at(1234577890))
-
-      assert_equal expected_stats, copy.as_json
-      assert_equal 2, copy.routes[Aikido::Zen::Route.new(path: "/", verb: "GET")].hits
-      assert_equal 3, copy.outbound_connections.size
-      assert_equal 2, copy.users.size
-      assert_equal ["123", "234"], copy.users.as_json.map { |user| user[:id] }
-
-      assert_empty @stats.sinks
-      assert_empty @stats.users
-      assert_empty @stats.routes
-      assert_empty @stats.outbound_connections
-      assert_equal 0, @stats.requests
-      assert_equal 0, @stats.aborted_requests
-      assert_equal Time.at(1234577890), @stats.started_at
+      flushed = @stats.flush(at: Time.at(1234577890))
+      assert_equal expected_stats, flushed.as_json
     end
   end
 end

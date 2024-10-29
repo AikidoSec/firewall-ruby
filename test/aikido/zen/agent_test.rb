@@ -255,13 +255,13 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
 
   test "#send_heartbeat flushes the stats before sending them" do
     stats = Minitest::Mock.new
-    stats.expect :reset, Object.new
+    stats.expect :flush, [], at: Time
 
-    @agent.stub :stats, stats do
+    @agent.instance_variable_get(:@stats).stub(:get_and_set, stats) do
       @agent.send_heartbeat
-
-      assert_mock stats
     end
+
+    assert_mock stats
   end
 
   test "#send_heartbeat does nothing if we don't have an API token" do

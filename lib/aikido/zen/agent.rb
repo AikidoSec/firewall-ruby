@@ -10,18 +10,14 @@ module Aikido::Zen
   # Handles the background processes that communicate with the Aikido servers,
   # including managing the runtime settings that keep the app protected.
   class Agent
-    # @return [Aikido::Zen::Stats] the statistics collected by the agent.
-    attr_reader :stats
-
     def initialize(
-      stats: Aikido::Zen::Stats.new,
       config: Aikido::Zen.config,
       info: Aikido::Zen.system_info,
       api_client: Aikido::Zen::APIClient.new
     )
       @started_at = nil
 
-      @stats = stats
+      @stats = Concurrent::AtomicReference.new(Aikido::Zen::Stats.new)
       @info = info
       @config = config
       @api_client = api_client
@@ -33,6 +29,11 @@ module Aikido::Zen
 
     def started?
       !!@started_at
+    end
+
+    # @return [Aikido::Zen::Stats] the statistics collected by the agent.
+    def stats
+      @stats.get
     end
 
     # Given an Attack, report it to the Aikido server, and/or block the request
@@ -108,8 +109,7 @@ module Aikido::Zen
     def send_heartbeat
       return unless @api_client.can_make_requests?
 
-      flushed_stats = stats.reset
-      report(Events::Heartbeat.new(stats: flushed_stats)) do |response|
+      report(Events::Heartbeat.new(stats: flush_stats)) do |response|
         Aikido::Zen.runtime_settings.update_from_json(response)
         @config.logger.info "Updated runtime settings after heartbeat"
       end
@@ -162,6 +162,15 @@ module Aikido::Zen
 
       @reporting_pool&.shutdown
       @reporting_pool&.wait_for_termination(30)
+    end
+
+    private def flush_stats(at: Time.now.utc)
+      new_stats = Aikido::Zen::Stats.new
+      new_stats.start(at: at)
+
+      old_stats = @stats.get_and_set(Aikido::Zen::Stats.new)
+      old_stats.flush(at: at)
+      old_stats
     end
 
     private def reporting_pool
