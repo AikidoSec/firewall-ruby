@@ -54,12 +54,7 @@ module Aikido::Zen
       end
 
       def as_json
-        super.update(
-          stats: @stats.as_json,
-          routes: @stats.routes.as_json,
-          hostnames: @stats.outbound_connections.as_json,
-          users: @stats.users.as_json
-        )
+        super.update(@stats.as_json)
       end
     end
   end

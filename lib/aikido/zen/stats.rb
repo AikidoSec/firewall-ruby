@@ -127,17 +127,22 @@ module Aikido::Zen
       synchronize {
         total_attacks, total_blocked = aggregate_attacks_from_sinks
         {
-          startedAt: @started_at.to_i * 1000,
-          endedAt: (@ended_at.to_i * 1000 if @ended_at),
-          sinks: @sinks.transform_values(&:as_json),
-          requests: {
-            total: @requests,
-            aborted: @aborted_requests,
-            attacksDetected: {
-              total: total_attacks,
-              blocked: total_blocked
+          stats: {
+            startedAt: @started_at.to_i * 1000,
+            endedAt: (@ended_at.to_i * 1000 if @ended_at),
+            sinks: @sinks.transform_values(&:as_json),
+            requests: {
+              total: @requests,
+              aborted: @aborted_requests,
+              attacksDetected: {
+                total: total_attacks,
+                blocked: total_blocked
+              }
             }
-          }
+          },
+          routes: @routes.as_json,
+          users: @users.as_json,
+          hostnames: @outbound_connections.as_json
         }
       }
     end

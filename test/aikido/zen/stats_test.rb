@@ -30,6 +30,7 @@ class Aikido::Zen::StatsTest < ActiveSupport::TestCase
   end
 
   def stub_context(env = {})
+    env["REQUEST_METHOD"] ||= "GET"
     Aikido::Zen::Context.from_rack_env(env)
   end
 
@@ -37,8 +38,11 @@ class Aikido::Zen::StatsTest < ActiveSupport::TestCase
     Aikido::Zen::OutboundConnection.new(**opts)
   end
 
-  def stub_actor(**opts)
-    Aikido::Zen::Actor.new(**opts)
+  def stub_actor(seen_at: nil, ip: nil, **opts)
+    Aikido::Zen::Actor.new(**opts).tap do |actor|
+      update_attrs = {seen_at: seen_at, ip: ip}.compact
+      actor.update(**update_attrs) if update_attrs.any?
+    end
   end
 
   test "#start tracks the time at which stats started being collected" do
@@ -222,10 +226,12 @@ class Aikido::Zen::StatsTest < ActiveSupport::TestCase
   end
 
   test "#add_user updates the user's last_seen_at when the user is added multiple times" do
-    user = stub_actor(id: "123", seen_at: Time.utc(2024, 9, 1, 16, 20, 42))
-    @stats.add_user(user)
+    freeze_time do
+      user = stub_actor(id: "123", seen_at: Time.utc(2024, 9, 1, 16, 20, 42))
+      @stats.add_user(user)
 
-    travel_to(user.last_seen_at + 20) do
+      travel(20)
+
       assert_difference "user.last_seen_at", +20 do
         same_user_in_diff_request = stub_actor(id: user.id)
         @stats.add_user(same_user_in_diff_request)
@@ -251,17 +257,22 @@ class Aikido::Zen::StatsTest < ActiveSupport::TestCase
     @stats.ended_at = Time.at(1234577890)
 
     expected = {
-      startedAt: 1234567890000,
-      endedAt: 1234577890000,
-      sinks: {},
-      requests: {
-        total: 0,
-        aborted: 0,
-        attacksDetected: {
+      stats: {
+        startedAt: 1234567890000,
+        endedAt: 1234577890000,
+        sinks: {},
+        requests: {
           total: 0,
-          blocked: 0
+          aborted: 0,
+          attacksDetected: {
+            total: 0,
+            blocked: 0
+          }
         }
-      }
+      },
+      users: [],
+      routes: [],
+      hostnames: []
     }
 
     assert_equal expected, @stats.as_json
@@ -274,17 +285,24 @@ class Aikido::Zen::StatsTest < ActiveSupport::TestCase
     3.times { @stats.add_request(stub_context.request) }
 
     expected = {
-      startedAt: 1234567890000,
-      endedAt: 1234577890000,
-      sinks: {},
-      requests: {
-        total: 3,
-        aborted: 0,
-        attacksDetected: {
-          total: 0,
-          blocked: 0
+      stats: {
+        startedAt: 1234567890000,
+        endedAt: 1234577890000,
+        sinks: {},
+        requests: {
+          total: 3,
+          aborted: 0,
+          attacksDetected: {
+            total: 0,
+            blocked: 0
+          }
         }
-      }
+      },
+      users: [],
+      routes: [
+        {path: "/", method: "GET", hits: 3}
+      ],
+      hostnames: []
     }
 
     assert_equal expected, @stats.as_json
@@ -301,38 +319,45 @@ class Aikido::Zen::StatsTest < ActiveSupport::TestCase
     @stats.add_scan(stub_scan(sink: stub_sink(name: "another")))
 
     expected = {
-      startedAt: 1234567890000,
-      endedAt: 1234577890000,
-      requests: {
-        total: 2,
-        aborted: 0,
-        attacksDetected: {
-          total: 0,
-          blocked: 0
+      stats: {
+        startedAt: 1234567890000,
+        endedAt: 1234577890000,
+        requests: {
+          total: 2,
+          aborted: 0,
+          attacksDetected: {
+            total: 0,
+            blocked: 0
+          }
+        },
+        sinks: {
+          "test" => {
+            total: 2,
+            interceptorThrewError: 0,
+            withoutContext: 0,
+            attacksDetected: {
+              total: 0,
+              blocked: 0
+            },
+            compressedTimings: []
+          },
+          "another" => {
+            total: 1,
+            interceptorThrewError: 0,
+            withoutContext: 0,
+            attacksDetected: {
+              total: 0,
+              blocked: 0
+            },
+            compressedTimings: []
+          }
         }
       },
-      sinks: {
-        "test" => {
-          total: 2,
-          interceptorThrewError: 0,
-          withoutContext: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
-          },
-          compressedTimings: []
-        },
-        "another" => {
-          total: 1,
-          interceptorThrewError: 0,
-          withoutContext: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
-          },
-          compressedTimings: []
-        }
-      }
+      users: [],
+      routes: [
+        {path: "/", method: "GET", hits: 2}
+      ],
+      hostnames: []
     }
 
     assert_equal expected, @stats.as_json
@@ -349,38 +374,45 @@ class Aikido::Zen::StatsTest < ActiveSupport::TestCase
     @stats.add_scan(stub_scan(sink: stub_sink(name: "another")))
 
     expected = {
-      startedAt: 1234567890000,
-      endedAt: 1234577890000,
-      requests: {
-        total: 2,
-        aborted: 0,
-        attacksDetected: {
-          total: 0,
-          blocked: 0
+      stats: {
+        startedAt: 1234567890000,
+        endedAt: 1234577890000,
+        requests: {
+          total: 2,
+          aborted: 0,
+          attacksDetected: {
+            total: 0,
+            blocked: 0
+          }
+        },
+        sinks: {
+          "test" => {
+            total: 2,
+            interceptorThrewError: 1,
+            withoutContext: 0,
+            attacksDetected: {
+              total: 0,
+              blocked: 0
+            },
+            compressedTimings: []
+          },
+          "another" => {
+            total: 1,
+            interceptorThrewError: 0,
+            withoutContext: 0,
+            attacksDetected: {
+              total: 0,
+              blocked: 0
+            },
+            compressedTimings: []
+          }
         }
       },
-      sinks: {
-        "test" => {
-          total: 2,
-          interceptorThrewError: 1,
-          withoutContext: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
-          },
-          compressedTimings: []
-        },
-        "another" => {
-          total: 1,
-          interceptorThrewError: 0,
-          withoutContext: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
-          },
-          compressedTimings: []
-        }
-      }
+      users: [],
+      routes: [
+        {path: "/", method: "GET", hits: 2}
+      ],
+      hostnames: []
     }
 
     assert_equal expected, @stats.as_json
@@ -400,38 +432,45 @@ class Aikido::Zen::StatsTest < ActiveSupport::TestCase
     @stats.add_attack(stub_attack(sink: stub_sink(name: "another")), being_blocked: true)
 
     expected = {
-      startedAt: 1234567890000,
-      endedAt: 1234577890000,
-      requests: {
-        total: 2,
-        aborted: 0,
-        attacksDetected: {
+      stats: {
+        startedAt: 1234567890000,
+        endedAt: 1234577890000,
+        requests: {
           total: 2,
-          blocked: 2
+          aborted: 0,
+          attacksDetected: {
+            total: 2,
+            blocked: 2
+          }
+        },
+        sinks: {
+          "test" => {
+            total: 2,
+            interceptorThrewError: 0,
+            withoutContext: 0,
+            attacksDetected: {
+              total: 1,
+              blocked: 1
+            },
+            compressedTimings: []
+          },
+          "another" => {
+            total: 1,
+            interceptorThrewError: 0,
+            withoutContext: 0,
+            attacksDetected: {
+              total: 1,
+              blocked: 1
+            },
+            compressedTimings: []
+          }
         }
       },
-      sinks: {
-        "test" => {
-          total: 2,
-          interceptorThrewError: 0,
-          withoutContext: 0,
-          attacksDetected: {
-            total: 1,
-            blocked: 1
-          },
-          compressedTimings: []
-        },
-        "another" => {
-          total: 1,
-          interceptorThrewError: 0,
-          withoutContext: 0,
-          attacksDetected: {
-            total: 1,
-            blocked: 1
-          },
-          compressedTimings: []
-        }
-      }
+      users: [],
+      routes: [
+        {path: "/", method: "GET", hits: 2}
+      ],
+      hostnames: []
     }
 
     assert_equal expected, @stats.as_json
@@ -452,58 +491,65 @@ class Aikido::Zen::StatsTest < ActiveSupport::TestCase
       @stats.sinks.each_value(&:compress_timings)
 
       expected = {
-        startedAt: 1234567890000,
-        endedAt: 1234577890000,
-        requests: {
-          total: 2,
-          aborted: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
+        stats: {
+          startedAt: 1234567890000,
+          endedAt: 1234577890000,
+          requests: {
+            total: 2,
+            aborted: 0,
+            attacksDetected: {
+              total: 0,
+              blocked: 0
+            }
+          },
+          sinks: {
+            "test" => {
+              total: 3,
+              interceptorThrewError: 0,
+              withoutContext: 0,
+              attacksDetected: {
+                total: 0,
+                blocked: 0
+              },
+              compressedTimings: [{
+                averageInMs: 2000,
+                percentiles: {
+                  50 => 2000,
+                  75 => 3000,
+                  90 => 3000,
+                  95 => 3000,
+                  99 => 3000
+                },
+                compressedAt: Time.now.to_i * 1000
+              }]
+            },
+            "another" => {
+              total: 1,
+              interceptorThrewError: 0,
+              withoutContext: 0,
+              attacksDetected: {
+                total: 0,
+                blocked: 0
+              },
+              compressedTimings: [{
+                averageInMs: 1000,
+                percentiles: {
+                  50 => 1000,
+                  75 => 1000,
+                  90 => 1000,
+                  95 => 1000,
+                  99 => 1000
+                },
+                compressedAt: Time.now.to_i * 1000
+              }]
+            }
           }
         },
-        sinks: {
-          "test" => {
-            total: 3,
-            interceptorThrewError: 0,
-            withoutContext: 0,
-            attacksDetected: {
-              total: 0,
-              blocked: 0
-            },
-            compressedTimings: [{
-              averageInMs: 2000,
-              percentiles: {
-                50 => 2000,
-                75 => 3000,
-                90 => 3000,
-                95 => 3000,
-                99 => 3000
-              },
-              compressedAt: Time.now.to_i * 1000
-            }]
-          },
-          "another" => {
-            total: 1,
-            interceptorThrewError: 0,
-            withoutContext: 0,
-            attacksDetected: {
-              total: 0,
-              blocked: 0
-            },
-            compressedTimings: [{
-              averageInMs: 1000,
-              percentiles: {
-                50 => 1000,
-                75 => 1000,
-                90 => 1000,
-                95 => 1000,
-                99 => 1000
-              },
-              compressedAt: Time.now.to_i * 1000
-            }]
-          }
-        }
+        users: [],
+        routes: [
+          {path: "/", method: "GET", hits: 2}
+        ],
+        hostnames: []
       }
 
       assert_equal expected, @stats.as_json
@@ -540,57 +586,81 @@ class Aikido::Zen::StatsTest < ActiveSupport::TestCase
   test "#as_json after flushing includes all the data" do
     @stats.start(Time.at(1234567890))
 
-    2.times do
-      env = Rack::MockRequest.env_for("/")
-      @stats.add_request(stub_context(env).request)
-    end
-
-    3.times do |i|
-      @stats.add_outbound(stub_outbound(host: "example.com", port: i))
-    end
-
-    @stats.add_user(stub_actor(id: "123"))
-    @stats.add_user(stub_actor(id: "234"))
-
-    @stats.add_scan(stub_scan(sink: @sink, duration: 2))
-    @stats.add_scan(stub_scan(sink: @sink, duration: 3))
-    @stats.add_scan(stub_scan(sink: @sink, duration: 1))
-    @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
-
     freeze_time do
+      2.times do
+        env = Rack::MockRequest.env_for("/")
+        @stats.add_request(stub_context(env).request)
+      end
+
+      3.times do |i|
+        @stats.add_outbound(stub_outbound(host: "example.com", port: i))
+      end
+
+      @stats.add_user(stub_actor(id: "123", ip: "1.2.3.4"))
+      @stats.add_user(stub_actor(id: "234", ip: "5.6.7.8"))
+
+      @stats.add_scan(stub_scan(sink: @sink, duration: 2))
+      @stats.add_scan(stub_scan(sink: @sink, duration: 3))
+      @stats.add_scan(stub_scan(sink: @sink, duration: 1))
+      @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
+
       expected_stats = {
-        startedAt: 1234567890000,
-        endedAt: 1234577890000,
-        requests: {
-          total: 2,
-          aborted: 0,
-          attacksDetected: {
-            total: 1,
-            blocked: 1
-          }
-        },
-        sinks: {
-          "test" => {
-            total: 3,
-            interceptorThrewError: 0,
-            withoutContext: 0,
+        stats: {
+          startedAt: 1234567890000,
+          endedAt: 1234577890000,
+          requests: {
+            total: 2,
+            aborted: 0,
             attacksDetected: {
               total: 1,
               blocked: 1
-            },
-            compressedTimings: [{
-              averageInMs: 2000,
-              percentiles: {
-                50 => 2000,
-                75 => 3000,
-                90 => 3000,
-                95 => 3000,
-                99 => 3000
+            }
+          },
+          sinks: {
+            "test" => {
+              total: 3,
+              interceptorThrewError: 0,
+              withoutContext: 0,
+              attacksDetected: {
+                total: 1,
+                blocked: 1
               },
-              compressedAt: Time.now.to_i * 1000
-            }]
+              compressedTimings: [{
+                averageInMs: 2000,
+                percentiles: {
+                  50 => 2000,
+                  75 => 3000,
+                  90 => 3000,
+                  95 => 3000,
+                  99 => 3000
+                },
+                compressedAt: Time.now.to_i * 1000
+              }]
+            }
           }
-        }
+        },
+        routes: [
+          {method: "GET", path: "/", hits: 2}
+        ],
+        users: [
+          {
+            id: "123",
+            lastIpAddress: "1.2.3.4",
+            firstSeenAt: Time.now.to_i * 1000,
+            lastSeenAt: Time.now.to_i * 1000
+          },
+          {
+            id: "234",
+            lastIpAddress: "5.6.7.8",
+            firstSeenAt: Time.now.to_i * 1000,
+            lastSeenAt: Time.now.to_i * 1000
+          }
+        ],
+        hostnames: [
+          {hostname: "example.com", port: 0},
+          {hostname: "example.com", port: 1},
+          {hostname: "example.com", port: 2}
+        ]
       }
 
       flushed = @stats.flush(at: Time.at(1234577890))
