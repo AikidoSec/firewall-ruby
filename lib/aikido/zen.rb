@@ -47,55 +47,40 @@ module Aikido
       Thread.current[:_aikido_current_context_] = context
     end
 
-    # Track statistics about the result of a Sink's scan, and report it as an
-    # Attack if one is detected.
-    #
-    # @param scan [Aikido::Zen::Scan]
-    # @return [void]
-    # @raise [Aikido::Zen::UnderAttackError] if the scan detected an Attack
-    #   and blocking_mode is enabled.
-    def self.track_scan(scan)
-      agent.stats.add_scan(scan)
-      agent.handle_attack(scan.attack) if scan.attack?
-    end
+    class << self
+      extend Forwardable
 
-    # Track statistics about an HTTP request the app is handling.
-    #
-    # @param context [Aikido::Zen::Request]
-    # @return [void]
-    def self.track_request(request)
-      agent.stats.add_request(request)
-    end
-
-    # Tracks a network connection made to an external service.
-    #
-    # @param connection [Aikido::Zen::OutboundConnection]
-    # @return [void]
-    def self.track_outbound(connection)
-      agent.stats.add_outbound(connection)
-    end
-
-    # Track the user making the current request.
-    #
-    # @param (see Aikido::Zen.Actor)
-    # @return [void]
-    def self.track_user(user)
-      actor = Aikido::Zen::Actor(user)
-
-      if actor
-        agent.stats.add_user(actor)
-      else
-        id_attr, name_attr = config.user_attribute_mappings.values_at(:id, :name)
-        config.logger.warn(format(<<~LOG, obj: user, id: id_attr, name: name_attr))
-          Incompatible object sent to Aikido::Zen.track_user: %<obj>p
-
-          The object must satisfy one of the following:
-
-          * Implement #to_aikido_actor
-          * Implement #to_model and have %<id>p and %<name>p attributes
-          * Be a Hash with :id (or "id") and, optionally, :name (or "name") keys
-        LOG
-      end
+      # @!method track_scan(scan)
+      #   Track statistics about the result of a Sink's scan, and report it as
+      #   an Attack if one is detected.
+      #
+      #   @param scan [Aikido::Zen::Scan]
+      #   @return [void]
+      #   @raise [Aikido::Zen::UnderAttackError] if the scan detected an Attack
+      #     and blocking_mode is enabled.
+      #
+      # @!method track_user(actor)
+      #   Track the user making the current request.
+      #
+      #   @param (see Aikido::Zen.Actor)
+      #   @return [void]
+      #
+      # @!method track_request(request)
+      #   Track statistics about an HTTP request the app is handling.
+      #
+      #   @param request [Aikido::Zen::Request]
+      #   @return [void]
+      #
+      # @!method track_outbound(connection)
+      #   Tracks a network connection made to an external service.
+      #
+      #   @param connection [Aikido::Zen::OutboundConnection]
+      #   @return [void]
+      def_delegators :agent,
+        :track_scan,
+        :track_user,
+        :track_request,
+        :track_outbound
     end
 
     # Starts the background threads that keep the agent running.

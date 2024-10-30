@@ -7,7 +7,7 @@ require "ostruct"
 module HTTPConnectionTrackingAssertions
   def assert_tracks_outbound_to(host, port, &block)
     stats = Aikido::Zen::Stats.new
-    fake_agent = OpenStruct.new(stats: stats)
+    fake_agent = FakeAgent.new(stats)
 
     Aikido::Zen.stub(:agent, fake_agent) do
       assert_difference "stats.outbound_connections.size", +1 do
@@ -16,6 +16,12 @@ module HTTPConnectionTrackingAssertions
 
       expected = Aikido::Zen::OutboundConnection.new(host: host, port: port)
       assert_includes stats.outbound_connections, expected
+    end
+  end
+
+  FakeAgent = Struct.new(:stats) do
+    %w[scan attack request outbound].each do |key|
+      define_method(:"track_#{key}") { |obj| stats.send(:"add_#{key}", obj) }
     end
   end
 end

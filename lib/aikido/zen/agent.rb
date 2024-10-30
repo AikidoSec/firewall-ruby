@@ -31,6 +31,34 @@ module Aikido::Zen
       !!@started_at
     end
 
+    def track_request(request)
+      stats.add_request(request)
+    end
+
+    def track_scan(scan)
+      stats.add_scan(scan)
+      handle_attack(scan.attack) if scan.attack?
+    end
+
+    def track_outbound(connection)
+      stats.add_outbound(connection)
+    end
+
+    def track_user(user)
+      actor = Aikido::Zen::Actor(user)
+
+      if actor
+        stats.add_user(actor)
+      else
+        config.logger.warn(format(<<~LOG, obj: user))
+          Incompatible object sent to track_user: %<obj>p
+
+          The object must either implement #to_aikido_actor, or be a Hash with
+          an :id (or "id") and, optionally, a :name (or "name") key.
+        LOG
+      end
+    end
+
     # @return [Aikido::Zen::Stats] the statistics collected by the agent.
     def stats
       @stats.get
