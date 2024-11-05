@@ -111,13 +111,6 @@ module Aikido
       require_relative "zen/sinks"
     end
 
-    # Starts the background threads that keep the agent running.
-    #
-    # @return [void]
-    def self.initialize!
-      agent.start!
-    end
-
     # Stop any background threads.
     def self.stop!
       agent&.stop!
@@ -125,7 +118,7 @@ module Aikido
 
     # @api private
     def self.agent
-      @agent ||= Agent.new
+      @agent ||= Agent.start
     end
   end
 end

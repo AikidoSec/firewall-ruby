@@ -42,8 +42,6 @@ module Aikido::Zen
     end
 
     config.after_initialize do
-      Aikido::Zen.initialize!
-
       # Make sure this is run at the end of the initialization process, so
       # that any gems required after aikido-zen are detected and patched
       # accordingly.

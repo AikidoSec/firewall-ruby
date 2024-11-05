@@ -9,6 +9,13 @@ module Aikido::Zen
   # Handles the background processes that communicate with the Aikido servers,
   # including managing the runtime settings that keep the app protected.
   class Agent
+    # Initialize and start an agent instance.
+    #
+    # @return [Aikido::Zen::Agent]
+    def self.start(**opts)
+      new(**opts).tap(&:start!)
+    end
+
     def initialize(
       config: Aikido::Zen.config,
       worker: Aikido::Zen::Worker.new(config: config),
