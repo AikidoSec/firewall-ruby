@@ -2,13 +2,13 @@
 
 require "test_helper"
 
-class Aikido::Zen::Agent::StatsTest < ActiveSupport::TestCase
+class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
   include StubsCurrentContext
 
   setup do
     @config = Aikido::Zen.config
 
-    @stats = Aikido::Zen::Agent::Stats.new(@config)
+    @stats = Aikido::Zen::Collector::Stats.new(@config)
     @sink = stub_sink(name: "test")
   end
 
@@ -123,7 +123,7 @@ class Aikido::Zen::Agent::StatsTest < ActiveSupport::TestCase
       # The last value is kept in the raw timings list
       assert_equal Set.new([4]), stats.timings
 
-      expected = Aikido::Zen::Agent::SinkStats::CompressedTiming.new(
+      expected = Aikido::Zen::Collector::SinkStats::CompressedTiming.new(
         2, {50 => 2, 75 => 3, 90 => 3, 95 => 3, 99 => 3}, Time.now.utc
       )
 

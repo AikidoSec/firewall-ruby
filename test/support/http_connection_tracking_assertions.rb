@@ -6,40 +6,24 @@ require "ostruct"
 # around a block. Used by Sink tests that perform network connections.
 module HTTPConnectionTrackingAssertions
   def assert_tracks_outbound_to(host, port, &block)
-    test_agent = TestAgent.new
-    hosts = test_agent.collector.hosts
+    hosts = Aikido::Zen.collector.hosts
 
-    Aikido::Zen.stub(:agent, test_agent) do
-      assert_difference "hosts.size", +1 do
-        2.times(&block) # run the block twice to ensure we only count it once.
-      end
-
-      expected = Aikido::Zen::OutboundConnection.new(host: host, port: port)
-      assert_includes hosts, expected
+    assert_difference "hosts.size", +1 do
+      2.times(&block) # run the block twice to ensure we only count it once.
     end
+
+    expected = Aikido::Zen::OutboundConnection.new(host: host, port: port)
+    assert_includes hosts, expected
   end
 
   def refute_outbound_connection_to(host, port, &block)
-    test_agent = TestAgent.new
-    hosts = test_agent.collector.hosts
+    hosts = Aikido::Zen.collector.hosts
 
-    Aikido::Zen.stub(:agent, test_agent) do
-      assert_no_difference "hosts.size" do
-        yield
-      end
-
-      expected = Aikido::Zen::OutboundConnection.new(host: host, port: port)
-      refute_includes hosts, expected
-    end
-  end
-
-  class TestAgent < Aikido::Zen::Agent
-    attr_reader :collector
-
-    def start!
+    assert_no_difference "hosts.size" do
+      yield
     end
 
-    def stop!
-    end
+    expected = Aikido::Zen::OutboundConnection.new(host: host, port: port)
+    refute_includes hosts, expected
   end
 end

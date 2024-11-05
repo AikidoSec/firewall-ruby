@@ -107,13 +107,13 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
 
   class HeartbeatTest < ActiveSupport::TestCase
     setup do
-      @stats = Aikido::Zen::Agent::Stats.new
+      @stats = Aikido::Zen::Collector::Stats.new
       @stats.start(Time.at(1234567890))
       @stats.flush(at: Time.at(1234577890))
 
-      @users = Aikido::Zen::Agent::Users.new
-      @hosts = Aikido::Zen::Agent::Hosts.new
-      @routes = Aikido::Zen::Agent::Routes.new
+      @users = Aikido::Zen::Collector::Users.new
+      @hosts = Aikido::Zen::Collector::Hosts.new
+      @routes = Aikido::Zen::Collector::Routes.new
     end
 
     test "sets type to heartbeat" do

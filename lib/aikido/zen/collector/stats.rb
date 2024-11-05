@@ -3,8 +3,10 @@
 require_relative "../capped_collections"
 
 module Aikido::Zen
+  # @api private
+  #
   # Tracks information about how the Aikido Agent is used in the app.
-  class Agent::Stats
+  class Collector::Stats
     # @!visibility private
     attr_reader :started_at, :ended_at, :requests, :aborted_requests, :sinks
 
@@ -14,7 +16,7 @@ module Aikido::Zen
     def initialize(config = Aikido::Zen.config)
       super()
       @config = config
-      @sinks = Hash.new { |h, k| h[k] = Agent::SinkStats.new(k, @config) }
+      @sinks = Hash.new { |h, k| h[k] = Collector::SinkStats.new(k, @config) }
       @started_at = @ended_at = nil
       @requests = 0
       @aborted_requests = 0

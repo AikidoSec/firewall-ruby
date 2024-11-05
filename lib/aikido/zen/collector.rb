@@ -3,14 +3,14 @@
 module Aikido::Zen
   # Handles collecting all the runtime statistics to report back to the Aikido
   # servers.
-  class Agent::Collector
+  class Collector
     def initialize(config: Aikido::Zen.config)
       @config = config
 
-      @stats = Concurrent::AtomicReference.new(Aikido::Zen::Agent::Stats.new(@config))
-      @users = Concurrent::AtomicReference.new(Aikido::Zen::Agent::Users.new(@config))
-      @hosts = Concurrent::AtomicReference.new(Aikido::Zen::Agent::Hosts.new(@config))
-      @routes = Concurrent::AtomicReference.new(Aikido::Zen::Agent::Routes.new)
+      @stats = Concurrent::AtomicReference.new(Stats.new(@config))
+      @users = Concurrent::AtomicReference.new(Users.new(@config))
+      @hosts = Concurrent::AtomicReference.new(Hosts.new(@config))
+      @routes = Concurrent::AtomicReference.new(Routes.new)
     end
 
     # Flush all the stats into a Heartbeat event that can be reported back to
@@ -20,10 +20,10 @@ module Aikido::Zen
     #   of the new stats collection period. Defaults to now.
     # @return [Aikido::Zen::Events::Heartbeat]
     def flush(at: Time.now.utc)
-      stats = @stats.get_and_set(Aikido::Zen::Agent::Stats.new(@config))
-      users = @users.get_and_set(Aikido::Zen::Agent::Users.new(@config))
-      hosts = @hosts.get_and_set(Aikido::Zen::Agent::Hosts.new(@config))
-      routes = @routes.get_and_set(Aikido::Zen::Agent::Routes.new)
+      stats = @stats.get_and_set(Stats.new(@config))
+      users = @users.get_and_set(Users.new(@config))
+      hosts = @hosts.get_and_set(Hosts.new(@config))
+      routes = @routes.get_and_set(Routes.new)
 
       start(at: at)
       stats = stats.flush(at: at)
@@ -112,3 +112,8 @@ module Aikido::Zen
     end
   end
 end
+
+require_relative "collector/stats"
+require_relative "collector/users"
+require_relative "collector/hosts"
+require_relative "collector/routes"

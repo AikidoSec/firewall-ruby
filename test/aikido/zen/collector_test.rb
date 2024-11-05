@@ -2,12 +2,12 @@
 
 require "test_helper"
 
-class Aikido::Zen::Agent::CollectorTest < ActiveSupport::TestCase
+class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
   include StubsCurrentContext
 
   setup do
     @config = Aikido::Zen.config
-    @collector = Aikido::Zen::Agent::Collector.new(config: @config)
+    @collector = Aikido::Zen::Collector.new(config: @config)
     @sink = stub_sink(name: "test")
   end
 

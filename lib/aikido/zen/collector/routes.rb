@@ -6,7 +6,7 @@ module Aikido::Zen
   # @api private
   #
   # Keeps track of the visited routes.
-  class Agent::Routes
+  class Collector::Routes
     def initialize
       @visits = Hash.new { |h, k| h[k] = Record.new }
     end

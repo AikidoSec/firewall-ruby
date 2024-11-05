@@ -6,7 +6,7 @@ module Aikido::Zen
   # @api private
   #
   # Keeps track of the users that were seen by the app.
-  class Agent::Users < Aikido::Zen::CappedMap
+  class Collector::Users < Aikido::Zen::CappedMap
     def initialize(config = Aikido::Zen.config)
       super(config.max_users_tracked)
     end

@@ -64,9 +64,9 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     @config = Aikido::Zen.config
     @config.api_token = "TOKEN"
 
-    @worker = Minitest::Mock.new(MockWorker.new)
-    @collector = Minitest::Mock.new(Aikido::Zen::Agent::Collector.new)
     @api_client = Minitest::Mock.new(MockAPIClient.new)
+    @collector = Aikido::Zen.collector
+    @worker = MockWorker.new
 
     @agent = Aikido::Zen::Agent.new(
       api_client: @api_client,

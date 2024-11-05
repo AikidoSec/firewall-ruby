@@ -4,6 +4,7 @@ require_relative "zen/version"
 require_relative "zen/errors"
 require_relative "zen/actor"
 require_relative "zen/config"
+require_relative "zen/collector"
 require_relative "zen/system_info"
 require_relative "zen/worker"
 require_relative "zen/agent"
@@ -35,6 +36,12 @@ module Aikido
     # the server along with any events.
     def self.system_info
       @system_info ||= SystemInfo.new
+    end
+
+    # Manages runtime metrics extracted from your app, which are uploaded to the
+    # Aikido servers if configured to do so.
+    def self.collector
+      @collector ||= Collector.new
     end
 
     # Gets the current context object that holds all information about the

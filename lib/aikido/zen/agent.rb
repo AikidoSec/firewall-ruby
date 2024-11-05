@@ -18,9 +18,9 @@ module Aikido::Zen
 
     def initialize(
       config: Aikido::Zen.config,
+      collector: Aikido::Zen.collector,
       worker: Aikido::Zen::Worker.new(config: config),
-      api_client: Aikido::Zen::APIClient.new(config: config),
-      collector: Aikido::Zen::Agent::Collector.new(config: config)
+      api_client: Aikido::Zen::APIClient.new(config: config)
     )
       @started_at = nil
 
@@ -180,9 +180,4 @@ module Aikido::Zen
   end
 end
 
-require_relative "agent/stats"
-require_relative "agent/users"
-require_relative "agent/hosts"
-require_relative "agent/routes"
-require_relative "agent/collector"
 require_relative "agent/heartbeats_manager"
