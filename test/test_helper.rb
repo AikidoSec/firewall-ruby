@@ -110,6 +110,15 @@ class ActiveSupport::TestCase
   end
   # rubocop:enable Style/OptionalArguments
 
+  # Checks that all the data in {subset} is part of the {container} hash.
+  #
+  # @example
+  #   data = {name: "Alice", email: "alice@example.com", id: 3}
+  #   assert_hash_subset_of data, {name: "Alice", id: 3}
+  def assert_hash_subset_of(container, subset)
+    assert_equal container.slice(*subset.keys), subset
+  end
+
   module StubsCurrentContext
     # Override in tests to return the desired stub.
     def current_context

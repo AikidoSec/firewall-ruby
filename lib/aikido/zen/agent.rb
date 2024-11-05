@@ -2,7 +2,6 @@
 
 require "concurrent"
 require_relative "event"
-require_relative "stats"
 require_relative "config"
 require_relative "system_info"
 
@@ -12,56 +11,84 @@ module Aikido::Zen
   class Agent
     def initialize(
       config: Aikido::Zen.config,
-      info: Aikido::Zen.system_info,
-      api_client: Aikido::Zen::APIClient.new
+      worker: Aikido::Zen::Worker.new(config: config),
+      api_client: Aikido::Zen::APIClient.new(config: config),
+      collector: Aikido::Zen::Agent::Collector.new(config: config)
     )
       @started_at = nil
 
-      @stats = Concurrent::AtomicReference.new(Aikido::Zen::Stats.new)
-      @info = info
       @config = config
+      @worker = worker
       @api_client = api_client
-      @timer_tasks = []
-      @delayed_tasks = []
-      @reporting_pool = nil
-      @heartbeats = nil
+      @collector = collector
     end
 
     def started?
       !!@started_at
     end
 
-    def track_request(request)
-      stats.add_request(request)
+    def start!
+      @config.logger.info "Starting Aikido agent"
+
+      raise Aikido::ZenError, "Aikido Agent already started!" if started?
+      @started_at = Time.now.utc
+      @collector.start(at: @started_at)
+
+      if @config.blocking_mode?
+        @config.logger.info "Requests identified as attacks will be blocked"
+      else
+        @config.logger.warn "Non-blocking mode enabled! No requests will be blocked."
+      end
+
+      if @api_client.can_make_requests?
+        @config.logger.info "API Token set! Reporting has been enabled."
+      else
+        @config.logger.warn "No API Token set! Reporting has been disabled."
+        return
+      end
+
+      at_exit { stop! if started? }
+
+      report(Events::Started.new(time: @started_at)) do |response|
+        Aikido::Zen.runtime_settings.update_from_json(response)
+        @config.logger.info "Updated runtime settings."
+      rescue => err
+        @config.logger.error(err.message)
+      end
+
+      poll_for_setting_updates
+
+      @worker.delay(@config.initial_heartbeat_delay) { send_heartbeat if stats.any? }
     end
 
+    # Clean up any ongoing threads, and reset the state. Called automatically
+    # when the process exits.
+    #
+    # @return [void]
+    def stop!
+      @config.logger.info "Stopping Aikido agent"
+      @started_at = nil
+      @worker.shutdown
+    end
+
+    extend Forwardable
+    def_delegators :@collector, :track_request, :track_outbound, :track_user
+
     def track_scan(scan)
-      stats.add_scan(scan)
+      @collector.track_scan(scan)
       handle_attack(scan.attack) if scan.attack?
     end
 
-    def track_outbound(connection)
-      stats.add_outbound(connection)
-    end
-
-    def track_user(user)
-      actor = Aikido::Zen::Actor(user)
-
-      if actor
-        stats.add_user(actor)
-      else
-        config.logger.warn(format(<<~LOG, obj: user))
-          Incompatible object sent to track_user: %<obj>p
-
-          The object must either implement #to_aikido_actor, or be a Hash with
-          an :id (or "id") and, optionally, a :name (or "name") key.
-        LOG
+    # Respond to the runtime settings changing after being fetched from the
+    # Aikido servers.
+    #
+    # @return [void]
+    def updated_settings!
+      if !heartbeats.running?
+        heartbeats.start { send_heartbeat }
+      elsif heartbeats.stale_settings?
+        heartbeats.restart { send_heartbeat }
       end
-    end
-
-    # @return [Aikido::Zen::Stats] the statistics collected by the agent.
-    def stats
-      @stats.get
     end
 
     # Given an Attack, report it to the Aikido server, and/or block the request
@@ -78,8 +105,8 @@ module Aikido::Zen
       @config.logger.error("[ATTACK DETECTED] #{attack.log_message}")
       report(Events::Attack.new(attack: attack)) if @api_client.can_make_requests?
 
-      stats.add_attack(attack, being_blocked: @config.blocking_mode?)
-      raise attack if @config.blocking_mode?
+      @collector.track_attack(attack)
+      raise attack if attack.blocked?
     end
 
     # Asynchronously reports an Event of any kind to the Aikido dashboard. If
@@ -91,7 +118,7 @@ module Aikido::Zen
     #
     # @return [void]
     def report(event)
-      reporting_pool.post do
+      @worker.perform do
         response = @api_client.report(event)
         yield response if response && block_given?
       rescue Aikido::Zen::APIError, Aikido::Zen::NetworkError => err
@@ -99,52 +126,35 @@ module Aikido::Zen
       end
     end
 
-    def start!
-      @config.logger.info "Starting Aikido agent"
-
-      raise Aikido::ZenError, "Aikido Agent already started!" if started?
-      @started_at = Time.now.utc
-
-      stats.start(@started_at)
-
-      if @config.blocking_mode?
-        @config.logger.info "Requests identified as attacks will be blocked"
-      else
-        @config.logger.warn "Non-blocking mode enabled! No requests will be blocked."
-      end
-
-      if @api_client.can_make_requests?
-        @config.logger.info "API Token set! Reporting has been enabled."
-      else
-        @config.logger.warn "No API Token set! Reporting has been disabled."
-        return
-      end
-
-      # Subscribe to firewall setting changes so we can correctly re-configure
-      # the heartbeat process.
-      Aikido::Zen.runtime_settings.add_observer(self, :setup_heartbeat)
-
-      at_exit { stop! if started? }
-
-      report(Events::Started.new(time: @started_at)) do |response|
-        Aikido::Zen.runtime_settings.update_from_json(response)
-        @config.logger.info "Updated runtime settings."
-      end
-
-      poll_for_setting_updates
-    end
-
-    def send_heartbeat
+    # @api private
+    #
+    # Atomically flushes all the stats stored by the agent, and sends a
+    # heartbeat event. Scheduled to run automatically on a recurring schedule
+    # when reporting is enabled.
+    #
+    # @param at [Time] the event time. Defaults to now.
+    # @return [void]
+    # @see Aikido::Zen::RuntimeSettings#heartbeat_interval
+    def send_heartbeat(at: Time.now.utc)
       return unless @api_client.can_make_requests?
 
-      report(Events::Heartbeat.new(stats: flush_stats)) do |response|
+      event = @collector.flush(at: at)
+
+      report(event) do |response|
         Aikido::Zen.runtime_settings.update_from_json(response)
         @config.logger.info "Updated runtime settings after heartbeat"
       end
     end
 
+    # @api private
+    #
+    # Sets up the timer task that polls the Aikido Runtime API for updates to
+    # the runtime settings every minute.
+    #
+    # @return [void]
+    # @see Aikido::Zen::RuntimeSettings
     def poll_for_setting_updates
-      timer_task(every: @config.polling_interval) do
+      @worker.every(@config.polling_interval) do
         if @api_client.should_fetch_settings?
           Aikido::Zen.runtime_settings.update_from_json(@api_client.fetch_settings)
           @config.logger.info "Updated runtime settings after polling"
@@ -152,73 +162,20 @@ module Aikido::Zen
       end
     end
 
-    def setup_heartbeat(settings)
-      return unless @api_client.can_make_requests?
+    private
 
-      # If the desired interval changed, then clear the current heartbeat timer
-      # and set up a new one.
-      if @heartbeats&.running? && @heartbeats.execution_interval != settings.heartbeat_interval
-        @heartbeats.shutdown
-        @heartbeats = nil
-        setup_heartbeat(settings)
-
-      # If the heartbeat timer isn't running but we know how often it should run, schedule it.
-      elsif !@heartbeats&.running? && settings.heartbeat_interval&.nonzero?
-        @config.logger.debug "Scheduling heartbeats every #{settings.heartbeat_interval} seconds"
-        @heartbeats = timer_task(every: settings.heartbeat_interval, run_now: false) do
-          send_heartbeat
-        end
-
-      elsif !@heartbeats&.running?
-        @config.logger.debug(format("Heartbeat could not be setup (interval: %p)", settings.heartbeat_interval))
-      end
-
-      # If the server hasn't received any stats, we want to also run a one-off
-      # heartbeat request in a minute.
-      if !settings.received_any_stats
-        delay(@config.initial_heartbeat_delay) { send_heartbeat if stats.any? }
-      end
-    end
-
-    def stop!
-      @started_at = nil
-
-      @config.logger.info "Stopping Aikido agent"
-
-      @timer_tasks.each { |task| task.shutdown }
-      @delayed_tasks.each { |task| task.cancel if task.pending? }
-
-      @reporting_pool&.shutdown
-      @reporting_pool&.wait_for_termination(30)
-    end
-
-    private def flush_stats(at: Time.now.utc)
-      new_stats = Aikido::Zen::Stats.new
-      new_stats.start(at: at)
-
-      old_stats = @stats.get_and_set(Aikido::Zen::Stats.new)
-      old_stats.flush(at: at)
-      old_stats
-    end
-
-    private def reporting_pool
-      @reporting_pool ||= Concurrent::SingleThreadExecutor.new
-    end
-
-    private def delay(delay, &task)
-      Concurrent::ScheduledTask.execute(delay, executor: reporting_pool, &task)
-        .tap { |task| @delayed_tasks << task }
-    end
-
-    private def timer_task(every:, **opts, &block)
-      Concurrent::TimerTask.execute(
-        run_now: true,
-        interval_type: :fixed_rate,
-        execution_interval: every,
-        executor: reporting_pool,
-        **opts,
-        &block
-      ).tap { |task| @timer_tasks << task }
+    def heartbeats
+      @heartbeats ||= Aikido::Zen::Agent::HeartbeatsManager.new(
+        config: @config,
+        worker: @worker
+      )
     end
   end
 end
+
+require_relative "agent/stats"
+require_relative "agent/users"
+require_relative "agent/hosts"
+require_relative "agent/routes"
+require_relative "agent/collector"
+require_relative "agent/heartbeats_manager"

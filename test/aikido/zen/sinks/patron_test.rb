@@ -6,12 +6,11 @@ class Aikido::Zen::Sinks::PatronTest < ActiveSupport::TestCase
   class SSRFDetectionTest < ActiveSupport::TestCase
     include StubsCurrentContext
     include SinkAttackHelpers
+    include HTTPConnectionTrackingAssertions
 
     setup do
       stub_request(:get, "https://localhost/safe")
         .to_return(status: 200, body: "OK")
-
-      @outbound_connections = Aikido::Zen.send(:agent).stats.outbound_connections
     end
 
     test "allows normal requests" do
@@ -51,7 +50,7 @@ class Aikido::Zen::Sinks::PatronTest < ActiveSupport::TestCase
     test "does not log an outbound connection if the request was blocked" do
       set_context_from_request_to "/?host=localhost"
 
-      assert_no_difference -> { @outbound_connections.size } do
+      refute_outbound_connection_to("localhost", 443) do
         assert_attack Aikido::Zen::Attacks::SSRFAttack do
           session = Patron::Session.new(base_url: "https://localhost")
           session.get("/safe")

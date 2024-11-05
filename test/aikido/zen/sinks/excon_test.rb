@@ -11,7 +11,7 @@ class Aikido::Zen::Sinks::ExconTest < ActiveSupport::TestCase
       stub_request(:get, "https://localhost/safe")
         .to_return(status: 200, body: "OK")
 
-      @outbound_connections = Aikido::Zen.send(:agent).stats.outbound_connections
+      @outbound_connections = Aikido::Zen.send(:agent).instance_variable_get(:@collector).hosts
     end
 
     test "allows normal requests" do

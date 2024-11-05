@@ -3,9 +3,6 @@
 require "test_helper"
 
 class Aikido::Zen::AgentTest < ActiveSupport::TestCase
-  # Make it easier to test
-  Aikido::Zen::Agent.attr_reader :timer_tasks, :delayed_tasks
-
   class MockAPIClient < Aikido::Zen::APIClient
     def should_fetch_settings?
       false
@@ -20,12 +17,62 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     end
   end
 
+  MockWorker = Struct.new(:jobs, :delayed) do
+    def initialize
+      super([], [])
+    end
+
+    def perform(&block)
+      yield
+    end
+
+    def delay(interval, &block)
+      MockDefer.new(queued: true, interval: interval)
+        .tap { |task| delayed << task }
+    end
+
+    def every(interval, run_now: true, &task)
+      yield if run_now
+      MockTimer.new(running: true, interval: interval, run_now: run_now)
+        .tap { |timer| jobs << timer }
+    end
+
+    def shutdown
+      jobs.each(&:shutdown)
+    end
+  end
+
+  MockDefer = Struct.new(:queued, :interval, keyword_init: true) do
+    alias_method :pending?, :queued
+    alias_method :initial_delay, :interval
+
+    def cancel
+      self.queued = false
+    end
+  end
+
+  MockTimer = Struct.new(:running, :interval, :run_now, keyword_init: true) do
+    alias_method :running?, :running
+    alias_method :execution_interval, :interval
+
+    def shutdown
+      self.running = false
+    end
+  end
+
   setup do
     @config = Aikido::Zen.config
     @config.api_token = "TOKEN"
 
+    @worker = Minitest::Mock.new(MockWorker.new)
+    @collector = Minitest::Mock.new(Aikido::Zen::Agent::Collector.new)
     @api_client = Minitest::Mock.new(MockAPIClient.new)
-    @agent = Aikido::Zen::Agent.new(api_client: @api_client)
+
+    @agent = Aikido::Zen::Agent.new(
+      api_client: @api_client,
+      collector: @collector,
+      worker: @worker
+    )
 
     @test_sink = Aikido::Zen::Sink.new("test", scanners: [NOOP])
   end
@@ -55,11 +102,9 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#start! sets the start time for our stats funnel" do
-    assert_nil @agent.stats.started_at
-
-    @agent.start!
-
-    refute_nil @agent.stats.started_at
+    assert_changes "@collector.stats.started_at", from: nil do
+      @agent.start!
+    end
   end
 
   test "#start! warns if blocking mode is disabled" do
@@ -95,28 +140,24 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#start! reports a STARTED event" do
-    @agent.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
-      @api_client.expect :report, {}, [Aikido::Zen::Events::Started]
+    @api_client.expect :report, {}, [Aikido::Zen::Events::Started]
 
-      @agent.start!
+    @agent.start!
 
-      assert_mock @api_client
-    end
+    assert_mock @api_client
   end
 
   test "#start! takes the response of the STARTED event as runtime settings" do
-    @agent.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
-      @api_client.expect :report,
-        {"configUpdatedAt" => 1234567890000},
-        [Aikido::Zen::Events::Started]
+    @api_client.expect :report,
+      {"configUpdatedAt" => 1234567890000},
+      [Aikido::Zen::Events::Started]
 
-      assert_changes -> { Aikido::Zen.runtime_settings.updated_at }, to: Time.at(1234567890) do
-        @agent.start!
-      end
-
-      assert_mock @api_client
-      assert_logged :info, /updated runtime settings/i
+    assert_changes -> { Aikido::Zen.runtime_settings.updated_at }, to: Time.at(1234567890) do
+      @agent.start!
     end
+
+    assert_mock @api_client
+    assert_logged :info, /updated runtime settings/i
   end
 
   test "#start! does not report a STARTED event if it does not have an API token" do
@@ -132,35 +173,31 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#start! starts polling for setting updates every minute" do
-    @agent.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
-      @api_client.expect :should_fetch_settings?, false
+    @api_client.expect :should_fetch_settings?, false
 
-      assert_difference -> { @agent.timer_tasks.size }, +1 do
-        @agent.start!
-      end
-
-      timer = @agent.timer_tasks.first
-      assert_equal @config.polling_interval, timer.execution_interval
-
-      refute_logged :info, /updated runtime settings after polling/i
-
-      assert_mock @api_client
+    assert_difference "@worker.jobs.size", +1 do
+      @agent.start!
     end
+
+    timer = @worker.jobs.first
+    assert_equal @config.polling_interval, timer.execution_interval
+
+    refute_logged :info, /updated runtime settings after polling/i
+
+    assert_mock @api_client
   end
 
   test "#start! updates the runtime settings after polling if needed" do
-    @agent.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
-      @api_client.expect :should_fetch_settings?, true
-      @api_client.expect :fetch_settings, {"configUpdatedAt" => 1234567890000}
+    @api_client.expect :should_fetch_settings?, true
+    @api_client.expect :fetch_settings, {"configUpdatedAt" => 1234567890000}
 
-      assert_changes -> { Aikido::Zen.runtime_settings.updated_at }, to: Time.at(1234567890) do
-        @agent.start!
-      end
-
-      assert_logged :info, /updated runtime settings after polling/i
-
-      assert_mock @api_client
+    assert_changes -> { Aikido::Zen.runtime_settings.updated_at }, to: Time.at(1234567890) do
+      @agent.start!
     end
+
+    assert_logged :info, /updated runtime settings after polling/i
+
+    assert_mock @api_client
   end
 
   test "#handle_attack logs the attack's message" do
@@ -172,15 +209,11 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#handle_attack reports an ATTACK event" do
-    attack = TestAttack.new(sink: @test_sink)
+    @api_client.expect :report, {}, [Aikido::Zen::Events::Attack]
 
-    @agent.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
-      @api_client.expect :report, {}, [Aikido::Zen::Events::Attack]
+    @agent.handle_attack(TestAttack.new(sink: @test_sink))
 
-      @agent.handle_attack(attack)
-
-      assert_mock @api_client
-    end
+    assert_mock @api_client
   end
 
   test "#handle_attack does not report an event if the API can't make requests" do
@@ -242,22 +275,20 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#send_heartbeat reports a heartbeat event and updates the settings" do
-    @agent.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
-      @api_client.expect :report, {"receivedAnyStats" => true}, [Aikido::Zen::Events::Heartbeat]
+    @api_client.expect :report, {"receivedAnyStats" => true}, [Aikido::Zen::Events::Heartbeat]
 
-      assert_changes -> { Aikido::Zen.runtime_settings.received_any_stats }, to: true do
-        @agent.send_heartbeat
-      end
-
-      assert_mock @api_client
+    assert_changes -> { Aikido::Zen.runtime_settings.received_any_stats }, to: true do
+      @agent.send_heartbeat
     end
+
+    assert_mock @api_client
   end
 
   test "#send_heartbeat flushes the stats before sending them" do
     stats = Minitest::Mock.new
     stats.expect :flush, [], at: Time
 
-    @agent.instance_variable_get(:@stats).stub(:get_and_set, stats) do
+    @collector.instance_variable_get(:@stats).stub(:get_and_set, stats) do
       @agent.send_heartbeat
     end
 
@@ -278,10 +309,8 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     # this happens e.g. when events are rate limited
     @api_client.expect :report, nil, [Aikido::Zen::Events::Heartbeat]
 
-    @agent.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
-      assert_nothing_raised do
-        @agent.send_heartbeat
-      end
+    assert_nothing_raised do
+      @agent.send_heartbeat
     end
 
     refute_logged :info, /Updated runtime settings after heartbeat/
@@ -289,64 +318,63 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert_mock @api_client
   end
 
-  test "#setup_heartbeat configures a timer for the configured frequency" do
-    settings = Aikido::Zen.runtime_settings
-    settings.heartbeat_interval = 10
+  test "#updated_settings! configures a timer for the configured frequency" do
+    Aikido::Zen.runtime_settings.heartbeat_interval = 10
 
-    assert_difference -> { @agent.timer_tasks.size }, +1 do
-      @agent.setup_heartbeat(settings)
+    assert_difference "@worker.jobs.size", +1 do
+      @agent.updated_settings!
     end
 
-    timer = @agent.timer_tasks.last
+    timer = @worker.jobs.first
     assert_equal 10, timer.execution_interval
 
     assert_logged :debug, /scheduling heartbeats every 10 seconds/i
   end
 
-  test "#setup_heartbeat resets the timer if the interval changes" do
+  test "#updated_settings! resets the timer if the interval changes" do
     settings = Aikido::Zen.runtime_settings
     settings.heartbeat_interval = 10
-    assert_difference -> { @agent.timer_tasks.size }, +1 do
-      @agent.setup_heartbeat(settings)
+    assert_difference "@worker.jobs.size", +1 do
+      @agent.updated_settings!
     end
 
-    first_timer = @agent.timer_tasks.last
+    first_timer = @worker.jobs.last
     assert_equal 10, first_timer.execution_interval
     assert first_timer.running?
 
     settings.heartbeat_interval = 20
-    assert_difference -> { @agent.timer_tasks.size }, +1 do
-      @agent.setup_heartbeat(settings)
+    assert_difference "@worker.jobs.size", +1 do
+      @agent.updated_settings!
     end
 
-    second_timer = @agent.timer_tasks.last
+    second_timer = @worker.jobs.last
     assert_equal 20, second_timer.execution_interval
     refute first_timer.running?
     assert second_timer.running?
   end
 
-  test "#setup_heartbeat queues a one-off task if the server hasn't received stats yet" do
+  test "#start! queues a one-off task if the server hasn't received stats yet" do
     settings = Aikido::Zen.runtime_settings
     settings.received_any_stats = false
 
-    assert_difference -> { @agent.delayed_tasks.size }, +1 do
-      @agent.setup_heartbeat(settings)
+    assert_difference "@worker.delayed.size", +1 do
+      @agent.start!
     end
 
-    task = @agent.delayed_tasks.last
+    task = @worker.delayed.last
     assert_equal @config.initial_heartbeat_delay, task.initial_delay
     assert task.pending? # is queued for execution
   end
 
-  test "#setup_heartbeat does not queue a one-off task if the server received stats" do
+  test "#updated_settings! does not queue a one-off task if the server received stats" do
     settings = Aikido::Zen.runtime_settings
     settings.received_any_stats = true
 
-    assert_no_difference -> { @agent.delayed_tasks.size } do
-      @agent.setup_heartbeat(settings)
+    assert_no_difference "@worker.delayed.size" do
+      @agent.updated_settings!
     end
 
-    assert_empty @agent.delayed_tasks
+    assert_empty @worker.delayed
   end
 
   test "#report logs API errors" do
@@ -359,11 +387,9 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
       raise Aikido::Zen::APIError.new(request, response)
     end
 
-    @agent.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
-      assert_nothing_raised { @agent.report(event) }
+    assert_nothing_raised { @agent.report(event) }
 
-      assert_logged :error, %r{Error in POST /: 400 Bad request}i
-    end
+    assert_logged :error, %r{Error in POST /: 400 Bad request}i
 
     assert_mock @api_client
   end
@@ -377,11 +403,9 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
       raise Aikido::Zen::NetworkError.new(request, error)
     end
 
-    @agent.stub :reporting_pool, Concurrent::ImmediateExecutor.new do
-      assert_nothing_raised { @agent.report(event) }
+    assert_nothing_raised { @agent.report(event) }
 
-      assert_logged :error, %r{Error in POST /: Net::ReadTimeout with "test"}i
-    end
+    assert_logged :error, %r{Error in POST /: Net::ReadTimeout with "test"}i
 
     assert_mock @api_client
   end

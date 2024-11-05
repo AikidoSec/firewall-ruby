@@ -27,31 +27,28 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_equal false, @settings.received_any_stats
   end
 
-  test "building from a JSON response notifies observers" do
-    observer_notified = false
-    observer = ->(settings) { observer_notified = true }
+  test "building from a JSON response notifies the agent" do
+    agent = Minitest::Mock.new
+    agent.expect :updated_settings!, nil
 
-    @settings.add_observer(observer, :call)
+    Aikido::Zen.stub(:agent, agent) do
+      @settings.update_from_json({
+        "success" => true,
+        "serviceId" => 1234,
+        "configUpdatedAt" => 1717171717000,
+        "heartbeatIntervalInMS" => 60000,
+        "endpoints" => [],
+        "blockedUserIds" => [],
+        "allowedIPAddresses" => [],
+        "receivedAnyStats" => false
+      })
 
-    @settings.update_from_json({
-      "success" => true,
-      "serviceId" => 1234,
-      "configUpdatedAt" => 1717171717000,
-      "heartbeatIntervalInMS" => 60000,
-      "endpoints" => [],
-      "blockedUserIds" => [],
-      "allowedIPAddresses" => [],
-      "receivedAnyStats" => false
-    })
-
-    assert observer_notified
+      assert_mock agent
+    end
   end
 
   test "observers are only notified if the settings have changed" do
-    observer_notifications = 0
-    observer = ->(settings) { observer_notifications += 1 }
-
-    @settings.add_observer(observer, :call)
+    agent = Minitest::Mock.new
 
     payload = {
       "success" => true,
@@ -64,18 +61,20 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
       "receivedAnyStats" => false
     }
 
-    assert_difference "observer_notifications", +1 do
+    Aikido::Zen.stub(:agent, agent) do
+      agent.expect :updated_settings!, nil
       @settings.update_from_json(payload)
+      @settings.update_from_json(payload)
+      @settings.update_from_json(payload)
+
+      payload["configUpdatedAt"] = 1726354453000
+
+      agent.expect :updated_settings!, nil
       @settings.update_from_json(payload)
       @settings.update_from_json(payload)
     end
 
-    payload["configUpdatedAt"] = 1726354453000
-
-    assert_difference "observer_notifications", +1 do
-      @settings.update_from_json(payload)
-      @settings.update_from_json(payload)
-    end
+    assert_mock agent
   end
 
   test "#skip_protection_for_ips lets you use individual addresses" do

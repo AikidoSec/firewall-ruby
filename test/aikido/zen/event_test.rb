@@ -107,89 +107,71 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
 
   class HeartbeatTest < ActiveSupport::TestCase
     setup do
-      @stats = Aikido::Zen::Stats.new
+      @stats = Aikido::Zen::Agent::Stats.new
       @stats.start(Time.at(1234567890))
-      @stats.ended_at = Time.at(1234577890)
+      @stats.flush(at: Time.at(1234577890))
+
+      @users = Aikido::Zen::Agent::Users.new
+      @hosts = Aikido::Zen::Agent::Hosts.new
+      @routes = Aikido::Zen::Agent::Routes.new
     end
 
     test "sets type to heartbeat" do
-      event = Aikido::Zen::Events::Heartbeat.new(stats: @stats)
+      event = Aikido::Zen::Events::Heartbeat.new(
+        stats: @stats, users: @users, hosts: @hosts, routes: @routes
+      )
 
       assert_equal "heartbeat", event.type
     end
 
-    test "sets the stats to the serialized_stats passed" do
-      event = Aikido::Zen::Events::Heartbeat.new(stats: @stats)
+    test "includes the basic structure with timestamps if no data has been collected" do
+      event = Aikido::Zen::Events::Heartbeat.new(
+        stats: @stats, users: @users, hosts: @hosts, routes: @routes
+      )
 
-      expected = {
-        startedAt: 1234567890000,
-        endedAt: 1234577890000,
-        sinks: {},
-        requests: {
-          total: 0,
-          aborted: 0,
-          attacksDetected: {total: 0, blocked: 0}
-        }
+      assert_hash_subset_of event.as_json, {
+        stats: {
+          startedAt: 1234567890000,
+          endedAt: 1234577890000,
+          sinks: {},
+          requests: {
+            total: 0,
+            aborted: 0,
+            attacksDetected: {total: 0, blocked: 0}
+          }
+        },
+        users: [],
+        routes: [],
+        hostnames: []
       }
-
-      assert_equal(expected, event.as_json[:stats])
-    end
-
-    test "includes the outbound hostnames visited by the app" do
-      3.times { @stats.add_outbound(stub_outbound("example.com", 80)) }
-      2.times { @stats.add_outbound(stub_outbound("example.com", 443)) }
-      3.times { @stats.add_outbound(stub_outbound("guard.aikido.dev", 443)) }
-      10.times { @stats.add_outbound(stub_outbound("runtime.aikido.dev", 443)) }
-
-      event = Aikido::Zen::Events::Heartbeat.new(stats: @stats)
-
-      expected = [
-        {hostname: "example.com", port: 80},
-        {hostname: "example.com", port: 443},
-        {hostname: "guard.aikido.dev", port: 443},
-        {hostname: "runtime.aikido.dev", port: 443}
-      ]
-
-      assert_equal expected, event.as_json[:hostnames]
-    end
-
-    test "includes the recognized framework routes" do
-      3.times { @stats.add_request(stub_request(route: stub_route("GET", "/users/:id"))) }
-      2.times { @stats.add_request(stub_request(route: stub_route("POST", "/users"))) }
-      4.times { @stats.add_request(stub_request(route: stub_route("GET", "/"))) }
-
-      event = Aikido::Zen::Events::Heartbeat.new(stats: @stats)
-
-      assert_includes event.as_json[:routes], {path: "/users/:id", method: "GET", hits: 3}
-      assert_includes event.as_json[:routes], {path: "/users", method: "POST", hits: 2}
-      assert_includes event.as_json[:routes], {path: "/", method: "GET", hits: 4}
     end
 
     test "when API discovery is enabled, includes the API spec with the routes" do
       Aikido::Zen.config.api_schema_collection_enabled = true
 
-      @stats.add_request(
-        build_request_for("/", stub_route("GET", "/"))
-      )
-      @stats.add_request(
-        build_request_for("/users", stub_route("POST", "/users(.:format)"), {
-          :method => "POST",
-          :input => "user[name]=Alice&user[email]=alice@example.com",
-          "CONTENT_TYPE" => "multipart/form-data"
-        })
-      )
-      @stats.add_request(
-        build_request_for("/users", stub_route("POST", "/users(.:format)"), {
-          :method => "POST",
-          :input => %({"user":{"name":"Alice","email":"alice@example.com","age":35}}),
-          "CONTENT_TYPE" => "application/json"
-        })
-      )
-      @stats.add_request(
-        build_request_for("/users?search=alice&page=2", stub_route("GET", "/users(.:format)"))
-      )
+      req = build_request_for("/", stub_route("GET", "/"))
+      @routes.add(req.route, req.schema)
 
-      event = Aikido::Zen::Events::Heartbeat.new(stats: @stats)
+      req = build_request_for("/users", stub_route("POST", "/users(.:format)"), {
+        :method => "POST",
+        :input => "user[name]=Alice&user[email]=alice@example.com",
+        "CONTENT_TYPE" => "multipart/form-data"
+      })
+      @routes.add(req.route, req.schema)
+
+      req = build_request_for("/users", stub_route("POST", "/users(.:format)"), {
+        :method => "POST",
+        :input => %({"user":{"name":"Alice","email":"alice@example.com","age":35}}),
+        "CONTENT_TYPE" => "application/json"
+      })
+      @routes.add(req.route, req.schema)
+
+      req = build_request_for("/users?search=alice&page=2", stub_route("GET", "/users(.:format)"))
+      @routes.add(req.route, req.schema)
+
+      event = Aikido::Zen::Events::Heartbeat.new(
+        stats: @stats, users: @users, hosts: @hosts, routes: @routes
+      )
       serialized = event.as_json
 
       assert_includes serialized[:routes],
@@ -233,10 +215,6 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
             }
           }
         }
-    end
-
-    test "includes the users the developer told us about" do
-      skip "Implement support for users"
     end
 
     def stub_outbound(host, port)

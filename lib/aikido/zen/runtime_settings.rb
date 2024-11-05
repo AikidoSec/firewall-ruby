@@ -11,16 +11,11 @@ module Aikido::Zen
   #
   # You can subscribe to changes with +#add_observer(object, func_name)+, which
   # will call the function passing the settings as an argument.
-  class RuntimeSettings < Concurrent::MutableStruct.new(
-    :updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :skip_protection_for_ips, :received_any_stats
-  )
-    include Concurrent::Concern::Observable
-
+  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :skip_protection_for_ips, :received_any_stats) do
     def initialize(*)
-      self.observers = Concurrent::Collection::CopyOnWriteObserverSet.new
       super
-      self.endpoints ||= Endpoints.new
-      self.skip_protection_for_ips ||= IPSet.new
+      self.endpoints ||= RuntimeSettings::Endpoints.new
+      self.skip_protection_for_ips ||= RuntimeSettings::IPSet.new
     end
 
     # @!attribute [rw] updated_at
@@ -56,12 +51,12 @@ module Aikido::Zen
 
       self.updated_at = Time.at(data["configUpdatedAt"].to_i / 1000)
       self.heartbeat_interval = (data["heartbeatIntervalInMS"].to_i / 1000)
-      self.endpoints = Endpoints.from_json(data["endpoints"])
+      self.endpoints = RuntimeSettings::Endpoints.from_json(data["endpoints"])
       self.blocked_user_ids = data["blockedUserIds"]
-      self.skip_protection_for_ips = IPSet.from_json(data["allowedIPAddresses"])
+      self.skip_protection_for_ips = RuntimeSettings::IPSet.from_json(data["allowedIPAddresses"])
       self.received_any_stats = data["receivedAnyStats"]
 
-      observers.notify_observers(self) if updated_at != last_updated_at
+      Aikido::Zen.agent.updated_settings! if updated_at != last_updated_at
     end
   end
 end

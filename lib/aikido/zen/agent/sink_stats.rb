@@ -6,7 +6,7 @@ module Aikido::Zen
   # @api private
   #
   # Tracks data specific to a single Sink.
-  class Stats::SinkStats
+  class Agent::SinkStats
     # @return [Integer] number of total calls to Sink#scan.
     attr_accessor :scans
 
