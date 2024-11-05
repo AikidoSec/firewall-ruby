@@ -53,6 +53,8 @@ class ActiveSupport::TestCase
     @_old_sinks_registry = Aikido::Zen::Sinks.registry.dup
     Aikido::Zen::Sinks.registry.clear
 
+    Aikido::Zen::Sinks::ActionController.instance_variable_set(:@throttler, nil)
+
     WebMock.reset!
   end
 
