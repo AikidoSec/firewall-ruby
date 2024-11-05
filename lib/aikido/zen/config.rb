@@ -224,6 +224,8 @@ module Aikido::Zen
     end
 
     # @!visibility private
-    DEFAULT_RATE_LIMITING_DISCRIMINATOR = ->(request) { request.ip }
+    DEFAULT_RATE_LIMITING_DISCRIMINATOR = ->(request) {
+      request.actor ? "actor:#{request.actor.id}" : request.ip
+    }
   end
 end
