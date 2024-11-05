@@ -78,14 +78,6 @@ module Aikido::Zen
       @worker.shutdown
     end
 
-    extend Forwardable
-    def_delegators :@collector, :track_request, :track_outbound, :track_user
-
-    def track_scan(scan)
-      @collector.track_scan(scan)
-      handle_attack(scan.attack) if scan.attack?
-    end
-
     # Respond to the runtime settings changing after being fetched from the
     # Aikido servers.
     #
@@ -169,9 +161,7 @@ module Aikido::Zen
       end
     end
 
-    private
-
-    def heartbeats
+    private def heartbeats
       @heartbeats ||= Aikido::Zen::Agent::HeartbeatsManager.new(
         config: @config,
         worker: @worker

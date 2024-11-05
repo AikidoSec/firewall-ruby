@@ -61,33 +61,36 @@ module Aikido
       Thread.current[:_aikido_current_context_] = context
     end
 
-    class << self
-      extend Forwardable
+    # Track statistics about an HTTP request the app is handling.
+    #
+    # @param request [Aikido::Zen::Request]
+    # @return [void]
+    def self.track_request(request)
+      autostart
+      collector.track_request(request)
+    end
 
-      # @!method track_scan(scan)
-      #   Track statistics about the result of a Sink's scan, and report it as
-      #   an Attack if one is detected.
-      #
-      #   @param scan [Aikido::Zen::Scan]
-      #   @return [void]
-      #   @raise [Aikido::Zen::UnderAttackError] if the scan detected an Attack
-      #     and blocking_mode is enabled.
-      #
-      # @!method track_request(request)
-      #   Track statistics about an HTTP request the app is handling.
-      #
-      #   @param request [Aikido::Zen::Request]
-      #   @return [void]
-      #
-      # @!method track_outbound(connection)
-      #   Tracks a network connection made to an external service.
-      #
-      #   @param connection [Aikido::Zen::OutboundConnection]
-      #   @return [void]
-      def_delegators :agent,
-        :track_scan,
-        :track_request,
-        :track_outbound
+    # Tracks a network connection made to an external service.
+    #
+    # @param connection [Aikido::Zen::OutboundConnection]
+    # @return [void]
+    def self.track_outbound(connection)
+      autostart
+      collector.track_outbound(connection)
+    end
+
+    # @!method track_scan(scan)
+    #   Track statistics about the result of a Sink's scan, and report it as
+    #   an Attack if one is detected.
+    #
+    #   @param scan [Aikido::Zen::Scan]
+    #   @return [void]
+    #   @raise [Aikido::Zen::UnderAttackError] if the scan detected an Attack
+    #     and blocking_mode is enabled.
+    def self.track_scan(scan)
+      autostart
+      collector.track_scan(scan)
+      agent.handle_attack(scan.attack) if scan.attack?
     end
 
     # Track the user making the current request.
@@ -96,7 +99,8 @@ module Aikido
     # @return [void]
     def self.track_user(user)
       if (actor = Aikido::Zen::Actor(user))
-        agent.track_user(actor)
+        autostart
+        collector.track_user(actor)
       else
         config.logger.warn(format(<<~LOG, obj: user))
           Incompatible object sent to track_user: %<obj>p
@@ -126,6 +130,10 @@ module Aikido
     # @api private
     def self.agent
       @agent ||= Agent.start
+    end
+
+    class << self
+      alias_method :autostart, :agent
     end
   end
 end
