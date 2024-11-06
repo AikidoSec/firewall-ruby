@@ -40,9 +40,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     end
   end
 
-  test "#track_request stores the request schema if captured" do
-    Aikido::Zen.config.api_schema_collection_enabled = true
-
+  test "#track_request stores the request schema" do
     request = stub_request(Rack::MockRequest.env_for("/get?q=test"))
 
     @collector.track_request(request)
@@ -51,17 +49,6 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     assert_equal schema.as_json, {
       query: {"type" => "object", "properties" => {"q" => {"type" => "string"}}}
     }
-  end
-
-  test "#track_request does not store the request schema if configured to not capture it" do
-    Aikido::Zen.config.api_schema_collection_enabled = false
-
-    request = stub_request(Rack::MockRequest.env_for("/get?q=test"))
-
-    @collector.track_request(request)
-
-    schema = @collector.routes[stub_route("GET", "/get")].schema
-    assert_nil schema.as_json
   end
 
   test "#track_scan increments the number of scans for the sink" do
@@ -214,7 +201,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       },
       users: [],
       routes: [
-        {path: "/", method: "GET", hits: 3}
+        {path: "/", method: "GET", hits: 3, apispec: {}}
       ],
       hostnames: []
     }
@@ -279,7 +266,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       },
       users: [],
       routes: [
-        {path: "/", method: "GET", hits: 2}
+        {path: "/", method: "GET", hits: 2, apispec: {}}
       ],
       hostnames: []
     }
@@ -348,7 +335,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       },
       users: [],
       routes: [
-        {path: "/", method: "GET", hits: 2}
+        {path: "/", method: "GET", hits: 2, apispec: {}}
       ],
       hostnames: []
     }
@@ -412,7 +399,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           }
         }
       },
-      routes: [{method: "GET", path: "/", hits: 2}],
+      routes: [{method: "GET", path: "/", hits: 2, apispec: {}}],
       users: [
         {
           id: "123",

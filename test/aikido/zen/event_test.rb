@@ -147,8 +147,6 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
     end
 
     test "when API discovery is enabled, includes the API spec with the routes" do
-      Aikido::Zen.config.api_schema_collection_enabled = true
-
       req = build_request_for("/", stub_route("GET", "/"))
       @routes.add(req.route, req.schema)
 

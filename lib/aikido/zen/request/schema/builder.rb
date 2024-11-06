@@ -16,8 +16,6 @@ module Aikido::Zen
       end
 
       def schema
-        return unless @config.api_schema_collection_enabled?
-
         Request::Schema.new(
           content_type: body_data_type,
           body_schema: body_schema,

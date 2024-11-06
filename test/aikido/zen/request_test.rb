@@ -191,22 +191,11 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       assert_equal req.framework, req.as_json[:source]
     end
 
-    test "#schema builds the request schema if the feature is enabled" do
-      Aikido::Zen.config.api_schema_collection_enabled = true
-
+    test "#schema builds the request schema" do
       env = Rack::MockRequest.env_for("/test")
       req = build_request(env)
 
       assert_kind_of Aikido::Zen::Request::Schema, req.schema
-    end
-
-    test "#schema does nothing if the feature is disabled" do
-      Aikido::Zen.config.api_schema_collection_enabled = false
-
-      env = Rack::MockRequest.env_for("/test")
-      req = build_request(env)
-
-      assert_nil req.schema
     end
   end
 
@@ -251,8 +240,6 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
     end
 
     test "#schema gets built from the request body" do
-      Aikido::Zen.config.api_schema_collection_enabled = true
-
       env = Rack::MockRequest.env_for("/users?test=true", {
         "CONTENT_TYPE" => "application/json",
         :method => "POST",
