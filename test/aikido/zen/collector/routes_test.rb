@@ -3,7 +3,10 @@
 require "test_helper"
 
 class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
-  setup { @routes = Aikido::Zen::Collector::Routes.new }
+  setup {
+    @config = Aikido::Zen.config
+    @routes = Aikido::Zen::Collector::Routes.new(@config)
+  }
 
   test "adding requests without a schema" do
     get_root = build_route("GET", "/")
@@ -142,6 +145,43 @@ class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
         }
       }
     ]
+  end
+
+  test "the schema is only collected {api_schema_max_samples} times" do
+    root_route = build_route("GET", "/")
+    sampled_request = build_request(root_route, Aikido::Zen::Request::Schema.new(
+      content_type: nil,
+      body_schema: EMPTY_SCHEMA,
+      query_schema: EMPTY_SCHEMA,
+      auth_schema: NO_AUTH
+    ))
+
+    @config.api_schema_max_samples = 3
+    3.times { @routes.add(sampled_request) }
+
+    unsampled_request = OpenStruct.new(route: root_route)
+    def unsampled_request.schema
+      raise "better not try sampling this"
+    end
+
+    assert_nothing_raised do
+      @routes.add(unsampled_request)
+    end
+  end
+
+  test "setting {api_schema_max_samples} to 0 disables sampling" do
+    request = OpenStruct.new(route: build_route("GET", "/"))
+    def request.schema
+      raise "nothing to see here"
+    end
+
+    @config.api_schema_max_samples = 0
+
+    assert_nothing_raised do
+      @routes.add(request)
+    end
+
+    assert_nil @routes[request.route].schema.as_json
   end
 
   test "#as_json omits apispec if the schema is not given for the route" do

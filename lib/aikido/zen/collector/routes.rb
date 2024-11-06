@@ -7,7 +7,8 @@ module Aikido::Zen
   #
   # Keeps track of the visited routes.
   class Collector::Routes
-    def initialize
+    def initialize(config = Aikido::Zen.config)
+      @config = config
       @visits = Hash.new { |h, k| h[k] = Record.new }
     end
 
@@ -40,14 +41,23 @@ module Aikido::Zen
     end
 
     # @api private
-    Record = Struct.new(:hits, :schema) do
-      def initialize
-        super(0, Aikido::Zen::Request::Schema::EMPTY_SCHEMA)
+    Record = Struct.new(:hits, :schema, :samples) do
+      def initialize(config = Aikido::Zen.config)
+        super(0, Aikido::Zen::Request::Schema::EMPTY_SCHEMA, 0)
+        @config = config
       end
 
       def increment(request)
         self.hits += 1
-        self.schema |= request.schema if request.schema
+
+        if sample_schema?
+          self.samples += 1
+          self.schema |= request.schema
+        end
+      end
+
+      private def sample_schema?
+        samples < @config.api_schema_max_samples
       end
     end
   end

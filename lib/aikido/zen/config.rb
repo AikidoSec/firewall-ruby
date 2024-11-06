@@ -83,6 +83,10 @@ module Aikido::Zen
     #   differentiate different clients. By default this uses the request IP.
     attr_accessor :rate_limiting_discriminator
 
+    # @return [Integer] max number of requests we sample per endpoint when
+    #   computing the schema.
+    attr_accessor :api_schema_max_samples
+
     # @api private
     # @return [Integer] max number of levels deep we want to read a nested
     #   strcture for performance reasons.
@@ -140,6 +144,7 @@ module Aikido::Zen
       self.server_rate_limit_deadline = 1800 # 30 min
       self.client_rate_limit_period = 3600 # 1 hour
       self.client_rate_limit_max_events = 100
+      self.api_schema_max_samples = Integer(ENV.fetch("AIKIDO_MAX_API_DISCOVERY_SAMPLES", 10))
       self.api_schema_collection_max_depth = 20
       self.api_schema_collection_max_properties = 20
       self.imds_allowed_hosts = ["metadata.google.internal", "metadata.goog"]
