@@ -11,12 +11,10 @@ module Aikido::Zen
       @visits = Hash.new { |h, k| h[k] = Record.new }
     end
 
-    # @param route [Aikido::Zen::Route, nil] tracks the visit, if given.
-    # @param schema [Aikido::Zen::Request::Schema, nil] the schema of the
-    #   request, if the feature is enabled.
+    # @param request [Aikido::Zen::Request].
     # @return [self]
-    def add(route, schema = nil)
-      @visits[route].increment(schema) unless route.nil?
+    def add(request)
+      @visits[request.route].increment(request) unless request.route.nil?
       self
     end
 
@@ -47,9 +45,9 @@ module Aikido::Zen
         super(0, Aikido::Zen::Request::Schema::EMPTY_SCHEMA)
       end
 
-      def increment(schema)
+      def increment(request)
         self.hits += 1
-        self.schema |= schema if schema
+        self.schema |= request.schema if request.schema
       end
     end
   end

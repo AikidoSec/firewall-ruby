@@ -46,9 +46,7 @@ module Aikido::Zen
     # @return [void]
     def track_request(request)
       synchronize(@stats) { |stats| stats.add_request }
-      synchronize(@routes) do |routes|
-        routes.add(request.route, request.schema) if request.route
-      end
+      synchronize(@routes) { |routes| routes.add(request) if request.route }
     end
 
     # Track stats about a scan performed by one of our sinks.
