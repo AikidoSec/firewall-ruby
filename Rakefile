@@ -6,6 +6,10 @@ require "standard/rake"
 require "rake/clean"
 
 load "tasklib/libzen.rake"
+load "tasklib/bench.rake"
+
+desc "Run all benchmarks"
+task bench: "bench:default"
 
 namespace :build do
   desc "Ensure Gemfile.lock is up-to-date"
