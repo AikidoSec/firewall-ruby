@@ -32,6 +32,10 @@ const defaultHeaders = {
 };
 
 const tests = {
+  test_post_page_with_json_body: {
+    duration: new Trend("test_post_page_with_json_body"),
+    overhead: new Trend("test_overhead_with_json_body")
+  },
   test_get_page_without_attack: {
     duration: new Trend("test_get_page_without_attack"),
     overhead: new Trend("test_overhead_without_attack")
@@ -47,6 +51,7 @@ export const options = {
   vus: 1, // Number of virtual users
   iterations: 200,
   thresholds: {
+    test_post_page_with_json_body: [strict("med<10"), "p(95)<30"],
     test_get_page_without_attack: [strict("med<10"), "p(95)<50"],
     test_get_page_with_sql_injection: [strict("med<10"), "p(95)<30"],
   }
@@ -55,6 +60,11 @@ export const options = {
 const expectAttack = http.expectedStatuses(500);
 
 export default function () {
+  test("test_post_page_with_json_body",
+    (http) => http.post("/cats", JSON.stringify({cat: {name: "Féline Dion"}}), {
+      headers: {"Content-Type": "application/json"}
+    })
+  )
   test("test_get_page_without_attack", (http) => http.get("/cats"))
   test("test_get_page_with_sql_injection", (http) =>
     http.get("/cats/1'%20OR%20''='", {responseCallback: expectAttack})
