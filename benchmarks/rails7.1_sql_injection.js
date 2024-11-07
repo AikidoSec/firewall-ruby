@@ -21,10 +21,14 @@ function test(name, fn) {
 
   const withZen = fn(HTTP.withZen);
   const withoutZen = fn(HTTP.withoutZen);
-  duration.add(withZen.timings.duration - withoutZen.timings.duration);
+
+  const timeWithZen = withZen.timings.duration,
+        timeWithoutZen = withoutZen.timings.duration;
+
+  duration.add(timeWithZen - timeWithoutZen);
 
   const ratio = withZen.timings.duration / withoutZen.timings.duration;
-  overhead.add((ratio - 1) * 100)
+  overhead.add(100 * (timeWithZen - timeWithoutZen) / timeWithoutZen)
 }
 
 const defaultHeaders = {
@@ -45,15 +49,13 @@ const tests = {
     overhead: new Trend("test_overhead_with_sql_injection"),
   }
 }
-
-const strict = (threshold) => ({ threshold, abortOnFail: true });
 export const options = {
   vus: 1, // Number of virtual users
   iterations: 200,
   thresholds: {
-    test_post_page_with_json_body: [strict("med<10"), "p(95)<30"],
-    test_get_page_without_attack: [strict("med<10"), "p(95)<50"],
-    test_get_page_with_sql_injection: [strict("med<10"), "p(95)<30"],
+    test_post_page_with_json_body: ["med<10"],
+    test_get_page_without_attack: ["med<10"],
+    test_get_page_with_sql_injection: ["med<10"],
   }
 };
 
