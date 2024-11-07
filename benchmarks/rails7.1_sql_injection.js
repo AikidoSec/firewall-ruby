@@ -4,32 +4,52 @@ import { check, sleep, fail } from 'k6';
 import exec from 'k6/execution';
 import { Trend } from 'k6/metrics';
 
-const BASE_URL_3001 = 'http://localhost:3001';
-const BASE_URL_3002 = 'http://localhost:3002';
-
-const defaultHeaders = {
-  "User-Agent":
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-};
-
-function measureRequest(url, method, payload, statusCode = 200, headers = defaultHeaders) {
-  const response = (method === "GET") ?
-    http.get(url, { headers }) :
-    http.post(url, payload, { headers });
-  check(response, {
-    'status is correct': (r) => r.status === statusCode,
-  });
-  return response.timings.duration; // Return the duration of the request
+function checkResponse(response, expectedStatus) {
+  check(response, {"status is correct": (r) => r.status === expectedStatus});
+  return response;
 }
 
-function test(trend, amount, method, route, data={}, status=200) {
-  for (let i = 0; i < amount; i++) {
-    let withZen = measureRequest(BASE_URL_3001 + route, method, data, status)
-    let withoutZen = measureRequest(BASE_URL_3002 + route, method, data, status)
-    trend.add(withZen - withoutZen)
+const HTTP = {
+  withZen: {
+    get: (path, ...args) => http.get("http://localhost:3001" + path, ...args),
+    post: (path, ...args) => http.post("http://localhost:3001" + path, ...args)
+  },
+  withoutZen: {
+    get: (path, ...args) => http.get("http://localhost:3002" + path, ...args),
+    post: (path, ...args) => http.post("http://localhost:3002" + path, ...args)
   }
 }
 
+const defaultTestOptions = {
+  amount: 500,
+  expectedStatus: 200,
+}
+function test(name, fn, options = {}) {
+  options = { ...defaultTestOptions, ...options };
+  const duration = tests[name].duration;
+  const overhead = tests[name].overhead;
+
+  for (let i = 0; i < options.amount; i++) {
+    const withZen = checkResponse(fn(HTTP.withZen), options.expectedStatus);
+    const withoutZen = checkResponse(fn(HTTP.withoutZen), options.expectedStatus);
+    duration.add(withZen.timings.duration - withoutZen.timings.duration);
+  }
+}
+
+const defaultHeaders = {
+  "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+};
+
+const tests = {
+  get_page_without_attack: {
+    duration: new Trend("get_page_without_attack"),
+    overhead: new Trend("overhead_without_attack")
+  },
+  get_page_with_sql_injection: {
+    duration: new Trend("get_page_with_sql_injection"),
+    overhead: new Trend("overhead_with_sql_injection"),
+  }
+}
 export const options = {
   vus: 1, // Number of virtual users
   thresholds: {
@@ -43,10 +63,11 @@ export const options = {
     }]
   }
 };
-const withNoAttack = new Trend("get_page_without_attack");
-const withSQLi = new Trend("get_page_with_sql_injection");
 
 export default function () {
-  test(withNoAttack, 500, "GET", "/cats")
-  test(withSQLi, 500, "GET", "/cats/1'%20OR%20''='", {}, 500)
+  test("get_page_without_attack", (http) => http.get("/cats"))
+  test("get_page_with_sql_injection",
+    (http) => http.get("/cats/1'%20OR%20''='"),
+    {expectedStatus: 500}
+  )
 }
