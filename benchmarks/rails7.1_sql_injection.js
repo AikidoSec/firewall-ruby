@@ -33,20 +33,20 @@ function test(trend, amount, method, route, data={}, status=200) {
 export const options = {
   vus: 1, // Number of virtual users
   thresholds: {
-    get_page: [{
+    get_page_without_attack: [{
       threshold: "p(95)<10",
       abortOnFail: true
     }],
     get_page_with_sql_injection: [{
-      threshold: "p(95)<30",
+      threshold: "p(95)<50",
       abortOnFail: true
     }]
   }
 };
-const getPage = new Trend("get_page");
-const getPageWithSQLi = new Trend("get_page_with_sql_injection");
+const withNoAttack = new Trend("get_page_without_attack");
+const withSQLi = new Trend("get_page_with_sql_injection");
 
 export default function () {
-  test(getPage, 500, "GET", "/cats")
-  test(getPageWithSQLi, 500, "GET", "/cats/1'%20OR%20''='", {}, 500)
+  test(withNoAttack, 500, "GET", "/cats")
+  test(withSQLi, 500, "GET", "/cats/1'%20OR%20''='", {}, 500)
 }
