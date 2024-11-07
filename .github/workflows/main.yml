@@ -121,9 +121,18 @@ jobs:
     - name: Set any matrix-defined ENV
       run: echo "${{ matrix.env }}" >> "$GITHUB_ENV"
       if: ${{ matrix.env }}
+    - name: Install system dependencies
+      run: |
+        sudo gpg -k
+        sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+        echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+        sudo apt-get update
+        sudo apt-get install -y k6
     - name: Remove the in-repo database config
       run: rm -f ${{ github.workspace }}/sample_apps/${{ matrix.app }}/config/database.yml
     - name: Download libzen
       run: "bundle exec rake libzen:download:current"
     - name: Run the e2e tests
       run: "bundle exec rake e2e:${{ matrix.app }}"
+    - name: Run the benchmarks
+      run: "bundle exec rake bench:${{ matrix.app }}:run"
