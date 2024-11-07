@@ -31,6 +31,44 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 20, @config.api_schema_collection_max_depth
     assert_equal 20, @config.api_schema_collection_max_properties
     assert_equal ["metadata.google.internal", "metadata.goog"], @config.imds_allowed_hosts
+    assert_equal false, @config.disabled
+  end
+
+  test "can set AIKIDO_DISABLED to configure if the agent should be turned off" do
+    with_env "AIKIDO_DISABLED" => "true" do
+      config = Aikido::Zen::Config.new
+      assert config.disabled?
+    end
+
+    with_env "AIKIDO_DISABLED" => "1" do
+      config = Aikido::Zen::Config.new
+      assert config.disabled?
+    end
+
+    with_env "AIKIDO_DISABLED" => "t" do
+      config = Aikido::Zen::Config.new
+      assert config.disabled?
+    end
+
+    with_env "AIKIDO_DISABLED" => "false" do
+      config = Aikido::Zen::Config.new
+      refute config.disabled?
+    end
+
+    with_env "AIKIDO_DISABLED" => "f" do
+      config = Aikido::Zen::Config.new
+      refute config.disabled?
+    end
+
+    with_env "AIKIDO_DISABLED" => "0" do
+      config = Aikido::Zen::Config.new
+      refute config.disabled?
+    end
+
+    with_env "AIKIDO_DISABLED" => "" do
+      config = Aikido::Zen::Config.new
+      refute config.disabled?
+    end
   end
 
   test "can overwrite the api_base_url" do
