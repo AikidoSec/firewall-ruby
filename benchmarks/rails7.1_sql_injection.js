@@ -4,11 +4,6 @@ import { check, sleep, fail } from 'k6';
 import exec from 'k6/execution';
 import { Trend } from 'k6/metrics';
 
-function checkResponse(response, expectedStatus) {
-  check(response, {"status is correct": (r) => r.status === expectedStatus});
-  return response;
-}
-
 const HTTP = {
   withZen: {
     get: (path, ...args) => http.get("http://localhost:3001" + path, ...args),
@@ -20,20 +15,16 @@ const HTTP = {
   }
 }
 
-const defaultTestOptions = {
-  amount: 500,
-  expectedStatus: 200,
-}
-function test(name, fn, options = {}) {
-  options = { ...defaultTestOptions, ...options };
+function test(name, fn) {
   const duration = tests[name].duration;
   const overhead = tests[name].overhead;
 
-  for (let i = 0; i < options.amount; i++) {
-    const withZen = checkResponse(fn(HTTP.withZen), options.expectedStatus);
-    const withoutZen = checkResponse(fn(HTTP.withoutZen), options.expectedStatus);
-    duration.add(withZen.timings.duration - withoutZen.timings.duration);
-  }
+  const withZen = fn(HTTP.withZen);
+  const withoutZen = fn(HTTP.withoutZen);
+  duration.add(withZen.timings.duration - withoutZen.timings.duration);
+
+  const ratio = withZen.timings.duration / withoutZen.timings.duration;
+  overhead.add((ratio - 1) * 100)
 }
 
 const defaultHeaders = {
@@ -41,33 +32,31 @@ const defaultHeaders = {
 };
 
 const tests = {
-  get_page_without_attack: {
-    duration: new Trend("get_page_without_attack"),
-    overhead: new Trend("overhead_without_attack")
+  test_get_page_without_attack: {
+    duration: new Trend("test_get_page_without_attack"),
+    overhead: new Trend("test_overhead_without_attack")
   },
-  get_page_with_sql_injection: {
-    duration: new Trend("get_page_with_sql_injection"),
-    overhead: new Trend("overhead_with_sql_injection"),
+  test_get_page_with_sql_injection: {
+    duration: new Trend("test_get_page_with_sql_injection"),
+    overhead: new Trend("test_overhead_with_sql_injection"),
   }
 }
+
+const strict = (threshold) => ({ threshold, abortOnFail: true });
 export const options = {
   vus: 1, // Number of virtual users
+  iterations: 200,
   thresholds: {
-    get_page_without_attack: [{
-      threshold: "p(95)<10",
-      abortOnFail: true
-    }],
-    get_page_with_sql_injection: [{
-      threshold: "p(95)<50",
-      abortOnFail: true
-    }]
+    test_get_page_without_attack: [strict("med<10"), "p(95)<50"],
+    test_get_page_with_sql_injection: [strict("med<10"), "p(95)<30"],
   }
 };
 
+const expectAttack = http.expectedStatuses(500);
+
 export default function () {
-  test("get_page_without_attack", (http) => http.get("/cats"))
-  test("get_page_with_sql_injection",
-    (http) => http.get("/cats/1'%20OR%20''='"),
-    {expectedStatus: 500}
+  test("test_get_page_without_attack", (http) => http.get("/cats"))
+  test("test_get_page_with_sql_injection", (http) =>
+    http.get("/cats/1'%20OR%20''='", {responseCallback: expectAttack})
   )
 }
