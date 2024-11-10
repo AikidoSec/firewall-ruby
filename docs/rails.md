@@ -16,11 +16,11 @@ modify in an initializer if desired:
 
 ``` ruby
 # config/initializers/zen.rb
-Rails.application.config.aikido_zen.api_timeouts = 20
+Rails.application.config.zen.api_timeouts = 20
 ```
 
 You can access the configuration object both as `Aikido::Zen.config` or
-`Rails.configuration.aikido_zen`.
+`Rails.configuration.zen`.
 
 See our [configuration guide](docs/config.md) for more details.
 
@@ -40,7 +40,7 @@ You can just tell Zen to use it like so:
 
 ``` ruby
 # config/initializers/zen.rb
-Rails.application.config.aikido_zen.token = Rails.application.credentials.zen.token
+Rails.application.config.zen.token = Rails.application.credentials.zen.token
 ```
 
 [creds]: https://guides.rubyonrails.org/security.html#environmental-security
@@ -63,7 +63,7 @@ You can redirect the log to a separate stream by overriding the logger:
 
 ```
 # config/initializers/zen.rb
-Rails.application.config.aikido_zen.logger = Logger.new(...)
+Rails.application.config.zen.logger = Logger.new(...)
 ```
 
 You should supply an instance of ruby's [Logger](https://github.com/ruby/logger)
