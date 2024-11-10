@@ -2,7 +2,7 @@
 
 source "https://rubygems.org"
 
-gemspec path: ".."
+gemspec path: "."
 
 gem "rake", "~> 13.0"
 gem "rack-test"

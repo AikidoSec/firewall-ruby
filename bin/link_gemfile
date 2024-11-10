@@ -6,14 +6,30 @@
 #
 # This is meant to be run whenever you switch ruby versions locally. For
 # example: `chruby 3.3; bin/link_gemfile`
+#
+# Alternatively, you can link an explicit Gemfile (for example, before you
+# change your ruby version, or before installing ruby in CI) by passing the
+# version as the first argument: `bin/link_gemfile 3.3`
 
-RUBY_VERSION="$(ruby -e "puts RUBY_VERSION.split('.')[0,2].join('.')" 2>/dev/null)"
-EXPECTED_GEMFILE="gemfiles/ruby-${RUBY_VERSION}.gemfile"
+RUBY_VERSION="${1:-"$(ruby -e "puts RUBY_VERSION.split('.')[0,2].join('.')" 2>/dev/null)"}"
 
-if [ -f "$EXPECTED_GEMFILE" ]; then
-  ln -nfs "$EXPECTED_GEMFILE" "Gemfile"
-  ln -nfs "${EXPECTED_GEMFILE}.lock" "Gemfile.lock" &>/dev/null || :
-else
-  echo "No gemfile found for ruby $RUBY_VERSION" >&2
-  exit 1
-fi
+link_gemfile_in_dir() {
+  gemfile="gemfiles/ruby-$1.gemfile"
+  dir="$2"
+
+  if [ -f "$dir/$gemfile" ]; then
+    pushd "$dir" >/dev/null
+    ln -nfs "$gemfile" "Gemfile"
+    ln -nfs "${gemfile}.lock" "Gemfile.lock" &>/dev/null || :
+    popd >/dev/null
+  else
+    echo "No gemfile found for ruby $1 in $dir/$gemfile" >&2
+    exit 1
+  fi
+}
+
+link_gemfile_in_dir "$RUBY_VERSION" "."
+find "./sample_apps" -type d -mindepth 1 -maxdepth 1 |\
+  while IFS= read -r dir; do
+    link_gemfile_in_dir "$RUBY_VERSION" "$dir";
+  done

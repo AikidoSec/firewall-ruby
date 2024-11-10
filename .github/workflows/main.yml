@@ -39,12 +39,13 @@ jobs:
     env:
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: password
-      BUNDLE_GEMFILE: ${{ github.workspace }}/gemfiles/ruby-${{ matrix.ruby }}.gemfile
 
     steps:
     - uses: actions/checkout@v4
     - name: Install any system dependencies
       run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
+    - name: Set up the correct Gemfile for Ruby ${{ matrix.ruby }}
+      run: bin/link_gemfile "${{ matrix.ruby }}"
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
@@ -109,10 +110,12 @@ jobs:
           - ruby: "2.7"
             db: "trilogy"
     env:
-      BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app }}/gemfiles/ruby-${{ matrix.ruby }}.gemfile
+      BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app }}/Gemfile
 
     steps:
     - uses: actions/checkout@v4
+    - name: Set up the correct Gemfile for Ruby ${{ matrix.ruby }}
+      run: bin/link_gemfile "${{ matrix.ruby }}"
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:

@@ -1,5 +1,5 @@
 PATH
-  remote: ..
+  remote: .
   specs:
     aikido-zen (0.1.0.alpha4)
       concurrent-ruby (~> 1.0)
