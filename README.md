@@ -1,4 +1,6 @@
-# Zen, in-app firewall for Ruby on Rails | by Aikido
+![Zen by Aikido for Ruby](./docs/banner.svg)
+
+# Zen, in-app firewall for Ruby | by Aikido
 
 Zen, your in-app firewall for peace of mind—at runtime.
 
