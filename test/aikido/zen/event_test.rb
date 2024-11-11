@@ -146,28 +146,24 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
       }
     end
 
-    test "when API discovery is enabled, includes the API spec with the routes" do
-      Aikido::Zen.config.api_schema_collection_enabled = true
+    test "it includes the API spec with the routes" do
+      @routes.add(build_request_for("/", stub_route("GET", "/")))
 
-      req = build_request_for("/", stub_route("GET", "/"))
-      @routes.add(req.route, req.schema)
-
-      req = build_request_for("/users", stub_route("POST", "/users(.:format)"), {
+      @routes.add(build_request_for("/users", stub_route("POST", "/users(.:format)"), {
         :method => "POST",
         :input => "user[name]=Alice&user[email]=alice@example.com",
         "CONTENT_TYPE" => "multipart/form-data"
-      })
-      @routes.add(req.route, req.schema)
+      }))
 
-      req = build_request_for("/users", stub_route("POST", "/users(.:format)"), {
+      @routes.add(build_request_for("/users", stub_route("POST", "/users(.:format)"), {
         :method => "POST",
         :input => %({"user":{"name":"Alice","email":"alice@example.com","age":35}}),
         "CONTENT_TYPE" => "application/json"
-      })
-      @routes.add(req.route, req.schema)
+      }))
 
-      req = build_request_for("/users?search=alice&page=2", stub_route("GET", "/users(.:format)"))
-      @routes.add(req.route, req.schema)
+      @routes.add(
+        build_request_for("/users?search=alice&page=2", stub_route("GET", "/users(.:format)"))
+      )
 
       event = Aikido::Zen::Events::Heartbeat.new(
         stats: @stats, users: @users, hosts: @hosts, routes: @routes

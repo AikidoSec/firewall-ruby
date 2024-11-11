@@ -4,7 +4,7 @@ require "test_helper"
 
 class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
   def builder_for_request(*args, **opts)
-    env = Rack::MockRequest.env_for(*args, **opts)
+    env = Rack::MockRequest.env_for(*args, {input: nil}.merge(opts))
     context = Aikido::Zen::Context.from_rack_env(env)
     Aikido::Zen::Request::Schema::Builder.new(context: context)
   end
@@ -15,17 +15,9 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
 
   setup do
     Aikido::Zen.config.request_builder = Aikido::Zen::Context::RAILS_REQUEST_BUILDER
-    Aikido::Zen.config.api_schema_collection_enabled = true
   end
 
   class GenericBehaviorTest < self
-    test "returns nil if schema collection is disabled" do
-      Aikido::Zen.config.api_schema_collection_enabled = false
-
-      builder = builder_for_request("/")
-      assert_nil builder.schema
-    end
-
     def assert_type(builder, expected)
       if expected.nil?
         assert_nil builder.schema.content_type
@@ -312,7 +304,7 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
 
   class QuerySchemaTest < self
     def builder_for_request(query_string)
-      super("/?#{query_string}".chomp("?"), {})
+      super("/?#{query_string}".chomp("?"))
     end
 
     def assert_schema(builder, expected)

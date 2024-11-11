@@ -25,10 +25,10 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
   end
 
   test "#track_request tracks how many times the given route was visited" do
-    request_1 = stub_request(Rack::MockRequest.env_for("/get"))
+    request_1 = stub_request("/get")
     route_1 = stub_route("GET", "/get")
 
-    request_2 = stub_request(Rack::MockRequest.env_for("/post", "REQUEST_METHOD" => "POST"))
+    request_2 = stub_request("/post", "REQUEST_METHOD" => "POST")
     route_2 = stub_route("POST", "/post")
 
     assert_difference -> { @collector.routes[route_1].hits }, +2 do
@@ -40,10 +40,8 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     end
   end
 
-  test "#track_request stores the request schema if captured" do
-    Aikido::Zen.config.api_schema_collection_enabled = true
-
-    request = stub_request(Rack::MockRequest.env_for("/get?q=test"))
+  test "#track_request stores the request schema" do
+    request = stub_request("/get?q=test")
 
     @collector.track_request(request)
 
@@ -51,17 +49,6 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     assert_equal schema.as_json, {
       query: {"type" => "object", "properties" => {"q" => {"type" => "string"}}}
     }
-  end
-
-  test "#track_request does not store the request schema if configured to not capture it" do
-    Aikido::Zen.config.api_schema_collection_enabled = false
-
-    request = stub_request(Rack::MockRequest.env_for("/get?q=test"))
-
-    @collector.track_request(request)
-
-    schema = @collector.routes[stub_route("GET", "/get")].schema
-    assert_nil schema.as_json
   end
 
   test "#track_scan increments the number of scans for the sink" do
@@ -214,7 +201,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       },
       users: [],
       routes: [
-        {path: "/", method: "GET", hits: 3}
+        {path: "/", method: "GET", hits: 3, apispec: {}}
       ],
       hostnames: []
     }
@@ -279,7 +266,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       },
       users: [],
       routes: [
-        {path: "/", method: "GET", hits: 2}
+        {path: "/", method: "GET", hits: 2, apispec: {}}
       ],
       hostnames: []
     }
@@ -348,7 +335,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       },
       users: [],
       routes: [
-        {path: "/", method: "GET", hits: 2}
+        {path: "/", method: "GET", hits: 2, apispec: {}}
       ],
       hostnames: []
     }
@@ -357,7 +344,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
   test "#flush with a complete example" do
     @collector.start(at: Time.at(1234567890))
 
-    2.times { @collector.track_request(stub_request(Rack::MockRequest.env_for("/"))) }
+    2.times { @collector.track_request(stub_request("/")) }
 
     3.times do |i|
       @collector.track_outbound(stub_outbound(host: "example.com", port: 2000 + i))
@@ -412,7 +399,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           }
         }
       },
-      routes: [{method: "GET", path: "/", hits: 2}],
+      routes: [{method: "GET", path: "/", hits: 2, apispec: {}}],
       users: [
         {
           id: "123",
@@ -454,13 +441,13 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     end
   end
 
-  def stub_context(env = {})
-    env["REQUEST_METHOD"] ||= "GET"
+  def stub_context(path = "/", env = {})
+    env = Rack::MockRequest.env_for(path, {"REQUEST_METHOD" => "GET"}.merge(env))
     Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(env)
   end
 
-  def stub_request(env = {})
-    stub_context(env).request
+  def stub_request(path = "/", env = {})
+    stub_context(path, env).request
   end
 
   def stub_outbound(**opts)

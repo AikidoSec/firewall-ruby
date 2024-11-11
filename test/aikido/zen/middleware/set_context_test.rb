@@ -18,14 +18,14 @@ class Aikido::Zen::Middleware::SetContextText < ActiveSupport::TestCase
       [200, {}, []]
     end
 
-    result = @middleware.call({"PATH_INFO" => "/"})
+    result = @middleware.call(Rack::MockRequest.env_for("/"))
 
     assert_equal [200, {}, []], result
     assert_nil Aikido::Zen.current_context
   end
 
   test "exposes the context as env[aikido.context]" do
-    env = {"PATH_INFO" => "/"}
+    env = Rack::MockRequest.env_for("/")
 
     @middleware.call(env)
 
@@ -39,8 +39,8 @@ class Aikido::Zen::Middleware::SetContextText < ActiveSupport::TestCase
       contexts[Thread.current.object_id] = Aikido::Zen.current_context
     end
 
-    t1 = Thread.new { @middleware.call({"PATH_INFO" => "/foo"}) }
-    t2 = Thread.new { @middleware.call({"PATH_INFO" => "/bar"}) }
+    t1 = Thread.new { @middleware.call(Rack::MockRequest.env_for("/foo")) }
+    t2 = Thread.new { @middleware.call(Rack::MockRequest.env_for("/bar")) }
 
     t1.join
     t2.join
@@ -51,9 +51,9 @@ class Aikido::Zen::Middleware::SetContextText < ActiveSupport::TestCase
 
   test "requests get tracked in our stats funnel" do
     assert_difference "Aikido::Zen.collector.stats.requests", +3 do
-      @middleware.call({"PATH_INFO" => "/"})
-      @middleware.call({"PATH_INFO" => "/"})
-      @middleware.call({"PATH_INFO" => "/"})
+      @middleware.call(Rack::MockRequest.env_for("/"))
+      @middleware.call(Rack::MockRequest.env_for("/"))
+      @middleware.call(Rack::MockRequest.env_for("/"))
     end
   end
 end

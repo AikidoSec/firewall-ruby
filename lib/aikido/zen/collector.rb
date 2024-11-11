@@ -10,7 +10,7 @@ module Aikido::Zen
       @stats = Concurrent::AtomicReference.new(Stats.new(@config))
       @users = Concurrent::AtomicReference.new(Users.new(@config))
       @hosts = Concurrent::AtomicReference.new(Hosts.new(@config))
-      @routes = Concurrent::AtomicReference.new(Routes.new)
+      @routes = Concurrent::AtomicReference.new(Routes.new(@config))
     end
 
     # Flush all the stats into a Heartbeat event that can be reported back to
@@ -23,7 +23,7 @@ module Aikido::Zen
       stats = @stats.get_and_set(Stats.new(@config))
       users = @users.get_and_set(Users.new(@config))
       hosts = @hosts.get_and_set(Hosts.new(@config))
-      routes = @routes.get_and_set(Routes.new)
+      routes = @routes.get_and_set(Routes.new(@config))
 
       start(at: at)
       stats = stats.flush(at: at)
@@ -46,9 +46,7 @@ module Aikido::Zen
     # @return [void]
     def track_request(request)
       synchronize(@stats) { |stats| stats.add_request }
-      synchronize(@routes) do |routes|
-        routes.add(request.route, request.schema) if request.route
-      end
+      synchronize(@routes) { |routes| routes.add(request) if request.route }
     end
 
     # Track stats about a scan performed by one of our sinks.
