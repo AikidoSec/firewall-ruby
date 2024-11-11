@@ -1,13 +1,23 @@
 class CatsController < ApplicationController
   before_action :set_cat, only: %i[show edit update destroy]
+  skip_forgery_protection if: -> { request.format.json? }
 
   # GET /cats
   def index
     @cats = Cat.all
+
+    respond_to do |format|
+      format.html
+      format.json { render json: @cats }
+    end
   end
 
   # GET /cats/1
   def show
+    respond_to do |format|
+      format.html
+      format.json { render json: @cat }
+    end
   end
 
   # GET /cats/new
@@ -23,26 +33,38 @@ class CatsController < ApplicationController
   def create
     @cat = Cat.new(cat_params)
 
-    if @cat.save
-      redirect_to @cat, notice: "Cat was successfully created."
-    else
-      render :new, status: :unprocessable_entity
+    respond_to do |format|
+      if @cat.save
+        format.html { redirect_to @cat, notice: "Cat was created." }
+        format.json { render json: @cat, status: :created, location: @cat }
+      else
+        format.html { render :new, status: :unprocessable_entity }
+        format.json { render json: {errors: @cat.errors} }
+      end
     end
   end
 
   # PATCH/PUT /cats/1
   def update
-    if @cat.update(cat_params)
-      redirect_to @cat, notice: "Cat was successfully updated.", status: :see_other
-    else
-      render :edit, status: :unprocessable_entity
+    respond_to do |format|
+      if @cat.update(cat_params)
+        format.html { redirect_to @cat, notice: "Cat was updated.", status: :see_other }
+        format.json { render json: @cat, status: :ok }
+      else
+        format.html { render :edit, status: :unprocessable_entity }
+        format.json { render json: {errors: @cat.errors} }
+      end
     end
   end
 
   # DELETE /cats/1
   def destroy
     @cat.destroy!
-    redirect_to cats_url, notice: "Cat was successfully destroyed.", status: :see_other
+
+    respond_to do |format|
+      format.html { redirect_to cats_url, notice: "Cat was destroyed.", status: :see_other }
+      format.json { head :no_content }
+    end
   end
 
   private

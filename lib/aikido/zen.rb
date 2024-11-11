@@ -98,6 +98,8 @@ module Aikido
     # @param (see Aikido::Zen.Actor)
     # @return [void]
     def self.track_user(user)
+      return if config.disabled?
+
       if (actor = Aikido::Zen::Actor(user))
         autostart
         collector.track_user(actor)

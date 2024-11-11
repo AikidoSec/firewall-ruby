@@ -10,6 +10,8 @@ module Aikido::Zen
     end
 
     initializer "aikido.add_middleware" do |app|
+      next if config.aikido_zen.disabled?
+
       app.middleware.use Aikido::Zen::Middleware::SetContext
       app.middleware.use Aikido::Zen::Middleware::CheckAllowedAddresses
 
@@ -26,7 +28,12 @@ module Aikido::Zen
     end
 
     initializer "aikido.configuration" do |app|
+      # Allow the logger to be configured before checking if disabled? so we can
+      # let the user know that the agent is disabled.
       app.config.aikido_zen.logger = ::Rails.logger.tagged("aikido")
+
+      next if config.aikido_zen.disabled?
+
       app.config.aikido_zen.request_builder = Aikido::Zen::Context::RAILS_REQUEST_BUILDER
 
       # Plug Rails' JSON encoder/decoder, but only if the user hasn't changed
@@ -41,6 +48,11 @@ module Aikido::Zen
     end
 
     config.after_initialize do
+      if config.aikido_zen.disabled?
+        config.aikido_zen.logger.warn("Zen has been disabled and will not run.")
+        next
+      end
+
       # Make sure this is run at the end of the initialization process, so
       # that any gems required after aikido-zen are detected and patched
       # accordingly.
