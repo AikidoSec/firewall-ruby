@@ -4,10 +4,6 @@ require "bundler"
 Bundler.setup
 
 require "simplecov"
-SimpleCov.external_at_exit = true
-SimpleCov.start do
-  add_filter "/test/"
-end
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "aikido/zen"
