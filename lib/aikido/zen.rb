@@ -79,14 +79,13 @@ module Aikido
       collector.track_outbound(connection)
     end
 
-    # @!method track_scan(scan)
-    #   Track statistics about the result of a Sink's scan, and report it as
-    #   an Attack if one is detected.
+    # Track statistics about the result of a Sink's scan, and report it as
+    # an Attack if one is detected.
     #
-    #   @param scan [Aikido::Zen::Scan]
-    #   @return [void]
-    #   @raise [Aikido::Zen::UnderAttackError] if the scan detected an Attack
-    #     and blocking_mode is enabled.
+    # @param scan [Aikido::Zen::Scan]
+    # @return [void]
+    # @raise [Aikido::Zen::UnderAttackError] if the scan detected an Attack
+    #   and blocking_mode is enabled.
     def self.track_scan(scan)
       autostart
       collector.track_scan(scan)
@@ -125,12 +124,14 @@ module Aikido
       require_relative "zen/sinks"
     end
 
+    # @!visibility private
     # Stop any background threads.
     def self.stop!
       agent&.stop!
     end
 
-    # @api private
+    # @!visibility private
+    # Starts the background agent if it has not been started yet.
     def self.agent
       @agent ||= Agent.start
     end

@@ -20,7 +20,7 @@ module Aikido::Zen
     # @return [Aikido::Zen::Request]
     attr_reader :request
 
-    # @param [Rack::Request] a Request object that implements the
+    # @param request [Rack::Request] a Request object that implements the
     #   Rack::Request API, to which we will delegate behavior.
     # @param settings [Aikido::Zen::RuntimeSettings]
     #

@@ -15,6 +15,7 @@ gem "webmock", "~> 3.23"
 gem "standard"
 gem "debug"
 gem "puma"
+gem "yard"
 
 # FFI 1.17 is incompatible with the version of rubygems
 # that is included with ruby 2.7 on GitHub Actions.
@@ -38,5 +39,4 @@ gem "excon", "~> 0.111.0"
 gem "curb", "~> 1.0"
 gem "patron", "~> 0.13.3"
 gem "typhoeus", "~> 1.4"
-
 gem "em-http-request", "~> 1.1"

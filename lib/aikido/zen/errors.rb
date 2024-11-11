@@ -3,11 +3,13 @@
 require "forwardable"
 
 module Aikido
+  # @!visibility private
   # Support rescuing Aikido::Error without forcing a single base class to all
   # errors (so things that should be e.g. a TypeError, can have the correct
   # superclass).
-  module Error; end
+  module Error; end # :nodoc:
 
+  # @!visibility private
   # Generic error for problems with the Agent.
   class ZenError < RuntimeError
     include Error
