@@ -142,13 +142,17 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   end
 
   test "the default rate limiting discriminator returns the request IP" do
-    request = Minitest::Mock.new
-    request.expect :ip, "1.2.3.4"
-
+    request = OpenStruct.new(ip: "1.2.3.4", actor: nil)
     value = @config.rate_limiting_discriminator.call(request)
 
     assert_equal "1.2.3.4", value
-    assert_mock request
+  end
+
+  test "the default rate limiting discriminator returns the actor id if set" do
+    request = OpenStruct.new(actor: Aikido::Zen::Actor(id: 123))
+    value = @config.rate_limiting_discriminator.call(request)
+
+    assert_equal "actor:123", value
   end
 
   test "reads the value of #api_schema_collection_enabled from the ENV" do

@@ -101,6 +101,7 @@ module Aikido
       if (actor = Aikido::Zen::Actor(user))
         autostart
         collector.track_user(actor)
+        current_context.request.actor = actor if current_context
       else
         config.logger.warn(format(<<~LOG, obj: user))
           Incompatible object sent to track_user: %<obj>p

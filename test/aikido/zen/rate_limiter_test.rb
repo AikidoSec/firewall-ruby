@@ -53,6 +53,48 @@ class Aikido::Zen::RateLimiterTest < ActiveSupport::TestCase
     refute_throttled build_request("GET", "/", ip: "10.0.0.2"), current: 1
   end
 
+  test "requests from different actors behind the same IP are not throttled" do
+    configure "GET", "/", max_requests: 3, period: 10
+
+    refute_throttled \
+      build_request("GET", "/", ip: "1.2.3.4", user: {id: "123"}),
+      current: 1, discriminator: "actor:123"
+    refute_throttled \
+      build_request("GET", "/", ip: "1.2.3.4", user: {id: "123"}),
+      current: 2, discriminator: "actor:123"
+    refute_throttled \
+      build_request("GET", "/", ip: "1.2.3.4", user: {id: "123"}),
+      current: 3, discriminator: "actor:123"
+
+    refute_throttled \
+      build_request("GET", "/", ip: "1.2.3.4", user: {id: "456"}),
+      current: 1, discriminator: "actor:456"
+    refute_throttled \
+      build_request("GET", "/", ip: "1.2.3.4", user: {id: "456"}),
+      current: 2, discriminator: "actor:456"
+    refute_throttled \
+      build_request("GET", "/", ip: "1.2.3.4", user: {id: "456"}),
+      current: 3, discriminator: "actor:456"
+  end
+
+  test "requests from the same actor from different IPs are throttled" do
+    configure "GET", "/", max_requests: 3, period: 10
+
+    refute_throttled \
+      build_request("GET", "/", ip: "1.2.3.4", user: {id: "123"}),
+      current: 1, discriminator: "actor:123"
+    refute_throttled \
+      build_request("GET", "/", ip: "2.3.4.5", user: {id: "123"}),
+      current: 2, discriminator: "actor:123"
+    refute_throttled \
+      build_request("GET", "/", ip: "3.4.5.6", user: {id: "123"}),
+      current: 3, discriminator: "actor:123"
+
+    assert_throttled \
+      build_request("GET", "/", ip: "4.5.6.7", user: {id: "123"}),
+      current: 3, discriminator: "actor:123"
+  end
+
   test "requests to different endpoints are not throttled" do
     configure "GET", "/", max_requests: 3, period: 1
 
@@ -136,9 +178,10 @@ class Aikido::Zen::RateLimiterTest < ActiveSupport::TestCase
       discriminator: "12345"
   end
 
-  def build_request(method, path, extra_env = {}, ip: nil)
+  def build_request(method, path, extra_env = {}, ip: nil, user: nil)
     env = Rack::MockRequest.env_for(path, {"REMOTE_ADDR" => ip, :method => method}.merge(extra_env))
     ctx = Aikido::Zen::Context.from_rack_env(env)
+    ctx.request.actor = Aikido::Zen::Actor(user) if user
     ctx.request
   end
 

@@ -16,5 +16,8 @@ require "typhoeus"
 require "async/http" if RUBY_VERSION >= "3.1"
 require "em-http"
 
+# Misc
+require "action_controller"
+
 # Keep this at the end of the file
 require "aikido/zen/sinks"

@@ -7,10 +7,17 @@ require_relative "payload"
 
 module Aikido::Zen
   class Context
+    # Build a Context object for the current HTTP request based on the currently
+    # configured request builder.
+    #
+    # @param env [Hash] the Rack env hash.
+    # @param config [Aikido::Zen::Config]
+    # @return [Aikido::Zen::Context]
     def self.from_rack_env(env, config = Aikido::Zen.config)
       config.request_builder.call(env)
     end
 
+    # @return [Aikido::Zen::Request]
     attr_reader :request
 
     # @param [Rack::Request] a Request object that implements the

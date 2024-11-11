@@ -12,16 +12,15 @@ module Aikido::Zen
     initializer "aikido.add_middleware" do |app|
       app.middleware.use Aikido::Zen::Middleware::SetContext
       app.middleware.use Aikido::Zen::Middleware::CheckAllowedAddresses
-      app.middleware.use Aikido::Zen::Middleware::Throttler
 
-      # Due to how Rails sets up its middleware chain, the routing is evaluated
-      # (and the Request object constructed) in the app that terminates the
-      # chain, so no amount of middleware will be able to access it.
-      #
-      # This way, we overwrite the Request object as early as we can in the
-      # request handling, so that by the time we start evaluating inputs, we
-      # have assigned the request correctly.
       ActiveSupport.on_load(:action_controller) do
+        # Due to how Rails sets up its middleware chain, the routing is evaluated
+        # (and the Request object constructed) in the app that terminates the
+        # chain, so no amount of middleware will be able to access it.
+        #
+        # This way, we overwrite the Request object as early as we can in the
+        # request handling, so that by the time we start evaluating inputs, we
+        # have assigned the request correctly.
         before_action { Aikido::Zen.current_context.update_request(request) }
       end
     end

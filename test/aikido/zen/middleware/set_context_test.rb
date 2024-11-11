@@ -24,6 +24,14 @@ class Aikido::Zen::Middleware::SetContextText < ActiveSupport::TestCase
     assert_nil Aikido::Zen.current_context
   end
 
+  test "exposes the context as env[aikido.context]" do
+    env = {"PATH_INFO" => "/"}
+
+    @middleware.call(env)
+
+    assert_kind_of Aikido::Zen::Context, env["aikido.context"]
+  end
+
   test "separate threads get access to a different context object" do
     contexts = {}
 

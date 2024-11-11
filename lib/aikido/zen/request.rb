@@ -11,6 +11,12 @@ module Aikido::Zen
     # @return [Aikido::Zen::Router]
     attr_reader :router
 
+    # The current user, if set by the host app.
+    #
+    # @return [Aikido::Zen::Actor, nil]
+    # @see Aikido::Zen.track_user
+    attr_accessor :actor
+
     def initialize(delegate, framework:, router:)
       super(delegate)
       @framework = framework
