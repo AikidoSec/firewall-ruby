@@ -10,8 +10,6 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
     setup do
       stub_request(:get, "https://localhost/safe")
         .to_return(status: 200, body: "OK")
-
-      @outbound_connections = Aikido::Zen.send(:agent).stats.outbound_connections
     end
 
     test "allows normal requests" do
@@ -60,7 +58,7 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
     test "does not log an outbound connection if the request was blocked" do
       set_context_from_request_to "/?host=localhost"
 
-      assert_no_difference -> { @outbound_connections.size } do
+      assert_no_difference "Aikido::Zen.collector.hosts.size" do
         assert_attack Aikido::Zen::Attacks::SSRFAttack do
           Net::HTTP.get(URI("https://localhost/safe"))
         end

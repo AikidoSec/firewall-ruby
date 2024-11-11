@@ -2,8 +2,8 @@
 
 require "test_helper"
 
-class Aikido::Zen::Stats::RoutesTest < ActiveSupport::TestCase
-  setup { @routes = Aikido::Zen::Stats::Routes.new }
+class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
+  setup { @routes = Aikido::Zen::Collector::Routes.new }
 
   test "adding routes without a schema" do
     get_root = build_route("GET", "/")

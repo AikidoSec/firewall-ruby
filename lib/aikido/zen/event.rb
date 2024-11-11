@@ -48,17 +48,20 @@ module Aikido::Zen
     end
 
     class Heartbeat < Event
-      def initialize(stats:, **opts)
+      def initialize(stats:, users:, hosts:, routes:, **opts)
         super(type: "heartbeat", **opts)
         @stats = stats
+        @users = users
+        @hosts = hosts
+        @routes = routes
       end
 
       def as_json
         super.update(
           stats: @stats.as_json,
-          routes: @stats.routes.as_json,
-          hostnames: @stats.outbound_connections.as_json,
-          users: @stats.users.as_json
+          users: @users.as_json,
+          routes: @routes.as_json,
+          hostnames: @hosts.as_json
         )
       end
     end

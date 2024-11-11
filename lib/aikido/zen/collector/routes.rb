@@ -2,51 +2,54 @@
 
 require_relative "../request/schema/empty_schema"
 
-class Aikido::Zen::Stats
+module Aikido::Zen
   # @api private
   #
   # Keeps track of the visited routes.
-  class Routes
+  class Collector::Routes
     def initialize
-      @routes = Hash.new do |h, k|
-        h[k] = Record.new(0, Aikido::Zen::Request::Schema::EMPTY_SCHEMA)
-      end
+      @visits = Hash.new { |h, k| h[k] = Record.new }
     end
 
     # @param route [Aikido::Zen::Route, nil] tracks the visit, if given.
     # @param schema [Aikido::Zen::Request::Schema, nil] the schema of the
     #   request, if the feature is enabled.
-    # @return [void]
+    # @return [self]
     def add(route, schema = nil)
-      @routes[route].add(schema) if route
-    end
-
-    # @!visibility private
-    def [](route)
-      @routes[route]
-    end
-
-    # @!visibility private
-    def empty?
-      @routes.empty?
+      @visits[route].increment(schema) unless route.nil?
+      self
     end
 
     def as_json
-      @routes.map do |route, record|
+      @visits.map do |route, record|
         {
           method: route.verb,
           path: route.path,
           hits: record.hits,
-          apispec: record.schema&.as_json
+          apispec: record.schema.as_json
         }.compact
       end
     end
 
-    # @!visibility private
+    # @api private
+    def [](route)
+      @visits[route]
+    end
+
+    # @api private
+    def empty?
+      @visits.empty?
+    end
+
+    # @api private
     Record = Struct.new(:hits, :schema) do
-      def add(new_schema = nil)
+      def initialize
+        super(0, Aikido::Zen::Request::Schema::EMPTY_SCHEMA)
+      end
+
+      def increment(schema)
         self.hits += 1
-        self.schema |= new_schema
+        self.schema |= schema if schema
       end
     end
   end

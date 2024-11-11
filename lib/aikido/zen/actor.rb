@@ -110,7 +110,7 @@ module Aikido::Zen
         lastIpAddress: ip,
         firstSeenAt: first_seen_at.to_i * 1000,
         lastSeenAt: last_seen_at.to_i * 1000
-      }
+      }.compact
     end
   end
 end

@@ -46,6 +46,7 @@ class ActiveSupport::TestCase
     Aikido::Zen.instance_variable_set(:@info, nil)
     Aikido::Zen.instance_variable_set(:@agent, nil)
     Aikido::Zen.instance_variable_set(:@config, nil)
+    Aikido::Zen.instance_variable_set(:@collector, nil)
     Aikido::Zen.instance_variable_set(:@runtime_settings, nil)
     Aikido::Zen.current_context = nil
 
@@ -109,6 +110,15 @@ class ActiveSupport::TestCase
     refute lines.any? { |line| pattern === line && (match_level === line or true) }, reason
   end
   # rubocop:enable Style/OptionalArguments
+
+  # Checks that all the data in {subset} is part of the {container} hash.
+  #
+  # @example
+  #   data = {name: "Alice", email: "alice@example.com", id: 3}
+  #   assert_hash_subset_of data, {name: "Alice", id: 3}
+  def assert_hash_subset_of(container, subset)
+    assert_equal container.slice(*subset.keys), subset
+  end
 
   module StubsCurrentContext
     # Override in tests to return the desired stub.

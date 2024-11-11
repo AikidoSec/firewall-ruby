@@ -2,11 +2,15 @@
 
 require_relative "../capped_collections"
 
-class Aikido::Zen::Stats
+module Aikido::Zen
   # @api private
   #
   # Keeps track of the users that were seen by the app.
-  class Users < Aikido::Zen::CappedMap
+  class Collector::Users < Aikido::Zen::CappedMap
+    def initialize(config = Aikido::Zen.config)
+      super(config.max_users_tracked)
+    end
+
     def add(actor)
       if key?(actor.id)
         self[actor.id].update
