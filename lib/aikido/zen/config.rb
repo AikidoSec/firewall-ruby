@@ -52,7 +52,7 @@ module Aikido::Zen
     #   into an Object. Defaults to the standard library's JSON.parse method.
     attr_accessor :json_decoder
 
-    # @returns [Logger]
+    # @return [Logger]
     attr_accessor :logger
 
     # @return [Integer] maximum number of timing measurements to keep in memory

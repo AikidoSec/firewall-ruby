@@ -5,12 +5,12 @@ require "action_dispatch"
 module Aikido::Zen
   class RailsEngine < ::Rails::Engine
     config.before_configuration do
-      # Access library configuration at `Rails.application.config.aikido_zen`.
-      config.aikido_zen = Aikido::Zen.config
+      # Access library configuration at `Rails.application.config.zen`.
+      config.zen = Aikido::Zen.config
     end
 
     initializer "aikido.add_middleware" do |app|
-      next if config.aikido_zen.disabled?
+      next if config.zen.disabled?
 
       app.middleware.use Aikido::Zen::Middleware::SetContext
       app.middleware.use Aikido::Zen::Middleware::CheckAllowedAddresses
@@ -30,26 +30,26 @@ module Aikido::Zen
     initializer "aikido.configuration" do |app|
       # Allow the logger to be configured before checking if disabled? so we can
       # let the user know that the agent is disabled.
-      app.config.aikido_zen.logger = ::Rails.logger.tagged("aikido")
+      app.config.zen.logger = ::Rails.logger.tagged("aikido")
 
-      next if config.aikido_zen.disabled?
+      next if config.zen.disabled?
 
-      app.config.aikido_zen.request_builder = Aikido::Zen::Context::RAILS_REQUEST_BUILDER
+      app.config.zen.request_builder = Aikido::Zen::Context::RAILS_REQUEST_BUILDER
 
       # Plug Rails' JSON encoder/decoder, but only if the user hasn't changed
       # them for something else.
-      if app.config.aikido_zen.json_encoder == Aikido::Zen::Config::DEFAULT_JSON_ENCODER
-        app.config.aikido_zen.json_encoder = ActiveSupport::JSON.method(:encode)
+      if app.config.zen.json_encoder == Aikido::Zen::Config::DEFAULT_JSON_ENCODER
+        app.config.zen.json_encoder = ActiveSupport::JSON.method(:encode)
       end
 
-      if app.config.aikido_zen.json_decoder == Aikido::Zen::Config::DEFAULT_JSON_DECODER
-        app.config.aikido_zen.json_decoder = ActiveSupport::JSON.method(:decode)
+      if app.config.zen.json_decoder == Aikido::Zen::Config::DEFAULT_JSON_DECODER
+        app.config.zen.json_decoder = ActiveSupport::JSON.method(:decode)
       end
     end
 
     config.after_initialize do
-      if config.aikido_zen.disabled?
-        config.aikido_zen.logger.warn("Zen has been disabled and will not run.")
+      if config.zen.disabled?
+        config.zen.logger.warn("Zen has been disabled and will not run.")
         next
       end
 

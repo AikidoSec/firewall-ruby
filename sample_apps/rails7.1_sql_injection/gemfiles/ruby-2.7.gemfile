@@ -20,4 +20,4 @@ group :development, :test do
   gem "standard"
 end
 
-gem "aikido-zen", path: "../../..", require: !ENV["DISABLE_FIREWALL"]
+gem "aikido-zen", path: "../.."
