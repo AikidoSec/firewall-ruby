@@ -7,6 +7,17 @@ module Aikido::Zen
     module PG
       SINK = Sinks.add("pg", scanners: [Scanners::SQLInjectionScanner])
 
+      # For some reason, the ActiveRecord pg adapter does not wrap exceptions in
+      # StatementInvalid, which leads to inconsistent handling. This guarantees
+      # that all Zen errors are wrapped in a StatementInvalid, so documentation
+      # can be consistent.
+      WRAP_EXCEPTIONS = if defined?(ActiveRecord::StatementInvalid)
+        <<~RUBY
+          rescue Aikido::Zen::SQLInjectionError
+            raise ActiveRecord::StatementInvalid
+        RUBY
+      end
+
       module Extensions
         %i[
           send_query exec sync_exec async_exec
@@ -16,12 +27,7 @@ module Aikido::Zen
             def #{method}(query, *)
               SINK.scan(query: query, dialect: :postgresql, operation: :#{method})
               super
-            rescue Aikido::Zen::SQLInjectionError
-              # The pg adapter does not wrap exceptions in StatementInvalid, which
-              # leads to inconsistent handling. This guarantees that all Aikido
-              # errors are wrapped in a StatementInvalid, so documentation can be
-              # consistent.
-              raise ActiveRecord::StatementInvalid
+            #{WRAP_EXCEPTIONS}
             end
           RUBY
         end
@@ -33,12 +39,7 @@ module Aikido::Zen
             def #{method}(_, query, *)
               SINK.scan(query: query, dialect: :postgresql, operation: :#{method})
               super
-            rescue Aikido::Zen::SQLInjectionError
-              # The pg adapter does not wrap exceptions in StatementInvalid, which
-              # leads to inconsistent handling. This guarantees that all Aikido
-              # errors are wrapped in a StatementInvalid, so documentation can be
-              # consistent.
-              raise ActiveRecord::StatementInvalid
+            #{WRAP_EXCEPTIONS}
             end
           RUBY
         end
