@@ -102,4 +102,35 @@ class Aikido::Zen::WorkerTest < ActiveSupport::TestCase
 
     assert_logged :error, "Error in background worker: #<RuntimeError: recurring nope>"
   end
+
+  test "#shutdown kills any pending deferred tasks" do
+    task = Minitest::Mock.new
+    task.expect :pending?, true
+    task.expect :cancel, nil
+
+    @worker.deferrals << task
+    @worker.shutdown
+
+    assert_mock task
+  end
+
+  test "#shutdown ignores deferred tasks that have already executed" do
+    task = Minitest::Mock.new
+    task.expect :pending?, false
+
+    @worker.deferrals << task
+    @worker.shutdown
+
+    assert_mock task
+  end
+
+  test "#shutdown kills any timer task" do
+    task = Minitest::Mock.new
+    task.expect :shutdown, nil
+
+    @worker.timers << task
+    @worker.shutdown
+
+    assert_mock task
+  end
 end
