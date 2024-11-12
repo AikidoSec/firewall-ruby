@@ -66,7 +66,7 @@ module Aikido::Zen
             operation: "request"
           )
         ensure
-          context["ssrf.request"] = nil
+          context["ssrf.request"] = nil if context
         end
 
         true

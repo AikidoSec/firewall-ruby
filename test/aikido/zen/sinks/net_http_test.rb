@@ -31,6 +31,19 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
       assert_not_requested :get, "https://localhost/safe"
     end
 
+    test "does not fail if a context is not set" do
+      Aikido::Zen.current_context = nil
+
+      stub_request(:get, "http://localhost/")
+        .to_return(status: 200, body: "")
+
+      refute_attack do
+        Net::HTTP.get(URI("http://localhost"))
+      end
+
+      assert_requested :get, "http://localhost"
+    end
+
     test "prevents requests to hosts using the session API" do
       set_context_from_request_to "/?host=localhost"
 
