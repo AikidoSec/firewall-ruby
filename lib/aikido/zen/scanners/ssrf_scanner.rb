@@ -112,7 +112,8 @@ module Aikido::Zen
         is_port_relevant = input_uri.port != input_uri.default_port
         return false if is_port_relevant && input_uri.port != conn_uri.port
 
-        conn_uri.hostname == input_uri.hostname
+        conn_uri.hostname == input_uri.hostname &&
+          conn_uri.port == input_uri.port
       end
 
       def private_ip?(hostname)
@@ -128,8 +129,11 @@ module Aikido::Zen
       # * The input itself, if it already looks like a URI.
       # * The input prefixed with http://
       # * The input prefixed with https://
+      # * The input prefixed with the scheme of the request's URI, to consider
+      #   things like an FTP request (to "ftp://localhost") with a plain host
+      #   as a user-input ("localhost").
       #
-      # @return [Set<URI>]
+      # @return [Array<URI>] a list of unique URIs based on the above criteria.
       def uris_from_input
         input = @input.to_s
 
@@ -138,10 +142,12 @@ module Aikido::Zen
         # valid hostname. We should do the same for the input.
         input = format("[%s]", input) if unescaped_ipv6?(input)
 
-        [input, "http://#{input}", "https://#{input}"]
-          .map { |candidate| as_uri(candidate) }
-          .compact
-          .uniq
+        [
+          input,
+          "http://#{input}",
+          "https://#{input}",
+          "#{@request_uri.scheme}://#{input}"
+        ].map { |candidate| as_uri(candidate) }.compact.uniq
       end
 
       def as_uri(string)
