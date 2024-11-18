@@ -65,7 +65,9 @@ module Aikido::Zen
 
       poll_for_setting_updates
 
-      @worker.delay(@config.initial_heartbeat_delay) { send_heartbeat if stats.any? }
+      @worker.delay(@config.initial_heartbeat_delay) do
+        send_heartbeat if @collector.stats.any?
+      end
     end
 
     # Clean up any ongoing threads, and reset the state. Called automatically

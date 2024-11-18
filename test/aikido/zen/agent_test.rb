@@ -366,6 +366,48 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert task.pending? # is queued for execution
   end
 
+  test "#start! successfully sends the initial heartbeat if no stats have been received yet" do
+    settings = Aikido::Zen.runtime_settings
+    settings.received_any_stats = false
+
+    # Make sure there are _some_ stats
+    @collector.track_request(stub_request)
+
+    # Ignore the actual delay
+    def @worker.delay(*)
+      yield
+    end
+
+    heartbeat_sent = false
+
+    @agent.stub(:send_heartbeat, -> { heartbeat_sent = true }) do
+      @agent.start!
+    end
+
+    assert heartbeat_sent
+  end
+
+  test "#start! only sends the initial heartbeat if there are stats to report" do
+    settings = Aikido::Zen.runtime_settings
+    settings.received_any_stats = false
+
+    # Make sure the collector has no stats
+    @collector.flush
+
+    # Ignore the actual delay
+    def @worker.delay(*)
+      yield
+    end
+
+    heartbeat_sent = false
+
+    @agent.stub(:send_heartbeat, -> { heartbeat_sent = true }) do
+      @agent.start!
+    end
+
+    refute heartbeat_sent
+  end
+
   test "#updated_settings! does not queue a one-off task if the server received stats" do
     settings = Aikido::Zen.runtime_settings
     settings.received_any_stats = true
@@ -426,5 +468,14 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     def exception(*)
       Aikido::Zen::UnderAttackError.new(self)
     end
+  end
+
+  def stub_context(path = "/", env = {})
+    env = Rack::MockRequest.env_for(path, {"REQUEST_METHOD" => "GET"}.merge(env))
+    Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(env)
+  end
+
+  def stub_request(path = "/", env = {})
+    stub_context(path, env).request
   end
 end

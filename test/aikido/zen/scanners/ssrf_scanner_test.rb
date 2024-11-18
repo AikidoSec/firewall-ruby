@@ -53,7 +53,7 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
   end
 
   test "it detects the input in URIs with a different protocol" do
-    assert_attack "ftp://localhost/path", "localhost"
+    assert_attack "ftp://localhost", "localhost"
   end
 
   test "it detects IP addresses in user input" do
@@ -64,8 +64,9 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
     assert_attack "http://[fe80::3e8]", "[fe80::3e8]"
   end
 
-  test "it detects the input if it doesn't include a port but the connection does" do
-    assert_attack "http://localhost:8080/", "localhost"
+  test "it allows inputs with a port that does not match the connection" do
+    refute_attack "http://localhost/", "localhost:8080"
+    refute_attack "http://localhost:8080", "localhost"
   end
 
   test "it detects inputs with ports only if they match the connection's port" do

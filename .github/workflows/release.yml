@@ -20,10 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure the latest Gemfile
-        run: echo "BUNDLE_GEMFILE=${{ github.workspace }}/gemfiles/ruby-$(cat .ruby-version).gemfile" >> $GITHUB_ENV
+        run: bin/link_gemfile "$(cat .ruby-version)"
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: ruby
           bundler-cache: true
       - uses: rubygems/release-gem@v1
