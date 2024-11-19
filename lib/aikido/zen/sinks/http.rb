@@ -66,7 +66,7 @@ module Aikido::Zen
 
           response
         ensure
-          context["ssrf.request"] = prev_request
+          context["ssrf.request"] = prev_request if context
         end
       end
     end

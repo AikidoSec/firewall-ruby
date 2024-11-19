@@ -31,6 +31,8 @@ module Aikido::Zen
       attach_function :detect_sql_injection_native, :detect_sql_injection,
         [:string, :string, :int], :int
     rescue LoadError, FFI::NotFoundError => err
+      # :nocov:
+
       # Emit an $stderr warning at startup.
       warn "Zen could not load its binary extension #{libzen_name}: #{err}"
 
@@ -38,6 +40,8 @@ module Aikido::Zen
         attempt = format("%p for SQL injection", query)
         raise InternalsError.new(attempt, "loading", Internals.libzen_name)
       end
+
+      # :nocov:
     else
       # Analyzes the SQL query to detect if the provided user input is being
       # passed as-is without escaping.

@@ -73,6 +73,7 @@ GEM
     debug (1.9.2)
       irb (~> 1.10)
       reline (>= 0.3.8)
+    docile (1.4.1)
     domain_name (0.6.20240107)
     drb (2.2.1)
     em-http-request (1.1.7)
@@ -209,6 +210,12 @@ GEM
       rubocop (>= 1.48.1, < 2.0)
       rubocop-ast (>= 1.31.1, < 2.0)
     ruby-progressbar (1.13.0)
+    simplecov (0.22.0)
+      docile (~> 1.1)
+      simplecov-html (~> 0.11)
+      simplecov_json_formatter (~> 0.1)
+    simplecov-html (0.13.1)
+    simplecov_json_formatter (0.1.4)
     sqlite3 (1.7.3-arm64-darwin)
     sqlite3 (1.7.3-x86_64-linux)
     standard (1.40.0)
@@ -266,6 +273,7 @@ DEPENDENCIES
   rack-test
   railties (>= 6.1, < 8)
   rake (~> 13.0)
+  simplecov
   sqlite3 (~> 1.4)
   standard
   trilogy
