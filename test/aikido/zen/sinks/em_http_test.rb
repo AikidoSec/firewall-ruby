@@ -41,6 +41,19 @@ class Aikido::Zen::Sinks::EmHttpRequestTest < ActiveSupport::TestCase
       assert_not_requested :get, "https://localhost/safe"
     end
 
+    test "does not fail if a context is not set" do
+      Aikido::Zen.current_context = nil
+
+      stub_request(:get, "http://localhost/")
+        .to_return(status: 200, body: "")
+
+      refute_attack do
+        make_request(:get, "http://localhost")
+      end
+
+      assert_requested :get, "http://localhost"
+    end
+
     test "raises a useful error message" do
       set_context_from_request_to "/?host=localhost"
 

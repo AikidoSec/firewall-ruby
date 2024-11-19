@@ -16,6 +16,7 @@ gem "standard"
 gem "debug"
 gem "puma"
 gem "yard"
+gem "simplecov", require: false
 
 ##
 # Gems we patch and require for testing

@@ -16,6 +16,7 @@ gem "standard"
 gem "debug"
 gem "puma"
 gem "yard"
+gem "simplecov", require: false
 
 # FFI 1.17 is incompatible with the version of rubygems
 # that is included with ruby 2.7 on GitHub Actions.

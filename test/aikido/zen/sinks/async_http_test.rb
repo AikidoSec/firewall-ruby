@@ -42,6 +42,22 @@ class Aikido::Zen::Sinks::AsyncHTTPTest < ActiveSupport::TestCase
       end
     end
 
+    test "does not fail if a context is not set" do
+      Sync do
+        Aikido::Zen.current_context = nil
+
+        stub_request(:get, "http://localhost/")
+          .to_return(status: 200, body: "")
+
+        refute_attack do
+          client = Async::HTTP::Internet.new
+          client.get(URI("http://localhost"))
+        end
+
+        assert_requested :get, "http://localhost"
+      end
+    end
+
     test "raises a useful error message" do
       Sync do
         set_context_from_request_to "/?host=localhost"
