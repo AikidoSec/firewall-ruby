@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.1.1
+
 ### Fixed
 
 - Avoid an error when sending the initial heartbeat if the Aikido server hasn't
