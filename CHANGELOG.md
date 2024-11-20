@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Avoid an infinite loop when checking for SSRFs in a circular redirects loop.
+
 ## 0.1.1
 
 ### Fixed

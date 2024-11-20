@@ -242,11 +242,14 @@ module Aikido::Zen
         #
         # @param uri [URI]
         # @return [URI, nil]
-        def origin(uri)
+        def origin(uri, visited = Set.new)
           source = @redirects[uri]
 
+          return source if visited.include?(source)
+          visited << source
+
           if @redirects[source]
-            origin(source)
+            origin(source, visited)
           else
             source
           end

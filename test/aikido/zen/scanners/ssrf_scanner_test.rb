@@ -270,5 +270,16 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
       assert_equal chain_1.first, @redirects.origin(chain_1.last)
       assert_equal chain_2.first, @redirects.origin(chain_2.last)
     end
+
+    test "avoids an infinite loop if you have circular redirects" do
+      link_1 = URI("https://example.com/1")
+      link_2 = URI("https://example.com/2")
+
+      @redirects.add(source: link_1, destination: link_2)
+      @redirects.add(source: link_2, destination: link_1)
+
+      assert_equal link_1, @redirects.origin(link_2)
+      assert_equal link_2, @redirects.origin(link_1)
+    end
   end
 end
