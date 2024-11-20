@@ -281,5 +281,17 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
       assert_equal link_1, @redirects.origin(link_2)
       assert_equal link_2, @redirects.origin(link_1)
     end
+
+    test "cyclic redirects after the start of a chain are resolved" do
+      root = URI("https://example.com/root")
+      link_1 = URI("https://example.com/1")
+      link_2 = URI("https://example.com/2")
+
+      @redirects.add(source: root, destination: link_1)
+      @redirects.add(source: link_1, destination: link_2)
+      @redirects.add(source: link_2, destination: link_1)
+
+      assert_equal root, @redirects.origin(link_1)
+    end
   end
 end
