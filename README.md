@@ -13,7 +13,7 @@ Rails application, for simple installation and zero maintenance.
 
 * 🛡️ [SQL injection attacks](https://www.aikido.dev/blog/the-state-of-sql-injections)
 * 🛡️ [Server-side request forgery (SSRF)](https://github.com/AikidoSec/firewall-node/blob/main/docs/ssrf.md)
-* 🛡️ [Command injection attacks](https://owasp.org/www-community/attacks/Command_Injection) (coming soon)
+* 🛡️ [Command injection attacks](https://www.aikido.dev/blog/command-injection-in-2024-unpacked) (coming soon)
 * 🛡️ [Path traversal attacks](https://owasp.org/www-community/attacks/Path_Traversal)
 * 🛡️ [NoSQL injection attacks](https://www.aikido.dev/blog/web-application-security-vulnerabilities) (coming soon)
 
