@@ -11,3 +11,11 @@
 
 # Precompiled libzen_internals
 /lib/aikido/zen/libzen*
+
+# Editor files :
+.idea/
+*.iml
+.vscode/
+*.atom
+*.sublime-workspace
+*.sublime-project

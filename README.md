@@ -1,5 +1,10 @@
 ![Zen by Aikido for Ruby](./docs/banner.svg)
 
+[![Gem Version](https://badge.fury.io/rb/aikido-zen.svg?icon=si%3Arubygems&style=flat)](https://badge.fury.io/rb/aikido-zen)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
+[![Unit tests](https://github.com/AikidoSec/firewall-ruby/actions/workflows/main.yml/badge.svg)](https://github.com/AikidoSec/firewall-ruby/actions/workflows/main.yml)
+[![Release](https://github.com/AikidoSec/firewall-ruby/actions/workflows/release.yml/badge.svg)](https://github.com/AikidoSec/firewall-ruby/actions/workflows/release.yml)
+
 # Zen, in-app firewall for Ruby | by Aikido
 
 Zen, your in-app firewall for peace of mind—at runtime.
@@ -14,7 +19,7 @@ Rails application, for simple installation and zero maintenance.
 * 🛡️ [SQL injection attacks](https://www.aikido.dev/blog/the-state-of-sql-injections)
 * 🛡️ [Server-side request forgery (SSRF)](https://github.com/AikidoSec/firewall-node/blob/main/docs/ssrf.md)
 * 🛡️ [Command injection attacks](https://www.aikido.dev/blog/command-injection-in-2024-unpacked) (coming soon)
-* 🛡️ [Path traversal attacks](https://owasp.org/www-community/attacks/Path_Traversal)
+* 🛡️ [Path traversal attacks](https://www.aikido.dev/blog/path-traversal-in-2024-the-year-unpacked) (coming soon)
 * 🛡️ [NoSQL injection attacks](https://www.aikido.dev/blog/web-application-security-vulnerabilities) (coming soon)
 
 Zen operates autonomously on the same server as your Rails app to:
