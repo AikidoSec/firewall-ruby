@@ -87,23 +87,23 @@ jobs:
           - "3.0"
           - "2.7"
         app:
-          - "rails7.1_sql_injection"
+          - "rails7.1_sqlite3"
         db:
           - "mysql2"
           - "trilogy"
           - "postgresql"
           - "sqlite3"
         include:
-          - app: "rails7.1_sql_injection"
+          - app: "rails7.1_sqlite3"
             db: "mysql2"
             env: "DATABASE_URL=mysql2://root:@127.0.0.1:3306/cats_test"
-          - app: "rails7.1_sql_injection"
+          - app: "rails7.1_sqlite3"
             db: "trilogy"
             env: "DATABASE_URL=trilogy://root:@127.0.0.1:3306/cats_test"
-          - app: "rails7.1_sql_injection"
+          - app: "rails7.1_sqlite3"
             db: "postgresql"
             env: "DATABASE_URL=postgresql://postgres:password@127.0.0.1:5432/cats_test"
-          - app: "rails7.1_sql_injection"
+          - app: "rails7.1_sqlite3"
             db: "sqlite3"
             env: "DATABASE_URL=sqlite3:storage/test.salite3"
         exclude:

@@ -20,8 +20,8 @@ from the root of the project:
 $ bundle exec rake bench:{app}:run
 ```
 
-For example, for the `rails7.1_sql_injection` application:
+For example, for the `rails7.1_sqlite3` application:
 
 ```
-$ bundle exec rake bench:rails7.1_sql_injection:run
+$ bundle exec rake bench:rails7.1_sqlite3:run
 ```
