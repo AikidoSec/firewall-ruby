@@ -1,5 +1,9 @@
 # Sample app for SQL Injection
 
+## Port
+
+To specify the port you can set the `PORT` environment variable, default is `3000`
+
 ## Databases
 
 You can find examples of how to start and configure the different databases 
