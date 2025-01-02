@@ -1,0 +1,31 @@
+<h1>Vulnerable Sample App</h1>
+
+<%= form_with(url: "/file/", local: false, html: { id: 'file-form' }) do |form| %>
+  <div>
+    <%= form.label :name, style: "display: block" %>
+    <%= form.text_field :filename %> <!-- Changed to :filename to match the controller -->
+  </div>
+
+  <div>
+    <%= form.submit %>
+  </div>
+<% end %>
+
+<div id="response"></div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const form = document.getElementById("file-form");
+        const responseDiv = document.getElementById("response");
+
+        form.addEventListener("ajax:success", function(event) {
+            const [data] = event.detail;
+            responseDiv.innerText = `File: ${data.filename}, Contents: ${data.contents}`;
+        });
+
+        form.addEventListener("ajax:error", function(event) {
+            const [data] = event.detail;
+            responseDiv.innerText = data.error || 'An error occurred';
+        });
+    });
+</script>

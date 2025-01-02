@@ -103,6 +103,10 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Aikido
 standard:fix` to autofix any linting violations.
 - run `$ bundle exec rake bench` to run all benchmarks.
 
+#### Common issues :
+- `mkmf.rb can't find header files for ruby at /usr/share/include/ruby.h`, If this error occurs you are most likely missing the ruby dev package, checkout [the following Gist](https://gist.github.com/johngerome/133b127c9f8545dccc54)
+
+
 ## Styleguides
 
 ### Code format

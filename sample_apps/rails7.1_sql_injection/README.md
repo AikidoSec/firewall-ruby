@@ -1,24 +1,34 @@
-# README
+# Sample app for SQL Injection
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+## Port
 
-Things you may want to cover:
+To specify the port you can set the `PORT` environment variable, default is `3000`
 
-* Ruby version
+## Databases
 
-* System dependencies
+You can find examples of how to start and configure the different databases 
+in the Github workflows directory.
 
-* Configuration
+**Sqlite3**
+Set the following environment variable :
+```env
+DATABASE_URL=sqlite3:storage/test.salite3
+```
 
-* Database creation
+**Trilogy**
+Set the following environment variable :
+```env
+DATABASE_URL=trilogy://root:@127.0.0.1:3306/cats_test
+```
 
-* Database initialization
+**PostgreSQL**
+Set the following environment variable :
+```env
+DATABASE_URL=postgresql://postgres:password@127.0.0.1:5432/cats_test
+```
 
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+**MySQL**
+Set the following environment variable :
+```env
+DATABASE_URL=mysql2://root:@127.0.0.1:3306/cats_test
+```
