@@ -11,12 +11,12 @@ class FileController < ApplicationController
       # Check if the file exists before trying to read it
       if File.exist?(file_path)
         contents = File.read(file_path)
-        render json: { contents: contents, filename: filename } # Directly render JSON
+        render json: {contents: contents, filename: filename} # Directly render JSON
       else
-        render json: { error: 'File not found' }, status: :not_found
+        render json: {error: "File not found"}, status: :not_found
       end
     else
-      render json: { error: 'Filename is required' }, status: :unprocessable_entity
+      render json: {error: "Filename is required"}, status: :unprocessable_entity
     end
   end
 
