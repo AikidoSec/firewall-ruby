@@ -1,0 +1,17 @@
+source "https://rubygems.org"
+
+gem "rails", "~> 7.0.0", "< 7.1"
+gem "sprockets-rails"
+gem "puma"
+gem "tzinfo-data", platforms: %i[mswin mingw jruby]
+
+# FFI 1.17 is incompatible with the version of rubygems
+# that is included with ruby 2.7 on GitHub Actions.
+gem "ffi", "< 1.17"
+
+group :development, :test do
+  gem "debug", platforms: %i[mri mswin mingw]
+  gem "standard"
+end
+
+gem "aikido-zen", path: "../.."
