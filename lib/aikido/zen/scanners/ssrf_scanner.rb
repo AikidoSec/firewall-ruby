@@ -228,11 +228,11 @@ module Aikido::Zen
       # @api private
       class RedirectChains
         def initialize
-          @redirects = {}
+          @redirects = Hash.new { |h, k| h[k] = [] }
         end
 
         def add(source:, destination:)
-          @redirects[destination] = source
+          @redirects[destination].push(source)
           self
         end
 
@@ -242,11 +242,14 @@ module Aikido::Zen
         #
         # @param uri [URI]
         # @return [URI, nil]
-        def origin(uri)
-          source = @redirects[uri]
+        def origin(uri, visited = Set.new)
+          source = @redirects[uri].first
 
-          if @redirects[source]
-            origin(source)
+          return source if visited.include?(source)
+          visited << source
+
+          if !@redirects[source].empty?
+            origin(source, visited)
           else
             source
           end
