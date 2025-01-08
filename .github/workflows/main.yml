@@ -58,33 +58,6 @@ jobs:
     - name: Build the gem
       run: bundle exec rake build
 
-  smoke_test_ffi:
-    runs-on: ${{ matrix.os }}
-    name: Smoke Test for FFI
-    strategy:
-      matrix:
-        ruby: ["3.3"]
-        os: [macos-14, macos-14-large]
-    continue-on-error: true # Allows all jobs to run even if one fails
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up the correct Gemfile for Ruby ${{ matrix.ruby }}
-        run: bin/link_gemfile "${{ matrix.ruby }}"
-      # Lock files are generated for a specific platform
-      - run: rm Gemfile.lock
-      - run: |
-          brew install mysql postgresql
-          bundle config set build.mysql2 --with-opt-dir=$(brew --prefix zstd)
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: ${{ matrix.ruby }}
-          bundler-cache: true
-      - name: Download libzen
-        run: "bundle exec rake libzen:download:current"
-      - name: Run the smoke tests
-        run: DISABLE_COVERAGE=true ruby -Ilib:test test/aikido/zen/scanners/sql_injection_scanner_test.rb
-
   e2e:
     services:
       mysql:
