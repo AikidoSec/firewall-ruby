@@ -63,6 +63,7 @@ jobs:
     name: Smoke Test for FFI
     strategy:
       matrix:
+        ruby: ["3.3"]
         os: [ubuntu-latest, macos-14, macos-14-large]
     continue-on-error: true # Allows all jobs to run even if one fails
     steps:
@@ -74,7 +75,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 3.3
+          ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - name: Download libzen
         run: "bundle exec rake libzen:download:current"
