@@ -7,6 +7,8 @@ jobs:
     strategy:
       matrix:
         ruby: [ "3.3" ]
+        # macos-14 is ARM-based
+        # macos-14-large is x86-based
         # Ubuntu is not included because the full test suite runs on Ubuntu
         os: [ macos-14, macos-14-large ]
 
