@@ -75,7 +75,9 @@ jobs:
       # Lock files are generated for a specific platform
       - run: rm Gemfile.lock
       - if : runner.os == 'macOS'
-        run: brew install mysql postgresql
+        run: |
+          brew install mysql postgresql
+          bundle config set build.mysql2 --with-opt-dir=$(brew --prefix zstd)
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
