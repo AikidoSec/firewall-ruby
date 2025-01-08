@@ -64,7 +64,7 @@ jobs:
     strategy:
       matrix:
         ruby: ["3.3"]
-        os: [ubuntu-latest, macos-14, macos-14-large]
+        os: [macos-14, macos-14-large]
     continue-on-error: true # Allows all jobs to run even if one fails
     steps:
       - uses: actions/checkout@v2
@@ -72,8 +72,7 @@ jobs:
         run: bin/link_gemfile "${{ matrix.ruby }}"
       # Lock files are generated for a specific platform
       - run: rm Gemfile.lock
-      - if : runner.os == 'macOS'
-        run: |
+      - run: |
           brew install mysql postgresql
           bundle config set build.mysql2 --with-opt-dir=$(brew --prefix zstd)
       - name: Set up Ruby
@@ -85,7 +84,6 @@ jobs:
         run: "bundle exec rake libzen:download:current"
       - name: Run the smoke tests
         run: DISABLE_COVERAGE=true ruby -Ilib:test test/aikido/zen/scanners/sql_injection_scanner_test.rb
-
 
   e2e:
     services:
