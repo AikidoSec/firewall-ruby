@@ -1,0 +1,37 @@
+name: Smoke Test for FFI
+
+on: [pull_request]
+
+jobs:
+  smoke_test_ffi:
+    strategy:
+      matrix:
+        ruby: [ "3.3" ]
+        # macos-14 is ARM-based
+        # macos-14-large is x86-based
+        # Ubuntu is not included because the full test suite runs on Ubuntu
+        os: [ macos-14, macos-14-large ]
+
+    runs-on: ${{ matrix.os }}
+
+    # Allows all jobs to run even if one fails
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up the correct Gemfile for Ruby ${{ matrix.ruby }}
+        run: bin/link_gemfile "${{ matrix.ruby }}"
+      # Lock files are generated for a specific platform
+      - run: rm Gemfile.lock
+      - run: |
+          brew install mysql postgresql
+          bundle config set build.mysql2 --with-opt-dir=$(brew --prefix zstd)
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Download libzen
+        run: "bundle exec rake libzen:download:current"
+      - name: Run the smoke tests
+        run: DISABLE_COVERAGE=true ruby -Ilib:test test/aikido/zen/scanners/sql_injection_scanner_test.rb
