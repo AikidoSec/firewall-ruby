@@ -4,6 +4,7 @@
 # SimpleCov version, and it doesn't really give us any benefit to run coverage
 # in separate ruby versions since we don't branch on ruby version in the code.
 return if RUBY_VERSION < "3.0"
+return if ENV["DISABLE_COVERAGE"] == "true"
 
 SimpleCov.start do
   # Make sure SimpleCov waits until after the tests
