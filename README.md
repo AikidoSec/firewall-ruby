@@ -86,6 +86,10 @@ To block requests, set the `AIKIDO_BLOCK` environment variable to `true`.
 See [Reporting to Aikido](#reporting-to-your-aikido-security-dashboard) to learn
 how to send events to Aikido.
 
+## Additional configuration
+
+[Configure Zen using environment variables for authentication, mode settings, debugging, and more.](https://help.aikido.dev/doc/configuration-via-env-vars/docrSItUkeR9)
+
 ## Reporting to your Aikido Security dashboard
 
 > Aikido is your no nonsense application security platform. One central system
