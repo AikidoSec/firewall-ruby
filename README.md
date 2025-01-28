@@ -81,7 +81,7 @@ For framework specific instructions, check out our docs:
 
 By default, Zen will only detect and report attacks to Aikido.
 
-To block requests, set the `AIKIDO_BLOCK` environment variable to `true`.
+To block requests, set the `AIKIDO_BLOCKING` environment variable to `true`.
 
 See [Reporting to Aikido](#reporting-to-your-aikido-security-dashboard) to learn
 how to send events to Aikido.
