@@ -333,13 +333,13 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     end
 
     test "handles multiline inputs" do
-        assert_attack <<~QUERY.chomp, <<~INPUT.chomp
-          SELECT * FROM users WHERE id = 'a'
-          OR 1=1#'
-        QUERY
-          a'
-          OR 1=1#
-        INPUT
+      assert_attack <<~QUERY.chomp, <<~INPUT.chomp
+        SELECT * FROM users WHERE id = 'a'
+        OR 1=1#'
+      QUERY
+        a'
+        OR 1=1#
+      INPUT
     end
   end
 
