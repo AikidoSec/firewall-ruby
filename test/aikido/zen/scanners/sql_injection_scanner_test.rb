@@ -126,14 +126,6 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
       b
       c
     INPUT
-
-    assert_attack <<~QUERY.chomp, <<~INPUT.chomp
-      SELECT * FROM users WHERE id = 'a'
-      OR 1=1#'
-    QUERY
-      a'
-      OR 1=1#
-    INPUT
   end
 
   test "handles multiline queries" do
@@ -338,6 +330,16 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
       refute_attack "SELECT * FROM users WHERE id = 'SET CHARACTER SET=utf8'", "SET CHARACTER SET=utf8"
       refute_attack "SELECT * FROM users WHERE id = 'SET CHARSET utf8'", "SET CHARSET utf8"
       refute_attack "SELECT * FROM users WHERE id = 'SET CHARSET=utf8'", "SET CHARSET=utf8"
+    end
+
+    test "handles multiline inputs" do
+        assert_attack <<~QUERY.chomp, <<~INPUT.chomp
+          SELECT * FROM users WHERE id = 'a'
+          OR 1=1#'
+        QUERY
+          a'
+          OR 1=1#
+        INPUT
     end
   end
 
