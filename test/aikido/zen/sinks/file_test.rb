@@ -37,4 +37,16 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
       end
     end
   end
+
+  test "scanning detects Path Traversal Attacks" do
+    set_context_from_request_to "/?filename=../this-is-an-attack"
+
+    error = assert_attack Aikido::Zen::Attacks::PathTraversalAttack do
+      File.read("../this-is-an-attack")
+    end
+
+    assert_equal \
+      error.message,
+      "Path Traversal: Malicious user input «../this-is-an-attack» detected while calling method File.read"
+  end
 end

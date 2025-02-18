@@ -21,7 +21,13 @@ module Aikido::Zen
         context.payloads.each do |payload|
           next unless new(filepath, payload.value).attack?
 
-          return nil # TODO: return the actual Attack class
+          return Attacks::PathTraversalAttack.new(
+            sink: sink,
+            input: payload,
+            filepath: filepath,
+            context: context,
+            operation: "#{sink.operation}.#{operation}"
+          )
         end
 
         nil
