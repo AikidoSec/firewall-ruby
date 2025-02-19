@@ -53,9 +53,8 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
 
     test "File.write" do
       refute_attack do
-        path = Helpers.temp_file_name
         assert_raise Errno::ENOENT do
-          File.write path + "/../looks-like-an-attack", "content"
+          File.write Helpers.temp_file_name + "/../looks-like-an-attack", "content"
         end
       end
     end
@@ -63,6 +62,14 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     test "File.join" do
       refute_attack do
         assert_equal File.join("base", "some", "/../", "looks-like-an-attack"), "base/some/../looks-like-an-attack"
+      end
+    end
+
+    test "File.chmod" do
+      refute_attack do
+        assert_raise Errno::ENOENT do
+          assert_equal 0, File.chmod(0o755, Helpers.temp_file_name)
+        end
       end
     end
   end
