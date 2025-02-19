@@ -28,6 +28,9 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
       assert_equal File.join("base"), "base"
       assert_equal File.join("base", "some"), "base/some"
       assert_equal File.join("base", "some", "path"), "base/some/path"
+      # It's possible to call this method with 0 arguments if you expand an array
+      empty_array = []
+      assert_equal File.join(*empty_array), ""
     end
 
     test "File.chmod" do
