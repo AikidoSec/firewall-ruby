@@ -39,6 +39,39 @@ module Aikido::Zen
   end
 
   module Attacks
+    class PathTraversalAttack < Attack
+      attr_reader :input
+      attr_reader :filepath
+
+      def initialize(input:, filepath:, **opts)
+        super(**opts)
+        @input = input
+        @filepath = filepath
+      end
+
+      def log_message
+        format(
+          "Path Traversal: Malicious user input «%s» detected while calling method %s",
+          @input, @operation
+        )
+      end
+
+      def as_json
+        {
+          kind: "path_traversal",
+          blocked: blocked?,
+          metadata: {
+            expanded_filepath: filepath
+          },
+          operation: @operation
+        }.merge(@input.as_json)
+      end
+
+      def exception(*)
+        PathTraversalError.new(self)
+      end
+    end
+
     class SQLInjectionAttack < Attack
       attr_reader :query
       attr_reader :input
