@@ -21,13 +21,11 @@ module Aikido::Zen
 
         def read(filename, *)
           Extensions.scan_path(filename, "read")
-
           super
         end
 
         def write(filename, *, **)
           Extensions.scan_path(filename, "write")
-
           super
         end
       end
