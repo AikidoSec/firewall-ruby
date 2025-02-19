@@ -7,25 +7,19 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
   include SinkAttackHelpers
 
   test "scanning does not interfere with `File.read` normally" do
-    tmp_file = Tempfile.new("path-traversal-sink-read")
-
-    begin
+    Helpers.temp_file "path-traversal-sink-read" do |tmp_file|
       tmp_file.write "some content"
       tmp_file.close
-
       assert_equal File.read(tmp_file.path), "some content"
-    ensure
-      tmp_file.unlink
     end
   end
 
   test "scanning does not interfere with `File.write` normally" do
-    ::Dir::Tmpname.create("path-traversal-sink-write", Dir.tmpdir) do |path|
-      File.write path, "path-traversal-sink-write"
+    path = Helpers.temp_file_name "path-traversal-sink-write"
+    File.write path, "path-traversal-sink-write"
 
-      assert_equal File.read(path), "path-traversal-sink-write"
-      File.unlink path
-    end
+    assert_equal File.read(path), "path-traversal-sink-write"
+    File.unlink path
   end
 
   test "scanning does not interfere with `File.join` normally" do
@@ -44,10 +38,9 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     end
 
     refute_attack do
-      ::Dir::Tmpname.create("path-traversal-sink-write", Dir.tmpdir) do |path|
-        assert_raise Errno::ENOENT do
-          File.write path + "/../looks-like-an-attack", "content"
-        end
+      path = Helpers.temp_file_name
+      assert_raise Errno::ENOENT do
+        File.write path + "/../looks-like-an-attack", "content"
       end
     end
 
@@ -88,6 +81,24 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     test "File.join" do
       assert_path_traversal_attack "File.join" do
         File.join "some", "path", OFFENDER_PATH
+      end
+    end
+
+  module Helpers
+    def self.temp_file_name(basename = "path-traversal-sink-write")
+      ::Dir::Tmpname.create(basename, Dir.tmpdir) do |path|
+        return path
+      end
+    end
+
+    def self.temp_file(filename, &block)
+      tmp_file = Tempfile.new filename
+
+      begin
+        yield tmp_file
+        tmp_file.close
+      ensure
+        tmp_file.unlink
       end
     end
   end
