@@ -29,7 +29,7 @@ module Aikido::Zen
           super
         end
 
-        def join(path, *args)
+        def join(*)
           joined = super
           Extensions.scan_path(joined, "join")
           joined
