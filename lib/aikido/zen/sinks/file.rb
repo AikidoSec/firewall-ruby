@@ -34,6 +34,11 @@ module Aikido::Zen
           Extensions.scan_path(joined, "join")
           joined
         end
+
+        def chmod(mode, path)
+          Extensions.scan_path(path, "chmod")
+          super
+        end
       end
     end
   end

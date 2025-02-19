@@ -28,6 +28,12 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     assert_equal File.join("base", "some", "path"), "base/some/path"
   end
 
+  test "scanning does not interfere with `File.chmod` normally" do
+    Helpers.temp_file "path-traversal-sink-chmod" do |tmp_file|
+      assert_equal File.chmod(0o755, tmp_file.path), 1
+    end
+  end
+
   test "does not fail when the context is null but looks like an attack" do
     # We expect the next `File.(read|write)`  will fail *because* the file does not exist,
     # but *not because* it is Path Traversal Attack
@@ -83,6 +89,13 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
         File.join "some", "path", OFFENDER_PATH
       end
     end
+
+    test "File.chmod" do
+      assert_path_traversal_attack "File.chmod" do
+        File.chmod 0o755, OFFENDER_PATH
+      end
+    end
+  end
 
   module Helpers
     def self.temp_file_name(basename = "path-traversal-sink-write")
