@@ -57,27 +57,38 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     end
   end
 
-  test "scanning detects Path Traversal Attacks" do
-    set_context_from_request_to "/?filename=../this-is-an-attack"
+  class AttacksDetectionTest < ActiveSupport::TestCase
+    include StubsCurrentContext
+    include SinkAttackHelpers
 
-    error = assert_attack Aikido::Zen::Attacks::PathTraversalAttack do
-      File.read("../this-is-an-attack")
+    OFFENDER_PATH = "../this-is-an-attack"
+
+    def assert_path_traversal_attack(operation, &block)
+      set_context_from_request_to "/?filename=#{OFFENDER_PATH}"
+
+      error = assert_attack Aikido::Zen::Attacks::PathTraversalAttack, &block
+
+      assert_equal \
+        error.message,
+        "Path Traversal: Malicious user input «#{OFFENDER_PATH}» detected while calling method #{operation}"
     end
 
-    assert_equal \
-      error.message,
-      "Path Traversal: Malicious user input «../this-is-an-attack» detected while calling method File.read"
-  end
-
-  test "scanning detects Path Traversal Attacks 2" do
-    set_context_from_request_to "/?filename=../this-is-an-attack"
-
-    error = assert_attack Aikido::Zen::Attacks::PathTraversalAttack do
-      File.join("some", "path", "../this-is-an-attack")
+    test "File.read" do
+      assert_path_traversal_attack "File.read" do
+        File.read OFFENDER_PATH
+      end
     end
 
-    assert_equal \
-      error.message,
-      "Path Traversal: Malicious user input «../this-is-an-attack» detected while calling method File.join"
+    test "File.write" do
+      assert_path_traversal_attack "File.write" do
+        File.write OFFENDER_PATH, "content"
+      end
+    end
+
+    test "File.join" do
+      assert_path_traversal_attack "File.join" do
+        File.join "some", "path", OFFENDER_PATH
+      end
+    end
   end
 end
