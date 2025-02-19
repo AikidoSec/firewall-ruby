@@ -50,6 +50,11 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
         end
       end
     end
+
+    # Check for `File.join`
+    refute_attack do
+      assert_equal File.join("base", "some", "/../", "looks-like-an-attack"), "base/some/../looks-like-an-attack"
+    end
   end
 
   test "scanning detects Path Traversal Attacks" do
@@ -62,5 +67,17 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     assert_equal \
       error.message,
       "Path Traversal: Malicious user input «../this-is-an-attack» detected while calling method File.read"
+  end
+
+  test "scanning detects Path Traversal Attacks 2" do
+    set_context_from_request_to "/?filename=../this-is-an-attack"
+
+    error = assert_attack Aikido::Zen::Attacks::PathTraversalAttack do
+      File.join("some", "path", "../this-is-an-attack")
+    end
+
+    assert_equal \
+      error.message,
+      "Path Traversal: Malicious user input «../this-is-an-attack» detected while calling method File.join"
   end
 end

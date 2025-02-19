@@ -28,6 +28,12 @@ module Aikido::Zen
           Extensions.scan_path(filename, "write")
           super
         end
+
+        def join(path, *args)
+          joined = super
+          Extensions.scan_path(joined, "join")
+          joined
+        end
       end
     end
   end
