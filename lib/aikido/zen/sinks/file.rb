@@ -39,6 +39,11 @@ module Aikido::Zen
           Extensions.scan_path(path, "chmod")
           super
         end
+
+        def chown(user, group, path)
+          Extensions.scan_path(path, "chown")
+          super
+        end
       end
     end
   end

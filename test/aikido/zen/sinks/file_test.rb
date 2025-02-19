@@ -9,7 +9,7 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     include SinkAttackHelpers
 
     test "File.read" do
-      Helpers.temp_file "path-traversal-sink-read" do |tmp_file|
+      Helpers.temp_file do |tmp_file|
         tmp_file.write "some content"
         tmp_file.close
         assert_equal File.read(tmp_file.path), "some content"
@@ -31,10 +31,12 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     end
 
     test "File.chmod" do
-      Helpers.temp_file "path-traversal-sink-chmod" do |tmp_file|
+      Helpers.temp_file do |tmp_file|
         assert_equal File.chmod(0o755, tmp_file.path), 1
       end
     end
+
+    # `File.chown` needs root permissions to be executed, so we trust on the LookLikeAttackTest::File.chown test
   end
 
   # The following tests are have a null `Context`, that means although they _might be_ attacks, they won't be
@@ -72,6 +74,16 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
         end
       end
     end
+
+    test "File.chown" do
+      refute_attack do
+        assert_raise Errno::EPERM do
+          Helpers.temp_file do |tmp_file|
+            assert_equal 0, File.chown(1, 1, tmp_file.path)
+          end
+        end
+      end
+    end
   end
 
   class AttackDetectionTest < ActiveSupport::TestCase
@@ -106,17 +118,21 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
       assert_path_traversal_attack "File.chmod" do
         File.chmod 0o755, OFFENDER_PATH
       end
+
+      assert_path_traversal_attack "File.chown" do
+        File.chown 1, 1, OFFENDER_PATH
+      end
     end
   end
 
   module Helpers
-    def self.temp_file_name(basename = "path-traversal-sink-write")
+    def self.temp_file_name(basename = "path-traversal-sink-temp-file")
       ::Dir::Tmpname.create(basename, Dir.tmpdir) do |path|
         return path
       end
     end
 
-    def self.temp_file(filename, &block)
+    def self.temp_file(filename = "path-traversal-sink-temp-file", &block)
       tmp_file = Tempfile.new filename
 
       begin
