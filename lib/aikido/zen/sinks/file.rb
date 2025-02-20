@@ -21,13 +21,27 @@ module Aikido::Zen
 
         def read(filename, *)
           Extensions.scan_path(filename, "read")
-
           super
         end
 
         def write(filename, *, **)
           Extensions.scan_path(filename, "write")
+          super
+        end
 
+        def join(*)
+          joined = super
+          Extensions.scan_path(joined, "join")
+          joined
+        end
+
+        def chmod(mode, path)
+          Extensions.scan_path(path, "chmod")
+          super
+        end
+
+        def chown(user, group, path)
+          Extensions.scan_path(path, "chown")
           super
         end
       end
