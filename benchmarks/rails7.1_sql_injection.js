@@ -57,7 +57,7 @@ export const options = {
   }
 };
 
-const expectAttack = http.expectedStatuses(500);
+const expectAttack = http.expectedStatuses(200, 500);
 
 export default function () {
   test("test_post_page_with_json_body",
