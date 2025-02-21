@@ -137,7 +137,5 @@ jobs:
       run: "bundle exec rake libzen:download:current"
     - name: Run the e2e tests
       run: "bundle exec rake e2e:${{ matrix.app }}"
-    - name: Prepare benchmarks
-      run: "bundle exec rails assets:precompile"
     - name: Run the benchmarks
       run: "bundle exec rake bench:${{ matrix.app }}:run"
