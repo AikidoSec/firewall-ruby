@@ -8,6 +8,15 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     include StubsCurrentContext
     include SinkAttackHelpers
 
+    test "File.new" do
+      Helpers.temp_file_name do |tmp_file|
+        assert_nothing_raised do
+          tmp_file.new(tmp_file)
+          tmp_file.close
+        end
+      end
+    end
+
     test "File.open" do
       Helpers.temp_file_name do |tmp_file|
         assert_nothing_raised do
@@ -57,10 +66,20 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     include StubsCurrentContext
     include SinkAttackHelpers
 
+    LOOKS_LIKE_AN_ATTACK_PATH = "../looks-like-an-attack"
+
+    test "File.new" do
+      refute_attack do
+        assert_raise Errno::ENOENT do
+          File.new(LOOKS_LIKE_AN_ATTACK_PATH)
+        end
+      end
+    end
+
     test "File.open" do
       refute_attack do
         assert_raise Errno::ENOENT do
-          File.open("../looks-like-an-attack")
+          File.open(LOOKS_LIKE_AN_ATTACK_PATH)
         end
       end
     end
@@ -68,7 +87,7 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     test "File.read" do
       refute_attack do
         assert_raise Errno::ENOENT do
-          File.read("../looks-like-an-attack")
+          File.read(LOOKS_LIKE_AN_ATTACK_PATH)
         end
       end
     end
@@ -76,7 +95,7 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     test "File.write" do
       refute_attack do
         assert_raise Errno::ENOENT do
-          File.write Helpers.temp_file_name + "/../looks-like-an-attack", "content"
+          File.write Helpers.temp_file_name + "/" + LOOKS_LIKE_AN_ATTACK_PATH, "content"
         end
       end
     end
@@ -123,6 +142,10 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     end
 
     test "attacks are detected by the scanner" do
+      assert_path_traversal_attack "File.new" do
+        File.new OFFENDER_PATH
+      end
+
       assert_path_traversal_attack "File.open" do
         File.open OFFENDER_PATH
       end

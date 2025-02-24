@@ -19,6 +19,13 @@ module Aikido::Zen
           )
         end
 
+        module InstanceMethods
+          def initialize(filename, *, **)
+            Extensions.scan_path(filename, "new")
+            super
+          end
+        end
+
         def open(filename, *, **)
           Extensions.scan_path(filename, "open")
           super
@@ -55,3 +62,4 @@ module Aikido::Zen
 end
 
 ::File.singleton_class.prepend(Aikido::Zen::Sinks::File::Extensions)
+::File.prepend Aikido::Zen::Sinks::File::Extensions::InstanceMethods
