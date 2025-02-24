@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 module Aikido::Zen
-  # Hooked only on `read` & `write` methods of `File`. We could extends to other methods like `open`
-  # but that's outside of the challenge scope.
   module Sinks
     module File
       SINK = Sinks.add("File", scanners: [
