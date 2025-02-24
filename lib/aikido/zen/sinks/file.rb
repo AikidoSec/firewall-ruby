@@ -48,13 +48,13 @@ module Aikido::Zen
             joined
           end
 
-          def chmod(mode, path)
-            Extensions.scan_path(path, "chmod")
+          def chmod(mode, *paths)
+            paths.each { |path| Extensions.scan_path(path, "chmod") }
             super
           end
 
-          def chown(user, group, path)
-            Extensions.scan_path(path, "chown")
+          def chown(user, group, *paths)
+            paths.each { |path| Extensions.scan_path(path, "chown") }
             super
           end
 
