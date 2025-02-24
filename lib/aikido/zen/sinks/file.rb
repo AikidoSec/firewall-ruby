@@ -26,40 +26,42 @@ module Aikido::Zen
           end
         end
 
-        def open(filename, *, **)
-          Extensions.scan_path(filename, "open")
-          super
-        end
+        module ClassMethods
+          def open(filename, *, **)
+            Extensions.scan_path(filename, "open")
+            super
+          end
 
-        def read(filename, *)
-          Extensions.scan_path(filename, "read")
-          super
-        end
+          def read(filename, *)
+            Extensions.scan_path(filename, "read")
+            super
+          end
 
-        def write(filename, *, **)
-          Extensions.scan_path(filename, "write")
-          super
-        end
+          def write(filename, *, **)
+            Extensions.scan_path(filename, "write")
+            super
+          end
 
-        def join(*)
-          joined = super
-          Extensions.scan_path(joined, "join")
-          joined
-        end
+          def join(*)
+            joined = super
+            Extensions.scan_path(joined, "join")
+            joined
+          end
 
-        def chmod(mode, path)
-          Extensions.scan_path(path, "chmod")
-          super
-        end
+          def chmod(mode, path)
+            Extensions.scan_path(path, "chmod")
+            super
+          end
 
-        def chown(user, group, path)
-          Extensions.scan_path(path, "chown")
-          super
+          def chown(user, group, path)
+            Extensions.scan_path(path, "chown")
+            super
+          end
         end
       end
     end
   end
 end
 
-::File.singleton_class.prepend(Aikido::Zen::Sinks::File::Extensions)
+::File.singleton_class.prepend(Aikido::Zen::Sinks::File::Extensions::ClassMethods)
 ::File.prepend Aikido::Zen::Sinks::File::Extensions::InstanceMethods
