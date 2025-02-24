@@ -19,6 +19,11 @@ module Aikido::Zen
           )
         end
 
+        def open(filename, *, **)
+          Extensions.scan_path(filename, "open")
+          super
+        end
+
         def read(filename, *)
           Extensions.scan_path(filename, "read")
           super

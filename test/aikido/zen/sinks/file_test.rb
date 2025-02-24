@@ -8,6 +8,15 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     include StubsCurrentContext
     include SinkAttackHelpers
 
+    test "File.open" do
+      Helpers.temp_file_name do |tmp_file|
+        assert_nothing_raised do
+          tmp_file.open(tmp_file)
+          tmp_file.close
+        end
+      end
+    end
+
     test "File.read" do
       Helpers.temp_file do |tmp_file|
         tmp_file.write "some content"
@@ -47,6 +56,14 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
   class LookLikeAttackTest < ActiveSupport::TestCase
     include StubsCurrentContext
     include SinkAttackHelpers
+
+    test "File.open" do
+      refute_attack do
+        assert_raise Errno::ENOENT do
+          File.open("../looks-like-an-attack")
+        end
+      end
+    end
 
     test "File.read" do
       refute_attack do
@@ -106,6 +123,10 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     end
 
     test "attacks are detected by the scanner" do
+      assert_path_traversal_attack "File.open" do
+        File.open OFFENDER_PATH
+      end
+
       assert_path_traversal_attack "File.read" do
         File.read OFFENDER_PATH
       end
