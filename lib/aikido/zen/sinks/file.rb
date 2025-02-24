@@ -19,87 +19,86 @@ module Aikido::Zen
           )
         end
 
-        module InstanceMethods
+        # Module to extend only the initializer method of `File` (`File.new`)
+        module Initiliazer
           def initialize(filename, *, **)
             Extensions.scan_path(filename, "new")
             super
           end
         end
 
-        module ClassMethods
-          def open(filename, *, **)
-            Extensions.scan_path(filename, "open")
-            super
-          end
+        def open(filename, *, **)
+          Extensions.scan_path(filename, "open")
+          super
+        end
 
-          def read(filename, *)
-            Extensions.scan_path(filename, "read")
-            super
-          end
+        def read(filename, *)
+          Extensions.scan_path(filename, "read")
+          super
+        end
 
-          def write(filename, *, **)
-            Extensions.scan_path(filename, "write")
-            super
-          end
+        def write(filename, *, **)
+          Extensions.scan_path(filename, "write")
+          super
+        end
 
-          def join(*)
-            joined = super
-            Extensions.scan_path(joined, "join")
-            joined
-          end
+        def join(*)
+          joined = super
+          Extensions.scan_path(joined, "join")
+          joined
+        end
 
-          def chmod(mode, *paths)
-            paths.each { |path| Extensions.scan_path(path, "chmod") }
-            super
-          end
+        def chmod(mode, *paths)
+          paths.each { |path| Extensions.scan_path(path, "chmod") }
+          super
+        end
 
-          def chown(user, group, *paths)
-            paths.each { |path| Extensions.scan_path(path, "chown") }
-            super
-          end
+        def chown(user, group, *paths)
+          paths.each { |path| Extensions.scan_path(path, "chown") }
+          super
+        end
 
-          def rename(from, to)
-            Extensions.scan_path(from, "rename")
-            Extensions.scan_path(to, "rename")
-            super
-          end
+        def rename(from, to)
+          Extensions.scan_path(from, "rename")
+          Extensions.scan_path(to, "rename")
+          super
+        end
 
-          def symlink(from, to)
-            Extensions.scan_path(from, "symlink")
-            Extensions.scan_path(to, "symlink")
-            super
-          end
+        def symlink(from, to)
+          Extensions.scan_path(from, "symlink")
+          Extensions.scan_path(to, "symlink")
+          super
+        end
 
-          def truncate(file_name, *)
-            Extensions.scan_path(file_name, "truncate")
-            super
-          end
+        def truncate(file_name, *)
+          Extensions.scan_path(file_name, "truncate")
+          super
+        end
 
-          def unlink(*args)
-            args.each do |arg|
-              Extensions.scan_path(arg, "unlink")
-            end
-            super
+        def unlink(*args)
+          args.each do |arg|
+            Extensions.scan_path(arg, "unlink")
           end
+          super
+        end
 
-          def delete(*args)
-            args.each do |arg|
-              Extensions.scan_path(arg, "delete")
-            end
-            super
+        def delete(*args)
+          args.each do |arg|
+            Extensions.scan_path(arg, "delete")
           end
+          super
+        end
 
-          def utime(atime, mtime, *args)
-            args.each do |arg|
-              Extensions.scan_path(arg, "utime")
-            end
-            super
+        def utime(atime, mtime, *args)
+          args.each do |arg|
+            Extensions.scan_path(arg, "utime")
           end
+          super
+        end
 
-          def expand_path(filename, *)
-            Extensions.scan_path(filename, "expand_path")
-            super
-          end
+        def expand_path(filename, *)
+          Extensions.scan_path(filename, "expand_path")
+          super
         end
       end
     end
@@ -111,5 +110,5 @@ end
 # It's important to keep this line before prepend the Extensions module, otherwise the alias will call
 # the extended method.
 ::File.singleton_class.alias_method :expand_path__original_internal_usage, :expand_path
-::File.singleton_class.prepend(Aikido::Zen::Sinks::File::Extensions::ClassMethods)
-::File.prepend Aikido::Zen::Sinks::File::Extensions::InstanceMethods
+::File.singleton_class.prepend(Aikido::Zen::Sinks::File::Extensions)
+::File.prepend Aikido::Zen::Sinks::File::Extensions::Initiliazer
