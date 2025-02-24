@@ -100,6 +100,11 @@ module Aikido::Zen
           Extensions.scan_path(filename, "expand_path")
           super
         end
+
+        def realpath(filename, *)
+          Extensions.scan_path(filename, "realpath")
+          super
+        end
       end
     end
   end

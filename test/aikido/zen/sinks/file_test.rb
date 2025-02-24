@@ -110,6 +110,10 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     test "File.expand_path" do
       assert_equal "/some-path", File.expand_path("../some-path/this-wont-appear/..", "/")
     end
+
+    test "File.realpath" do
+      assert File.realpath("../../sinks", __FILE__).end_with?("test/aikido/zen/sinks")
+    end
   end
 
   # The following tests are have a null `Context`, that means although they _might be_ attacks, they won't be
@@ -231,6 +235,14 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
         assert file_expand_path.end_with?("looks-like-an-attack")
       end
     end
+
+    test "File.realpath" do
+      refute_attack do
+        assert_raise Errno::ENOTDIR do
+          File.realpath(LOOKS_LIKE_AN_ATTACK_PATH, __FILE__)
+        end
+      end
+    end
   end
 
   class AttackDetectionTest < ActiveSupport::TestCase
@@ -320,6 +332,10 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
 
       assert_path_traversal_attack "File.expand_path" do
         File.expand_path OFFENDER_PATH
+      end
+
+      assert_path_traversal_attack "File.realpath" do
+        File.realpath OFFENDER_PATH
       end
     end
   end
