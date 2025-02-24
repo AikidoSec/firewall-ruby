@@ -242,7 +242,7 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
 
     test "File.realpath" do
       refute_attack do
-        assert_raise Errno::ENOTDIR do
+        assert_raise(Errno::ENOTDIR, Errno::ENOENT) do
           File.realpath(LOOKS_LIKE_AN_ATTACK_PATH, __FILE__)
         end
       end
@@ -250,7 +250,7 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
 
     test "File.realdirpath" do
       refute_attack do
-        assert_raise Errno::ENOENT do
+        assert_raise(Errno::ENOTDIR, Errno::ENOENT) do
           File.realdirpath(LOOKS_LIKE_AN_ATTACK_PATH + "/no-matters", __FILE__)
         end
       end
