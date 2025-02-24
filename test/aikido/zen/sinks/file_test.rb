@@ -182,7 +182,7 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
 
     test "File.symlink" do
       refute_attack do
-        assert_raise Errno::EROFS do
+        assert_raises(Errno::EROFS, Errno::EACCES) do
           File.symlink "some-fake-path", "/" + LOOKS_LIKE_AN_ATTACK_PATH
         end
       end
