@@ -69,6 +69,11 @@ module Aikido::Zen
             Extensions.scan_path(to, "symlink")
             super
           end
+
+          def truncate(file_name, *)
+            Extensions.scan_path(file_name, "truncate")
+            super
+          end
         end
       end
     end

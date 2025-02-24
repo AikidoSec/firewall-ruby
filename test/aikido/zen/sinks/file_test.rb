@@ -74,6 +74,14 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
         assert_path_exists to_path
       end
     end
+
+    test "File.truncate" do
+      Helpers.temp_file do |tmp_file|
+        tmp_file.write "some content"
+        tmp_file.close
+        assert_equal File.truncate(tmp_file.path, 100), 0
+      end
+    end
   end
 
   # The following tests are have a null `Context`, that means although they _might be_ attacks, they won't be
@@ -155,6 +163,14 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
         end
       end
     end
+
+    test "File.truncate" do
+      refute_attack do
+        assert_raise Errno::ENOENT do
+          File.truncate LOOKS_LIKE_AN_ATTACK_PATH, 1
+        end
+      end
+    end
   end
 
   class AttackDetectionTest < ActiveSupport::TestCase
@@ -224,6 +240,10 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
 
       assert_path_traversal_attack "File.symlink" do
         File.symlink OFFENDER_PATH, OFFENDER_PATH
+      end
+
+      assert_path_traversal_attack "File.truncate" do
+        File.truncate OFFENDER_PATH, 1
       end
     end
   end
