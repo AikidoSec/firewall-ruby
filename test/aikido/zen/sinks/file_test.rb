@@ -98,6 +98,14 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
         refute File.exist?(tmp_file.path)
       end
     end
+
+    test "File.utime" do
+      Helpers.temp_file do |tmp_file|
+        assert_equal 1, File.utime(Time.new(2000), Time.new(2000), tmp_file.path)
+        assert_equal Time.new(2000), File.mtime(tmp_file.path)
+        assert_equal Time.new(2000), File.atime(tmp_file.path)
+      end
+    end
   end
 
   # The following tests are have a null `Context`, that means although they _might be_ attacks, they won't be
@@ -203,6 +211,14 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
         end
       end
     end
+
+    test "File.utime" do
+      refute_attack do
+        assert_raise Errno::ENOENT do
+          File.utime Time.new, Time.new, "some-fake-path"
+        end
+      end
+    end
   end
 
   class AttackDetectionTest < ActiveSupport::TestCase
@@ -284,6 +300,10 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
 
       assert_path_traversal_attack "File.delete" do
         File.delete "path-ok", OFFENDER_PATH, "another-path"
+      end
+
+      assert_path_traversal_attack "File.utime" do
+        File.utime Time.new, Time.new, "path-ok", OFFENDER_PATH, "another-path"
       end
     end
   end

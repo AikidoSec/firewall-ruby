@@ -88,6 +88,13 @@ module Aikido::Zen
             end
             super
           end
+
+          def utime(atime, mtime, *args)
+            args.each do |arg|
+              Extensions.scan_path(arg, "utime")
+            end
+            super
+          end
         end
       end
     end
