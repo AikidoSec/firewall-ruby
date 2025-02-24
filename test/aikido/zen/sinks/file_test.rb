@@ -58,6 +58,14 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     end
 
     # `File.chown` needs root permissions to be executed, so we trust on the LookLikeAttackTest::File.chown test
+
+    test "File.rename" do
+      Helpers.temp_file "from-path" do |tmp_file|
+        to_path = Helpers.temp_file_name("to-path")
+        File.rename tmp_file.path, to_path
+        assert_path_exists to_path
+      end
+    end
   end
 
   # The following tests are have a null `Context`, that means although they _might be_ attacks, they won't be
@@ -123,6 +131,14 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
         end
       end
     end
+
+    test "File.rename" do
+      refute_attack do
+        assert_raise Errno::ENOENT do
+          File.rename "some-path", LOOKS_LIKE_AN_ATTACK_PATH
+        end
+      end
+    end
   end
 
   class AttackDetectionTest < ActiveSupport::TestCase
@@ -168,6 +184,18 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
 
       assert_path_traversal_attack "File.chown" do
         File.chown 1, 1, OFFENDER_PATH
+      end
+
+      assert_path_traversal_attack "File.rename" do
+        File.rename OFFENDER_PATH, "some-path"
+      end
+
+      assert_path_traversal_attack "File.rename" do
+        File.rename "some-path", OFFENDER_PATH
+      end
+
+      assert_path_traversal_attack "File.rename" do
+        File.rename OFFENDER_PATH, OFFENDER_PATH
       end
     end
   end

@@ -57,6 +57,12 @@ module Aikido::Zen
             Extensions.scan_path(path, "chown")
             super
           end
+
+          def rename(from, to)
+            Extensions.scan_path(from, "rename")
+            Extensions.scan_path(to, "rename")
+            super
+          end
         end
       end
     end
