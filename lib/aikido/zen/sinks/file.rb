@@ -63,6 +63,12 @@ module Aikido::Zen
             Extensions.scan_path(to, "rename")
             super
           end
+
+          def symlink(from, to)
+            Extensions.scan_path(from, "symlink")
+            Extensions.scan_path(to, "symlink")
+            super
+          end
         end
       end
     end
