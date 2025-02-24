@@ -74,6 +74,20 @@ module Aikido::Zen
             Extensions.scan_path(file_name, "truncate")
             super
           end
+
+          def unlink(*args)
+            args.each do |arg|
+              Extensions.scan_path(arg, "unlink")
+            end
+            super
+          end
+
+          def delete(*args)
+            args.each do |arg|
+              Extensions.scan_path(arg, "delete")
+            end
+            super
+          end
         end
       end
     end

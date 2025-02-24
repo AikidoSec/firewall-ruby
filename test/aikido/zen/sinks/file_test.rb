@@ -82,6 +82,22 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
         assert_equal File.truncate(tmp_file.path, 100), 0
       end
     end
+
+    test "File.unlink" do
+      Helpers.temp_file do |tmp_file|
+        assert_path_exists tmp_file.path
+        File.unlink tmp_file.path
+        refute File.exist?(tmp_file.path)
+      end
+    end
+
+    test "File.delete" do
+      Helpers.temp_file do |tmp_file|
+        assert_path_exists tmp_file.path
+        File.delete tmp_file.path
+        refute File.exist?(tmp_file.path)
+      end
+    end
   end
 
   # The following tests are have a null `Context`, that means although they _might be_ attacks, they won't be
@@ -171,6 +187,22 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
         end
       end
     end
+
+    test "File.unlink" do
+      refute_attack do
+        assert_raise Errno::ENOENT do
+          File.unlink "some-fake-path"
+        end
+      end
+    end
+
+    test "File.delete" do
+      refute_attack do
+        assert_raise Errno::ENOENT do
+          File.delete "some-fake-path"
+        end
+      end
+    end
   end
 
   class AttackDetectionTest < ActiveSupport::TestCase
@@ -244,6 +276,14 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
 
       assert_path_traversal_attack "File.truncate" do
         File.truncate OFFENDER_PATH, 1
+      end
+
+      assert_path_traversal_attack "File.unlink" do
+        File.unlink "path-ok", OFFENDER_PATH, "another-path"
+      end
+
+      assert_path_traversal_attack "File.delete" do
+        File.delete "path-ok", OFFENDER_PATH, "another-path"
       end
     end
   end
