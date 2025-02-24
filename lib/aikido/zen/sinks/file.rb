@@ -95,11 +95,21 @@ module Aikido::Zen
             end
             super
           end
+
+          def expand_path(filename, *)
+            Extensions.scan_path(filename, "expand_path")
+            super
+          end
         end
       end
     end
   end
 end
 
+# Internally, Path Traversal's scanner logic uses `expand_path`, in order of avoid recursion issues we keep
+# a copy of the original method, only to be used internally.
+# It's important to keep this line before prepend the Extensions module, otherwise the alias will call
+# the extended method.
+::File.singleton_class.alias_method :expand_path__original_internal_usage, :expand_path
 ::File.singleton_class.prepend(Aikido::Zen::Sinks::File::Extensions::ClassMethods)
 ::File.prepend Aikido::Zen::Sinks::File::Extensions::InstanceMethods
