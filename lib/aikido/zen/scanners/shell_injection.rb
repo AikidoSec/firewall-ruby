@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
+require_relative "shell_injection/helpers"
+
 module Aikido::Zen::Scanners
-  class ShellInjectionScanner
+  module ShellInjectionScanner
     # @param command [String]
     # @param sink [Aikido::Zen::Sink]
     # @param context [Aikido::Zen::Context]
@@ -25,13 +27,34 @@ module Aikido::Zen::Scanners
       nil
     end
 
+    # @param command [String]
+    # @param input [String]
     def initialize(command, input)
       @command = command
       @input = input
     end
 
     def attack?
-      false
+      # Block single ~ character. For example `echo ~`
+      if @input == "~"
+        if @command.size > 1 && @command.include?("~")
+          return true
+        end
+      end
+
+      # we ignore single character since they don't pose a big threat.
+      # They are only able to crash the shell, not execute arbitraty commands.
+      return false if @input.size <= 1
+
+      # We ignore cases where the user input is longer than the command because
+      # the user input can't be part of the command
+      return false if @input.size > @command.size
+
+      return false unless @command.include?(@input)
+
+      return false if Helpers.is_safely_encapsulated @command, @input
+
+      Helpers.contains_shell_syntax @command, @input
     end
   end
 end
