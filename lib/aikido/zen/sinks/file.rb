@@ -113,7 +113,7 @@ module Aikido::Zen
   end
 end
 
-# Internally, Path Traversal's scanner logic uses `expand_path`, in order of avoid recursion issues we keep
+# Internally, Path Traversal's scanner logic uses `expand_path`, in order to avoid recursion issues we keep
 # a copy of the original method, only to be used internally.
 # It's important to keep this line before prepend the Extensions module, otherwise the alias will call
 # the extended method.
