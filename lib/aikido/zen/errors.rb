@@ -80,6 +80,11 @@ module Aikido
       def_delegators :@attack, :input
     end
 
+    class ShellInjectionError < UnderAttackError
+      extend Forwardable
+      def_delegators :@attack, :input
+    end
+
     # Raised when there's any problem communicating (or loading) libzen.
     class InternalsError < ZenError
       # @param attempt [String] description of what we were trying to do.
