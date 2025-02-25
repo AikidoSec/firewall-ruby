@@ -32,4 +32,14 @@ module Aikido::Zen::Scanners::ShellInjectionScanner
     def self.contains_shell_syntax(command, input)
       # code here
     end
+
+    # Escape characters with special meaning either inside or outside character sets.
+    # Use a simple backslash escape when it’s always valid, and a `\xnn` escape when the simpler
+    # form would be disallowed by Unicode patterns’ stricter grammar.
+    #
+    # Inspired by https://github.com/sindresorhus/escape-string-regexp/
+    def self.escape_string_regexp(string)
+      string.gsub(/[|\\{}()\[\]^$+*?.]/) { "\\#{$&}" }.gsub("-", '\\x2d')
+    end
+  end
 end

@@ -50,4 +50,21 @@ class Aikido::Zen::Scanners::ShellInjectionScanner::HelpersTest < ActiveSupport:
     assert_is_safely_encapsulated "echo 'USER'", "$USER"
     assert_is_safely_encapsulated 'echo "USER"', "$USER"
   end
+
+  test "escape_string_regexp main" do
+    result = Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.escape_string_regexp("\\ ^ $ * + ? . ( ) | { } [ ]")
+    expected = "\\\\ \\^ \\$ \\* \\+ \\? \\. \\( \\) \\| \\{ \\} \\[ \\]"
+    assert_equal expected, result
+  end
+
+  test "escapes - in a way compatible with PCRE" do
+    result = Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.escape_string_regexp("foo - bar")
+    expected = "foo \\x2d bar"
+    assert_equal expected, result
+  end
+
+  test "escapes - in a way compatible with the Unicode flag" do
+    regex = Regexp.new(Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.escape_string_regexp("-"), Regexp::MULTILINE)
+    assert_match regex, "-"
+  end
 end
