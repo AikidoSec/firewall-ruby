@@ -117,6 +117,6 @@ end
 # a copy of the original method, only to be used internally.
 # It's important to keep this line before prepend the Extensions module, otherwise the alias will call
 # the extended method.
-::File.singleton_class.alias_method :expand_path__original_internal_usage, :expand_path
+::File.singleton_class.alias_method :expand_path__internal_for_aikido_zen, :expand_path
 ::File.singleton_class.prepend(Aikido::Zen::Sinks::File::Extensions)
 ::File.prepend Aikido::Zen::Sinks::File::Extensions::Initiliazer
