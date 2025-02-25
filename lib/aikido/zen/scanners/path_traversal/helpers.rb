@@ -42,8 +42,8 @@ module Aikido::Zen
           # Required because `expand_path` will build absolute paths from relative paths
           return false if Pathname.new(filepath).relative? || Pathname.new(user_input).relative?
 
-          normalized_path = File.expand_path(filepath).downcase
-          normalized_user_input = File.expand_path(user_input).downcase
+          normalized_path = File.expand_path__internal_for_aikido_zen(filepath).downcase
+          normalized_user_input = File.expand_path__internal_for_aikido_zen(user_input).downcase
 
           DANGEROUS_PATH_STARTS.each do |dangerous_start|
             if normalized_path.start_with?(dangerous_start) && normalized_path.start_with?(normalized_user_input)
