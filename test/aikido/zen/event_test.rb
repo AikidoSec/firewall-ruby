@@ -91,7 +91,7 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
         super
       end
 
-      def log_message
+      def humanized_name
         "test attack"
       end
 
