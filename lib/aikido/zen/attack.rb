@@ -99,6 +99,10 @@ module Aikido::Zen
         "shell injection"
       end
 
+      def kind
+        "shell_injection"
+      end
+
       def metadata
         {
           command: @command
