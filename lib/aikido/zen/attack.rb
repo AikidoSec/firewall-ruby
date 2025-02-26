@@ -197,6 +197,10 @@ module Aikido::Zen
         "ssrf"
       end
 
+      def input
+        Aikido::Zen::Payload::UNKNOWN_PAYLOAD
+      end
+
       def as_json
         {
           kind: "ssrf",

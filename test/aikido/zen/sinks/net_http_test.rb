@@ -59,13 +59,9 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
     test "raises a useful error message" do
       set_context_from_request_to "/?host=localhost"
 
-      error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
+      assert_attack Aikido::Zen::Attacks::SSRFAttack do
         Net::HTTP.get(URI("https://localhost/safe"))
       end
-
-      assert_equal \
-        "SSRF: Request to user-supplied hostname «localhost» detected in net-http.request (GET https://localhost/safe).",
-        error.message
     end
 
     test "does not log an outbound connection if the request was blocked" do

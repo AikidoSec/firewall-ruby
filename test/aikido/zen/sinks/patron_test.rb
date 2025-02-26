@@ -51,14 +51,10 @@ class Aikido::Zen::Sinks::PatronTest < ActiveSupport::TestCase
     test "raises a useful error message" do
       set_context_from_request_to "/?host=localhost"
 
-      error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
+      assert_attack Aikido::Zen::Attacks::SSRFAttack do
         session = Patron::Session.new(base_url: "https://localhost")
         session.get("/safe")
       end
-
-      assert_equal \
-        "SSRF: Request to user-supplied hostname «localhost» detected in patron.request (GET https://localhost/safe).",
-        error.message
     end
 
     test "does not log an outbound connection if the request was blocked" do

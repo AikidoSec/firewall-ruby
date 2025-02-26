@@ -12,6 +12,8 @@ module Aikido::Zen
       @path = path
     end
 
+    UNKNOWN_PAYLOAD = Payload.new("unknown", "unknown", "unknown")
+
     alias_method :to_s, :value
 
     def ==(other)

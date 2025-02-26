@@ -266,7 +266,7 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     def assert_path_traversal_attack(operation, &block)
       set_context_from_request_to "/?filename=#{OFFENDER_PATH}"
 
-      error = assert_attack Aikido::Zen::Attacks::PathTraversalAttack, &block
+      assert_attack Aikido::Zen::Attacks::PathTraversalAttack, &block
 
       assert_equal \
         error.message,

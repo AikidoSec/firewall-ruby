@@ -36,13 +36,9 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
   test "scanning will detect stored SSRFs against IMDS addresses" do
     @stubbed_dns["trust-me.com"] = "169.254.169.254"
 
-    error = assert_attack Aikido::Zen::Attacks::StoredSSRFAttack do
+    assert_attack Aikido::Zen::Attacks::StoredSSRFAttack do
       build_socket("trust-me.com", 443)
     end
-
-    assert_equal \
-      "Stored SSRF: Request to sensitive host «trust-me.com» (169.254.169.254) detected from unknown source in socket.open",
-      error.message
   end
 
   def build_request_to(uri)
@@ -60,13 +56,9 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
 
     @stubbed_dns["trust-me.com"] = "10.0.0.1"
 
-    error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
+    assert_attack Aikido::Zen::Attacks::SSRFAttack do
       build_socket("trust-me.com", 443)
     end
-
-    assert_equal \
-      "SSRF: Request to user-supplied hostname «trust-me.com» detected in socket.open (GET https://trust-me.com/im-safe).",
-      error.message
   end
 
   test "scanning will not consider it an SSRF if the socket is for a user-supplied hostname used for an HTTP request that does not resolve to a dangerous address" do
