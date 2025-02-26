@@ -12,11 +12,12 @@ end
 
 def boot_server(dir, port:, env: {})
   env["PORT"] = port.to_s
+  env["SECRET_KEY_BASE"] = rand(36**64).to_s(36)
 
   Dir.chdir(dir) do
     SERVER_PIDS[port] = Process.spawn(
       env,
-      "rails", "server", "--pid", "#{Dir.pwd}/tmp/pids/server.#{port}.pid",
+      "rails", "server", "--pid", "#{Dir.pwd}/tmp/pids/server.#{port}.pid", "-e", "production",
       out: "/dev/null"
     )
   rescue
@@ -61,7 +62,7 @@ Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
       end
 
       task :boot_unprotected_app do
-        boot_server(dir, port: 3002, env: {"AIKIDO_DISABLE" => "true"})
+        boot_server(dir, port: 3002, env: {"AIKIDO_DISABLED" => "true"})
       end
     end
 
