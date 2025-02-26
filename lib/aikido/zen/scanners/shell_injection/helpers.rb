@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Aikido::Zen::Scanners::ShellInjectionScanner
+module Aikido::Zen::Scanners::ShellInjection
   module Helpers
     ESCAPE_CHARS = %W[' "]
     DANGEROUS_CHARS_INSIDE_DOUBLE_QUOTES = %W[$ ` \\ !]
@@ -19,28 +19,56 @@ module Aikido::Zen::Scanners::ShellInjectionScanner
 
     SEPARATORS = [" ", "\t", "\n", ";", "&", "|", "(", ")", "<", ">"]
 
+    # @param command [string]
+    # @param user_input [string]
     def self.is_safely_encapsulated(command, user_input)
-      command.split(user_input).each_cons(2) do |first_segment, second_segment|
-        char_before_input = first_segment[-1]
-        char_after_input = second_segment[0, 1]
+      segments = command.split(user_input)
 
-        is_escape_char = ESCAPE_CHARS.find { |char| char == char_before_input }
+      # The next condition is merely here to be compliant with what javascript does when splitting strings:
+      # From js doc https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split
+      #   > If separator appears at the beginning (or end) of the string, it still has the effect of splitting,
+      #   > resulting in an empty (i.e. zero length) string appearing at the first (or last) position of
+      #   > the returned array.
+      # This is necessary because this code is ported form the firewall-node code.
+      if user_input.length > 1
+        if command.start_with? user_input
+          segments.unshift ""
+        end
 
-        return false unless is_escape_char
-
-        return false if char_before_input != char_after_input
-
-        return false if user_input.include?(char_before_input)
-
-        # There are no dangerous characters inside single quotes
-        # You can use certain characters inside double quotes
-        # https://www.gnu.org/software/bash/manual/html_node/Single-Quotes.html
-        # https://www.gnu.org/software/bash/manual/html_node/Double-Quotes.html
-        return false if is_escape_char == '"' &&
-          DANGEROUS_CHARS_INSIDE_DOUBLE_QUOTES.any? { |char| user_input.include?(char) }
-
-        return true
+        if command.end_with? user_input
+          segments << ""
+        end
       end
+
+      # Call the helper function to get current and next segments
+      get_current_and_next_segments(segments).all? do |segments_pair|
+        char_before_user_input = segments_pair[:current_segment][-1]
+        char_after_user_input = segments_pair[:next_segment][0]
+
+        # Check if the character before is an escape character
+        is_escape_char = ESCAPE_CHARS.include?(char_before_user_input)
+
+        unless is_escape_char
+          next false
+        end
+
+        # If characters before and after the user input do not match, return false
+        next false if char_before_user_input != char_after_user_input
+
+        # If user input contains the escape character, return false
+        next false if user_input.include?(char_before_user_input)
+
+        # Handle dangerous characters inside double quotes
+        if char_before_user_input == '"' && DANGEROUS_CHARS_INSIDE_DOUBLE_QUOTES.any? { |char| user_input.include?(char) }
+          next false
+        end
+
+        next true
+      end
+    end
+
+    def self.get_current_and_next_segments(segments)
+      segments.each_cons(2).map { |current_segment, next_segment| {current_segment: current_segment, next_segment: next_segment} }
     end
 
     # Helper function for sorting commands by length (longer commands first)

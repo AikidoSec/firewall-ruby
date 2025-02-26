@@ -3,7 +3,7 @@
 require_relative "shell_injection/helpers"
 
 module Aikido::Zen::Scanners
-  module ShellInjectionScanner
+  class ShellInjectionScanner
     # @param command [String]
     # @param sink [Aikido::Zen::Sink]
     # @param context [Aikido::Zen::Context]
@@ -52,9 +52,9 @@ module Aikido::Zen::Scanners
 
       return false unless @command.include?(@input)
 
-      return false if Helpers.is_safely_encapsulated @command, @input
+      return false if ShellInjection::Helpers.is_safely_encapsulated @command, @input
 
-      Helpers.contains_shell_syntax @command, @input
+      ShellInjection::Helpers.contains_shell_syntax @command, @input
     end
   end
 end

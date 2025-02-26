@@ -2,21 +2,21 @@
 
 require "test_helper"
 
-class Aikido::Zen::Scanners::ShellInjectionScanner::HelpersTest < ActiveSupport::TestCase
+class Aikido::Zen::Scanners::ShellInjection::HelpersTest < ActiveSupport::TestCase
   def assert_is_safely_encapsulated(command, user_input)
-    assert Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.is_safely_encapsulated(command, user_input)
+    assert Aikido::Zen::Scanners::ShellInjection::Helpers.is_safely_encapsulated(command, user_input)
   end
 
   def refute_is_safely_encapsulated(command, user_input)
-    refute Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.is_safely_encapsulated(command, user_input)
+    refute Aikido::Zen::Scanners::ShellInjection::Helpers.is_safely_encapsulated(command, user_input)
   end
 
   def assert_contains_shell_syntax(command, user_input = command)
-    assert Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.contains_shell_syntax(command, user_input)
+    assert Aikido::Zen::Scanners::ShellInjection::Helpers.contains_shell_syntax(command, user_input)
   end
 
   def refute_contains_shell_syntax(command, user_input = command)
-    refute Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.contains_shell_syntax(command, user_input)
+    refute Aikido::Zen::Scanners::ShellInjection::Helpers.contains_shell_syntax(command, user_input)
   end
 
   test "safe between single quotes" do
@@ -60,19 +60,19 @@ class Aikido::Zen::Scanners::ShellInjectionScanner::HelpersTest < ActiveSupport:
   end
 
   test "escape_string_regexp main" do
-    result = Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.escape_string_regexp("\\ ^ $ * + ? . ( ) | { } [ ]")
+    result = Aikido::Zen::Scanners::ShellInjection::Helpers.escape_string_regexp("\\ ^ $ * + ? . ( ) | { } [ ]")
     expected = "\\\\ \\^ \\$ \\* \\+ \\? \\. \\( \\) \\| \\{ \\} \\[ \\]"
     assert_equal expected, result
   end
 
   test "escapes - in a way compatible with PCRE" do
-    result = Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.escape_string_regexp("foo - bar")
+    result = Aikido::Zen::Scanners::ShellInjection::Helpers.escape_string_regexp("foo - bar")
     expected = "foo \\x2d bar"
     assert_equal expected, result
   end
 
   test "escapes - in a way compatible with the Unicode flag" do
-    regex = Regexp.new(Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.escape_string_regexp("-"), Regexp::MULTILINE)
+    regex = Regexp.new(Aikido::Zen::Scanners::ShellInjection::Helpers.escape_string_regexp("-"), Regexp::MULTILINE)
     assert_match regex, "-"
   end
 
