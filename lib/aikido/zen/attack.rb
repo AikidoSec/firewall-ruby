@@ -72,6 +72,39 @@ module Aikido::Zen
       end
     end
 
+    class ShellInjectionAttack < Attack
+      attr_reader :input
+      attr_reader :command
+
+      def initialize(input:, command:, **opts)
+        super(**opts)
+        @input = input
+        @command = command
+      end
+
+      def log_message
+        format(
+          "Shell Injection: Malicious user input «%s» detected while calling method %s",
+          @input, @operation
+        )
+      end
+
+      def as_json
+        {
+          kind: "shell_injection",
+          blocked: blocked?,
+          metadata: {
+            command: @command
+          },
+          operation: @operation
+        }.merge(@input.as_json)
+      end
+
+      def exception(*)
+        ShellInjectionError.new(self)
+      end
+    end
+
     class SQLInjectionAttack < Attack
       attr_reader :query
       attr_reader :input
