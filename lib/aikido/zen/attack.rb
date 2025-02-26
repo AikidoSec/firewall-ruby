@@ -33,8 +33,21 @@ module Aikido::Zen
       raise NotImplementedError, "implement in subclasses"
     end
 
-    def as_json
+    def input
       raise NotImplementedError, "implement in subclasses"
+    end
+
+    def metadata
+      raise NotImplementedError, "implement in subclasses"
+    end
+
+    def as_json
+      {
+        kind: kind,
+        blocked: blocked?,
+        metadata: metadata,
+        operation: @operation
+      }.merge(input.as_json)
     end
 
     def exception(*)
@@ -53,15 +66,10 @@ module Aikido::Zen
         @filepath = filepath
       end
 
-      def as_json
+      def metadata
         {
-          kind: "path_traversal",
-          blocked: blocked?,
-          metadata: {
-            expanded_filepath: filepath
-          },
-          operation: @operation
-        }.merge(@input.as_json)
+          expanded_filepath: filepath
+        }
       end
 
       def humanized_name
@@ -91,15 +99,10 @@ module Aikido::Zen
         "shell injection"
       end
 
-      def as_json
+      def metadata
         {
-          kind: "shell_injection",
-          blocked: blocked?,
-          metadata: {
-            command: @command
-          },
-          operation: @operation
-        }.merge(@input.as_json)
+          command: @command
+        }
       end
 
       def exception(*)
@@ -127,13 +130,8 @@ module Aikido::Zen
         "sql_injection"
       end
 
-      def as_json
-        {
-          kind: "sql_injection",
-          blocked: blocked?,
-          metadata: {sql: @query},
-          operation: @operation
-        }.merge(@input.as_json)
+      def metadata
+        {sql: @query}
       end
 
       def exception(*)
@@ -163,13 +161,11 @@ module Aikido::Zen
         SSRFDetectedError.new(self)
       end
 
-      def as_json
+      def metadata
         {
-          kind: "ssrf",
-          metadata: {host: @request.uri.hostname, port: @request.uri.port},
-          blocked: blocked?,
-          operation: @operation
-        }.merge(@input.as_json)
+          host: @request.uri.hostname,
+          port: @request.uri.port
+        }
       end
     end
 
@@ -201,12 +197,8 @@ module Aikido::Zen
         Aikido::Zen::Payload::UNKNOWN_PAYLOAD
       end
 
-      def as_json
-        {
-          kind: "ssrf",
-          blocked: blocked?,
-          operation: @operation
-        }
+      def metadata
+        {}
       end
     end
   end
