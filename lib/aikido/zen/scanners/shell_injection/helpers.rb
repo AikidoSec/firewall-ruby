@@ -84,8 +84,8 @@ module Aikido::Zen::Scanners::ShellInjectionScanner
         next if user_input != match[0]
 
         # Check if the command is surrounded by separators
-        char_before = command[match[0].index - 1]
-        char_after = command[match[0].index + match[0].length]
+        char_before = command[match[1] - 1]
+        char_after = command[match[1] + match[0].length]
 
         if SEPARATORS.include?(char_before) && SEPARATORS.include?(char_after)
           return true
@@ -103,12 +103,10 @@ module Aikido::Zen::Scanners::ShellInjectionScanner
       false
     end
 
-    def self.match_all(str, regex)
-      matches = []
-      str.scan(regex) do |match|
-        matches << match
+    def self.match_all(string, regex)
+      string.enum_for(:scan, regex).map do |match|
+        [match[0], $~.begin(0)]
       end
-      matches
     end
   end
 end
