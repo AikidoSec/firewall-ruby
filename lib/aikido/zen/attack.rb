@@ -25,7 +25,11 @@ module Aikido::Zen
       @blocked
     end
 
-    def log_message
+    def humanized_name
+      raise NotImplementedError, "implement in subclasses"
+    end
+
+    def kind
       raise NotImplementedError, "implement in subclasses"
     end
 
@@ -49,13 +53,6 @@ module Aikido::Zen
         @filepath = filepath
       end
 
-      def log_message
-        format(
-          "Path Traversal: Malicious user input «%s» detected while calling method %s",
-          @input, @operation
-        )
-      end
-
       def as_json
         {
           kind: "path_traversal",
@@ -65,6 +62,14 @@ module Aikido::Zen
           },
           operation: @operation
         }.merge(@input.as_json)
+      end
+
+      def humanized_name
+        "path traversal attack"
+      end
+
+      def kind
+        "path_traversal"
       end
 
       def exception(*)
@@ -82,11 +87,8 @@ module Aikido::Zen
         @command = command
       end
 
-      def log_message
-        format(
-          "Shell Injection: Malicious user input «%s» detected while calling method %s",
-          @input, @operation
-        )
+      def humanized_name
+        "shell injection"
       end
 
       def as_json
@@ -117,11 +119,12 @@ module Aikido::Zen
         @dialect = dialect
       end
 
-      def log_message
-        format(
-          "SQL Injection: Malicious user input «%s» detected in %s query «%s»",
-          @input, @dialect, @query
-        )
+      def humanized_name
+        "SQL injection"
+      end
+
+      def kind
+        "sql_injection"
       end
 
       def as_json
@@ -148,11 +151,12 @@ module Aikido::Zen
         @request = request
       end
 
-      def log_message
-        format(
-          "SSRF: Request to user-supplied hostname «%s» detected in %s (%s).",
-          @input, @operation, @request
-        ).strip
+      def humanized_name
+        "server-side request forgery"
+      end
+
+      def kind
+        "ssrf"
       end
 
       def exception(*)
@@ -181,15 +185,16 @@ module Aikido::Zen
         @address = address
       end
 
-      def log_message
-        format(
-          "Stored SSRF: Request to sensitive host «%s» (%s) detected from unknown source in %s",
-          @hostname, @address, @operation
-        )
+      def humanized_name
+        "server-side request forgery"
       end
 
       def exception(*)
         SSRFDetectedError.new(self)
+      end
+
+      def kind
+        "ssrf"
       end
 
       def as_json

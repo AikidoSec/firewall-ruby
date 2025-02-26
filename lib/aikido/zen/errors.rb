@@ -60,7 +60,6 @@ module Aikido
       attr_reader :attack
 
       def initialize(attack)
-        super(attack.log_message)
         @attack = attack
       end
     end
