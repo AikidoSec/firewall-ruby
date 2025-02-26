@@ -67,9 +67,7 @@ module Aikido::Zen
       end
 
       def metadata
-        {
-          expanded_filepath: filepath
-        }
+        {filename: filepath}
       end
 
       def humanized_name
