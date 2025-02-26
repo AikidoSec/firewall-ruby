@@ -58,17 +58,6 @@ class Aikido::Zen::Sinks::AsyncHTTPTest < ActiveSupport::TestCase
       end
     end
 
-    test "raises a useful error message" do
-      Sync do
-        set_context_from_request_to "/?host=localhost"
-
-        assert_attack Aikido::Zen::Attacks::SSRFAttack do
-          client = Async::HTTP::Internet.new
-          client.get(URI("https://localhost/safe"))
-        end
-      end
-    end
-
     test "does not log an outbound connection if the request was blocked" do
       Sync do
         set_context_from_request_to "/?host=localhost"

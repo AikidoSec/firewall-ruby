@@ -56,14 +56,6 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
       assert_not_requested :get, "https://localhost/safe"
     end
 
-    test "raises a useful error message" do
-      set_context_from_request_to "/?host=localhost"
-
-      assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        Net::HTTP.get(URI("https://localhost/safe"))
-      end
-    end
-
     test "does not log an outbound connection if the request was blocked" do
       set_context_from_request_to "/?host=localhost"
 

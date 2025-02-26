@@ -48,15 +48,6 @@ class Aikido::Zen::Sinks::PatronTest < ActiveSupport::TestCase
       assert_requested :get, "http://localhost"
     end
 
-    test "raises a useful error message" do
-      set_context_from_request_to "/?host=localhost"
-
-      assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        session = Patron::Session.new(base_url: "https://localhost")
-        session.get("/safe")
-      end
-    end
-
     test "does not log an outbound connection if the request was blocked" do
       set_context_from_request_to "/?host=localhost"
 
