@@ -25,7 +25,7 @@ module Aikido::Zen
           )
         end
 
-        # `system` function can be invoked in several ways. For more details,
+        # `system, spawn` functions can be invoked in several ways. For more details,
         # see [the documentation](https://apidock.com/ruby/Kernel/spawn)
         #
         # In our context, we care primarily about two common scenarios:
@@ -41,7 +41,7 @@ module Aikido::Zen
         # arguments (e.g., user_input = "$(whoami)"):
         #
         #   system("echo", user_input)   This is safe because Ruby automatically escapes arguments
-        #                                passed to system in this form.
+        #                                passed to system/spawn in this form.
         #
         #   system("echo #{user_input}") This is not safe because Ruby interpolates the user_input
         #                                into the command string, resulting in a potentially harmful
@@ -53,6 +53,18 @@ module Aikido::Zen
 
           if args.size == 2 && args[0].is_a?(Hash)
             Extensions.scan_command(args[1], "system")
+          end
+
+          super
+        end
+
+        def spawn(*args, **)
+          if args.size == 1 && args[0].is_a?(String)
+            Extensions.scan_command(args[0], "spawn")
+          end
+
+          if args.size == 2 && args[0].is_a?(Hash)
+            Extensions.scan_command(args[1], "spawn")
           end
 
           super

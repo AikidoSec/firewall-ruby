@@ -41,13 +41,68 @@ class Aikido::Zen::Sinks::KernelTest < ActiveSupport::TestCase
     system("echo", "$(whoami)") # harmless call: result is "$(whoami)"
   end
 
-  test "attacks are detected" do
+  test "spawn works normally" do
+    def assert_spawn_runs_normally(&block)
+      assert_nothing_raised do
+        pid = yield
+        Process.wait(pid)
+      end
+    end
+
+    assert_spawn_runs_normally { spawn("ls") }
+    assert_spawn_runs_normally { spawn(SOME_ENV, "ls") }
+    assert_spawn_runs_normally { spawn("ls", unsetenv_others: true) }
+    assert_spawn_runs_normally { spawn(SOME_ENV, "ls", unsetenv_others: true) }
+
+    assert_spawn_runs_normally { spawn("ls -a") }
+    assert_spawn_runs_normally { spawn(SOME_ENV, "ls -a") }
+    assert_spawn_runs_normally { spawn("ls -a", unsetenv_others: true) }
+    assert_spawn_runs_normally { spawn(SOME_ENV, "ls -a", unsetenv_others: true) }
+
+    assert_spawn_runs_normally { spawn("ls", "-a") }
+    assert_spawn_runs_normally { spawn(SOME_ENV, "ls", "-a") }
+    assert_spawn_runs_normally { spawn("ls", "-a", unsetenv_others: true) }
+    assert_spawn_runs_normally { spawn(SOME_ENV, "ls", "-a", unsetenv_others: true) }
+
+    assert_raises Errno::ENOENT do
+      pid spawn("invalid-command-123")
+      Process.wait pid # we only wait for the latest command, hopefully all the other commands have alread finished
+    end
+  end
+
+  test "attacks through calls to `system` are detected" do
     assert_shell_injection_attack "$(whoami)" do
       system("echo $(whoami)")
     end
 
     assert_shell_injection_attack "$(whoami)" do
       system(SOME_ENV, "echo $(whoami)")
+    end
+
+    assert_shell_injection_attack "$(whoami)" do
+      system("echo $(whoami)", unsetenv_others: true)
+    end
+
+    assert_shell_injection_attack "$(whoami)" do
+      system(SOME_ENV, "echo $(whoami)", unsetenv_others: true)
+    end
+  end
+
+  test "attacks through calls to `spawn` are detected" do
+    assert_shell_injection_attack "$(whoami)" do
+      spawn "echo $(whoami)"
+    end
+
+    assert_shell_injection_attack "$(whoami)" do
+      spawn SOME_ENV, "echo $(whoami)"
+    end
+
+    assert_shell_injection_attack "$(whoami)" do
+      spawn "echo $(whoami)", unsetenv_others: true
+    end
+
+    assert_shell_injection_attack "$(whoami)" do
+      spawn SOME_ENV, "echo $(whoami)", unsetenv_others: true
     end
   end
 end
