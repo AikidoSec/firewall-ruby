@@ -46,27 +46,23 @@ module Aikido::Zen
         #   system("echo #{user_input}") This is not safe because Ruby interpolates the user_input
         #                                into the command string, resulting in a potentially harmful
         #                                command like `echo $(whoami)`.
-        def system(*args, **)
+        def send_arg_to_scan(args, operation)
           if args.size == 1 && args[0].is_a?(String)
-            Extensions.scan_command(args[0], "system")
+            Extensions.scan_command(args[0], operation)
           end
 
           if args.size == 2 && args[0].is_a?(Hash)
-            Extensions.scan_command(args[1], "system")
+            Extensions.scan_command(args[1], operation)
           end
+        end
 
+        def system(*args, **)
+          send_arg_to_scan(args, "system")
           super
         end
 
         def spawn(*args, **)
-          if args.size == 1 && args[0].is_a?(String)
-            Extensions.scan_command(args[0], "spawn")
-          end
-
-          if args.size == 2 && args[0].is_a?(Hash)
-            Extensions.scan_command(args[1], "spawn")
-          end
-
+          send_arg_to_scan(args, "spawn")
           super
         end
       end

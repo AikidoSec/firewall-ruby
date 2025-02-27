@@ -21,20 +21,20 @@ class Aikido::Zen::Sinks::KernelTest < ActiveSupport::TestCase
   end
 
   test "system works normally" do
-    assert system("ls")
-    assert system(SOME_ENV, "ls")
-    assert system("ls", unsetenv_others: true)
-    assert system(SOME_ENV, "ls", unsetenv_others: true)
+    assert system("echo")
+    assert system(SOME_ENV, "echo")
+    assert system("echo", unsetenv_others: true)
+    assert system(SOME_ENV, "echo", unsetenv_others: true)
 
-    assert system("ls -a")
-    assert system(SOME_ENV, "ls -a")
-    assert system("ls -a", unsetenv_others: true)
-    assert system(SOME_ENV, "ls -a", unsetenv_others: true)
+    assert system("echo -n")
+    assert system(SOME_ENV, "echo -n")
+    assert system("echo -n", unsetenv_others: true)
+    assert system(SOME_ENV, "echo -n", unsetenv_others: true)
 
-    assert system("ls", "-a")
-    assert system(SOME_ENV, "ls", "-a")
-    assert system("ls", "-a", unsetenv_others: true)
-    assert system(SOME_ENV, "ls", "-a", unsetenv_others: true)
+    assert system("echo", "-n")
+    assert system(SOME_ENV, "echo", "-n")
+    assert system("echo", "-n", unsetenv_others: true)
+    assert system(SOME_ENV, "echo", "-n", unsetenv_others: true)
 
     refute system("invalid-command-123")
 
@@ -49,20 +49,20 @@ class Aikido::Zen::Sinks::KernelTest < ActiveSupport::TestCase
       end
     end
 
-    assert_spawn_runs_normally { spawn("ls") }
-    assert_spawn_runs_normally { spawn(SOME_ENV, "ls") }
-    assert_spawn_runs_normally { spawn("ls", unsetenv_others: true) }
-    assert_spawn_runs_normally { spawn(SOME_ENV, "ls", unsetenv_others: true) }
+    assert_spawn_runs_normally { spawn("echo") }
+    assert_spawn_runs_normally { spawn(SOME_ENV, "echo") }
+    assert_spawn_runs_normally { spawn("echo", unsetenv_others: true) }
+    assert_spawn_runs_normally { spawn(SOME_ENV, "echo", unsetenv_others: true) }
 
-    assert_spawn_runs_normally { spawn("ls -a") }
-    assert_spawn_runs_normally { spawn(SOME_ENV, "ls -a") }
-    assert_spawn_runs_normally { spawn("ls -a", unsetenv_others: true) }
-    assert_spawn_runs_normally { spawn(SOME_ENV, "ls -a", unsetenv_others: true) }
+    assert_spawn_runs_normally { spawn("echo -n") }
+    assert_spawn_runs_normally { spawn(SOME_ENV, "echo -n") }
+    assert_spawn_runs_normally { spawn("echo -n", unsetenv_others: true) }
+    assert_spawn_runs_normally { spawn(SOME_ENV, "echo -n", unsetenv_others: true) }
 
-    assert_spawn_runs_normally { spawn("ls", "-a") }
-    assert_spawn_runs_normally { spawn(SOME_ENV, "ls", "-a") }
-    assert_spawn_runs_normally { spawn("ls", "-a", unsetenv_others: true) }
-    assert_spawn_runs_normally { spawn(SOME_ENV, "ls", "-a", unsetenv_others: true) }
+    assert_spawn_runs_normally { spawn("echo", "-n") }
+    assert_spawn_runs_normally { spawn(SOME_ENV, "echo", "-n") }
+    assert_spawn_runs_normally { spawn("echo", "-n", unsetenv_others: true) }
+    assert_spawn_runs_normally { spawn(SOME_ENV, "echo", "-n", unsetenv_others: true) }
 
     assert_raises Errno::ENOENT do
       pid spawn("invalid-command-123")
