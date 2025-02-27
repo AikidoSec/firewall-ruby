@@ -58,21 +58,6 @@ class Aikido::Zen::Sinks::AsyncHTTPTest < ActiveSupport::TestCase
       end
     end
 
-    test "raises a useful error message" do
-      Sync do
-        set_context_from_request_to "/?host=localhost"
-
-        error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
-          client = Async::HTTP::Internet.new
-          client.get(URI("https://localhost/safe"))
-        end
-
-        assert_equal \
-          "SSRF: Request to user-supplied hostname «localhost» detected in async-http.request (GET https://localhost/safe).",
-          error.message
-      end
-    end
-
     test "does not log an outbound connection if the request was blocked" do
       Sync do
         set_context_from_request_to "/?host=localhost"

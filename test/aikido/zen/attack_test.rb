@@ -26,43 +26,6 @@ module Aikido::Zen
       assert_equal @op, attack.operation
     end
 
-    test "generates a useful log message from the data" do
-      attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
-        query: @query, input: @input, dialect: @dialect, sink: @sink, context: @context, operation: @op
-      )
-
-      assert_equal <<~TXT.chomp, attack.log_message
-        SQL Injection: Malicious user input «' OR 1=1 --» detected in SQL query «SELECT * FROM users WHERE id = '' OR 1=1 --'»
-      TXT
-    end
-
-    test "correctly identifies the MySQL dialect in the log message" do
-      dialect = Aikido::Zen::Scanners::SQLInjectionScanner::DIALECTS[:mysql]
-      attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
-        query: @query, input: @input, dialect: dialect, sink: @sink, context: @context, operation: @op
-      )
-
-      assert_match(/in MySQL query/, attack.log_message)
-    end
-
-    test "correctly identifies the PostgreSQL dialect in the log message" do
-      dialect = Aikido::Zen::Scanners::SQLInjectionScanner::DIALECTS[:postgresql]
-      attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
-        query: @query, input: @input, dialect: dialect, sink: @sink, context: @context, operation: @op
-      )
-
-      assert_match(/in PostgreSQL query/, attack.log_message)
-    end
-
-    test "correctly identifies the SQLite dialect in the log message" do
-      dialect = Aikido::Zen::Scanners::SQLInjectionScanner::DIALECTS[:sqlite]
-      attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
-        query: @query, input: @input, dialect: dialect, sink: @sink, context: @context, operation: @op
-      )
-
-      assert_match(/in SQLite query/, attack.log_message)
-    end
-
     test "generates the proper exception" do
       attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
         query: @query, input: @input, dialect: @dialect, sink: @sink, context: @context, operation: @op
@@ -72,7 +35,6 @@ module Aikido::Zen
       assert_equal @query, attack.exception.query
       assert_equal @input, attack.exception.input
       assert_equal @dialect, attack.exception.dialect
-      assert_equal attack.log_message, attack.exception.message
     end
 
     test "can track if the Agent will block it" do

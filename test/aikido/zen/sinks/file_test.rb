@@ -268,9 +268,7 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
 
       error = assert_attack Aikido::Zen::Attacks::PathTraversalAttack, &block
 
-      assert_equal \
-        error.message,
-        "Path Traversal: Malicious user input «#{OFFENDER_PATH}» detected while calling method #{operation}"
+      assert_equal error.attack.operation, operation
     end
 
     test "attacks are detected by the scanner" do

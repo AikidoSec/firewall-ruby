@@ -25,12 +25,29 @@ module Aikido::Zen
       @blocked
     end
 
-    def log_message
+    def humanized_name
+      raise NotImplementedError, "implement in subclasses"
+    end
+
+    def kind
+      raise NotImplementedError, "implement in subclasses"
+    end
+
+    def input
+      raise NotImplementedError, "implement in subclasses"
+    end
+
+    def metadata
       raise NotImplementedError, "implement in subclasses"
     end
 
     def as_json
-      raise NotImplementedError, "implement in subclasses"
+      {
+        kind: kind,
+        blocked: blocked?,
+        metadata: metadata,
+        operation: @operation
+      }.merge(input.as_json)
     end
 
     def exception(*)
@@ -49,22 +66,16 @@ module Aikido::Zen
         @filepath = filepath
       end
 
-      def log_message
-        format(
-          "Path Traversal: Malicious user input «%s» detected while calling method %s",
-          @input, @operation
-        )
+      def metadata
+        {filename: filepath}
       end
 
-      def as_json
-        {
-          kind: "path_traversal",
-          blocked: blocked?,
-          metadata: {
-            expanded_filepath: filepath
-          },
-          operation: @operation
-        }.merge(@input.as_json)
+      def humanized_name
+        "path traversal attack"
+      end
+
+      def kind
+        "path_traversal"
       end
 
       def exception(*)
@@ -82,22 +93,18 @@ module Aikido::Zen
         @command = command
       end
 
-      def log_message
-        format(
-          "Shell Injection: Malicious user input «%s» detected while calling method %s",
-          @input, @operation
-        )
+      def humanized_name
+        "shell injection"
       end
 
-      def as_json
+      def kind
+        "shell_injection"
+      end
+
+      def metadata
         {
-          kind: "shell_injection",
-          blocked: blocked?,
-          metadata: {
-            command: @command
-          },
-          operation: @operation
-        }.merge(@input.as_json)
+          command: @command
+        }
       end
 
       def exception(*)
@@ -117,20 +124,16 @@ module Aikido::Zen
         @dialect = dialect
       end
 
-      def log_message
-        format(
-          "SQL Injection: Malicious user input «%s» detected in %s query «%s»",
-          @input, @dialect, @query
-        )
+      def humanized_name
+        "SQL injection"
       end
 
-      def as_json
-        {
-          kind: "sql_injection",
-          blocked: blocked?,
-          metadata: {sql: @query},
-          operation: @operation
-        }.merge(@input.as_json)
+      def kind
+        "sql_injection"
+      end
+
+      def metadata
+        {sql: @query}
       end
 
       def exception(*)
@@ -148,24 +151,23 @@ module Aikido::Zen
         @request = request
       end
 
-      def log_message
-        format(
-          "SSRF: Request to user-supplied hostname «%s» detected in %s (%s).",
-          @input, @operation, @request
-        ).strip
+      def humanized_name
+        "server-side request forgery"
+      end
+
+      def kind
+        "ssrf"
       end
 
       def exception(*)
         SSRFDetectedError.new(self)
       end
 
-      def as_json
+      def metadata
         {
-          kind: "ssrf",
-          metadata: {host: @request.uri.hostname, port: @request.uri.port},
-          blocked: blocked?,
-          operation: @operation
-        }.merge(@input.as_json)
+          host: @request.uri.hostname,
+          port: @request.uri.port
+        }
       end
     end
 
@@ -181,23 +183,24 @@ module Aikido::Zen
         @address = address
       end
 
-      def log_message
-        format(
-          "Stored SSRF: Request to sensitive host «%s» (%s) detected from unknown source in %s",
-          @hostname, @address, @operation
-        )
+      def humanized_name
+        "server-side request forgery"
       end
 
       def exception(*)
         SSRFDetectedError.new(self)
       end
 
-      def as_json
-        {
-          kind: "ssrf",
-          blocked: blocked?,
-          operation: @operation
-        }
+      def kind
+        "ssrf"
+      end
+
+      def input
+        Aikido::Zen::Payload::UNKNOWN_PAYLOAD
+      end
+
+      def metadata
+        {}
       end
     end
   end

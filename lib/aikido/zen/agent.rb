@@ -103,7 +103,9 @@ module Aikido::Zen
     def handle_attack(attack)
       attack.will_be_blocked! if @config.blocking_mode?
 
-      @config.logger.error("[ATTACK DETECTED] #{attack.log_message}")
+      @config.logger.error(
+        format("Zen has %s a %s: %s", attack.blocked? ? "blocked" : "detected", attack.humanized_name, attack.as_json.to_json)
+      )
       report(Events::Attack.new(attack: attack)) if @api_client.can_make_requests?
 
       @collector.track_attack(attack)

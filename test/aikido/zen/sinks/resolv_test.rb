@@ -81,12 +81,9 @@ class Aikido::Zen::Sinks::ResolvTest < ActiveSupport::TestCase
       with_stubbed_resolver do
         @dns.define("im-harmless.com" => ["169.254.169.254"])
 
-        error = assert_attack Aikido::Zen::Attacks::StoredSSRFAttack do
+        assert_attack Aikido::Zen::Attacks::StoredSSRFAttack do
           Resolv.getaddresses("im-harmless.com")
         end
-
-        assert_equal \
-          "Stored SSRF: Request to sensitive host «im-harmless.com» (169.254.169.254) detected from unknown source in resolv.lookup", error.message
       end
     end
 
@@ -96,12 +93,9 @@ class Aikido::Zen::Sinks::ResolvTest < ActiveSupport::TestCase
       with_stubbed_resolver do
         @dns.define("im-harmless.com" => ["169.254.169.254"])
 
-        error = assert_attack Aikido::Zen::Attacks::StoredSSRFAttack do
+        assert_attack Aikido::Zen::Attacks::StoredSSRFAttack do
           Resolv.getaddress("im-harmless.com")
         end
-
-        assert_equal \
-          "Stored SSRF: Request to sensitive host «im-harmless.com» (169.254.169.254) detected from unknown source in resolv.lookup", error.message
       end
     end
 
@@ -111,14 +105,11 @@ class Aikido::Zen::Sinks::ResolvTest < ActiveSupport::TestCase
       with_stubbed_resolver do
         @dns.define("im-harmless.com" => ["169.254.169.254"])
 
-        error = assert_attack Aikido::Zen::Attacks::StoredSSRFAttack do
+        assert_attack Aikido::Zen::Attacks::StoredSSRFAttack do
           Resolv.each_address("im-harmless.com") do |address|
             raise "should not get to #{address}"
           end
         end
-
-        assert_equal \
-          "Stored SSRF: Request to sensitive host «im-harmless.com» (169.254.169.254) detected from unknown source in resolv.lookup", error.message
       end
     end
   end
@@ -145,13 +136,9 @@ class Aikido::Zen::Sinks::ResolvTest < ActiveSupport::TestCase
       with_stubbed_resolver do
         @dns.define("im-harmless.com" => ["10.0.0.1"])
 
-        error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
+        assert_attack Aikido::Zen::Attacks::SSRFAttack do
           Resolv.getaddresses("im-harmless.com")
         end
-
-        assert_equal \
-          "SSRF: Request to user-supplied hostname «im-harmless.com» detected in resolv.lookup (GET https://im-harmless.com/).",
-          error.message
       end
     end
 
@@ -163,13 +150,9 @@ class Aikido::Zen::Sinks::ResolvTest < ActiveSupport::TestCase
       with_stubbed_resolver do
         @dns.define("im-harmless.com" => ["10.0.0.1"])
 
-        error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
+        assert_attack Aikido::Zen::Attacks::SSRFAttack do
           Resolv.getaddress("im-harmless.com")
         end
-
-        assert_equal \
-          "SSRF: Request to user-supplied hostname «im-harmless.com» detected in resolv.lookup (GET https://im-harmless.com/).",
-          error.message
       end
     end
 
@@ -183,13 +166,9 @@ class Aikido::Zen::Sinks::ResolvTest < ActiveSupport::TestCase
       with_stubbed_resolver do
         @dns.define("im-harmless.com" => ["10.0.0.1"])
 
-        error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
+        assert_attack Aikido::Zen::Attacks::SSRFAttack do
           Resolv.each_address("im-harmless.com") { |address| raise "unreachable" }
         end
-
-        assert_equal \
-          "SSRF: Request to user-supplied hostname «im-harmless.com» detected in resolv.lookup (GET https://im-harmless.com/).",
-          error.message
       end
     end
   end

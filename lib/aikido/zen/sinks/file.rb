@@ -9,8 +9,6 @@ module Aikido::Zen
 
       module Extensions
         def self.scan_path(filepath, operation)
-          Aikido::Zen.config.logger.debug "Sending to scan: #{filepath}"
-
           SINK.scan(
             filepath: filepath,
             operation: operation
