@@ -6,6 +6,7 @@ require_relative "sinks/socket"
 
 require_relative "sinks/action_controller" if defined?(::ActionController)
 require_relative "sinks/file" if defined?(::File)
+require_relative "sinks/kernel" if defined?(::Kernel)
 require_relative "sinks/resolv" if defined?(::Resolv)
 require_relative "sinks/net_http" if defined?(::Net::HTTP)
 require_relative "sinks/http" if defined?(::HTTP)
