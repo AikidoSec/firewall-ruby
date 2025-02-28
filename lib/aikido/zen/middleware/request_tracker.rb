@@ -11,6 +11,8 @@ module Aikido::Zen
 
       def call(env)
         request = Aikido::Zen::Middleware.request_from(env)
+        Aikido::Zen.track_request(request)
+
         @app.call(env)
       end
     end
