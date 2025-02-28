@@ -72,6 +72,11 @@ module Aikido
       collector.track_request(request)
     end
 
+    def self.track_discovered_route(request)
+      autostart
+      collector.track_route(request)
+    end
+
     # Tracks a network connection made to an external service.
     #
     # @param connection [Aikido::Zen::OutboundConnection]
