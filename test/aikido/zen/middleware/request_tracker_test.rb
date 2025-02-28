@@ -12,14 +12,22 @@ class Aikido::Zen::Middleware::RequestTrackerTest < ActiveSupport::TestCase
     }
   end
 
-  test "requests get tracked in our stats funnel" do
-    assert_difference "Aikido::Zen.collector.stats.requests", +3 do
-      @middleware.call(Rack::MockRequest.env_for("/200"))
-      @middleware.call(Rack::MockRequest.env_for("/200"))
-      @middleware.call(Rack::MockRequest.env_for("/100")) # status_code will be 100 -> no tracked
-      @middleware.call(Rack::MockRequest.env_for("/200"))
-      @middleware.call(Rack::MockRequest.env_for("/400")) # status_code will be 400 -> no tracked
-    end
+  test "requests & routes get tracked in our stats funnel" do
+    @middleware.call(Rack::MockRequest.env_for("/200"))
+    @middleware.call(Rack::MockRequest.env_for("/200"))
+    @middleware.call(Rack::MockRequest.env_for("/100"))
+    @middleware.call(Rack::MockRequest.env_for("/200"))
+    @middleware.call(Rack::MockRequest.env_for("/400"))
+
+    # we made 5 request, 3 of them failing. We expect to have tracked:
+    #  * 5 request
+    #  * 1 route with 3 hits
+    assert_equal Aikido::Zen.collector.stats.requests, 5
+    assert_equal Aikido::Zen.collector.routes.visits.size, 1
+
+    key = Aikido::Zen::Route.new(verb: "GET", path: "/:number")
+    assert_equal Aikido::Zen.collector.routes.visits.keys, [key]
+    assert_equal Aikido::Zen.collector.routes.visits[key].hits, 3
   end
 
   test "it rejects invalid status codes" do
