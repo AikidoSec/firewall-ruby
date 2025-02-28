@@ -10,6 +10,7 @@ module Aikido::Zen
       end
 
       def call(env)
+        request = Aikido::Zen::Middleware.request_from(env)
         @app.call(env)
       end
     end
