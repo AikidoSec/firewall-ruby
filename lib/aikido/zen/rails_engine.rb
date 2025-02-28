@@ -14,6 +14,7 @@ module Aikido::Zen
 
       app.middleware.use Aikido::Zen::Middleware::SetContext
       app.middleware.use Aikido::Zen::Middleware::CheckAllowedAddresses
+      app.middleware.use Aikido::Zen::Middleware::RequestTracker
 
       ActiveSupport.on_load(:action_controller) do
         # Due to how Rails sets up its middleware chain, the routing is evaluated
