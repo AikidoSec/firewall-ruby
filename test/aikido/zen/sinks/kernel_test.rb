@@ -21,8 +21,6 @@ class Aikido::Zen::Sinks::KernelTest < ActiveSupport::TestCase
   end
 
   test "system works normally" do
-    skip_if_ruby_lower_than "3.0"
-
     assert system("echo")
     assert system(SOME_ENV, "echo")
     assert system("echo", unsetenv_others: true)
@@ -44,8 +42,6 @@ class Aikido::Zen::Sinks::KernelTest < ActiveSupport::TestCase
   end
 
   test "spawn works normally" do
-    skip_if_ruby_lower_than "3.0"
-
     def assert_spawn_runs_normally(&block)
       assert_nothing_raised do
         pid = yield
