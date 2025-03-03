@@ -6,6 +6,13 @@ require_relative "sinks/socket"
 
 require_relative "sinks/action_controller" if defined?(::ActionController)
 require_relative "sinks/file" if defined?(::File)
+
+# Sadly, in ruby versions lower than 3.0, it's not possible to patch the
+# Kernel module because how the `prepend` method is applied
+# (https://stackoverflow.com/questions/78110397/prepend-kernel-module-function-globally#comment137713906_78112924)
+if RUBY_VERSION >= "3.0"
+  require_relative "sinks/kernel" if defined?(::Kernel)
+end
 require_relative "sinks/resolv" if defined?(::Resolv)
 require_relative "sinks/net_http" if defined?(::Net::HTTP)
 require_relative "sinks/http" if defined?(::HTTP)

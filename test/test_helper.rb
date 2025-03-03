@@ -113,6 +113,7 @@ class ActiveSupport::TestCase
 
     refute lines.any? { |line| pattern === line && (match_level === line or true) }, reason
   end
+
   # rubocop:enable Style/OptionalArguments
 
   # Checks that all the data in {subset} is part of the {container} hash.
@@ -122,6 +123,12 @@ class ActiveSupport::TestCase
   #   assert_hash_subset_of data, {name: "Alice", id: 3}
   def assert_hash_subset_of(container, subset)
     assert_equal container.slice(*subset.keys), subset
+  end
+
+  def skip_if_ruby_lower_than(expected_ruby_version)
+    if expected_ruby_version > RUBY_VERSION
+      skip "Skipping test #{__method__} because unexpected ruby version (#{RUBY_VERSION} < #{expected_ruby_version})"
+    end
   end
 
   module StubsCurrentContext
