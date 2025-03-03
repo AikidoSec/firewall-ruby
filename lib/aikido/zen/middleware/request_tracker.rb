@@ -32,6 +32,8 @@ module Aikido::Zen
       # @param route [String]
       # @param http_method [String]
       def track?(status_code:, route:, http_method:)
+        # In the UI we want to show only successful (2xx) or redirect (3xx) responses
+        # anything else is discarded.
         return false unless status_code >= 200 && status_code <= 399
 
         return false if IGNORED_METHODS.include?(http_method)
