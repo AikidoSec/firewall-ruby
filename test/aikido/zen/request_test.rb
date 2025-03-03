@@ -269,7 +269,7 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
                   "email" => {"type" => "string"},
                   "name" => {"type" => "string"},
                   "accepts_terms" => {"type" => "boolean"},
-                  "age" => {"type" => "integer"},
+                  "age" => {"type" => "number"},
                   "interests" => {
                     "type" => "array",
                     "items" => {"type" => "string"}
