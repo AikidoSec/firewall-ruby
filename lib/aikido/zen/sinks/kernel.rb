@@ -17,7 +17,7 @@ module Aikido::Zen
         # @param operation [Symbol, String] name of the method being scanned.
         #
         # @return [Aikido::Zen::Attacks::ShellInjectionAttack, nil] an Attack if any
-        # user input is detected to be attempting a Shell Injection Attack, or +nil+ if not.
+        # user input is detected as part of a Shell Injection Attack, or +nil+ if it's safe.
         def self.scan_command(command, operation)
           SINK.scan(
             command: command,
@@ -26,7 +26,7 @@ module Aikido::Zen
         end
 
         # `system, spawn` functions can be invoked in several ways. For more details,
-        # see [the documentation](https://apidock.com/ruby/Kernel/spawn)
+        # see [the documentation](https://ruby-doc.org/3.4.1/Kernel.html#method-i-spawn)
         #
         # In our context, we care primarily about two common scenarios:
         #   - one argument (String)
@@ -34,8 +34,7 @@ module Aikido::Zen
         #   - two arguments (Hash, String)
         #       e.g.: system({"foo" => "bar"}, "ls"), system({"foo" => "bar"}, "echo something")
         #
-        # In all other cases, Ruby's default behavior ensures that user input is appropriately
-        # escaped, mitigating injection risks. Specifically:
+        # In all other cases, we do not protect against shell argument injections. Specifically:
         #
         # If a user input contains something like $(whoami) and is passed as part of the command
         # arguments (e.g., user_input = "$(whoami)"):
