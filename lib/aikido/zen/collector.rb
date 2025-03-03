@@ -39,13 +39,17 @@ module Aikido::Zen
       synchronize(@stats) { |stats| stats.start(at) }
     end
 
-    # Track stats about the request, record the visited endpoint, and if
-    # enabled, the API schema for this endpoint.
+    # Track stats about the requests
     #
     # @param request [Aikido::Zen::Request]
     # @return [void]
     def track_request(request)
       synchronize(@stats) { |stats| stats.add_request }
+    end
+
+    #  Record the visited endpoint, and if enabled, the API schema for this endpoint.
+    # @param request [Aikido::Zen::Request]
+    def track_route(request)
       synchronize(@routes) { |routes| routes.add(request) if request.route }
     end
 

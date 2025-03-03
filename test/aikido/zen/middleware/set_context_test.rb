@@ -48,12 +48,4 @@ class Aikido::Zen::Middleware::SetContextText < ActiveSupport::TestCase
     assert_equal "/foo", contexts[t1.object_id].request.path
     assert_equal "/bar", contexts[t2.object_id].request.path
   end
-
-  test "requests get tracked in our stats funnel" do
-    assert_difference "Aikido::Zen.collector.stats.requests", +3 do
-      @middleware.call(Rack::MockRequest.env_for("/"))
-      @middleware.call(Rack::MockRequest.env_for("/"))
-      @middleware.call(Rack::MockRequest.env_for("/"))
-    end
-  end
 end

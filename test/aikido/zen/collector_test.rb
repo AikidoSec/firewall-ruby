@@ -24,7 +24,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     end
   end
 
-  test "#track_request tracks how many times the given route was visited" do
+  test "#track_route tracks how many times the given route was visited" do
     request_1 = stub_request("/get")
     route_1 = stub_route("GET", "/get")
 
@@ -33,17 +33,17 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
     assert_difference -> { @collector.routes[route_1].hits }, +2 do
       assert_difference -> { @collector.routes[route_2].hits }, +1 do
-        @collector.track_request(request_1)
-        @collector.track_request(request_2)
-        @collector.track_request(request_1)
+        @collector.track_route(request_1)
+        @collector.track_route(request_2)
+        @collector.track_route(request_1)
       end
     end
   end
 
-  test "#track_request stores the request schema" do
+  test "#track_route stores the request schema" do
     request = stub_request("/get?q=test")
 
-    @collector.track_request(request)
+    @collector.track_route(request)
 
     schema = @collector.routes[stub_route("GET", "/get")].schema
     assert_equal schema.as_json, {
@@ -182,7 +182,10 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
   test "#flush includes the request stats in the event" do
     @collector.start(at: Time.at(1234567890))
-    3.times { @collector.track_request(stub_request) }
+    3.times {
+      @collector.track_request(stub_request)
+      @collector.track_route(stub_request)
+    }
     event = @collector.flush(at: Time.at(1234577890))
 
     assert_hash_subset_of event.as_json, {
@@ -210,7 +213,11 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
   test "#flush includes the scans grouped by sink" do
     @collector.start(at: Time.at(1234567890))
 
-    2.times { @collector.track_request(stub_request) }
+    2.times {
+      stubbed_request = stub_request
+      @collector.track_request(stubbed_request)
+      @collector.track_route(stubbed_request)
+    }
     @collector.track_scan(stub_scan(sink: @sink))
     @collector.track_scan(stub_scan(sink: @sink))
     @collector.track_scan(stub_scan(sink: stub_sink(name: "another")))
@@ -275,7 +282,11 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
   test "#flush includes the attacks grouped by sink" do
     @collector.start(at: Time.at(1234567890))
 
-    2.times { @collector.track_request(stub_request) }
+    2.times {
+      stubbed_request = stub_request
+      @collector.track_request(stubbed_request)
+      @collector.track_route(stubbed_request)
+    }
 
     @collector.track_scan(stub_scan(sink: @sink))
     @collector.track_scan(stub_scan(sink: @sink))
@@ -344,7 +355,11 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
   test "#flush with a complete example" do
     @collector.start(at: Time.at(1234567890))
 
-    2.times { @collector.track_request(stub_request("/")) }
+    2.times do
+      stubbed_request = stub_request("/")
+      @collector.track_request(stubbed_request)
+      @collector.track_route(stubbed_request)
+    end
 
     3.times do |i|
       @collector.track_outbound(stub_outbound(host: "example.com", port: 2000 + i))
