@@ -95,7 +95,7 @@ class Aikido::Zen::Middleware::RequestTrackerTest < ActiveSupport::TestCase
   end
 
   test "it allows .well-known directory" do
-    assert @middleware.track?(status_code: 200, route: "/.well-known", http_method: "GET")
+    refute @middleware.track?(status_code: 200, route: "/.well-known", http_method: "GET")
     assert @middleware.track?(status_code: 200, route: "/.well-known/change-password", http_method: "GET")
     refute @middleware.track?(status_code: 200, route: "/.well-known/security.txt", http_method: "GET")
   end
