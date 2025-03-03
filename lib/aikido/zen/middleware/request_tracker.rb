@@ -133,7 +133,7 @@ module Aikido::Zen
 
         # Do not discover routes with dot files like `/path/to/.file` or `/.directory/file`
         # We want to allow discovery of well-known URIs like `/.well-known/acme-challenge`
-        return false if segments.any? { |s| is_dot_file s } unless is_well_known_uri route
+        return false if segments.any? { |s| is_dot_file s } && !is_well_known_uri(route)
 
         return false if segments.any? { |s| contains_ignored_string s }
 
