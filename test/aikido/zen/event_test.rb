@@ -203,7 +203,7 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
                     "properties" => {
                       "name" => {"type" => "string"},
                       "email" => {"type" => "string"},
-                      "age" => {"type" => "integer", "optional" => true}
+                      "age" => {"type" => "number", "optional" => true}
                     }
                   }
                 }

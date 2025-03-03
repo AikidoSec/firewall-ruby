@@ -30,7 +30,7 @@ class Aikido::Zen::Request::Schema::DefinitionTest < ActiveSupport::TestCase
   end
 
   test "#merge primitive with itself results in the same type" do
-    ["null", "string", "number", "integer", "boolean"].each do |type|
+    ["null", "string", "number", "boolean"].each do |type|
       schema_1 = build_schema(type: type)
       schema_2 = build_schema(type: type)
 
@@ -85,18 +85,8 @@ class Aikido::Zen::Request::Schema::DefinitionTest < ActiveSupport::TestCase
     ), null | obj
   end
 
-  test "#merge integer with number results in number" do
-    integer = build_schema(type: "integer")
-    number = build_schema(type: "number")
-
-    assert_equal build_schema(type: "number"), integer | number
-    assert_equal build_schema(type: "number"), number | integer
-  end
-
   test "#merge primitive types results in a combined type" do
-    ["string", "number", "integer", "boolean"].combination(2) do |(left, right)|
-      next if [left, right].sort == ["integer", "number"] # covered by other test
-
+    ["string", "number", "boolean"].combination(2) do |(left, right)|
       left_type = build_schema(type: left)
       right_type = build_schema(type: right)
 
@@ -127,7 +117,7 @@ class Aikido::Zen::Request::Schema::DefinitionTest < ActiveSupport::TestCase
       properties: {"prop" => build_schema(type: "string")}
     )
 
-    ["string", "number", "integer", "boolean"].each do |type|
+    ["string", "number", "boolean"].each do |type|
       primitive = build_schema(type: type)
       expected = build_schema(
         type: ["object", type].sort,
