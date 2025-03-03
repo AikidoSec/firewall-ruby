@@ -10,13 +10,15 @@ require_relative "zen/worker"
 require_relative "zen/agent"
 require_relative "zen/api_client"
 require_relative "zen/context"
+require_relative "zen/middleware/check_allowed_addresses"
+require_relative "zen/middleware/middleware"
+require_relative "zen/middleware/request_tracker"
 require_relative "zen/middleware/set_context"
 require_relative "zen/outbound_connection"
 require_relative "zen/outbound_connection_monitor"
 require_relative "zen/runtime_settings"
 require_relative "zen/rate_limiter"
 require_relative "zen/scanners"
-require_relative "zen/middleware/check_allowed_addresses"
 require_relative "zen/rails_engine" if defined?(::Rails)
 
 module Aikido
@@ -68,6 +70,11 @@ module Aikido
     def self.track_request(request)
       autostart
       collector.track_request(request)
+    end
+
+    def self.track_discovered_route(request)
+      autostart
+      collector.track_route(request)
     end
 
     # Tracks a network connection made to an external service.
