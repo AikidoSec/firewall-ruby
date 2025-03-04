@@ -47,6 +47,12 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     end
   end
 
+  test "can set AIKIDO_FEATURE_COLLECT_API_SCHEMA to configure if the agent should collect API schema" do
+    assert_boolean_env_var "AIKIDO_FEATURE_COLLECT_API_SCHEMA" do |config|
+      config.collect_api_schema?
+    end
+  end
+
   test "can overwrite the api_base_url" do
     @config.api_endpoint = "http://app.local.aikido.io"
 
