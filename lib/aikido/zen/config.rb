@@ -16,7 +16,7 @@ module Aikido::Zen
     alias_method :disabled?, :disabled
 
     # @return [Boolean] whether Aikido should only report infractions or block
-    #   the request by raising an Exception. Defaults to whether AIKIDO_BLOCKING
+    #   the request by raising an Exception. Defaults to whether AIKIDO_BLOCK
     #   is set to a non-empty value in your environment, or +false+ otherwise.
     attr_accessor :blocking_mode
     alias_method :blocking_mode?, :blocking_mode
@@ -141,7 +141,7 @@ module Aikido::Zen
 
     def initialize
       self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
-      self.blocking_mode = read_boolean_from_env(ENV.fetch("AIKIDO_BLOCKING", false))
+      self.blocking_mode = read_boolean_from_env(ENV.fetch("AIKIDO_BLOCK", false))
       self.api_timeouts = 10
       self.api_endpoint = ENV.fetch("AIKIDO_ENDPOINT", DEFAULT_AIKIDO_ENDPOINT)
       self.realtime_endpoint = ENV.fetch("AIKIDO_REALTIME_ENDPOINT", DEFAULT_RUNTIME_BASE_URL)

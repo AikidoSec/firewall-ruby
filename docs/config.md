@@ -17,7 +17,7 @@ requiring a full deploy.)
 ## Blocking mode
 
 In order to have Aikido block requests that look like attacks, you can set
-`AIKIDO_BLOCKING=true` in your environment, or set
+`AIKIDO_BLOCK=true` in your environment, or set
 `Aikido::Zen.config.blocking_mode = true`.
 
 (We recommend the ENV variable as you can normally change this easily without
