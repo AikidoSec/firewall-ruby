@@ -93,7 +93,7 @@ module Aikido::Zen
     # response.
     #
     # @param request [Net::HTTPRequest]
-    # @param base_url [URI] which API to use. Defaults to +Config#api_base_url+.
+    # @param base_url [URI] which API to use. Defaults to +Config#api_endpoint+.
     #
     # @return [Object] the result of decoding the JSON response from the server.
     #

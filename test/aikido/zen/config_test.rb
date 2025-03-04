@@ -53,13 +53,13 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     end
   end
 
-  test "can overwrite the api_base_url" do
+  test "can overwrite the api_endpoint" do
     @config.api_endpoint = "http://app.local.aikido.io"
 
     assert_equal URI("http://app.local.aikido.io"), @config.api_endpoint
   end
 
-  test "can overwrite the runtime_api_base_url" do
+  test "can overwrite the realtime_endpoint" do
     @config.realtime_endpoint = "http://localhost:3000"
 
     assert_equal URI("http://localhost:3000"), @config.realtime_endpoint
