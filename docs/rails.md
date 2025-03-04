@@ -48,7 +48,7 @@ Rails.application.config.zen.token = Rails.application.credentials.zen.token
 ## Blocking mode
 
 By default, Zen will only detect and log attacks, but will not block them. You
-can enable blocking mode by setting the `AIKIDO_BLOCKING` environment variable
+can enable blocking mode by setting the `AIKIDO_BLOCK` environment variable
 to `true`.
 
 When in blocking mode, Zen will raise an exception when it detects an attack.

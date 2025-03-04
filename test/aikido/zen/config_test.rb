@@ -123,7 +123,7 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   end
 
   test "can set blocking_mode via an ENV variable" do
-    assert_boolean_env_var "AIKIDO_BLOCKING" do |config|
+    assert_boolean_env_var "AIKIDO_BLOCK" do |config|
       config.blocking_mode
     end
   end
