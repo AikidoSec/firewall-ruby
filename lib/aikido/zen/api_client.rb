@@ -36,7 +36,7 @@ module Aikido::Zen
 
       response = request(
         Net::HTTP::Get.new("/config", default_headers),
-        base_url: @config.runtime_api_base_url
+        base_url: @config.realtime_endpoint
       )
 
       new_updated_at = Time.at(response["configUpdatedAt"].to_i / 1000)
@@ -100,7 +100,7 @@ module Aikido::Zen
     # @raise [Aikido::Zen::APIError] in case of a 4XX or 5XX response.
     # @raise [Aikido::Zen::NetworkError] if an error occurs trying to make the
     #   request.
-    private def request(request, base_url: @config.api_base_url)
+    private def request(request, base_url: @config.api_endpoint)
       Net::HTTP.start(base_url.host, base_url.port, http_settings) do |http|
         response = http.request(request)
 

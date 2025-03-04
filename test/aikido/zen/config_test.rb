@@ -10,8 +10,8 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   test "default values" do
     assert_equal false, @config.blocking_mode
     assert_nil @config.api_token
-    assert_equal URI("https://guard.aikido.dev"), @config.api_base_url
-    assert_equal URI("https://runtime.aikido.dev"), @config.runtime_api_base_url
+    assert_equal URI("https://guard.aikido.dev"), @config.api_endpoint
+    assert_equal URI("https://runtime.aikido.dev"), @config.realtime_endpoint
     assert_equal 10, @config.api_timeouts[:open_timeout]
     assert_equal 10, @config.api_timeouts[:read_timeout]
     assert_equal 10, @config.api_timeouts[:write_timeout]
@@ -110,15 +110,15 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   end
 
   test "can overwrite the api_base_url" do
-    @config.api_base_url = "http://app.local.aikido.io"
+    @config.api_endpoint = "http://app.local.aikido.io"
 
-    assert_equal URI("http://app.local.aikido.io"), @config.api_base_url
+    assert_equal URI("http://app.local.aikido.io"), @config.api_endpoint
   end
 
   test "can overwrite the runtime_api_base_url" do
-    @config.runtime_api_base_url = "http://localhost:3000"
+    @config.realtime_endpoint = "http://localhost:3000"
 
-    assert_equal URI("http://localhost:3000"), @config.runtime_api_base_url
+    assert_equal URI("http://localhost:3000"), @config.realtime_endpoint
   end
 
   test "can set granular timeouts" do
@@ -165,9 +165,16 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   end
 
   test "can override the default base URL with an ENV variable" do
-    with_env "AIKIDO_BASE_URL" => "https://test.aikido.dev" do
+    with_env "AIKIDO_ENDPOINT" => "https://test.aikido.dev" do
       config = Aikido::Zen::Config.new
-      assert_equal URI("https://test.aikido.dev"), config.api_base_url
+      assert_equal URI("https://test.aikido.dev"), config.api_endpoint
+    end
+  end
+
+  test "can override the default realtime URL with an ENV variable" do
+    with_env "AIKIDO_REALTIME_ENDPOINT" => "https://test.aikido.dev" do
+      config = Aikido::Zen::Config.new
+      assert_equal URI("https://test.aikido.dev"), config.realtime_endpoint
     end
   end
 

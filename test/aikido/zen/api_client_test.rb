@@ -179,7 +179,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     end
 
     test "uses the host configured in the agent config" do
-      Aikido::Zen.config.api_base_url = "https://test.aikido.dev"
+      Aikido::Zen.config.api_endpoint = "https://test.aikido.dev"
 
       stub_request(:get, "https://test.aikido.dev/api/runtime/config")
         .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
@@ -304,7 +304,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     end
 
     test "uses the host configured in the agent config" do
-      Aikido::Zen.config.api_base_url = "https://app.local.aikido.io"
+      Aikido::Zen.config.api_endpoint = "https://app.local.aikido.io"
 
       stub_request(:post, "https://app.local.aikido.io/api/runtime/events")
         .with(body: hash_including(type: "started"))
