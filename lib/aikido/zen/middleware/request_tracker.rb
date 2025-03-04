@@ -15,11 +15,13 @@ module Aikido::Zen
 
         Aikido::Zen.track_request request
 
-        Aikido::Zen.track_discovered_route(request) if request.route && track?(
+        if Aikido::Zen.config.collect_api_schema? && request.route && track?(
           status_code: response[0],
           route: request.route.path,
           http_method: request.request_method
         )
+          Aikido::Zen.track_discovered_route(request)
+        end
 
         response
       end
