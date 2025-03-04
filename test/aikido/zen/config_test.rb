@@ -16,6 +16,7 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 10, @config.api_timeouts[:read_timeout]
     assert_equal 10, @config.api_timeouts[:write_timeout]
     assert_kind_of ::Logger, @config.logger
+    refute @config.debugging
     assert_equal 5000, @config.max_performance_samples
     assert_equal 100, @config.max_compressed_stats
     assert_equal 200, @config.max_outbound_connections
@@ -68,6 +69,43 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     with_env "AIKIDO_DISABLED" => "" do
       config = Aikido::Zen::Config.new
       refute config.disabled?
+    end
+  end
+
+  test "can configure AIKIDO_DEBUG mode" do
+    with_env "AIKIDO_DEBUG" => "true" do
+      config = Aikido::Zen::Config.new
+      assert config.debugging?
+    end
+
+    with_env "AIKIDO_DEBUG" => "1" do
+      config = Aikido::Zen::Config.new
+      assert config.debugging?
+    end
+
+    with_env "AIKIDO_DEBUG" => "t" do
+      config = Aikido::Zen::Config.new
+      assert config.debugging?
+    end
+
+    with_env "AIKIDO_DEBUG" => "false" do
+      config = Aikido::Zen::Config.new
+      refute config.debugging?
+    end
+
+    with_env "AIKIDO_DEBUG" => "f" do
+      config = Aikido::Zen::Config.new
+      refute config.debugging?
+    end
+
+    with_env "AIKIDO_DEBUG" => "0" do
+      config = Aikido::Zen::Config.new
+      refute config.debugging?
+    end
+
+    with_env "AIKIDO_DEBUG" => "" do
+      config = Aikido::Zen::Config.new
+      refute config.debugging?
     end
   end
 
@@ -189,6 +227,17 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     value = @config.rate_limiting_discriminator.call(request)
 
     assert_equal "actor:123", value
+  end
+
+  test "if logger is updated it overrides the severity level according debugging mode" do
+    config = Aikido::Zen::Config.new
+    assert_equal config.logger.level, Logger::INFO
+    config.logger = ::Logger.new($stdout, level: Logger::INFO)
+    assert_equal config.logger.level, Logger::INFO
+
+    config.debugging = true
+    config.logger = ::Logger.new($stdout, level: Logger::INFO)
+    assert_equal config.logger.level, Logger::DEBUG
   end
 
   def with_env(data = {})

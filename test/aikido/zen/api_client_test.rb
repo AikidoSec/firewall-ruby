@@ -5,6 +5,8 @@ require "test_helper"
 class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
   setup do
     @client = Aikido::Zen::APIClient.new
+    Aikido::Zen.config.debugging = true
+    Aikido::Zen.config.logger = ::Logger.new($stdout, level: Logger::DEBUG)
   end
 
   test "reports it cannot make requests if the configured token is nil" do
@@ -58,6 +60,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
 
     setup do
       Aikido::Zen.config.api_token = "TOKEN"
+      Aikido::Zen.config.debugging = true
       Aikido::Zen.runtime_settings.updated_at = Time.at(0)
 
       @client = Aikido::Zen::APIClient.new

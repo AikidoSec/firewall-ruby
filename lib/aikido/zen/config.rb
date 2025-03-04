@@ -53,7 +53,11 @@ module Aikido::Zen
     attr_accessor :json_decoder
 
     # @return [Logger]
-    attr_accessor :logger
+    attr_reader :logger
+
+    # @return [Boolean] is the agent in debugging mode?
+    attr_accessor :debugging
+    alias_method :debugging?, :debugging
 
     # @return [Integer] maximum number of timing measurements to keep in memory
     #   before compressing them.
@@ -140,7 +144,8 @@ module Aikido::Zen
       self.initial_heartbeat_delay = 60
       self.json_encoder = DEFAULT_JSON_ENCODER
       self.json_decoder = DEFAULT_JSON_DECODER
-      self.logger = Logger.new($stdout, progname: "aikido")
+      self.debugging = read_boolean_from_env(ENV.fetch("AIKIDO_DEBUG", false))
+      self.logger = Logger.new($stdout, progname: "aikido", level: debugging ? Logger::DEBUG : Logger::INFO)
       self.max_performance_samples = 5000
       self.max_compressed_stats = 100
       self.max_outbound_connections = 200
@@ -170,6 +175,13 @@ module Aikido::Zen
     # @param url [String, URI]
     def runtime_api_base_url=(url)
       @runtime_api_base_url = URI(url)
+    end
+
+    # Set the logger and configure its severity level according to agent's debug mode
+    # @param logger [::Logger]
+    def logger=(logger)
+      @logger = logger
+      @logger.level = Logger::DEBUG if debugging
     end
 
     # @overload def api_timeouts=(timeouts)

@@ -82,7 +82,8 @@ class ActiveSupport::TestCase
   # Capture log output and make it testable
   setup do
     @log_output = StringIO.new
-    Aikido::Zen.config.logger.reopen(@log_output)
+    Aikido::Zen.config.debugging = true
+    Aikido::Zen.config.logger = Aikido::Zen.config.logger.reopen(@log_output)
   end
 
   # rubocop:disable Style/OptionalArguments
