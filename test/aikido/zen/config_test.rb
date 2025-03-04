@@ -36,76 +36,20 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   end
 
   test "can set AIKIDO_DISABLED to configure if the agent should be turned off" do
-    with_env "AIKIDO_DISABLED" => "true" do
-      config = Aikido::Zen::Config.new
-      assert config.disabled?
-    end
-
-    with_env "AIKIDO_DISABLED" => "1" do
-      config = Aikido::Zen::Config.new
-      assert config.disabled?
-    end
-
-    with_env "AIKIDO_DISABLED" => "t" do
-      config = Aikido::Zen::Config.new
-      assert config.disabled?
-    end
-
-    with_env "AIKIDO_DISABLED" => "false" do
-      config = Aikido::Zen::Config.new
-      refute config.disabled?
-    end
-
-    with_env "AIKIDO_DISABLED" => "f" do
-      config = Aikido::Zen::Config.new
-      refute config.disabled?
-    end
-
-    with_env "AIKIDO_DISABLED" => "0" do
-      config = Aikido::Zen::Config.new
-      refute config.disabled?
-    end
-
-    with_env "AIKIDO_DISABLED" => "" do
-      config = Aikido::Zen::Config.new
-      refute config.disabled?
+    assert_boolean_env_var "AIKIDO_DISABLED" do |config|
+      config.disabled?
     end
   end
 
-  test "can configure AIKIDO_DEBUG mode" do
-    with_env "AIKIDO_DEBUG" => "true" do
-      config = Aikido::Zen::Config.new
-      assert config.debugging?
+  test "can set AIKIDO_DEBUG to configure agent's debugging mode" do
+    assert_boolean_env_var "AIKIDO_DEBUG" do |config|
+      config.debugging?
     end
+  end
 
-    with_env "AIKIDO_DEBUG" => "1" do
-      config = Aikido::Zen::Config.new
-      assert config.debugging?
-    end
-
-    with_env "AIKIDO_DEBUG" => "t" do
-      config = Aikido::Zen::Config.new
-      assert config.debugging?
-    end
-
-    with_env "AIKIDO_DEBUG" => "false" do
-      config = Aikido::Zen::Config.new
-      refute config.debugging?
-    end
-
-    with_env "AIKIDO_DEBUG" => "f" do
-      config = Aikido::Zen::Config.new
-      refute config.debugging?
-    end
-
-    with_env "AIKIDO_DEBUG" => "0" do
-      config = Aikido::Zen::Config.new
-      refute config.debugging?
-    end
-
-    with_env "AIKIDO_DEBUG" => "" do
-      config = Aikido::Zen::Config.new
-      refute config.debugging?
+  test "can set AIKIDO_FEATURE_COLLECT_API_SCHEMA to configure if the agent should collect API schema" do
+    assert_boolean_env_var "AIKIDO_FEATURE_COLLECT_API_SCHEMA" do |config|
+      config.collect_api_schema?
     end
   end
 
@@ -234,6 +178,20 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     value = @config.rate_limiting_discriminator.call(request)
 
     assert_equal "actor:123", value
+  end
+
+  def assert_boolean_env_var(env_var, &block)
+    %w[true 1 t].each do |truthy_value|
+      with_env env_var => truthy_value do
+        assert block.call(Aikido::Zen::Config.new)
+      end
+    end
+
+    ["false", "f", "0", ""].each do |truthy_value|
+      with_env env_var => truthy_value do
+        refute block.call(Aikido::Zen::Config.new)
+      end
+    end
   end
 
   test "if logger is updated it overrides the severity level according debugging mode" do

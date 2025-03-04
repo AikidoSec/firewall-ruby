@@ -12,6 +12,19 @@ class Aikido::Zen::Middleware::RequestTrackerTest < ActiveSupport::TestCase
     }
   end
 
+  test "if api schema collection is disabled only requests but no routes get tracked in our stats funnel" do
+    Aikido::Zen.config.collect_api_schema = false
+
+    @middleware.call(Rack::MockRequest.env_for("/200"))
+    @middleware.call(Rack::MockRequest.env_for("/200"))
+    @middleware.call(Rack::MockRequest.env_for("/100"))
+    @middleware.call(Rack::MockRequest.env_for("/200"))
+    @middleware.call(Rack::MockRequest.env_for("/400"))
+
+    assert_equal 5, Aikido::Zen.collector.stats.requests
+    assert_equal 0, Aikido::Zen.collector.routes.visits.size
+  end
+
   test "requests & routes get tracked in our stats funnel" do
     @middleware.call(Rack::MockRequest.env_for("/200"))
     @middleware.call(Rack::MockRequest.env_for("/200"))
