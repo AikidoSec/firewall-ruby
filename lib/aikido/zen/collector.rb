@@ -11,6 +11,7 @@ module Aikido::Zen
       @users = Concurrent::AtomicReference.new(Users.new(@config))
       @hosts = Concurrent::AtomicReference.new(Hosts.new(@config))
       @routes = Concurrent::AtomicReference.new(Routes.new(@config))
+      @middleware_installed = Concurrent::AtomicBoolean.new
     end
 
     # Flush all the stats into a Heartbeat event that can be reported back to
@@ -28,7 +29,9 @@ module Aikido::Zen
       start(at: at)
       stats = stats.flush(at: at)
 
-      Events::Heartbeat.new(stats: stats, users: users, hosts: hosts, routes: routes)
+      Events::Heartbeat.new(
+        stats: stats, users: users, hosts: hosts, routes: routes, middleware_installed: middleware_installed?
+      )
     end
 
     # Sets the start time for this collection period.
@@ -87,6 +90,10 @@ module Aikido::Zen
       synchronize(@users) { |users| users.add(actor) }
     end
 
+    def middleware_installed!
+      @middleware_installed.make_true
+    end
+
     # @api private
     def routes
       @routes.get
@@ -105,6 +112,11 @@ module Aikido::Zen
     # @api private
     def stats
       @stats.get
+    end
+
+    # @api private
+    def middleware_installed?
+      @middleware_installed.true?
     end
 
     # Atomically modify an object's state within a block, ensuring it's safe

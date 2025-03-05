@@ -120,6 +120,12 @@ module Aikido
       end
     end
 
+    # Marks that the Zen middleware was installed properly
+    # @return void
+    def self.middleware_installed!
+      collector.middleware_installed!
+    end
+
     # Load all sinks matching libraries loaded into memory. This method should
     # be called after all other dependencies have been loaded into memory (i.e.
     # at the end of the initialization process).
