@@ -23,6 +23,8 @@ module Aikido::Zen
       def call(env)
         request = Aikido::Zen::Middleware.request_from(env)
 
+        Aikido::Zen.middleware_installed!
+
         if should_throttle?(request)
           @config.rate_limited_responder.call(request)
         else
