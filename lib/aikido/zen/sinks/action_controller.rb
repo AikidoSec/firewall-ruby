@@ -23,6 +23,14 @@ module Aikido::Zen
           context = controller.request.env[Aikido::Zen::ENV_KEY]
           request = context.request
 
+          if should_block_user?(request)
+            status, headers, body = @config.blocked_ip_responder.call(request)
+            controller.headers.update(headers)
+            controller.render plain: Array(body).join, status: status
+
+            return true
+          end
+
           if should_throttle?(request)
             status, headers, body = @config.rate_limited_responder.call(request)
             controller.headers.update(headers)
@@ -34,10 +42,19 @@ module Aikido::Zen
           false
         end
 
-        private def should_throttle?(request)
+        private
+
+        def should_throttle?(request)
           return false if @settings.skip_protection_for_ips.include?(request.ip)
 
           @rate_limiter.throttle?(request)
+        end
+
+        # @param request [Aikido::Zen::Request]
+        def should_block_user?(request)
+          return false if request.actor.nil?
+
+          @settings.blocked_user_ids.include?(request.actor.id)
         end
       end
 
