@@ -18,7 +18,7 @@ module Aikido::Zen
         if allowed_ips.empty? || allowed_ips.include?(request.ip)
           @app.call(env)
         else
-          @config.blocked_ip_responder.call(request)
+          @config.blocked_responder.call(request, :ip)
         end
       end
     end

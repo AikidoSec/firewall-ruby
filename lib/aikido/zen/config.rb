@@ -80,10 +80,10 @@ module Aikido::Zen
     #   the oldest seen users.
     attr_accessor :max_users_tracked
 
-    # @return [Proc{Aikido::Zen::Request => Array(Integer, Hash, #each)}]
-    #   Rack handler used to respond to requests from IPs blocked in the Aikido
+    # @return [Proc{(Aikido::Zen::Request, Symbol) => Array(Integer, Hash, #each)}]
+    #   Rack handler used to respond to requests from IPs, users or others blocked in the Aikido
     #   dashboard.
-    attr_accessor :blocked_ip_responder
+    attr_accessor :blocked_responder
 
     # @return [Proc{Aikido::Zen::Request => Array(Integer, Hash, #each)}]
     #   Rack handler used to respond to requests that have been rate limited.
@@ -157,7 +157,7 @@ module Aikido::Zen
       self.max_outbound_connections = 200
       self.max_users_tracked = 1000
       self.request_builder = Aikido::Zen::Context::RACK_REQUEST_BUILDER
-      self.blocked_ip_responder = DEFAULT_BLOCKED_IP_RESPONDER
+      self.blocked_responder = DEFAULT_BLOCKED_RESPONDER
       self.rate_limited_responder = DEFAULT_RATE_LIMITED_RESPONDER
       self.rate_limiting_discriminator = DEFAULT_RATE_LIMITING_DISCRIMINATOR
       self.server_rate_limit_deadline = 1800 # 30 min
@@ -236,9 +236,14 @@ module Aikido::Zen
     DEFAULT_JSON_DECODER = JSON.method(:parse)
 
     # @!visibility private
-    DEFAULT_BLOCKED_IP_RESPONDER = ->(request) do
-      message = "Your IP address is not allowed to access this resource. (Your IP: %s)"
-      [403, {"Content-Type" => "text/plain"}, [format(message, request.ip)]]
+    DEFAULT_BLOCKED_RESPONDER = ->(request, blocking_type) do
+      message = case blocking_type
+      when :ip
+        format("Your IP address is not allowed to access this resource. (Your IP: %s)", request.ip)
+      else
+        "You are blocked by Zen."
+      end
+      [403, {"Content-Type" => "text/plain"}, [message]]
     end
 
     # @!visibility private

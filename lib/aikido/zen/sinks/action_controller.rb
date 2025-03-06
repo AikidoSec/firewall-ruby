@@ -24,7 +24,7 @@ module Aikido::Zen
           request = context.request
 
           if should_block_user?(request)
-            status, headers, body = @config.blocked_ip_responder.call(request)
+            status, headers, body = @config.blocked_responder.call(request, :user)
             controller.headers.update(headers)
             controller.render plain: Array(body).join, status: status
 
