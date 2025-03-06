@@ -21,7 +21,7 @@ module Aikido::Zen
       end
 
       def call(env)
-        request = request_from(env)
+        request = Aikido::Zen::Middleware.request_from(env)
 
         if should_throttle?(request)
           @config.rate_limited_responder.call(request)
@@ -36,14 +36,6 @@ module Aikido::Zen
         return false if @settings.skip_protection_for_ips.include?(request.ip)
 
         @rate_limiter.throttle?(request)
-      end
-
-      def request_from(env)
-        if (current_context = Aikido::Zen.current_context)
-          current_context.request
-        else
-          Context.from_rack_env(env).request
-        end
       end
     end
   end
