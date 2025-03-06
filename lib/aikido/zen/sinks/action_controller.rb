@@ -8,7 +8,7 @@ module Aikido::Zen
       # an actual Rack middleware, to allow for calls to Zen.track_user being
       # made from before_actions in the host app, thus allowing rate-limiting
       # by user ID rather than solely by IP.
-      class RailsThrottler
+      class GateGuard
         def initialize(
           config: Aikido::Zen.config,
           settings: Aikido::Zen.runtime_settings,
@@ -19,7 +19,7 @@ module Aikido::Zen
           @rate_limiter = rate_limiter
         end
 
-        def throttle(controller)
+        def block_pass?(controller)
           context = controller.request.env[Aikido::Zen::ENV_KEY]
           request = context.request
 
@@ -58,8 +58,8 @@ module Aikido::Zen
         end
       end
 
-      def self.throttler
-        @throttler ||= Aikido::Zen::Sinks::ActionController::RailsThrottler.new
+      def self.gate_guard
+        @gate_guard ||= Aikido::Zen::Sinks::ActionController::GateGuard.new
       end
 
       module Extensions
@@ -67,10 +67,9 @@ module Aikido::Zen
           return super unless kind == :process_action
 
           super do
-            rate_limiter = Aikido::Zen::Sinks::ActionController.throttler
-            throttled = rate_limiter.throttle(self)
+            gate_guard = Aikido::Zen::Sinks::ActionController.gate_guard
 
-            yield if block_given? && !throttled
+            yield if block_given? && !gate_guard.block_pass?(self)
           end
         end
       end
