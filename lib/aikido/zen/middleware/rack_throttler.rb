@@ -4,10 +4,10 @@ require_relative "../context"
 
 module Aikido::Zen
   module Middleware
-    # Middleware that rejects requests from clients that are making too many
+    # Rack middleware that rejects requests from clients that are making too many
     # requests to a given endpoint, based in the runtime configuration in the
     # Aikido dashboard.
-    class Throttler
+    class RackThrottler
       def initialize(
         app,
         config: Aikido::Zen.config,

@@ -8,7 +8,7 @@ module Aikido::Zen
       # an actual Rack middleware, to allow for calls to Zen.track_user being
       # made from before_actions in the host app, thus allowing rate-limiting
       # by user ID rather than solely by IP.
-      class Throttler
+      class RailsThrottler
         def initialize(
           config: Aikido::Zen.config,
           settings: Aikido::Zen.runtime_settings,
@@ -42,7 +42,7 @@ module Aikido::Zen
       end
 
       def self.throttler
-        @throttler ||= Aikido::Zen::Sinks::ActionController::Throttler.new
+        @throttler ||= Aikido::Zen::Sinks::ActionController::RailsThrottler.new
       end
 
       module Extensions

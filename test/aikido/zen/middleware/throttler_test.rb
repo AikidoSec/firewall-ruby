@@ -10,7 +10,7 @@ class Aikido::Zen::Middleware::ThrottlerTest < ActiveSupport::TestCase
     @config = Aikido::Zen.config
     @settings = Aikido::Zen.runtime_settings
 
-    @middleware = Aikido::Zen::Middleware::Throttler.new(@app)
+    @middleware = Aikido::Zen::Middleware::RackThrottler.new(@app)
   end
 
   test "allows requests when rate limiting is disabled" do
