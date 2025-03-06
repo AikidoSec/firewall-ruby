@@ -54,7 +54,7 @@ module Aikido::Zen
         def should_block_user?(request)
           return false if request.actor.nil?
 
-          @settings.blocked_user_ids.include?(request.actor.id)
+          @settings.blocked_user_ids&.include?(request.actor.id)
         end
       end
 
