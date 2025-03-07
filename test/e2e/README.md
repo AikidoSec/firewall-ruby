@@ -10,3 +10,4 @@ ln -s ../../sample_apps/{your_sample_app}/test {your_sample_app}
 
 Which is already used to perform the following end-2-end tests :
 - `rails7.1_sql_injection`
+- `rails7.1_path_traversal`
