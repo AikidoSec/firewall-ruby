@@ -3,11 +3,11 @@
 module Aikido::Zen
   module Sinks
     module ActionController
-      # Implements the "middleware" for rate limiting in Rails apps, where we
-      # need to check at the end of the `before_action` chain, rather than in
-      # an actual Rack middleware, to allow for calls to Zen.track_user being
-      # made from before_actions in the host app, thus allowing rate-limiting
-      # by user ID rather than solely by IP.
+      # Implements the "middleware" for guard the gate (i.e.: rate-limiting or blocking)
+      # in Rails apps, where we need to check at the end of the `before_action` chain,
+      # rather than in an actual Rack middleware, to allow for calls to Zen.track_user being
+      # made from before_actions in the host app, thus allowing guard the gate  by user ID
+      # rather than solely by IP.
       class GateGuard
         def initialize(
           config: Aikido::Zen.config,
