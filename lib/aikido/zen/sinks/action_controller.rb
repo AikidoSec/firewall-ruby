@@ -42,16 +42,14 @@ module Aikido::Zen
           false
         end
 
-        private
-
-        def should_throttle?(request)
+        private def should_throttle?(request)
           return false if @settings.skip_protection_for_ips.include?(request.ip)
 
           @rate_limiter.throttle?(request)
         end
 
         # @param request [Aikido::Zen::Request]
-        def should_block_user?(request)
+        private def should_block_user?(request)
           return false if request.actor.nil?
 
           @settings.blocked_user_ids&.include?(request.actor.id)
