@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "synchronizable"
-require_relative "middleware/throttler"
+require_relative "middleware/rack_throttler"
 
 module Aikido::Zen
   # Keeps track of all requests in this process, broken up by Route and further

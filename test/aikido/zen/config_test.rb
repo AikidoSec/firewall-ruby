@@ -23,7 +23,7 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 1000, @config.max_users_tracked
     assert_equal 60, @config.initial_heartbeat_delay
     assert_equal 60, @config.polling_interval
-    assert_kind_of Proc, @config.blocked_ip_responder
+    assert_kind_of Proc, @config.blocked_responder
     assert_kind_of Proc, @config.rate_limited_responder
     assert_kind_of Proc, @config.rate_limiting_discriminator
     assert_equal 3600, @config.client_rate_limit_period
@@ -142,16 +142,24 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal "Array", @config.json_encoder.call([1, 2])
   end
 
-  test "the default #blocked_ip_responder returns the expected Rack response" do
+  test "the default #blocked_responder returns the expected Rack response" do
     request = Minitest::Mock.new
     request.expect :ip, "1.2.3.4"
 
-    status, headers, body = @config.blocked_ip_responder.call(request)
+    status, headers, body = @config.blocked_responder.call(request, :ip)
 
     assert_equal 403, status
     assert_equal({"Content-Type" => "text/plain"}, headers)
     assert_equal \
       ["Your IP address is not allowed to access this resource. (Your IP: 1.2.3.4)"],
+      body
+
+    status, headers, body = @config.blocked_responder.call(request, :user)
+
+    assert_equal 403, status
+    assert_equal({"Content-Type" => "text/plain"}, headers)
+    assert_equal \
+      ["You are blocked by Zen."],
       body
 
     assert_mock request

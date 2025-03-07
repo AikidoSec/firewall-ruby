@@ -58,12 +58,12 @@ class Aikido::Zen::Middleware::CheckAllowedAddressesTest < ActiveSupport::TestCa
     env = Rack::MockRequest.env_for("/admin", "REMOTE_ADDR" => "10.0.0.2")
     response = @middleware.call(env)
 
-    assert_equal @config.blocked_ip_responder.call(Rack::Request.new(env)), response
+    assert_equal @config.blocked_responder.call(Rack::Request.new(env), :ip), response
     assert_stopped_request
   end
 
   test "the rejection response can be configured" do
-    @config.blocked_ip_responder = ->(req) {
+    @config.blocked_responder = ->(req, type) {
       [403, {"Content-Type" => "application/json"}, [%({"error":"ip_rejected","ip":"#{req.ip}"})]]
     }
 
