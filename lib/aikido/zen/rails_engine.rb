@@ -60,6 +60,8 @@ module Aikido::Zen
       # that any gems required after aikido-zen are detected and patched
       # accordingly.
       Aikido::Zen.load_sinks!
+
+      Aikido::Zen.middleware_installed!
     end
   end
 end

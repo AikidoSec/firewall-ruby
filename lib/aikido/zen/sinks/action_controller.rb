@@ -20,8 +20,6 @@ module Aikido::Zen
         end
 
         def block?(controller)
-          Aikido::Zen.middleware_installed!
-
           context = controller.request.env[Aikido::Zen::ENV_KEY]
           request = context.request
 
