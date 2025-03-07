@@ -118,7 +118,7 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
 
     test "sets type to heartbeat" do
       event = Aikido::Zen::Events::Heartbeat.new(
-        stats: @stats, users: @users, hosts: @hosts, routes: @routes
+        stats: @stats, users: @users, hosts: @hosts, routes: @routes, middleware_installed: true
       )
 
       assert_equal "heartbeat", event.type
@@ -126,7 +126,7 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
 
     test "includes the basic structure with timestamps if no data has been collected" do
       event = Aikido::Zen::Events::Heartbeat.new(
-        stats: @stats, users: @users, hosts: @hosts, routes: @routes
+        stats: @stats, users: @users, hosts: @hosts, routes: @routes, middleware_installed: true
       )
 
       assert_hash_subset_of event.as_json, {
@@ -142,7 +142,8 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
         },
         users: [],
         routes: [],
-        hostnames: []
+        hostnames: [],
+        middlewareInstalled: true
       }
     end
 
@@ -166,7 +167,7 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
       )
 
       event = Aikido::Zen::Events::Heartbeat.new(
-        stats: @stats, users: @users, hosts: @hosts, routes: @routes
+        stats: @stats, users: @users, hosts: @hosts, routes: @routes, middleware_installed: true
       )
       serialized = event.as_json
 

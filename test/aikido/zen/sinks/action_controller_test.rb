@@ -127,6 +127,8 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
     assert_equal \
       [:before, :auth_check, :before_around, :get_root, :after_around, :after],
       controller.sequence
+
+    assert Aikido::Zen.collector.middleware_installed?
   end
 
   test "controller executes normally when a callback halts early" do
@@ -135,6 +137,8 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
 
     refute_throttled_or_blocked(controller)
     assert_equal [:before, :auth_check, :after], controller.sequence
+
+    refute Aikido::Zen.collector.middleware_installed?
   end
 
   test "controller rate limits requests when configured" do

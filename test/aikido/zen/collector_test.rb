@@ -24,6 +24,12 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     end
   end
 
+  test "#middleware_installed! marks as installed" do
+    refute @collector.middleware_installed?
+    @collector.middleware_installed!
+    assert @collector.middleware_installed?
+  end
+
   test "#track_route tracks how many times the given route was visited" do
     request_1 = stub_request("/get")
     route_1 = stub_route("GET", "/get")
@@ -176,7 +182,8 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       },
       users: [],
       routes: [],
-      hostnames: []
+      hostnames: [],
+      middlewareInstalled: false
     }
   end
 
@@ -206,7 +213,8 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       routes: [
         {path: "/", method: "GET", hits: 3, apispec: {}}
       ],
-      hostnames: []
+      hostnames: [],
+      middlewareInstalled: false
     }
   end
 
@@ -275,6 +283,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       routes: [
         {path: "/", method: "GET", hits: 2, apispec: {}}
       ],
+      middlewareInstalled: false,
       hostnames: []
     }
   end
@@ -348,6 +357,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       routes: [
         {path: "/", method: "GET", hits: 2, apispec: {}}
       ],
+      middlewareInstalled: false,
       hostnames: []
     }
   end
@@ -414,6 +424,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           }
         }
       },
+      middlewareInstalled: false,
       routes: [{method: "GET", path: "/", hits: 2, apispec: {}}],
       users: [
         {
