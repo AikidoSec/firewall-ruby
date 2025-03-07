@@ -1,8 +1,7 @@
 class FileController < ApplicationController
   skip_forgery_protection if: -> { request.format.json? }
 
-  # POST /file
-  def create
+  def show
     filename = params[:filename]
 
     if filename.present?
