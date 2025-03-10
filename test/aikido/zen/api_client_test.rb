@@ -31,7 +31,6 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
   #
   # This avoids this by replacing the Aikido::Zen methods by NOOP calls.
   #
-  # FIXME: Make this easier to stub.
   module DisableAgentReporting
     def self.included(base)
       original_agent_interface = {

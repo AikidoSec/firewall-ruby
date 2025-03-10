@@ -104,7 +104,6 @@ class Aikido::Zen::InfoTest < ActiveSupport::TestCase
     assert_equal "", @info.as_json[:nodeEnv]
     assert_equal false, @info.as_json[:preventedPrototypePollution]
 
-    # FIXME: Source the actual values for the following properties
     assert_equal false, @info.as_json[:serverless]
     assert_equal [], @info.as_json[:stack]
     assert_equal({}, @info.as_json[:incompatiblePackages])
