@@ -60,7 +60,6 @@ module Aikido::Zen
     end
 
     def os_version
-      # FIXME: Figure out a way of getting the OS version for containers environments
       Gem::Platform.local.version || "unknown"
     end
 

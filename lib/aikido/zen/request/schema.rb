@@ -56,9 +56,6 @@ module Aikido::Zen
       return self if other.nil?
 
       self.class.new(
-        # TODO: this is currently overriding the content type with the new
-        # value, but we should support APIs that accept input in many types
-        # (e.g. JSON and XML)
         content_type: other.content_type,
         body_schema: body_schema.merge(other.body_schema),
         query_schema: query_schema.merge(other.query_schema),
