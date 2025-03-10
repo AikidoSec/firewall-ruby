@@ -40,7 +40,7 @@ You can just tell Zen to use it like so:
 
 ``` ruby
 # config/initializers/zen.rb
-Rails.application.config.zen.token = Rails.application.credentials.zen.token
+Rails.application.config.zen.api_token = Rails.application.credentials.zen.token
 ```
 
 [creds]: https://guides.rubyonrails.org/security.html#environmental-security
