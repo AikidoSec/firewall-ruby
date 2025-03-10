@@ -60,6 +60,11 @@ module Aikido::Zen
       # that any gems required after aikido-zen are detected and patched
       # accordingly.
       Aikido::Zen.load_sinks!
+
+      # Agent's bootstrap process has finished —Controllers are patched to block
+      # unwanted requests, sinks are loaded, scanners are running—, so we mark
+      # the agent as installed.
+      Aikido::Zen.middleware_installed!
     end
   end
 end
