@@ -53,7 +53,7 @@ module Aikido::Zen
     #  Record the visited endpoint, and if enabled, the API schema for this endpoint.
     # @param request [Aikido::Zen::Request]
     def track_route(request)
-      synchronize(@routes) { |routes| routes.add(request) if request.route }
+      synchronize(@routes) { |routes| routes.add(request) }
     end
 
     # Track stats about a scan performed by one of our sinks.
