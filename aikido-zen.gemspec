@@ -33,5 +33,6 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "concurrent-ruby", "~> 1.0"
   spec.add_dependency "rack"
+  spec.add_dependency "grpc"
   spec.add_dependency "ffi"
 end
