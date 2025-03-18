@@ -2,6 +2,7 @@
 
 require "concurrent"
 require_relative "collector"
+require_relative "grpc/detached_agent"
 require_relative "event"
 require_relative "config"
 require_relative "system_info"
@@ -19,8 +20,8 @@ module Aikido::Zen
       new(**opts).tap(&:start!)
     end
 
-    def_delegators :@collector, :middleware_installed!, :track_scan, :track_request,
-      :track_route, :track_outbound, :track_user
+    def_delegators :@collector, :track_scan, :track_route, :track_outbound, :track_user
+    def_delegators :@collector_client, :middleware_installed!, :track_request
 
     attr_reader :collector
 
@@ -46,6 +47,15 @@ module Aikido::Zen
       @config.logger.info "Starting Aikido agent"
 
       raise Aikido::ZenError, "Aikido Agent already started!" if started?
+
+      # This will run on its own thread and will use the same @collector
+      # that the current process.
+      # In case a fork happen, the DetachedAgent (gRPC server), will keep
+      # its instance of collector and calls to track stuff from child-processes
+      # will be routed to this gRPC server, through the client (see the def_delegators above)
+      @detached_agent = Aikido::Zen::DetachedAgent::Server.start!(@collector)
+      @collector_client = Aikido::Zen::DetachedAgent::Client.new
+
       @started_at = Time.now.utc
       @collector.start(at: @started_at)
 
@@ -86,6 +96,7 @@ module Aikido::Zen
       @config.logger.info "Stopping Aikido agent"
       @started_at = nil
       @worker.shutdown
+      @detached_agent.stop!
     end
 
     # Respond to the runtime settings changing after being fetched from the
