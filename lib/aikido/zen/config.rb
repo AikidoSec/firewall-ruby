@@ -159,7 +159,8 @@ module Aikido::Zen
       self.debugging = read_boolean_from_env(ENV.fetch("AIKIDO_DEBUG", false))
       self.logger = Logger.new($stdout, progname: "aikido", level: debugging ? Logger::DEBUG : Logger::INFO)
       self.max_performance_samples = 5000
-      self.detached_agent_socket_path = Tempfile.new("aikido-native-agent.socket").path
+      self.detached_agent_socket_path = "aikido-native-agent.socket"
+      # self.detached_agent_socket_path = Tempfile.new("aikido-native-agent.socket").path
       self.detached_agent_client_timeout = 10
       self.max_compressed_stats = 100
       self.max_outbound_connections = 200
