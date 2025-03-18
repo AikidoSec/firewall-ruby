@@ -150,7 +150,7 @@ module Aikido
     end
 
     class << self
-      alias_method :autostart, :agent
+      alias_method :start!, :agent
     end
   end
 end
