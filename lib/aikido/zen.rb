@@ -4,7 +4,6 @@ require_relative "zen/version"
 require_relative "zen/errors"
 require_relative "zen/actor"
 require_relative "zen/config"
-require_relative "zen/collector"
 require_relative "zen/system_info"
 require_relative "zen/worker"
 require_relative "zen/agent"
@@ -43,7 +42,7 @@ module Aikido
     # Manages runtime metrics extracted from your app, which are uploaded to the
     # Aikido servers if configured to do so.
     def self.collector
-      @collector ||= Collector.new
+      agent.collector
     end
 
     # Gets the current context object that holds all information about the
@@ -68,11 +67,11 @@ module Aikido
     # @param request [Aikido::Zen::Request]
     # @return [void]
     def self.track_request(request)
-      collector.track_request(request)
+      agent.track_request(request)
     end
 
     def self.track_discovered_route(request)
-      collector.track_route(request)
+      agent.track_route(request)
     end
 
     # Tracks a network connection made to an external service.
@@ -80,7 +79,7 @@ module Aikido
     # @param connection [Aikido::Zen::OutboundConnection]
     # @return [void]
     def self.track_outbound(connection)
-      collector.track_outbound(connection)
+      agent.track_outbound(connection)
     end
 
     # Track statistics about the result of a Sink's scan, and report it as
@@ -91,7 +90,7 @@ module Aikido
     # @raise [Aikido::Zen::UnderAttackError] if the scan detected an Attack
     #   and blocking_mode is enabled.
     def self.track_scan(scan)
-      collector.track_scan(scan)
+      agent.track_scan(scan)
       agent.handle_attack(scan.attack) if scan.attack?
     end
 
@@ -103,7 +102,7 @@ module Aikido
       return if config.disabled?
 
       if (actor = Aikido::Zen::Actor(user))
-        collector.track_user(actor)
+        agent.track_user(actor)
         current_context.request.actor = actor if current_context
       else
         config.logger.warn(format(<<~LOG, obj: user))
@@ -118,7 +117,7 @@ module Aikido
     # Marks that the Zen middleware was installed properly
     # @return void
     def self.middleware_installed!
-      collector.middleware_installed!
+      agent.middleware_installed!
     end
 
     # Load all sinks matching libraries loaded into memory. This method should

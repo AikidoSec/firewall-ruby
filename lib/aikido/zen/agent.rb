@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "concurrent"
+require_relative "collector"
 require_relative "event"
 require_relative "config"
 require_relative "system_info"
@@ -9,6 +10,8 @@ module Aikido::Zen
   # Handles the background processes that communicate with the Aikido servers,
   # including managing the runtime settings that keep the app protected.
   class Agent
+    extend Forwardable
+
     # Initialize and start an agent instance.
     #
     # @return [Aikido::Zen::Agent]
@@ -16,9 +19,14 @@ module Aikido::Zen
       new(**opts).tap(&:start!)
     end
 
+    def_delegators :@collector, :middleware_installed!, :track_scan, :track_request,
+      :track_route, :track_outbound, :track_user
+
+    attr_reader :collector
+
     def initialize(
       config: Aikido::Zen.config,
-      collector: Aikido::Zen.collector,
+      collector: Aikido::Zen::Collector.new(config: config),
       worker: Aikido::Zen::Worker.new(config: config),
       api_client: Aikido::Zen::APIClient.new(config: config)
     )
@@ -160,7 +168,7 @@ module Aikido::Zen
       @worker.every(@config.polling_interval) do
         if @api_client.should_fetch_settings?
           Aikido::Zen.runtime_settings.update_from_json(@api_client.fetch_settings)
-          @config.logger.info "Updated runtime settings after polling"
+          @config.logger.info "Updated runtime settings after polling #{Process.pid}"
         end
       end
     end
