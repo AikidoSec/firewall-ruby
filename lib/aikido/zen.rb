@@ -68,12 +68,10 @@ module Aikido
     # @param request [Aikido::Zen::Request]
     # @return [void]
     def self.track_request(request)
-      autostart
       collector.track_request(request)
     end
 
     def self.track_discovered_route(request)
-      autostart
       collector.track_route(request)
     end
 
@@ -82,7 +80,6 @@ module Aikido
     # @param connection [Aikido::Zen::OutboundConnection]
     # @return [void]
     def self.track_outbound(connection)
-      autostart
       collector.track_outbound(connection)
     end
 
@@ -94,7 +91,6 @@ module Aikido
     # @raise [Aikido::Zen::UnderAttackError] if the scan detected an Attack
     #   and blocking_mode is enabled.
     def self.track_scan(scan)
-      autostart
       collector.track_scan(scan)
       agent.handle_attack(scan.attack) if scan.attack?
     end
@@ -107,7 +103,6 @@ module Aikido
       return if config.disabled?
 
       if (actor = Aikido::Zen::Actor(user))
-        autostart
         collector.track_user(actor)
         current_context.request.actor = actor if current_context
       else
@@ -140,7 +135,7 @@ module Aikido
     # @!visibility private
     # Stop any background threads.
     def self.stop!
-      agent&.stop!
+      @agent&.stop!
     end
 
     # @!visibility private
