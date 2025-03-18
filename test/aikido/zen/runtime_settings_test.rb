@@ -8,7 +8,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
   end
 
   test "building from a JSON response" do
-    @settings.update_from_json({
+    assert @settings.update_from_json({
       "success" => true,
       "serviceId" => 1234,
       "configUpdatedAt" => 1717171717000,
@@ -27,29 +27,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_equal false, @settings.received_any_stats
   end
 
-  test "building from a JSON response notifies the agent" do
-    agent = Minitest::Mock.new
-    agent.expect :updated_settings!, nil
-
-    Aikido::Zen.stub(:agent, agent) do
-      @settings.update_from_json({
-        "success" => true,
-        "serviceId" => 1234,
-        "configUpdatedAt" => 1717171717000,
-        "heartbeatIntervalInMS" => 60000,
-        "endpoints" => [],
-        "blockedUserIds" => [],
-        "allowedIPAddresses" => [],
-        "receivedAnyStats" => false
-      })
-
-      assert_mock agent
-    end
-  end
-
-  test "observers are only notified if the settings have changed" do
-    agent = Minitest::Mock.new
-
+  test "update_from_json should return true or false in case the settings were or no updated" do
     payload = {
       "success" => true,
       "serviceId" => 1234,
@@ -61,24 +39,18 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
       "receivedAnyStats" => false
     }
 
-    Aikido::Zen.stub(:agent, agent) do
-      agent.expect :updated_settings!, nil
-      @settings.update_from_json(payload)
-      @settings.update_from_json(payload)
-      @settings.update_from_json(payload)
+    assert @settings.update_from_json(payload)
+    refute @settings.update_from_json(payload)
+    refute @settings.update_from_json(payload)
 
-      payload["configUpdatedAt"] = 1726354453000
+    payload["configUpdatedAt"] = 1726354453000
 
-      agent.expect :updated_settings!, nil
-      @settings.update_from_json(payload)
-      @settings.update_from_json(payload)
-    end
-
-    assert_mock agent
+    assert @settings.update_from_json(payload)
+    refute @settings.update_from_json(payload)
   end
 
   test "#skip_protection_for_ips lets you use individual addresses" do
-    @settings.update_from_json({
+    assert @settings.update_from_json({
       "allowedIPAddresses" => ["1.2.3.4", "2.3.4.5"]
     })
 
@@ -88,7 +60,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
   end
 
   test "#skip_protection_for_ips lets you pass CIDR blocks" do
-    @settings.update_from_json({
+    assert @settings.update_from_json({
       "allowedIPAddresses" => ["10.0.0.0/31", "1.1.1.1"]
     })
 
@@ -99,7 +71,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
   end
 
   test "parsing endpoint data" do
-    @settings.update_from_json({
+    assert @settings.update_from_json({
       "success" => true,
       "serviceId" => 1234,
       "configUpdatedAt" => 1717171717000,
@@ -167,7 +139,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
   end
 
   test "endpoints without an explicit config get a reasonable default value" do
-    @settings.update_from_json({
+    assert @settings.update_from_json({
       "success" => true,
       "serviceId" => 1234,
       "configUpdatedAt" => 1717171717000,
