@@ -48,7 +48,6 @@ class ActiveSupport::TestCase
     Aikido::Zen.instance_variable_set(:@info, nil)
     Aikido::Zen.instance_variable_set(:@agent, nil)
     Aikido::Zen.instance_variable_set(:@config, nil)
-    Aikido::Zen.instance_variable_set(:@collector, nil)
     Aikido::Zen.instance_variable_set(:@runtime_settings, nil)
     Aikido::Zen.current_context = nil
 
