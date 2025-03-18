@@ -56,6 +56,8 @@ module Aikido::Zen
         next
       end
 
+      Aikido::Zen.start
+
       # Make sure this is run at the end of the initialization process, so
       # that any gems required after aikido-zen are detected and patched
       # accordingly.
