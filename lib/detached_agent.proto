@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+package Aikido.Zen.gRPC;
+
+service DetachedAgent {
+  rpc OnTracking (TrackInput) returns (google.protobuf.Empty);
+}
+
+message TrackInput {
+  oneof type {
+    Request request = 2;
+    Route route = 3;
+    Scan scan = 4;
+    Attack attack = 5;
+    Outbound outbound = 6;
+    User user = 7;
+    MiddlewareInstalled middleware_installed = 8;
+  }
+}
+
+message Request {
+  // No body
+}
+
+message Route {
+  string route_verb = 1;
+  string route_path = 2;
+  string schema = 3; // this will be a json string, to keep things simple
+}
+
+message Scan {
+  string sink_name = 1;
+  bool has_errors = 2;
+  float duration = 3;
+}
+
+message Attack {
+  string sink_name = 1;
+  bool blocked = 2;
+}
+
+message Outbound {
+  string host = 1;
+  uint32 port = 2;
+}
+
+message User {
+  string id = 1;
+  string name = 2;
+  google.protobuf.Timestamp seen_at = 3;
+  string ip = 5;
+}
+
+message MiddlewareInstalled {
+  bool installed = 1;
+}
