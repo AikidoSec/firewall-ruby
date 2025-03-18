@@ -55,6 +55,12 @@ module Aikido::Zen
     # @return [Logger]
     attr_reader :logger
 
+    # @return [string] Path of the socket where the detached agent will listen.
+    attr_reader :detached_agent_socket_path
+
+    # @return [integer] Max timeout while doing gRPC calls in seconds.
+    attr_accessor :detached_agent_client_timeout
+
     # @return [Boolean] is the agent in debugging mode?
     attr_accessor :debugging
     alias_method :debugging?, :debugging
@@ -153,6 +159,8 @@ module Aikido::Zen
       self.debugging = read_boolean_from_env(ENV.fetch("AIKIDO_DEBUG", false))
       self.logger = Logger.new($stdout, progname: "aikido", level: debugging ? Logger::DEBUG : Logger::INFO)
       self.max_performance_samples = 5000
+      self.detached_agent_socket_path = Tempfile.new("aikido-native-agent.socket").path
+      self.detached_agent_client_timeout = 10
       self.max_compressed_stats = 100
       self.max_outbound_connections = 200
       self.max_users_tracked = 1000
@@ -208,6 +216,11 @@ module Aikido::Zen
 
       @api_timeouts ||= {}
       @api_timeouts.update(value)
+    end
+
+    def detached_agent_socket_path=(path)
+      @detached_agent_socket_path = path
+      @detached_agent_socket_path = "unix:" + @detached_agent_socket_path unless @detached_agent_socket_path.start_with?("unix:")
     end
 
     private
