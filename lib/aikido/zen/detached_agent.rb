@@ -26,6 +26,10 @@ module Aikido::Zen
       @detached_agent_front.track_route(request.route, request.schema.as_json)
     end
 
+    def track_outbound(outbound)
+      @detached_agent_front.track_outbound(outbound)
+    end
+
     # Every time a fork occurs (a new child process is created), we need to start
     # a DRb service in a background thread within the child process. This service
     # will manage the connection and handle resource cleanup.
@@ -50,6 +54,10 @@ module Aikido::Zen
 
     def track_route(route, schema)
       @collector.track_route(RequestKind.new(route, Aikido::Zen::Request::Schema.from_json(schema)))
+    end
+
+    def track_outbound(outbound)
+      @collector.track_outbound(outbound)
     end
   end
 
