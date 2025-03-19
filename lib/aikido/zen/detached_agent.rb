@@ -38,6 +38,10 @@ module Aikido::Zen
       @detached_agent_front.track_user(user.id, user.name, user.first_seen_at, user.ip)
     end
 
+    def track_attack(attack)
+      @detached_agent_front.track_attack(attack.sink.name, attack.blocked?)
+    end
+
     # Every time a fork occurs (a new child process is created), we need to start
     # a DRb service in a background thread within the child process. This service
     # will manage the connection and handle resource cleanup.
@@ -56,6 +60,11 @@ module Aikido::Zen
     ScanKind = Struct.new(:sink, :errors, :duration) do
       def errors?
         self[:errors]
+      end
+    end
+    AttackKind = Struct.new(:sink, :blocked) do
+      def blocked?
+        self[:blocked]
       end
     end
 
@@ -80,6 +89,10 @@ module Aikido::Zen
 
     def track_user(id, name, first_seen_at, ip)
       @collector.track_user(Actor.new(id: id, name: name, seen_at: first_seen_at, ip: ip))
+    end
+
+    def track_attack(sink_name, is_blocked)
+      @collector.track_attack(AttackKind.new(SinkKind.new(sink_name), is_blocked))
     end
   end
 
