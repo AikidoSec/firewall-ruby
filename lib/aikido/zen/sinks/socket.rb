@@ -15,6 +15,8 @@ module Aikido::Zen
 
       module IPSocketExtensions
         def self.scan_socket(hostname, socket)
+          return if socket.is_a?(TCPServer)
+
           # ["AF_INET", 80, "10.0.0.1", "10.0.0.1"]
           addr_family, *, remote_address = socket.peeraddr
 
