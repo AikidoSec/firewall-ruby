@@ -18,6 +18,20 @@ require "pathname"
 require "debug" if RUBY_VERSION >= "3"
 require "support/capture_stream"
 
+class FakeDetachedAgent
+  extend Forwardable
+
+  def_delegators :@collector, :track_request, :track_route, :track_outbound, :track_scan
+  def initialize(collector)
+    @collector = collector
+  end
+
+  def handle_fork
+  end
+end
+
+Aikido::Zen.instance_variable_set(:@detached_agent, FakeDetachedAgent.new(Aikido::Zen::Collector.new))
+
 # Silence warnings that result from loading HTTPClient.
 ActiveSupport::Testing::Stream.quietly { require "webmock" }
 # For the HTTP adapters shipped with WebMock by default, requiring webmock first
@@ -40,18 +54,6 @@ require_relative "support/sink_attack_helpers"
 # Utility proc that does nothing.
 NOOP = ->(*args, **opts) {}
 
-class FakeDetachedAgent
-  extend Forwardable
-
-  def_delegators :@collector, :track_request, :track_route
-  def initialize(collector)
-    @collector = collector
-  end
-
-  def handle_fork
-  end
-end
-
 class ActiveSupport::TestCase
   self.file_fixture_path = "test/fixtures"
 
@@ -63,7 +65,7 @@ class ActiveSupport::TestCase
 
     collector = Aikido::Zen::Collector.new
     Aikido::Zen.instance_variable_set(:@collector, collector)
-    Aikido::Zen.instance_variable_set(:@detached_agent, FakeDetachedAgent.new(collector))
+    Aikido::Zen.detached_agent.instance_variable_set(:@collector, collector)
     Aikido::Zen.instance_variable_set(:@runtime_settings, nil)
     Aikido::Zen.current_context = nil
 
