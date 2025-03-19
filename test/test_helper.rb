@@ -40,6 +40,18 @@ require_relative "support/sink_attack_helpers"
 # Utility proc that does nothing.
 NOOP = ->(*args, **opts) {}
 
+class FakeDetachedAgent
+  extend Forwardable
+
+  def_delegators :@collector, :track_request
+  def initialize(collector)
+    @collector = collector
+  end
+
+  def handle_fork
+  end
+end
+
 class ActiveSupport::TestCase
   self.file_fixture_path = "test/fixtures"
 
@@ -48,7 +60,10 @@ class ActiveSupport::TestCase
     Aikido::Zen.instance_variable_set(:@info, nil)
     Aikido::Zen.instance_variable_set(:@agent, nil)
     Aikido::Zen.instance_variable_set(:@config, nil)
-    Aikido::Zen.instance_variable_set(:@collector, nil)
+
+    collector = Aikido::Zen::Collector.new
+    Aikido::Zen.instance_variable_set(:@collector, collector)
+    Aikido::Zen.instance_variable_set(:@detached_agent, FakeDetachedAgent.new(collector))
     Aikido::Zen.instance_variable_set(:@runtime_settings, nil)
     Aikido::Zen.current_context = nil
 
