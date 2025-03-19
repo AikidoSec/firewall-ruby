@@ -30,6 +30,10 @@ module Aikido::Zen
       @detached_agent_front.track_outbound(outbound)
     end
 
+    def track_scan(scan)
+      @detached_agent_front.track_scan(scan.sink.name, scan.errors?, scan.duration)
+    end
+
     # Every time a fork occurs (a new child process is created), we need to start
     # a DRb service in a background thread within the child process. This service
     # will manage the connection and handle resource cleanup.
@@ -42,6 +46,15 @@ module Aikido::Zen
   class DetachedAgentFront
     extend Forwardable
 
+    # Request, Sink & Scan-like structs to hold the minimal values to be sent to collector
+    RequestKind = Struct.new(:route, :schema)
+    SinkKind = Struct.new(:name)
+    ScanKind = Struct.new(:sink, :errors, :duration) do
+      def errors?
+        self[:errors]
+      end
+    end
+
     def_delegators :@collector, :middleware_installed!, :track_request
 
     def initialize(config: Aikido::Zen.config, collector: Aikido::Zen.collector)
@@ -49,15 +62,16 @@ module Aikido::Zen
       @collector = collector
     end
 
-    # simple request-like struct to hold the minimal values sent to collector
-    RequestKind = Struct.new(:route, :schema)
-
     def track_route(route, schema)
       @collector.track_route(RequestKind.new(route, Aikido::Zen::Request::Schema.from_json(schema)))
     end
 
     def track_outbound(outbound)
       @collector.track_outbound(outbound)
+    end
+
+    def track_scan(sink_name, has_errors, duration)
+      @collector.track_scan(ScanKind.new(SinkKind.new(sink_name), has_errors, duration))
     end
   end
 

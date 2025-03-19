@@ -99,7 +99,7 @@ module Aikido
     # @raise [Aikido::Zen::UnderAttackError] if the scan detected an Attack
     #   and blocking_mode is enabled.
     def self.track_scan(scan)
-      collector.track_scan(scan)
+      detached_agent.track_scan(scan)
       agent.handle_attack(scan.attack) if scan.attack?
     end
 
