@@ -216,7 +216,7 @@ module Aikido::Zen
 
     def detached_agent_socket_path=(path)
       @detached_agent_socket_path = path
-      @detached_agent_socket_path = "unix:" + @detached_agent_socket_path unless @detached_agent_socket_path.start_with?("unix:")
+      @detached_agent_socket_path = "drbunix:" + @detached_agent_socket_path unless @detached_agent_socket_path.start_with?("unix:")
     end
 
     private
