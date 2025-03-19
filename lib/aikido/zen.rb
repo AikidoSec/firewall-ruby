@@ -48,7 +48,9 @@ module Aikido
     end
 
     def self.detached_agent
-      detached_agent_server
+      if has_forked
+        @detached_agent&.handle_fork
+      end
       @detached_agent ||= DetachedAgent.new
     end
 
@@ -152,17 +154,18 @@ module Aikido
     end
 
     def self.detached_agent_server
-      if has_forked
-        @detached_agent&.handle_fork
-      end
-      @detached_agent_server ||= DetachedAgentServer.new
+      @detached_agent_server ||= DetachedAgentServer.start!
     end
 
     class << self
+      LOCK = Mutex.new
+
       def start!
         @pid = Process.pid
-        agent
-        detached_agent_server.start
+        LOCK.synchronize do
+          agent
+          detached_agent_server
+        end
       end
 
       def has_forked
