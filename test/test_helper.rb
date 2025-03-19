@@ -43,7 +43,7 @@ NOOP = ->(*args, **opts) {}
 class FakeDetachedAgent
   extend Forwardable
 
-  def_delegators :@collector, :track_request
+  def_delegators :@collector, :track_request, :track_route
   def initialize(collector)
     @collector = collector
   end

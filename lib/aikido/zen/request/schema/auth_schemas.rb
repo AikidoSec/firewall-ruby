@@ -18,6 +18,20 @@ module Aikido::Zen
         @schemas.map(&:as_json) unless @schemas.empty?
       end
 
+      def self.from_json(schemas_array)
+        return NONE if !schemas_array || schemas_array.empty?
+
+        AuthSchemas.new(schemas_array.map do |schema|
+          if schema["type"] == "http"
+            Authorization.new(scheme: schema["scheme"])
+          elsif schema["type"] == "apiKey"
+            ApiKey.new(location: schema["location"], name: schema["name"])
+          else
+            raise "Invalid schema type: #{schema["type"]}"
+          end
+        end)
+      end
+
       def ==(other)
         other.is_a?(self.class) && schemas == other.schemas
       end

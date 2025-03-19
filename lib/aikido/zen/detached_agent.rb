@@ -14,12 +14,16 @@ module Aikido::Zen
       @detached_agent_front = DRbObject.new_with_uri(config.detached_agent_socket_path)
     end
 
-    def track_request(request)
+    def track_request
       @detached_agent_front.track_request
     end
 
     def middleware_installed!
       @detached_agent_front.middleware_installed!
+    end
+
+    def track_route(request)
+      @detached_agent_front.track_route(request.route, request.schema.as_json)
     end
 
     # Every time a fork occurs (a new child process is created), we need to start
@@ -39,6 +43,13 @@ module Aikido::Zen
     def initialize(config: Aikido::Zen.config, collector: Aikido::Zen.collector)
       @config = config
       @collector = collector
+    end
+
+    # simple request-like struct to hold the minimal values sent to collector
+    RequestKind = Struct.new(:route, :schema)
+
+    def track_route(route, schema)
+      @collector.track_route(RequestKind.new(route, Aikido::Zen::Request::Schema.from_json(schema)))
     end
   end
 

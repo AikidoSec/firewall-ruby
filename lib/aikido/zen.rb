@@ -76,11 +76,11 @@ module Aikido
     # @param request [Aikido::Zen::Request]
     # @return [void]
     def self.track_request(request)
-      detached_agent.track_request(request)
+      detached_agent.track_request
     end
 
     def self.track_discovered_route(request)
-      collector.track_route(request)
+      detached_agent.track_route(request)
     end
 
     # Tracks a network connection made to an external service.
