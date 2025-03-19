@@ -23,9 +23,9 @@ module Aikido::Zen
 
         AuthSchemas.new(schemas_array.map do |schema|
           if schema[:type] == "http"
-            Authorization.new(scheme: schema[:scheme])
+            Authorization.new(schema[:scheme])
           elsif schema[:type] == "apiKey"
-            ApiKey.new(location: schema[:in], name: schema[:name])
+            ApiKey.new(schema[:in], schema[:name])
           else
             raise "Invalid schema type: #{schema[:type]}"
           end

@@ -12,11 +12,11 @@ class Aikido::Zen::Request::SchemaTest < ActiveSupport::TestCase
   end
 
   def api_key_def(location: "location", name: "name")
-    Aikido::Zen::Request::Schema::AuthSchemas::ApiKey.new(location: location, name: name)
+    Aikido::Zen::Request::Schema::AuthSchemas::ApiKey.new(location, name)
   end
 
   def http_def(scheme: "scheme")
-    Aikido::Zen::Request::Schema::AuthSchemas::Authorization.new(scheme: scheme)
+    Aikido::Zen::Request::Schema::AuthSchemas::Authorization.new(scheme)
   end
 
   def auth_schemas(schemas)
