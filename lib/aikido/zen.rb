@@ -88,7 +88,7 @@ module Aikido
     # @param connection [Aikido::Zen::OutboundConnection]
     # @return [void]
     def self.track_outbound(connection)
-      collector.track_outbound(connection)
+      detached_agent.track_outbound(connection)
     end
 
     # Track statistics about the result of a Sink's scan, and report it as
