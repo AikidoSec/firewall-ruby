@@ -33,6 +33,7 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 20, @config.api_schema_collection_max_properties
     assert_equal ["metadata.google.internal", "metadata.goog"], @config.imds_allowed_hosts
     assert_equal false, @config.disabled
+    assert_equal "drbunix:aikido-detached-agent.socket", @config.detached_agent_socket_path
   end
 
   test "can set AIKIDO_DISABLED to configure if the agent should be turned off" do
