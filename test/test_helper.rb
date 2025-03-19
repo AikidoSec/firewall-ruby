@@ -52,6 +52,17 @@ class ActiveSupport::TestCase
     Aikido::Zen.instance_variable_set(:@runtime_settings, nil)
     Aikido::Zen.current_context = nil
 
+    Aikido::Zen.singleton_class.remove_method(:track_scan)
+    Aikido::Zen.singleton_class.define_method(:track_scan) do |scan|
+      collector.track_scan(scan)
+
+      if scan.attack?
+        attack = scan.attack
+        collector.track_attack(attack)
+        raise attack
+      end
+    end
+
     @_old_sinks_registry = Aikido::Zen::Sinks.registry.dup
     Aikido::Zen::Sinks.registry.clear
 
