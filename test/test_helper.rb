@@ -21,7 +21,7 @@ require "support/capture_stream"
 class FakeDetachedAgent
   extend Forwardable
 
-  def_delegators :@collector, :track_request, :track_route, :track_outbound, :track_scan, :track_user
+  def_delegators :@collector, :track_request, :track_route, :track_outbound, :track_scan, :track_user, :track_attack
   def initialize(collector)
     @collector = collector
   end
