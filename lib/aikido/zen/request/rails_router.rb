@@ -58,27 +58,15 @@ module Aikido::Zen
     end
 
     private def build_route(route, request, prefix: request.script_name)
-      Rails::Route.new(route, prefix: prefix, verb: request.request_method)
-    end
-  end
+      route_wrapper = ActionDispatch::Routing::RouteWrapper.new(route)
 
-  module Rails
-    class Route < Aikido::Zen::Route
-      attr_reader :verb
-
-      def initialize(rails_route, verb: rails_route.verb, prefix: nil)
-        @route = ActionDispatch::Routing::RouteWrapper.new(rails_route)
-        @verb = verb
-        @prefix = prefix
+      path = if prefix.present?
+        File.join(prefix.to_s, route_wrapper.path).chomp("/")
+      else
+        route_wrapper.path
       end
 
-      def path
-        if @prefix.present?
-          File.join(@prefix.to_s, @route.path).chomp("/")
-        else
-          @route.path
-        end
-      end
+      Aikido::Zen::Route.new(verb: request.request_method, path: path)
     end
   end
 end
