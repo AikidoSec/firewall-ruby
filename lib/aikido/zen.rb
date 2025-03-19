@@ -111,7 +111,7 @@ module Aikido
       return if config.disabled?
 
       if (actor = Aikido::Zen::Actor(user))
-        collector.track_user(actor)
+        detached_agent.track_user(actor)
         current_context.request.actor = actor if current_context
       else
         config.logger.warn(format(<<~LOG, obj: user))
