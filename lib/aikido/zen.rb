@@ -158,6 +158,8 @@ module Aikido
     end
 
     class << self
+      # `agent` and `detached_agent` are started on the first method call.
+      # A mutex controls thread execution to prevent multiple attempts.
       LOCK = Mutex.new
 
       def start!
