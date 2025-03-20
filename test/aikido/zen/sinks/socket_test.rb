@@ -14,7 +14,12 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
     address = @stubbed_dns.fetch(name, name)
 
     socket = Minitest::Mock.new(Object.new)
+
     socket.expect :peeraddr, [family, port, address, address]
+
+    socket.expect :is_a?, false, [TCPServer]
+    socket.expect :is_a?, false, [UDPSocket]
+    socket.expect :is_a?, false, [SOCKSSocket] if defined?(SOCKSSocket)
 
     Aikido::Zen::Sinks::Socket::IPSocketExtensions.scan_socket(name, socket)
 
@@ -24,6 +29,39 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
   end
 
   setup { @stubbed_dns = {} }
+
+  test "if is tcpserver should skip the scan" do
+    socket = Minitest::Mock.new(Object.new)
+
+    socket.expect :is_a?, true, [TCPServer]
+    Aikido::Zen::Sinks::Socket::IPSocketExtensions.scan_socket(name, socket)
+
+    assert_mock socket
+  end
+
+  test "if is udpsocket should skip the scan" do
+    socket = Minitest::Mock.new(Object.new)
+
+    socket.expect :is_a?, false, [TCPServer]
+    socket.expect :is_a?, true, [UDPSocket]
+    Aikido::Zen::Sinks::Socket::IPSocketExtensions.scan_socket(name, socket)
+
+    assert_mock socket
+  end
+
+  test "if is sockssocket should skip the scan" do
+    unless defined?(SOCKSSocket)
+      skip "SOCKSSocket is not defined!"
+    end
+    socket = Minitest::Mock.new(Object.new)
+
+    socket.expect :is_a?, false, [TCPServer]
+    socket.expect :is_a?, false, [UDPSocket]
+    socket.expect :is_a?, true, [SOCKSSocket]
+    Aikido::Zen::Sinks::Socket::IPSocketExtensions.scan_socket(name, socket)
+
+    assert_mock socket
+  end
 
   test "scanning does not interfere with sockets normally" do
     @stubbed_dns["example.com"] = "1.2.3.4"
