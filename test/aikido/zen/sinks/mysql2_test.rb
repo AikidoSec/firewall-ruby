@@ -25,6 +25,8 @@ class Aikido::Zen::Sinks::Mysql2Test < ActiveSupport::TestCase
       operation: "query",
       context: Aikido::Zen::Context
 
+    mock.expect :skips_on_nil_context?, true
+
     @sink.stub :scanners, [mock] do
       @db.query("SELECT 1")
     end
