@@ -56,12 +56,14 @@ module Aikido::Zen
         next
       end
 
-      Aikido::Zen.start!
-
       # Make sure this is run at the end of the initialization process, so
       # that any gems required after aikido-zen are detected and patched
       # accordingly.
       Aikido::Zen.load_sinks!
+
+      # It's important we start after loading sinks, so we can report the installed packages
+      Aikido::Zen.start!
+      Aikido::Zen.start!
 
       # Agent's bootstrap process has finished —Controllers are patched to block
       # unwanted requests, sinks are loaded, scanners are running—, so we mark
