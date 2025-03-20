@@ -5,6 +5,10 @@ require_relative "path_traversal/helpers"
 module Aikido::Zen
   module Scanners
     class PathTraversalScanner
+      def self.skips_on_nil_context?
+        true
+      end
+
       # Checks if the user introduced input is trying to access other path using
       # Path Traversal kind of attacks.
       #
@@ -16,8 +20,6 @@ module Aikido::Zen
       # @return [Aikido::Zen::Attacks::PathTraversalAttack, nil] an Attack if any
       # user input is detected to be attempting a Path Traversal Attack, or +nil+ if not.
       def self.call(filepath:, sink:, context:, operation:)
-        return unless context
-
         context.payloads.each do |payload|
           next unless new(filepath, payload.value).attack?
 

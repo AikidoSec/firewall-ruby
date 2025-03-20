@@ -3,6 +3,22 @@
 require "test_helper"
 
 class Aikido::Zen::SinkTest < ActiveSupport::TestCase
+  class FakeScanner
+    def initialize(skip_on_nil_context: false, &block)
+      @block = block
+      @skip_on_nil_context = skip_on_nil_context
+    end
+
+    def call(**data)
+      return @block.call(**data) if data
+      @block.call
+    end
+
+    def skips_on_nil_context?
+      @skip_on_nil_context
+    end
+  end
+
   test "provides access to its name and scanners" do
     sink = Aikido::Zen::Sink.new("test", scanners: [NOOP])
 
@@ -18,10 +34,10 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
 
   test "#scan passes the given params to each scanner, plus sink and context" do
     scan_params = nil
-    scanner = ->(**data) {
+    scanner = FakeScanner.new do |**data|
       scan_params = data
       nil
-    }
+    end
 
     sink = Aikido::Zen::Sink.new("test", scanners: [scanner])
     sink.scan(foo: 1, bar: 2)
@@ -31,10 +47,10 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
 
   test "#scan passes the current context if present as :context" do
     scan_params = nil
-    scanner = ->(**data) {
+    scanner = FakeScanner.new do |**data|
       scan_params = data
       nil
-    }
+    end
 
     Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env({})
 
@@ -61,7 +77,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
     context.expect :protection_disabled?, true
 
     sink = Aikido::Zen::Sink.new("test", reporter: NOOP, scanners: [
-      ->(**data) { raise Exception, "oops" } # StandardError would be caught
+      FakeScanner.new { raise Exception, "oops" } # StandardError would be caught
     ])
 
     assert_nothing_raised do
@@ -77,8 +93,8 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
   test "#scan stops after the first Attack is detected" do
     attack = Aikido::Zen::Attack.new(context: nil, sink: nil, operation: nil)
     sink = Aikido::Zen::Sink.new("test", reporter: NOOP, scanners: [
-      ->(**data) { attack },
-      ->(**data) { raise Exception, "oops" } # StandardError would be caught
+      FakeScanner.new { attack },
+      FakeScanner.new { raise Exception, "oops" } # StandardError would be caught
     ])
 
     assert_nothing_raised do
@@ -95,7 +111,11 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
     reported_scans = []
     reporter = ->(scan) { reported_scans << scan }
 
-    sink = Aikido::Zen::Sink.new("test", scanners: [NOOP], reporter: reporter)
+    sink = Aikido::Zen::Sink.new(
+      "test",
+      scanners: [FakeScanner.new {}],
+      reporter: reporter
+    )
 
     scan = sink.scan(foo: 1, bar: 2)
 
@@ -104,7 +124,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
 
   test "#scan captures errors raised by a scanner" do
     error = RuntimeError.new("oops")
-    scanner = ->(**data) { raise error }
+    scanner = FakeScanner.new { raise error }
     sink = Aikido::Zen::Sink.new("test", scanners: [scanner])
 
     assert_nothing_raised do
@@ -116,7 +136,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
 
   test "#scan logs InternalsErrors besides capturing them" do
     error = Aikido::Zen::InternalsError.new("<query> for SQLi", "loading", "libzen.so")
-    scanner = ->(**) { raise error }
+    scanner = FakeScanner.new { raise error }
     sink = Aikido::Zen::Sink.new("test", scanners: [scanner])
 
     assert_nothing_raised do
@@ -128,7 +148,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
   end
 
   test "#scan tracks how long it takes to run the scanners" do
-    scanner = ->(**data) { sleep 0.001 and nil }
+    scanner = FakeScanner.new { sleep 0.001 and nil }
     sink = Aikido::Zen::Sink.new("test", scanners: [scanner])
 
     scan = sink.scan(foo: 1, bar: 2)
