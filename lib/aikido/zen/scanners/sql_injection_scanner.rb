@@ -6,6 +6,10 @@ require_relative "../internals"
 module Aikido::Zen
   module Scanners
     class SQLInjectionScanner
+      def self.skips_on_nil_context?
+        true
+      end
+
       # Checks if the given SQL query may have dangerous user input injected,
       # and returns an Attack if so, based on the current request.
       #

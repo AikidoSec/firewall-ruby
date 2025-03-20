@@ -26,6 +26,8 @@ class Aikido::Zen::Sinks::PGTest < ActiveSupport::TestCase
       operation: for_operation,
       context: Aikido::Zen::Context
 
+    mock.expect :skips_on_nil_context?, false
+
     @sink.stub :scanners, [mock] do
       yield mock
     end

@@ -5,6 +5,10 @@ module Aikido::Zen
   # any Sink that wraps an HTTP library, and lets us keep track of any hosts to
   # which the app communicates over HTTP.
   module OutboundConnectionMonitor
+    def self.skips_on_nil_context?
+      false
+    end
+
     # This simply reports the connection to the Agent, and always returns +nil+
     # as it's not scanning for any particular attack.
     #

@@ -5,6 +5,10 @@ module Aikido::Zen
     # Inspects the result of DNS lookups, to determine if we're being the target
     # of a stored SSRF targeting IMDS addresses (169.254.169.254).
     class StoredSSRFScanner
+      def self.skips_on_nil_context?
+        false
+      end
+
       def self.call(hostname:, addresses:, operation:, sink:, context:, **opts)
         offending_address = new(hostname, addresses).attack?
         return if offending_address.nil?
