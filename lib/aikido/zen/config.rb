@@ -56,6 +56,8 @@ module Aikido::Zen
     attr_reader :logger
 
     # @return [string] Path of the socket where the detached agent will listen.
+    # By default, is stored under the root application path with file name
+    # `aikido-detached-agent.socket`
     attr_reader :detached_agent_socket_path
 
     # @return [Boolean] is the agent in debugging mode?

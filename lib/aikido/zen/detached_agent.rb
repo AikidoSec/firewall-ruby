@@ -21,13 +21,15 @@ module Aikido::Zen
       @detached_agent_front.middleware_installed!
     end
 
-    # Everytime a fork happens, we have to start a DRb service in a background thread.
-    # It will be in charge of maintaining the connection and clean up resources.
+    # Every time a fork occurs (a new child process is created), we need to start
+    # a DRb service in a background thread within the child process. This service
+    # will manage the connection and handle resource cleanup.
     def handle_fork
       DRb.start_service
     end
   end
 
+  # dRB Front object that will be used to access the collector.
   class DetachedAgentFront
     extend Forwardable
 
@@ -43,6 +45,8 @@ module Aikido::Zen
     def initialize(config: Aikido::Zen.config)
       @detached_agent_front = DetachedAgentFront.new
       @drb_server = DRb.start_service(config.detached_agent_socket_path, @detached_agent_front)
+
+      # We don't want to see drb logs unless in debug mode
       @drb_server.verbose = config.logger.debug?
     end
 
