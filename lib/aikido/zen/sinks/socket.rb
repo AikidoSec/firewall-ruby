@@ -15,11 +15,17 @@ module Aikido::Zen
 
       module IPSocketExtensions
         def self.scan_socket(hostname, socket)
-          # This scanner is checking remote connections. It tries to
-          # gather data from the remote connection using peeraddr.
-          # In case it's a TCPServer, it's not connecting to any remote
-          # address, so the scan is not needed.
-          return if socket.is_a?(TCPServer)
+          # We're patching IPSocket.open(..) method.
+          # The IPSocket class hierarchy is:
+          #             IPSocket
+          #            /        \
+          #       TCPSocket    UDPSocket
+          #       /       \
+          # TCPServer     SOCKSSocket
+          #
+          # Because we want to scan only HTTP requests, we skip in case the
+          # socket is not *only* an instance of TCPSocket.
+          return if socket.is_a?(TCPServer) || socket.is_a?(UDPSocket) || socket.is_a?(SOCKSSocket)
 
           # ["AF_INET", 80, "10.0.0.1", "10.0.0.1"]
           addr_family, *, remote_address = socket.peeraddr
