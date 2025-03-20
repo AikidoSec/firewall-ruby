@@ -61,6 +61,7 @@ module Aikido::Zen
       # accordingly.
       Aikido::Zen.load_sinks!
 
+      # It's important we start after loading sinks, so we can report the installed packages
       Aikido::Zen.start!
 
       # Agent's bootstrap process has finished —Controllers are patched to block
