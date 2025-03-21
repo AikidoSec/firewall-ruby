@@ -24,8 +24,9 @@ module Aikido::Zen
           # TCPServer     SOCKSSocket
           #
           # Because we want to scan only HTTP requests, we skip in case the
-          # socket is not *only* an instance of TCPSocket.
-          return if socket.is_a?(TCPServer) || socket.is_a?(UDPSocket) || (defined?(SOCKSSocket) && socket.is_a?(SOCKSSocket))
+          # socket is not *exactly* an instance of TCPSocket — it's any
+          # of it subclasses
+          return unless socket.instance_of?(TCPSocket)
 
           # ["AF_INET", 80, "10.0.0.1", "10.0.0.1"]
           addr_family, *, remote_address = socket.peeraddr
