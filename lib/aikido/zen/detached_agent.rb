@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "drb/drb"
+require "drb/unix"
 
 module Aikido::Zen
   # It's possible to use `extend Forwardable` here for one-line forward calls to the
