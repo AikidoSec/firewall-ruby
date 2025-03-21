@@ -17,9 +17,7 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
 
     socket.expect :peeraddr, [family, port, address, address]
 
-    socket.expect :is_a?, false, [TCPServer]
-    socket.expect :is_a?, false, [UDPSocket]
-    socket.expect :is_a?, false, [SOCKSSocket] if defined?(SOCKSSocket)
+    socket.expect :instance_of?, true, [TCPSocket]
 
     Aikido::Zen::Sinks::Socket::IPSocketExtensions.scan_socket(name, socket)
 
@@ -30,34 +28,10 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
 
   setup { @stubbed_dns = {} }
 
-  test "if is tcpserver should skip the scan" do
+  test "if socket is not exactly a TCPSocket it should skip the scan" do
     socket = Minitest::Mock.new(Object.new)
 
-    socket.expect :is_a?, true, [TCPServer]
-    Aikido::Zen::Sinks::Socket::IPSocketExtensions.scan_socket(name, socket)
-
-    assert_mock socket
-  end
-
-  test "if is udpsocket should skip the scan" do
-    socket = Minitest::Mock.new(Object.new)
-
-    socket.expect :is_a?, false, [TCPServer]
-    socket.expect :is_a?, true, [UDPSocket]
-    Aikido::Zen::Sinks::Socket::IPSocketExtensions.scan_socket(name, socket)
-
-    assert_mock socket
-  end
-
-  test "if is sockssocket should skip the scan" do
-    unless defined?(SOCKSSocket)
-      skip "SOCKSSocket is not defined!"
-    end
-    socket = Minitest::Mock.new(Object.new)
-
-    socket.expect :is_a?, false, [TCPServer]
-    socket.expect :is_a?, false, [UDPSocket]
-    socket.expect :is_a?, true, [SOCKSSocket]
+    socket.expect :instance_of?, false, [TCPSocket]
     Aikido::Zen::Sinks::Socket::IPSocketExtensions.scan_socket(name, socket)
 
     assert_mock socket
