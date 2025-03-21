@@ -16,30 +16,44 @@ module Aikido::Zen
 
     def track_request
       @detached_agent_front.track_request
+    rescue => e
+      @config.logger.error(e.message)
     end
 
     def middleware_installed!
       @detached_agent_front.middleware_installed!
+    rescue => e
+      @config.logger.error(e.message)
     end
 
     def track_route(request)
       @detached_agent_front.track_route(request.route, request.schema.as_json)
+    rescue => e
+      @config.logger.error(e.message)
     end
 
     def track_outbound(outbound)
       @detached_agent_front.track_outbound(outbound)
+    rescue => e
+      @config.logger.error(e.message)
     end
 
     def track_scan(scan)
       @detached_agent_front.track_scan(scan.sink.name, scan.errors?, scan.duration)
+    rescue => e
+      @config.logger.error(e.message)
     end
 
     def track_user(user)
       @detached_agent_front.track_user(user.id, user.name, user.first_seen_at, user.ip)
+    rescue => e
+      @config.logger.error(e.message)
     end
 
     def track_attack(attack)
       @detached_agent_front.track_attack(attack.sink.name, attack.blocked?)
+    rescue => e
+      @config.logger.error(e.message)
     end
 
     # Every time a fork occurs (a new child process is created), we need to start
