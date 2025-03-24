@@ -37,6 +37,7 @@ module Aikido::Zen
 
         private
 
+        # Source: https://github.com/AikidoSec/firewall-node/blob/main/library/vulnerabilities/ssrf/isPrivateIP.ts
         PRIVATE_IPV4_RANGES = [
           IPAddr.new("0.0.0.0/8"),         # "This" network (RFC 1122)
           IPAddr.new("10.0.0.0/8"),        # Private-Use Networks (RFC 1918)
