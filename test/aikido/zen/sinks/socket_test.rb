@@ -14,7 +14,10 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
     address = @stubbed_dns.fetch(name, name)
 
     socket = Minitest::Mock.new(Object.new)
+
     socket.expect :peeraddr, [family, port, address, address]
+
+    socket.expect :instance_of?, true, [TCPSocket]
 
     Aikido::Zen::Sinks::Socket::IPSocketExtensions.scan_socket(name, socket)
 
@@ -24,6 +27,15 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
   end
 
   setup { @stubbed_dns = {} }
+
+  test "if socket is not exactly a TCPSocket it should skip the scan" do
+    socket = Minitest::Mock.new(Object.new)
+
+    socket.expect :instance_of?, false, [TCPSocket]
+    Aikido::Zen::Sinks::Socket::IPSocketExtensions.scan_socket(name, socket)
+
+    assert_mock socket
+  end
 
   test "scanning does not interfere with sockets normally" do
     @stubbed_dns["example.com"] = "1.2.3.4"

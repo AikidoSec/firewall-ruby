@@ -95,5 +95,13 @@ module Aikido
         MSG
       end
     end
+
+    class DetachedAgentError < ZenError
+      extend Forwardable
+
+      def initialize(msg)
+        super
+      end
+    end
   end
 end

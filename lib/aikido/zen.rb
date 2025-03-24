@@ -10,6 +10,7 @@ require_relative "zen/worker"
 require_relative "zen/agent"
 require_relative "zen/api_client"
 require_relative "zen/context"
+require_relative "zen/detached_agent"
 require_relative "zen/middleware/check_allowed_addresses"
 require_relative "zen/middleware/middleware"
 require_relative "zen/middleware/request_tracker"
@@ -46,6 +47,13 @@ module Aikido
       @collector ||= Collector.new
     end
 
+    def self.detached_agent
+      if has_forked
+        @detached_agent&.handle_fork
+      end
+      @detached_agent ||= DetachedAgent.new
+    end
+
     # Gets the current context object that holds all information about the
     # current request.
     #
@@ -68,7 +76,7 @@ module Aikido
     # @param request [Aikido::Zen::Request]
     # @return [void]
     def self.track_request(request)
-      collector.track_request(request)
+      detached_agent.track_request(request)
     end
 
     def self.track_discovered_route(request)
@@ -118,7 +126,7 @@ module Aikido
     # Marks that the Zen middleware was installed properly
     # @return void
     def self.middleware_installed!
-      collector.middleware_installed!
+      detached_agent.middleware_installed!
     end
 
     # Load all sinks matching libraries loaded into memory. This method should
@@ -136,6 +144,7 @@ module Aikido
     # Stop any background threads.
     def self.stop!
       @agent&.stop!
+      @detached_agent_server&.stop!
     end
 
     # @!visibility private
@@ -144,8 +153,28 @@ module Aikido
       @agent ||= Agent.start
     end
 
+    def self.detached_agent_server
+      @detached_agent_server ||= DetachedAgentServer.start!
+    end
+
     class << self
-      alias_method :start!, :agent
+      # `agent` and `detached_agent` are started on the first method call.
+      # A mutex controls thread execution to prevent multiple attempts.
+      LOCK = Mutex.new
+
+      def start!
+        @pid = Process.pid
+        LOCK.synchronize do
+          agent
+          detached_agent_server
+        end
+      end
+
+      def has_forked
+        pid_changed = Process.pid != @pid
+        @pid = Process.pid
+        pid_changed
+      end
     end
   end
 end
