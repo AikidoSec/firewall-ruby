@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Aikido::Zen::DetachedAgentServerTest < ActiveSupport::TestCase
+class Aikido::Zen::DetachedAgent::ServerTest < ActiveSupport::TestCase
   FakeDrbServer = Struct.new(:stopped, :attempts) do
     def initialize(max_attempts)
       super
@@ -28,7 +28,7 @@ class Aikido::Zen::DetachedAgentServerTest < ActiveSupport::TestCase
     @fake_drb_server = FakeDrbServer.new(4)
 
     DRb.stub(:start_service, @fake_drb_server) do
-      Aikido::Zen::DetachedAgentServer.start!
+      Aikido::Zen::DetachedAgent::Server.start!
     end
     assert_equal 4, @fake_drb_server.attempts
   end
@@ -37,7 +37,7 @@ class Aikido::Zen::DetachedAgentServerTest < ActiveSupport::TestCase
     @fake_drb_server = FakeDrbServer.new(11)
     DRb.stub(:start_service, @fake_drb_server) do
       assert_raises Aikido::Zen::DetachedAgentError do
-        Aikido::Zen::DetachedAgentServer.start!
+        Aikido::Zen::DetachedAgent::Server.start!
       end
     end
   end
@@ -45,7 +45,7 @@ class Aikido::Zen::DetachedAgentServerTest < ActiveSupport::TestCase
   test "Server is stopped " do
     @fake_drb_server = FakeDrbServer.new(2)
     DRb.stub(:start_service, @fake_drb_server) do
-      server = Aikido::Zen::DetachedAgentServer.start!
+      server = Aikido::Zen::DetachedAgent::Server.start!
       server.stop!
     end
     assert @fake_drb_server.stopped
