@@ -84,11 +84,16 @@ module Aikido::Zen
 
       scan = Scan.new(sink: self, context: context)
 
+      scans_performed = 0
       scan.perform do
         result = nil
 
         scanners.each do |scanner|
+          next if scanner.skips_on_nil_context? && context.nil?
+
           result = scanner.call(sink: self, context: context, **scan_params)
+          scans_performed += 1
+
           break result if result
         rescue Aikido::Zen::InternalsError => error
           Aikido::Zen.config.logger.warn(error.message)
@@ -100,7 +105,7 @@ module Aikido::Zen
         result
       end
 
-      @reporter.call(scan)
+      @reporter.call(scan) if scans_performed > 0
 
       scan
     end

@@ -6,6 +6,10 @@ require_relative "../internals"
 module Aikido::Zen
   module Scanners
     class SQLInjectionScanner
+      def self.skips_on_nil_context?
+        true
+      end
+
       # Checks if the given SQL query may have dangerous user input injected,
       # and returns an Attack if so, based on the current request.
       #
@@ -22,8 +26,6 @@ module Aikido::Zen
       # @raise [Aikido::Zen::InternalsError] if an error occurs when loading or
       #   calling zenlib. See Sink#scan.
       def self.call(query:, dialect:, sink:, context:, operation:)
-        return if context.nil?
-
         dialect = DIALECTS.fetch(dialect) do
           Aikido::Zen.config.logger.warn "Unknown SQL dialect #{dialect.inspect}"
           DIALECTS[:common]
