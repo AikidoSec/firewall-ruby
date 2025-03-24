@@ -5,6 +5,8 @@ module Aikido::Zen
     # Inspects the result of DNS lookups, to determine if we're being the target
     # of a stored SSRF targeting IMDS addresses (169.254.169.254).
     class StoredSSRFScanner
+      # Stored-SSRF can occur without external input, so we do not require a
+      # context to determine if an attack is happening.
       def self.skips_on_nil_context?
         false
       end
