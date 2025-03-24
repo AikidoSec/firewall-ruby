@@ -6,6 +6,8 @@ require_relative "ssrf/dns_lookups"
 module Aikido::Zen
   module Scanners
     class SSRFScanner
+      # SSRF attacks can be triggered through external inputs, so it is essential
+      # to have a valid context to safeguard against these attacks.
       def self.skips_on_nil_context?
         true
       end
