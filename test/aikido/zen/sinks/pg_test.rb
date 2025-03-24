@@ -9,7 +9,7 @@ class Aikido::Zen::Sinks::PGTest < ActiveSupport::TestCase
   setup do
     @db = PG.connect(
       host: ENV.fetch("POSTGRES_HOST", "127.0.0.1"),
-      user: ENV.fetch("POSTGRES_USERNAME", ENV["USER"]),
+      user: ENV.fetch("POSTGRES_USERNAME", "postgres"),
       password: ENV.fetch("POSTGRES_PASSWORD", "password"),
       dbname: ENV.fetch("POSTGRES_DATABASE", "postgres")
     )
