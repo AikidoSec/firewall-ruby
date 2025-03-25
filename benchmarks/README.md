@@ -1,27 +1,23 @@
 # Benchmarking Zen for Ruby
 
-This directory contains the benchmarking scripts that we use to ensure adding
-Zen to your application does not impact performance significantly.
 
-We use [Grafana K6](https://k6.io) for these. For each sample application we
-include in this repo under [sample_apps](../sample_apps), you should find
-a script here that runs certain benchmarks against that app.
+We use [WRK](https://github.com/wg/wrk) & [Grafana K6](https://k6.io) for these.
 
-To run all the benchmarks, run the following from the root of the project:
+WRK benchmarks are only requesting a URL (`/benchmark`). In case you want to add more 
+of those test, you have to code them in the file `tasklib/bench.rake`.
 
-```
-$ bundle exec rake bench
-```
+K6 tests are defined in `benchmarks` folder. They are a javascript file, with calls 
+to different endpoints.
 
 In order to run a benchmarks against a single application, run the following
 from the root of the project:
 
 ```
-$ bundle exec rake bench:{app}:run
+$ bundle exec rake bench:{app}:(k6|wrk)_run
 ```
 
-For example, for the `rails7.1_sql_injection` application:
+For example, for the WRK of `rails7.1_benchmark` application:
 
 ```
-$ bundle exec rake bench:rails7.1_sql_injection:run
+$ bundle exec rake bench:rails7.1_benchmark:wrk_run
 ```
