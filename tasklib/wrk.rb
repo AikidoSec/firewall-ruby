@@ -75,10 +75,10 @@ def run_benchmark(route_no_zen:, route_zen:, description:, percentage_limit:, ms
     delay_percentage = ((result_zen_disabled[0] - result_zen_enabled[0]) / result_zen_disabled[0] * 100).round
     puts "-> #{delay_percentage}% decrease in throughput after running load test on #{description} \n"
 
-    if delta_in_ms > ms_limit
+    if delta_in_ms >= ms_limit
       exit(1)
     end
-    if delay_percentage > percentage_limit
+    if delay_percentage >= percentage_limit
       exit(1)
     end
   end

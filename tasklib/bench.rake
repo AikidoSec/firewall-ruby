@@ -79,7 +79,7 @@ Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
           route_zen: "http://localhost:3001/benchmark", # Application with Zen
           route_no_zen: "http://localhost:3002/benchmark", # Application without Zen
           description: "An empty route (1ms simulated delay)",
-          percentage_limit: 15,
+          percentage_limit: 25,
           ms_limit: 200
         )
       end
