@@ -2,8 +2,11 @@
 
 require "socket"
 require "timeout"
+require_relative "wrk"
 
 SERVER_PIDS = {}
+PORT_PROTECTED = 3001
+PORT_UNPROTECTED = 3002
 
 def stop_servers
   SERVER_PIDS.each { |_, pid| Process.kill("TERM", pid) }
@@ -49,8 +52,22 @@ end
 Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
   namespace :bench do
     namespace dir.basename.to_s do
-      desc "Run benchmarks for the #{dir.basename} sample app"
-      task run: [:boot_protected_app, :boot_unprotected_app] do
+      desc "Run WRK benchmarks for the #{dir.basename} sample app"
+      task wrk_run: [:boot_protected_app, :boot_unprotected_app] do
+        wait_for_servers
+        run_benchmark(
+          route_zen: "http://localhost:#{PORT_PROTECTED}/benchmark", # Application with Zen
+          route_no_zen: "http://localhost:#{PORT_UNPROTECTED}/benchmark", # Application without Zen
+          description: "An empty route (1ms simulated delay)",
+          throughput_decrease_limit_perc: 25,
+          latency_increase_limit_ms: 200
+        )
+      ensure
+        stop_servers
+      end
+
+      desc "Run K6 benchmarks for the #{dir.basename} sample app"
+      task k6_run: [:boot_protected_app, :boot_unprotected_app] do
         wait_for_servers
         Dir.chdir("benchmarks") { sh "k6 run #{dir.basename}.js" }
       ensure
@@ -58,14 +75,12 @@ Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
       end
 
       task :boot_protected_app do
-        boot_server(dir, port: 3001)
+        boot_server(dir, port: PORT_PROTECTED)
       end
 
       task :boot_unprotected_app do
-        boot_server(dir, port: 3002, env: {"AIKIDO_DISABLED" => "true"})
+        boot_server(dir, port: PORT_UNPROTECTED, env: {"AIKIDO_DISABLED" => "true"})
       end
     end
-
-    task default: "#{dir.basename}:run"
   end
 end
