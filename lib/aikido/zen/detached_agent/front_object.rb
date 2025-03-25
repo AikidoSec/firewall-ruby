@@ -39,7 +39,7 @@ module Aikido::Zen::DetachedAgent
     end
 
     def track_user(id, name, first_seen_at, ip)
-      @collector.track_user(Actor.new(id: id, name: name, seen_at: first_seen_at, ip: ip))
+      @collector.track_user(Aikido::Zen::Actor.new(id: id, name: name, seen_at: first_seen_at, ip: ip))
     end
 
     def track_attack(sink_name, is_blocked)
