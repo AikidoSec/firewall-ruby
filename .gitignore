@@ -8,7 +8,6 @@
 /tmp/
 /Gemfile*
 /sample_apps/*/Gemfile*
-*__pycache__*
 
 # Precompiled libzen_internals
 /lib/aikido/zen/libzen*
