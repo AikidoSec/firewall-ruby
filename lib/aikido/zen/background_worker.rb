@@ -10,7 +10,7 @@ module Aikido::Zen
 
     # starts the background thread, blocking the thread until a new messages arrives
     # or the queue is stopped.
-    def start!
+    def start
       @thread = Thread.new do
         while running? || actions?
           @block.call(wait_for_action)
@@ -23,32 +23,33 @@ module Aikido::Zen
       start
     end
 
+    # Drain the queue to do not lose any messages
     def stop
-      queue.close # stop accepting messages, hence draining the queue.
-      @thread.join
+      @queue.close # stop accepting messages
+      @thread.join # wait for the queue to be drained
+      @queue = Queue.new # re-open the queue
     end
 
     def enqueue(scan)
-      queue.push(scan)
+      @queue.push(scan)
     end
 
     private
 
-    attr_reader :queue, :threads
     def actions?
-      !queue.empty?
+      !@queue.empty?
     end
 
     def running?
-      !queue.closed?
+      !@queue.closed?
     end
 
     def dequeue_action
-      queue.pop(true)
+      @queue.pop(true)
     end
 
     def wait_for_action
-      queue.pop(false)
+      @queue.pop(false)
     end
   end
 end
