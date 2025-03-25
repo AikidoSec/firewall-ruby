@@ -49,7 +49,7 @@ rescue Timeout::Error
   raise "Could not reach ports: #{ports.join(", ")}"
 end
 
-Pathname.glob("sample_apps/*_benchmark").select(&:directory?).each do |dir|
+Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
   namespace :bench do
     namespace dir.basename.to_s do
       desc "Run benchmarks for the #{dir.basename} sample app"
