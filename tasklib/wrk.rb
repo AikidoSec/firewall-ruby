@@ -32,7 +32,7 @@ def extract_requests_and_latency_tuple(out, err, status)
       latency *= 1000
     end
 
-    [requests_sec, latency]
+    {requests_sec: requests_sec, latency: latency}
   else
     puts "Error occurred running benchmark command:"
     puts err.strip
@@ -40,24 +40,24 @@ def extract_requests_and_latency_tuple(out, err, status)
   end
 end
 
-def run_benchmark(route_no_zen:, route_zen:, description:, percentage_limit:, ms_limit:)
+def run_benchmark(route_no_zen:, route_zen:, description:, throughput_decrease_limit_perc:, latency_increase_limit_ms:)
   # Cold start
   cold_start(route_no_zen)
   cold_start(route_zen)
 
   out, err, status = Open3.capture3(generate_wrk_command_for_url(route_zen))
   puts <<~MSG
+    WRK OUTPUT
     ================
-      WRK OUTPUT FIREWALL ENABLED:
+      FIREWALL ENABLED:
         #{out}
-    ================
+    ----------------
   MSG
   result_zen_enabled = extract_requests_and_latency_tuple(out, err, status)
 
   out, err, status = Open3.capture3(generate_wrk_command_for_url(route_no_zen))
   puts <<~MSG
-    ================
-      WRK OUTPUT FIREWALL DISABLED:
+      FIREWALL DISABLED:
         #{out}
     ================
   MSG
@@ -66,19 +66,19 @@ def run_benchmark(route_no_zen:, route_zen:, description:, percentage_limit:, ms
   # Check if the command was successful
   if result_zen_enabled && result_zen_disabled
     # Print the output, which should be the Requests/sec value
-    puts "[ZEN ENABLED ] Requests/sec: #{result_zen_enabled[0]} | Latency in ms: #{result_zen_enabled[1]}"
-    puts "[ZEN DISABLED] Requests/sec: #{result_zen_disabled[0]} | Latency in ms: #{result_zen_disabled[1]}"
+    puts "[ZEN ENABLED ] Requests/sec: #{result_zen_enabled[:requests_sec]} | Latency in ms: #{result_zen_enabled[:latency]}"
+    puts "[ZEN DISABLED] Requests/sec: #{result_zen_disabled[:requests_sec]} | Latency in ms: #{result_zen_disabled[:latency]}"
 
-    delta_in_ms = (result_zen_enabled[1] - result_zen_disabled[1]).round(2)
-    puts "-> Delta in ms: #{delta_in_ms}ms after running load test on #{description}"
+    latency_increase_ms = (result_zen_enabled[:latency] - result_zen_disabled[:latency]).round(2)
+    puts "-> Delta in ms: #{latency_increase_ms}ms after running load test on #{description}"
 
-    delay_percentage = ((result_zen_disabled[0] - result_zen_enabled[0]) / result_zen_disabled[0] * 100).round
-    puts "-> #{delay_percentage}% decrease in throughput after running load test on #{description} \n"
+    throughput_decrease_perc = ((result_zen_disabled[:requests_sec] - result_zen_enabled[:requests_sec]) / result_zen_disabled[:requests_sec] * 100).round
+    puts "-> #{throughput_decrease_perc}% decrease in throughput after running load test on #{description}\n"
 
-    if delta_in_ms >= ms_limit
+    if latency_increase_ms >= latency_increase_limit_ms
       exit(1)
     end
-    if delay_percentage >= percentage_limit
+    if throughput_decrease_perc >= throughput_decrease_limit_perc
       exit(1)
     end
   end

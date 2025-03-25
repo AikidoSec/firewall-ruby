@@ -49,7 +49,7 @@ rescue Timeout::Error
   raise "Could not reach ports: #{ports.join(", ")}"
 end
 
-Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
+Pathname.glob("sample_apps/*_benchmark").select(&:directory?).each do |dir|
   namespace :bench do
     namespace dir.basename.to_s do
       desc "Run benchmarks for the #{dir.basename} sample app"
@@ -59,8 +59,8 @@ Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
           route_zen: "http://localhost:#{PORT_PROTECTED}/benchmark", # Application with Zen
           route_no_zen: "http://localhost:#{PORT_UNPROTECTED}/benchmark", # Application without Zen
           description: "An empty route (1ms simulated delay)",
-          percentage_limit: 15,
-          ms_limit: 200
+          throughput_decrease_limit_perc: 25,
+          latency_increase_limit_ms: 200
         )
       ensure
         stop_servers
@@ -72,16 +72,6 @@ Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
 
       task :boot_unprotected_app do
         boot_server(dir, port: PORT_UNPROTECTED, env: {"AIKIDO_DISABLED" => "true"})
-      end
-
-      task :run_local do
-        run_benchmark(
-          route_zen: "http://localhost:3001/benchmark", # Application with Zen
-          route_no_zen: "http://localhost:3002/benchmark", # Application without Zen
-          description: "An empty route (1ms simulated delay)",
-          percentage_limit: 25,
-          ms_limit: 200
-        )
       end
     end
 
