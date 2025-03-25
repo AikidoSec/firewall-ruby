@@ -20,8 +20,8 @@ def boot_server(dir, port:, env: {})
   Dir.chdir(dir) do
     SERVER_PIDS[port] = Process.spawn(
       env,
-      "rails", "server", "--pid", "#{Dir.pwd}/tmp/pids/server.#{port}.pid", "-e", "production"
-      # out: "/dev/null"
+      "rails", "server", "--pid", "#{Dir.pwd}/tmp/pids/server.#{port}.pid", "-e", "production",
+      out: "/dev/null"
     )
   rescue
     SERVER_PIDS.delete(port)
