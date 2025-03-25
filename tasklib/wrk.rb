@@ -3,7 +3,7 @@ require "time"
 
 def generate_wrk_command_for_url(url)
   # Define the command with wrk included
-  "wrk --threads 5 --connections 200 --duration 20s #{url}"
+  "wrk --threads 5 --connections 200 --duration 15s --timeout 5s #{url}"
 end
 
 def cold_start(url)
