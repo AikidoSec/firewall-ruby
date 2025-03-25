@@ -20,6 +20,7 @@ module Aikido::Zen
 
     def restart
       stop
+      @queue = Queue.new # re-open the queue
       start
     end
 
@@ -27,7 +28,6 @@ module Aikido::Zen
     def stop
       @queue.close # stop accepting messages
       @thread.join # wait for the queue to be drained
-      @queue = Queue.new # re-open the queue
     end
 
     def enqueue(scan)
@@ -42,10 +42,6 @@ module Aikido::Zen
 
     def running?
       !@queue.closed?
-    end
-
-    def dequeue_action
-      @queue.pop(true)
     end
 
     def wait_for_action
