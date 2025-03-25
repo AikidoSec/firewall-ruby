@@ -46,21 +46,33 @@ def run_benchmark(route_no_zen:, route_zen:, description:, percentage_limit:, ms
   cold_start(route_zen)
 
   out, err, status = Open3.capture3(generate_wrk_command_for_url(route_zen))
-  result_nofw = extract_requests_and_latency_tuple(out, err, status)
+  puts <<~MSG.strip_heredoc
+    ================
+      WRK OUTPUT FIREWALL ENABLED:
+        #{out}
+    ================
+  MSG
+  result_zen_enabled = extract_requests_and_latency_tuple(out, err, status)
 
   out, err, status = Open3.capture3(generate_wrk_command_for_url(route_no_zen))
-  result_fw = extract_requests_and_latency_tuple(out, err, status)
+  puts <<~MSG.strip_heredoc
+    ================
+      WRK OUTPUT FIREWALL DISABLED:
+        #{out}
+    ================
+  MSG
+  result_zen_disabled = extract_requests_and_latency_tuple(out, err, status)
 
   # Check if the command was successful
-  if result_nofw && result_fw
+  if result_zen_enabled && result_zen_disabled
     # Print the output, which should be the Requests/sec value
-    puts "[FIREWALL-ON] Requests/sec: #{result_fw[0]} | Latency in ms: #{result_fw[1]}"
-    puts "[FIREWALL-OFF] Requests/sec: #{result_nofw[0]} | Latency in ms: #{result_nofw[1]}"
+    puts "[ZEN ENABLED ] Requests/sec: #{result_zen_enabled[0]} | Latency in ms: #{result_zen_enabled[1]}"
+    puts "[ZEN DISABLED] Requests/sec: #{result_zen_disabled[0]} | Latency in ms: #{result_zen_disabled[1]}"
 
-    delta_in_ms = (result_fw[1] - result_nofw[1]).round(2)
+    delta_in_ms = (result_zen_enabled[1] - result_zen_disabled[1]).round(2)
     puts "-> Delta in ms: #{delta_in_ms}ms after running load test on #{description}"
 
-    delay_percentage = ((result_nofw[0] - result_fw[0]) / result_nofw[0] * 100).round
+    delay_percentage = ((result_zen_disabled[0] - result_zen_enabled[0]) / result_zen_disabled[0] * 100).round
     puts "-> #{delay_percentage}% decrease in throughput after running load test on #{description} \n"
 
     if delta_in_ms > ms_limit
