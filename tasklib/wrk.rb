@@ -46,7 +46,7 @@ def run_benchmark(route_no_zen:, route_zen:, description:, percentage_limit:, ms
   cold_start(route_zen)
 
   out, err, status = Open3.capture3(generate_wrk_command_for_url(route_zen))
-  puts <<~MSG.strip_heredoc
+  puts <<~MSG
     ================
       WRK OUTPUT FIREWALL ENABLED:
         #{out}
@@ -55,7 +55,7 @@ def run_benchmark(route_no_zen:, route_zen:, description:, percentage_limit:, ms
   result_zen_enabled = extract_requests_and_latency_tuple(out, err, status)
 
   out, err, status = Open3.capture3(generate_wrk_command_for_url(route_no_zen))
-  puts <<~MSG.strip_heredoc
+  puts <<~MSG
     ================
       WRK OUTPUT FIREWALL DISABLED:
         #{out}
