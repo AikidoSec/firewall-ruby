@@ -14,15 +14,14 @@ def stop_servers
 end
 
 def boot_server(dir, port:, env: {})
-  env["WEB_CONCURRENCY"] = 2
   env["PORT"] = port.to_s
   env["SECRET_KEY_BASE"] = rand(36**64).to_s(36)
 
   Dir.chdir(dir) do
     SERVER_PIDS[port] = Process.spawn(
       env,
-      "rails", "server", "--pid", "#{Dir.pwd}/tmp/pids/server.#{port}.pid", "-e", "production",
-      out: "/dev/null"
+      "rails", "server", "--pid", "#{Dir.pwd}/tmp/pids/server.#{port}.pid", "-e", "production"
+      # out: "/dev/null"
     )
   rescue
     SERVER_PIDS.delete(port)
