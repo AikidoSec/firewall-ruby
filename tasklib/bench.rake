@@ -52,8 +52,8 @@ end
 Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
   namespace :bench do
     namespace dir.basename.to_s do
-      desc "Run benchmarks for the #{dir.basename} sample app"
-      task run: [:boot_protected_app, :boot_unprotected_app] do
+      desc "Run WRK benchmarks for the #{dir.basename} sample app"
+      task wrk_run: [:boot_protected_app, :boot_unprotected_app] do
         wait_for_servers
         run_benchmark(
           route_zen: "http://localhost:#{PORT_PROTECTED}/benchmark", # Application with Zen
@@ -66,6 +66,14 @@ Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
         stop_servers
       end
 
+      desc "Run K6 benchmarks for the #{dir.basename} sample app"
+      task k6_run: [:boot_protected_app, :boot_unprotected_app] do
+        wait_for_servers
+        Dir.chdir("benchmarks") { sh "k6 run #{dir.basename}.js" }
+      ensure
+        stop_servers
+      end
+
       task :boot_protected_app do
         boot_server(dir, port: PORT_PROTECTED)
       end
@@ -74,7 +82,5 @@ Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
         boot_server(dir, port: PORT_UNPROTECTED, env: {"AIKIDO_DISABLED" => "true"})
       end
     end
-
-    task default: "#{dir.basename}:run"
   end
 end
