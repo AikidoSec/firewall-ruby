@@ -7,14 +7,11 @@
 
 # Zen, in-app firewall for Ruby | by Aikido
 
-Zen, your in-app firewall for peace of mind—at runtime.
+Zen, your in-app firewall for peace of mind– at runtime.
 
-Zen by Aikido is an embedded Web Application Firewall that autonomously protects
-Ruby on Rails apps against common and critical attacks.
+Zen is an embedded Web Application Firewall that autonomously protects your apps against attacks and provides advanced access controls features.
 
-It protects your Rails apps by preventing user input containing dangerous
-strings, preventing SQL injection and SSRF attacks. It runs embedded on your
-Rails application, for simple installation and zero maintenance.
+Zen protects your Ruby apps by blocking malicious user input that could lead to security vulnerabilities. It guards against SQL injections, command injections, path traversal attacks, and more. Running directly on your Ruby app's server, it offers seamless installation and low maintenance.
 
 * 🛡️ [SQL injection attacks](https://www.aikido.dev/blog/the-state-of-sql-injections)
 * 🛡️ [Server-side request forgery (SSRF)](https://github.com/AikidoSec/firewall-node/blob/main/docs/ssrf.md)
