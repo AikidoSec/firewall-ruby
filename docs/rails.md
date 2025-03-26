@@ -1,10 +1,19 @@
 # Setting up Zen on a Ruby on Rails application
 
-To install Zen, add the gem:
+## Installation
+
+1. Add the Aikido Zen gem:
 
 ```
 bundle add aikido-zen
 ```
+
+2. Set your Aikido token as an environment variable:
+```sh
+AIKIDO_TOKEN="AIK_RUNTIME_YOUR_TOKEN_HERE"
+```
+
+You can get your token from the [Aikido Security Dashboard](https://help.aikido.dev/doc/creating-an-aikido-zen-firewall-token/doc6vRJNzC4u).
 
 That's it! Zen will start to run inside your app when it starts getting
 requests.
