@@ -155,8 +155,8 @@ jobs:
       BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app }}/Gemfile
       DATABASE_URL: "sqlite3:storage/test.sqlite3"
       BENCHMARK_NUMBER_OF_THREADS: 12
-      BENCHMARK_WRK_CONNECTIONS: 200
-      WEB_CONCURRENCY: 2
+      BENCHMARK_WRK_CONNECTIONS: 400
+      WEB_CONCURRENCY: 3
 
     steps:
       - uses: actions/checkout@v4
