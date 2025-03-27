@@ -212,7 +212,13 @@ class Aikido::Zen::Scanners::SSRF::PrivateIPCheckerTest < ActiveSupport::TestCas
     assert_private "fe80:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
     refute_private "fe7f:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
 
-    # ::ffff:127.0.0.1/128
+    # IPv4-mapped IPv6 addresses
     assert_private "::ffff:127.0.0.1"
+    assert_private "::ffff:10.0.0.1"
+    assert_private "::ffff:192.168.2.1"
+    assert_private "::ffff:169.254.1.2"
+    refute_private "::ffff:1.2.3.4"
+    refute_private "::ffff:192.145.45.45"
+    refute_private "::ffff:169.1.2.3"
   end
 end
