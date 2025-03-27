@@ -51,7 +51,7 @@ module Aikido
       if has_forked
         @detached_agent&.handle_fork
       end
-      @detached_agent ||= DetachedAgent.new
+      @detached_agent ||= DetachedAgent::Agent.new
     end
 
     # Gets the current context object that holds all information about the
@@ -154,7 +154,7 @@ module Aikido
     end
 
     def self.detached_agent_server
-      @detached_agent_server ||= DetachedAgentServer.start!
+      @detached_agent_server ||= DetachedAgent::Server.start!
     end
 
     class << self
