@@ -8,16 +8,8 @@ module Aikido::Zen::DetachedAgent
     # Request, Sink & Scan-like structs to hold the minimal values to be sent to collector
     RequestKind = Struct.new(:route, :schema)
     SinkKind = Struct.new(:name)
-    ScanKind = Struct.new(:sink, :errors, :duration) do
-      def errors?
-        self[:errors]
-      end
-    end
-    AttackKind = Struct.new(:sink, :blocked) do
-      def blocked?
-        self[:blocked]
-      end
-    end
+    ScanKind = Struct.new(:sink, :errors?, :duration)
+    AttackKind = Struct.new(:sink, :blocked?)
 
     def_delegators :@collector, :middleware_installed!, :track_request
 
