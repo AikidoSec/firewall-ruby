@@ -14,6 +14,8 @@ def stop_servers
 end
 
 def boot_server(dir, port:, env: {})
+  env["RAILS_MIN_THREADS"] = NUMBER_OF_THREADS
+  env["RAILS_MAX_THREADS"] = NUMBER_OF_THREADS
   env["PORT"] = port.to_s
   env["SECRET_KEY_BASE"] = rand(36**64).to_s(36)
 
