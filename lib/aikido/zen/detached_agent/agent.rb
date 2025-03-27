@@ -14,8 +14,9 @@ module Aikido::Zen::DetachedAgent
     def initialize(config: Aikido::Zen.config)
       @config = config
       @detached_agent_front = DRbObject.new_with_uri(config.detached_agent_socket_path)
-      @background_worker = Aikido::Zen::BackgroundWorker.new do |work|
-        work.call
+      @background_worker = Aikido::Zen::BackgroundWorker.new do |unit_work|
+        method, args = unit_work
+        @detached_agent_front.send(method, *args)
       rescue => e
         @config.logger.error(e)
       end
@@ -24,9 +25,7 @@ module Aikido::Zen::DetachedAgent
     end
 
     def track_request
-      @background_worker.enqueue(-> {
-        @detached_agent_front.track_request
-      })
+      @background_worker.enqueue([:track_request, nil])
     end
 
     def middleware_installed!
@@ -37,33 +36,23 @@ module Aikido::Zen::DetachedAgent
       # schema is a complex object, which must be converted to a hash outside the enqueue ->()
       # otherwise it might GC-ed.
       schema = request.schema.as_json
-      @background_worker.enqueue(-> {
-        @detached_agent_front.track_route(request.route, schema)
-      })
+      @background_worker.enqueue([:track_route, [request.route, schema]])
     end
 
     def track_outbound(outbound)
-      @background_worker.enqueue(-> {
-        @detached_agent_front.track_outbound(outbound)
-      })
+      @background_worker.enqueue([:track_outbound, [outbound]])
     end
 
     def track_scan(scan)
-      @background_worker.enqueue(-> {
-        @detached_agent_front.track_scan(scan.sink.name, scan.errors?, scan.duration)
-      })
+      @background_worker.enqueue([:track_scan, [scan.sink.name, scan.errors?, scan.duration]])
     end
 
     def track_user(user)
-      @background_worker.enqueue(-> {
-        @detached_agent_front.track_user(user.id, user.name, user.first_seen_at, user.ip)
-      })
+      @background_worker.enqueue([:track_user, [user.id, user.name, user.first_seen_at, user.ip]])
     end
 
     def track_attack(attack)
-      @background_worker.enqueue(-> {
-        @detached_agent_front.track_attack(attack.sink.name, attack.blocked?)
-      })
+      @background_worker.enqueue([:track_attack, [attack.sink.name, attack.blocked?]])
     end
 
     # Every time a fork occurs (a new child process is created), we need to start
