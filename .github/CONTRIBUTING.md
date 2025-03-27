@@ -105,6 +105,7 @@ standard:fix` to autofix any linting violations.
 
 #### Common issues :
 - `mkmf.rb can't find header files for ruby at /usr/share/include/ruby.h`, If this error occurs you are most likely missing the ruby dev package, checkout [the following Gist](https://gist.github.com/johngerome/133b127c9f8545dccc54)
+- `ld: library 'zstd' not found make: *** [mysql2.bundle] Error 1`, on macOS run `brew install zstd mysql` and then `gem install mysql2 -- --with-opt-dir="$(brew --prefix zstd)"`
 
 
 ## Styleguides
