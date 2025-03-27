@@ -1,11 +1,12 @@
 require "open3"
 require "time"
 
-NUMBER_OF_THREADS = ENV.fetch("BENCHMARK_NUMBER_OF_THREADS") { "12" }.to_s
+NUMBER_OF_THREADS = ENV.fetch("BENCHMARK_NUMBER_OF_THREADS") { 12 }.to_s
+NUMBER_OF_THREADS = ENV.fetch("BENCHMARK_WRK_CONNECTIONS") { 400 }
 
 def generate_wrk_command_for_url(url)
   # Define the command with wrk included
-  "wrk --threads #{NUMBER_OF_THREADS} --connections 100 --duration 15s --timeout 5s --latency #{url}"
+  "wrk --threads #{NUMBER_OF_THREADS} --connections #{connections} --duration 15s --timeout 5s --latency #{url}"
 end
 
 def cold_start(url)
