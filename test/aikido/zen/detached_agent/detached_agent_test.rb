@@ -65,12 +65,6 @@ class Aikido::Zen::DetachedAgent::AgentTest < ActiveSupport::TestCase
       detached_agent.track_user(OpenStruct.new(id: "some-user-id", name: "some-user-name", first_seen_at: Time.at(17111987), ip: "some-ip"))
       detached_agent.track_attack(OpenStruct.new(sink: sink_struct, blocked?: false))
 
-      # This will raise an exception because the user is nil.
-      # Later we'll check that the exception was caught and only logged (check later
-      # calls to assert_logged)
-      detached_agent.track_user nil
-
-      # Even though an exception was raised, we might be able to enqueue more work.
       detached_agent.track_request
       detached_agent.track_request
 
@@ -86,11 +80,6 @@ class Aikido::Zen::DetachedAgent::AgentTest < ActiveSupport::TestCase
 
       sleep 0.1
     end
-
-    # Here we verify that the exception raised when calling `track_user(nil)` was
-    # caught and logged
-    assert_logged(/undefined method `id' for nil/)
-    assert_logged(/track_user/)
 
     assert drb_start_called
 

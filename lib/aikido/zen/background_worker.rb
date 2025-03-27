@@ -13,7 +13,8 @@ module Aikido::Zen
     def start
       @thread = Thread.new do
         while running? || actions?
-          @block.call(wait_for_action)
+          action = wait_for_action
+          @block.call(action) unless action.nil?
         end
       end
     end
