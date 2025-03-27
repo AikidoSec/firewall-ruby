@@ -16,7 +16,19 @@ module Aikido::Zen::DetachedAgent
       @detached_agent_front = DRbObject.new_with_uri(config.detached_agent_socket_path)
       @background_worker = Aikido::Zen::BackgroundWorker.new do |unit_work|
         method, args = unit_work
-        @detached_agent_front.send(method, *args)
+
+        # Performance: This code could have been created using Procs or calling
+        # `send(method, arg)` on @detached_agent_object, but using that kind of code,
+        # is less performant than having explicit code to check each case.
+        case method
+        when :track_request then @detached_agent_front.track_request
+        when :track_route then @detached_agent_front.track_route(args[0], args[1])
+        when :track_outbound then @detached_agent_front.track_outbound(args[0])
+        when :track_scan then @detached_agent_front.track_scan(args[0], args[1], args[2])
+        when :track_user then @detached_agent_front.track_user(args[0], args[1], args[2], args[3])
+        when :track_attack then @detached_agent_front.track_attack(args[0], args[1])
+        else raise Error("Unrecognized method #{method}")
+        end
       rescue => e
         @config.logger.error(e)
       end
@@ -25,7 +37,7 @@ module Aikido::Zen::DetachedAgent
     end
 
     def track_request
-      @background_worker.enqueue([:track_request, nil])
+      @background_worker.enqueue([:track_request])
     end
 
     def middleware_installed!
