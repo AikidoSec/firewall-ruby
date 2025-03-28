@@ -185,6 +185,6 @@ jobs:
       - name: Download libzen
         run: "bundle exec rake libzen:download:current"
       - name: Run the e2e tests
-        run: "bundle exec rake e2e:${{ matrix.app }}:k6_run"
+        run: "bundle exec rake bench:${{ matrix.app }}:k6_run"
       - name: Run the benchmarks
         run: "bundle exec rake bench:${{ matrix.app }}:wrk_run"
