@@ -39,7 +39,8 @@ const tests = {
 }
 export const options = {
   vus: 10, // Number of virtual users
-  iterations: 2000,
+  duration: '30s',
+  // iterations: 2000,
   thresholds: {
     http_req_failed: ['rate==0'], // we are marking the attacks as expected, so we should have no errors
     benchmark_page_delta: ["med<10"],
