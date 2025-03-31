@@ -151,16 +151,15 @@ jobs:
       matrix:
         ruby: [ "3.3", "3.2", "3.1", "3.0", "2.7" ]
         app: [ "rails7.1_benchmark" ]
-        include:
+        exclude:
         - ruby: "2.7"
           app: "rails7.1_benchmark"
-          env: "BENCHMARK_WRK_CONNECTIONS=200\nWEB_CONCURRENCY=2"
 
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app }}/Gemfile
       DATABASE_URL: "sqlite3:storage/test.sqlite3"
       BENCHMARK_NUMBER_OF_THREADS: 12
-      BENCHMARK_WRK_CONNECTIONS: 400
+      BENCHMARK_WRK_CONNECTIONS: 200
       WEB_CONCURRENCY: 3
 
     steps:
