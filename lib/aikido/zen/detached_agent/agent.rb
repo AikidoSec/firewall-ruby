@@ -43,6 +43,10 @@ module Aikido::Zen::DetachedAgent
       @worker.every(@heartbeat_interval, run_now: false) { send_heartbeat }
     end
 
+    def calculate_rate_limits(request)
+      @detached_agent_front.calculate_rate_limits(request.route, request.ip, request.actor.to_json)
+    end
+
     # Every time a fork occurs (a new child process is created), we need to start
     # a DRb service in a background thread within the child process. This service
     # will manage the connection and handle resource cleanup.
