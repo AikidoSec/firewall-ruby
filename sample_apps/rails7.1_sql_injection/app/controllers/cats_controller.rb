@@ -1,5 +1,6 @@
 class CatsController < ApplicationController
   before_action :set_cat, only: %i[show edit update destroy]
+  before_action :set_user
   skip_forgery_protection if: -> { request.format.json? }
 
   # GET /cats
@@ -65,6 +66,13 @@ class CatsController < ApplicationController
       format.html { redirect_to cats_url, notice: "Cat was destroyed.", status: :see_other }
       format.json { head :no_content }
     end
+  end
+
+  private
+
+  def set_user
+    # Track a pseudo-random user
+    Aikido::Zen.track_user({id: [1, 2, 3, 4, 5].sample, name: SecureRandom.hex(5)})
   end
 
   private

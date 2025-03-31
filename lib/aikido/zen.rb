@@ -76,11 +76,11 @@ module Aikido
     # @param request [Aikido::Zen::Request]
     # @return [void]
     def self.track_request(request)
-      detached_agent.track_request(request)
+      detached_agent.track_request
     end
 
     def self.track_discovered_route(request)
-      collector.track_route(request)
+      detached_agent.track_route(request)
     end
 
     # Tracks a network connection made to an external service.
@@ -88,7 +88,7 @@ module Aikido
     # @param connection [Aikido::Zen::OutboundConnection]
     # @return [void]
     def self.track_outbound(connection)
-      collector.track_outbound(connection)
+      detached_agent.track_outbound(connection)
     end
 
     # Track statistics about the result of a Sink's scan, and report it as
@@ -99,7 +99,7 @@ module Aikido
     # @raise [Aikido::Zen::UnderAttackError] if the scan detected an Attack
     #   and blocking_mode is enabled.
     def self.track_scan(scan)
-      collector.track_scan(scan)
+      detached_agent.track_scan(scan)
       agent.handle_attack(scan.attack) if scan.attack?
     end
 
@@ -111,7 +111,7 @@ module Aikido
       return if config.disabled?
 
       if (actor = Aikido::Zen::Actor(user))
-        collector.track_user(actor)
+        detached_agent.track_user(actor)
         current_context.request.actor = actor if current_context
       else
         config.logger.warn(format(<<~LOG, obj: user))

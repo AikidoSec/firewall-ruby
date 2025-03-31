@@ -19,6 +19,7 @@ module Aikido::Zen
     def initialize(
       config: Aikido::Zen.config,
       collector: Aikido::Zen.collector,
+      detached_agent: Aikido::Zen.detached_agent,
       worker: Aikido::Zen::Worker.new(config: config),
       api_client: Aikido::Zen::APIClient.new(config: config)
     )
@@ -28,6 +29,7 @@ module Aikido::Zen
       @worker = worker
       @api_client = api_client
       @collector = collector
+      @detached_agent = detached_agent
     end
 
     def started?
@@ -108,7 +110,7 @@ module Aikido::Zen
       )
       report(Events::Attack.new(attack: attack)) if @api_client.can_make_requests?
 
-      @collector.track_attack(attack)
+      @detached_agent.track_attack(attack)
       raise attack if attack.blocked?
     end
 
