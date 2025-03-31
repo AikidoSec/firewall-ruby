@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Aikido::Zen::Middleware::ThrottlerTest < ActiveSupport::TestCase
+class Aikido::Zen::Middleware::RackThrottlerTest < ActiveSupport::TestCase
   setup do
     @app = Minitest::Mock.new
     @app.expect :call, [200, {}, ["OK"]], [Hash]
