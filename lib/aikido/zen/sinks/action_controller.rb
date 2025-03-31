@@ -12,11 +12,11 @@ module Aikido::Zen
         def initialize(
           config: Aikido::Zen.config,
           settings: Aikido::Zen.runtime_settings,
-          rate_limiter: Aikido::Zen::RateLimiter.new
+          detached_agent: Aikido::Zen.detached_agent
         )
           @config = config
           @settings = settings
-          @rate_limiter = rate_limiter
+          @detached_agent = detached_agent
         end
 
         def block?(controller)
@@ -45,7 +45,7 @@ module Aikido::Zen
         private def should_throttle?(request)
           return false if @settings.skip_protection_for_ips.include?(request.ip)
 
-          result = @rate_limiter.calculate_rate_limits(request)
+          result = @detached_agent.calculate_rate_limits(request)
           return false unless result
 
           request.env["aikido.rate_limiting"] = result
