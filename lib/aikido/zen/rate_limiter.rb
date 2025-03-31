@@ -24,23 +24,18 @@ module Aikido::Zen
       }
     end
 
-    # Checks whether the request requires rate limiting. As a side effect, this
-    # will annotate the request with the "aikido.rate_limiting" ENV key, holding
-    # the result of the check, and including useful stats in case you want to
-    # return RateLimit headers..
+    # Calculate based on the configuration whether a request will be
+    # rate-limited or not.
     #
     # @param request [Aikido::Zen::Request]
-    # @return [Boolean]
-    #
-    # @see Aikido::Zen::RateLimiter::Result
-    def throttle?(request)
+    # @return [Aikido::Zen::RateLimiter::Result, nil]
+    def calculate_rate_limits(request)
       settings = settings_for(request.route)
-      return false unless settings.enabled?
+      return nil unless settings.enabled?
 
       bucket = @buckets[request.route]
       key = @config.rate_limiting_discriminator.call(request)
-      request.env["aikido.rate_limiting"] = bucket.increment(key)
-      request.env["aikido.rate_limiting"].throttled?
+      bucket.increment(key)
     end
 
     private

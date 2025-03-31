@@ -45,7 +45,11 @@ module Aikido::Zen
         private def should_throttle?(request)
           return false if @settings.skip_protection_for_ips.include?(request.ip)
 
-          @rate_limiter.throttle?(request)
+          result = @rate_limiter.calculate_rate_limits(request)
+          return false unless result
+
+          request.env["aikido.rate_limiting"] = result
+          request.env["aikido.rate_limiting"].throttled?
         end
 
         # @param request [Aikido::Zen::Request]
