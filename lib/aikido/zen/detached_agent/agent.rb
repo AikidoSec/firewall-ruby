@@ -28,8 +28,7 @@ module Aikido::Zen::DetachedAgent
       return unless @collector.stats.any?
 
       heartbeat = @collector.flush(at: at)
-      @config.logger.debug("Sending heartbeat from child [#{Process.pid}] to parent process [#{Process.ppid}]")
-      @detached_agent_front.send_heartbeat_to_parent_process(heartbeat.to_json)
+      @detached_agent_front.send_heartbeat_to_parent_process(heartbeat.as_json)
     end
 
     private def schedule_tasks
