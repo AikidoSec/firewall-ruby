@@ -81,7 +81,11 @@ module Aikido::Zen
 
       req = Net::HTTP::Post.new("/api/runtime/events", default_headers)
       req.content_type = "application/json"
-      req.body = @config.json_encoder.call(event.as_json)
+      req.body = if event.respond_to?(:as_json)
+        @config.json_encoder.call(event.as_json)
+      else
+        @config.json_encoder.call(event)
+      end
 
       request(req)
     rescue Aikido::Zen::RateLimitedError
