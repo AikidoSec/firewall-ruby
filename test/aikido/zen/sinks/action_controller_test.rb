@@ -147,6 +147,13 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
     refute_throttled_or_blocked make_request(request)
 
     assert_throttled make_request(request)
+
+    env = request.env
+    assert env["aikido.rate_limiting"].throttled?
+    assert_equal "1.2.3.4", env["aikido.rate_limiting"].discriminator
+    assert_equal 3, env["aikido.rate_limiting"].current_requests
+    assert_equal 3, env["aikido.rate_limiting"].max_requests
+    assert_equal 10, env["aikido.rate_limiting"].time_remaining
   end
 
   test "controller does not rate limit reuests from different IPs" do
@@ -200,6 +207,20 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
 
     assert_throttled make_request(from_user_1)
     assert_throttled make_request(from_user_2)
+
+    env = from_user_1.env
+    assert env["aikido.rate_limiting"].throttled?
+    assert_equal "1.2.3.4", env["aikido.rate_limiting"].discriminator
+    assert_equal 3, env["aikido.rate_limiting"].current_requests
+    assert_equal 3, env["aikido.rate_limiting"].max_requests
+    assert_equal 10, env["aikido.rate_limiting"].time_remaining
+
+    env = from_user_2.env
+    assert env["aikido.rate_limiting"].throttled?
+    assert_equal "actor:456", env["aikido.rate_limiting"].discriminator
+    assert_equal 3, env["aikido.rate_limiting"].current_requests
+    assert_equal 3, env["aikido.rate_limiting"].max_requests
+    assert_equal 10, env["aikido.rate_limiting"].time_remaining
   end
 
   test "requests to different endpoints can have different configurations" do
@@ -218,6 +239,20 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
 
     assert_throttled make_request(root)
     assert_throttled make_request(other)
+
+    env = root.env
+    assert env["aikido.rate_limiting"].throttled?
+    assert_equal "1.2.3.4", env["aikido.rate_limiting"].discriminator
+    assert_equal 3, env["aikido.rate_limiting"].current_requests
+    assert_equal 3, env["aikido.rate_limiting"].max_requests
+    assert_equal 1, env["aikido.rate_limiting"].time_remaining
+
+    env = other.env
+    assert env["aikido.rate_limiting"].throttled?
+    assert_equal "1.2.3.4", env["aikido.rate_limiting"].discriminator
+    assert_equal 2, env["aikido.rate_limiting"].current_requests
+    assert_equal 2, env["aikido.rate_limiting"].max_requests
+    assert_equal 1, env["aikido.rate_limiting"].time_remaining
   end
 
   test "requests are allowed after the window slides past old requests" do
