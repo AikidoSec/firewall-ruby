@@ -1,5 +1,5 @@
 module Aikido::Zen
-  # Generic background worker class backed by queue. Mean to be used by any
+  # Generic background worker class backed by queue. Meant to be used by any
   # background process that needs to do heavy tasks.
   class BackgroundWorker
     # @param block [block] A block that receives 1 message directly from the queue
