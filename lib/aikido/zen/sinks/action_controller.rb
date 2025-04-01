@@ -43,7 +43,7 @@ module Aikido::Zen
         end
 
         private def should_throttle?(request)
-          return false if @settings.skip_protection_for_ips.include?(request.ip)
+          return false if Aikido::Zen.runtime_settings.skip_protection_for_ips.include?(request.ip)
 
           result = @detached_agent.calculate_rate_limits(request)
           return false unless result
@@ -56,7 +56,7 @@ module Aikido::Zen
         private def should_block_user?(request)
           return false if request.actor.nil?
 
-          @settings.blocked_user_ids&.include?(request.actor.id)
+          Aikido::Zen.runtime_settings.blocked_user_ids&.include?(request.actor.id)
         end
       end
 
