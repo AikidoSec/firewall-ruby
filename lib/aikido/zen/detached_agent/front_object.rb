@@ -1,41 +1,16 @@
 # frozen_string_literal: true
 
-# dRB Front object that will be used to access the collector.
+# dRB Front object that will work as a bridge communication between child & parent
+# processes.
+# Every method is called from the child but it runs in the parent process.
 module Aikido::Zen::DetachedAgent
   class FrontObject
-    extend Forwardable
-
-    # Request, Sink & Scan-like structs to hold the minimal values to be sent to collector
-    RequestKind = Struct.new(:route, :schema)
-    SinkKind = Struct.new(:name)
-    ScanKind = Struct.new(:sink, :errors?, :duration)
-    AttackKind = Struct.new(:sink, :blocked?)
-
-    def_delegators :@collector, :middleware_installed!, :track_request
-
     def initialize(config: Aikido::Zen.config, collector: Aikido::Zen.collector)
       @config = config
-      @collector = collector
     end
 
-    def track_route(route, schema)
-      @collector.track_route(RequestKind.new(route, Aikido::Zen::Request::Schema.from_json(schema)))
-    end
-
-    def track_outbound(outbound)
-      @collector.track_outbound(outbound)
-    end
-
-    def track_scan(sink_name, has_errors, duration)
-      @collector.track_scan(ScanKind.new(SinkKind.new(sink_name), has_errors, duration))
-    end
-
-    def track_user(id, name, first_seen_at, ip)
-      @collector.track_user(Aikido::Zen::Actor.new(id: id, name: name, seen_at: first_seen_at, ip: ip))
-    end
-
-    def track_attack(sink_name, is_blocked)
-      @collector.track_attack(AttackKind.new(SinkKind.new(sink_name), is_blocked))
+    def send_heartbeat_to_parent_process(heartbeat)
+      pp "Received heartbeat: #{heartbeat} I'm running on #{Process.pid}"
     end
   end
 end
