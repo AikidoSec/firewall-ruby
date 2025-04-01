@@ -7,6 +7,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", :as => :rails_health_check
 
   get "benchmark", controller: "benchmark", action: "index"
+  get "benchmark_with_user", controller: "benchmark", action: "with_user"
 
   # Defines the root path route ("/")
   # root "posts#index"
