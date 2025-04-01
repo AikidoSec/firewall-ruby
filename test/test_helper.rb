@@ -50,6 +50,7 @@ require_relative "support/fake_rails_app"
 require_relative "support/http_connection_tracking_assertions"
 require_relative "support/rate_limiting_assertions"
 require_relative "support/sink_attack_helpers"
+require_relative "support/worker_helpers"
 
 # Utility proc that does nothing.
 NOOP = ->(*args, **opts) {}
