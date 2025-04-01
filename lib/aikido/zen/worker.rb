@@ -78,5 +78,10 @@ module Aikido::Zen
       @executor.shutdown
       @executor.wait_for_termination(30)
     end
+
+    def restart
+      shutdown
+      @executor = Concurrent::SingleThreadExecutor.new
+    end
   end
 end
