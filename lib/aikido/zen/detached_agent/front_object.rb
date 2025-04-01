@@ -7,10 +7,11 @@ module Aikido::Zen::DetachedAgent
   class FrontObject
     def initialize(config: Aikido::Zen.config, collector: Aikido::Zen.collector)
       @config = config
+      @collector = collector
     end
 
     def send_heartbeat_to_parent_process(heartbeat)
-      pp "Received heartbeat: #{heartbeat} I'm running on #{Process.pid}"
+      @collector.push_heartbeat(heartbeat)
     end
   end
 end
