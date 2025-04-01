@@ -6,7 +6,7 @@
 module Aikido::Zen::DetachedAgent
   class FrontObject
     def initialize(
-      config: Aikido::Zen.config, 
+      config: Aikido::Zen.config,
       collector: Aikido::Zen.collector,
       rate_limiter: Aikido::Zen::RateLimiter.new
     )
@@ -14,6 +14,8 @@ module Aikido::Zen::DetachedAgent
       @collector = collector
       @rate_limiter = rate_limiter
     end
+
+    RequestKind = Struct.new(:route, :schema, :ip, :actor)
 
     def send_heartbeat_to_parent_process(heartbeat)
       @collector.push_heartbeat(heartbeat)
