@@ -41,7 +41,7 @@ module Aikido::Zen
     end
 
     # Drains into an array all the queued heartbeats
-    def heartbeats
+    def flush_heartbeats
       Array.new(@heartbeats.size) { @heartbeats.pop }
     end
 
