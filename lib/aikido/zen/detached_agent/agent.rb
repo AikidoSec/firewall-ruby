@@ -69,8 +69,9 @@ module Aikido::Zen::DetachedAgent
     def handle_fork
       @has_forked = true
       DRb.start_service
-      @worker.shutdown
-      @worker = Aikido::Zen::Worker.new(config: @config)
+      # we need to ensure that there are not more jobs in the queue, but
+      # we reuse the same object
+      @worker.restart
       schedule_tasks
     end
   end

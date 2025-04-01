@@ -72,15 +72,25 @@ class Aikido::Zen::DetachedAgent::AgentTest < ActiveSupport::TestCase
   end
 
   test "forks are properly handled" do
+    front_object = Minitest::Mock.new
+
     drb_start_called = false
     on_drb_start = -> { drb_start_called = true }
 
-    with_mocks(Minitest::Mock.new, on_drb_start) do |mocks|
+    with_mocks(front_object, on_drb_start) do |mocks|
+      front_object.expect :updated_settings, {new: :settings}
+
       mocks[:agent].handle_fork
 
-      assert mocks[:worker].shutdown_called
-      refute_same mocks[:worker], mocks[:agent].worker
+      assert_equal({new: :settings}, Aikido::Zen.runtime_settings)
+
+      assert mocks[:worker].restarted
+      assert_same mocks[:worker], mocks[:agent].worker
+      assert_equal 2, mocks[:worker].jobs.size
+
       assert drb_start_called
+
+      assert_mock front_object
     end
   end
 end
