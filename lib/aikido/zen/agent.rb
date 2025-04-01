@@ -110,7 +110,7 @@ module Aikido::Zen
       )
       report(Events::Attack.new(attack: attack)) if @api_client.can_make_requests?
 
-      @detached_agent.track_attack(attack)
+      @collector.track_attack(attack)
       raise attack if attack.blocked?
     end
 
