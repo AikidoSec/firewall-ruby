@@ -327,7 +327,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
 
     test "logs an error and skips making a request if the rate limiter decides to throttle" do
       rate_limiter = Minitest::Mock.new
-      rate_limiter.expect :throttle?, true, [Aikido::Zen::Event]
+      rate_limiter.expect :throttle?, true, ["started"]
 
       @client = Aikido::Zen::APIClient.new(rate_limiter: rate_limiter)
       assert_nil @client.report(Aikido::Zen::Events::Started.new)
