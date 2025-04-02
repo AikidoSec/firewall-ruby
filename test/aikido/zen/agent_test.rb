@@ -3,6 +3,8 @@
 require "test_helper"
 
 class Aikido::Zen::AgentTest < ActiveSupport::TestCase
+  include WorkerHelpers
+
   class MockAPIClient < Aikido::Zen::APIClient
     def should_fetch_settings?
       false
@@ -14,49 +16,6 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
 
     def report(event)
       {}
-    end
-  end
-
-  MockWorker = Struct.new(:jobs, :delayed) do
-    def initialize
-      super([], [])
-    end
-
-    def perform(&block)
-      yield
-    end
-
-    def delay(interval, &block)
-      MockDefer.new(queued: true, interval: interval)
-        .tap { |task| delayed << task }
-    end
-
-    def every(interval, run_now: true, &task)
-      yield if run_now
-      MockTimer.new(running: true, interval: interval, run_now: run_now)
-        .tap { |timer| jobs << timer }
-    end
-
-    def shutdown
-      jobs.each(&:shutdown)
-    end
-  end
-
-  MockDefer = Struct.new(:queued, :interval, keyword_init: true) do
-    alias_method :pending?, :queued
-    alias_method :initial_delay, :interval
-
-    def cancel
-      self.queued = false
-    end
-  end
-
-  MockTimer = Struct.new(:running, :interval, :run_now, keyword_init: true) do
-    alias_method :running?, :running
-    alias_method :execution_interval, :interval
-
-    def shutdown
-      self.running = false
     end
   end
 
@@ -276,7 +235,9 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#send_heartbeat reports a heartbeat event and updates the settings" do
-    @api_client.expect :report, {"receivedAnyStats" => true}, [Aikido::Zen::Events::Heartbeat]
+    dummy_heartbeat = Object.new
+    @collector.push_heartbeat(dummy_heartbeat)
+    @api_client.expect :report, {"receivedAnyStats" => true}, [dummy_heartbeat]
 
     assert_changes -> { Aikido::Zen.runtime_settings.received_any_stats }, to: true do
       @agent.send_heartbeat
@@ -285,15 +246,14 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert_mock @api_client
   end
 
-  test "#send_heartbeat flushes the stats before sending them" do
-    stats = Minitest::Mock.new
-    stats.expect :flush, [], at: Time
+  test "#send_heartbeat flushes the heartbeats before sending them" do
+    heartbeats = Minitest::Mock.new
+    heartbeats.expect :size, [2]
 
-    @collector.instance_variable_get(:@stats).stub(:get_and_set, stats) do
-      @agent.send_heartbeat
-    end
+    @collector.instance_variable_set(:@heartbeats, heartbeats)
+    @agent.send_heartbeat
 
-    assert_mock stats
+    assert_mock heartbeats
   end
 
   test "#send_heartbeat does nothing if we don't have an API token" do
@@ -307,8 +267,10 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#send_heartbeat does not try to update stats if the API returns null" do
+    dummy_heartbeat = Object.new
     # this happens e.g. when events are rate limited
-    @api_client.expect :report, nil, [Aikido::Zen::Events::Heartbeat]
+    @api_client.expect :report, nil, [dummy_heartbeat]
+    @collector.push_heartbeat(dummy_heartbeat)
 
     assert_nothing_raised do
       @agent.send_heartbeat

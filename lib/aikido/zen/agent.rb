@@ -110,7 +110,7 @@ module Aikido::Zen
       )
       report(Events::Attack.new(attack: attack)) if @api_client.can_make_requests?
 
-      @detached_agent.track_attack(attack)
+      @collector.track_attack(attack)
       raise attack if attack.blocked?
     end
 
@@ -143,11 +143,11 @@ module Aikido::Zen
     def send_heartbeat(at: Time.now.utc)
       return unless @api_client.can_make_requests?
 
-      event = @collector.flush(at: at)
-
-      report(event) do |response|
-        updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
-        @config.logger.info "Updated runtime settings after heartbeat"
+      @collector.flush_heartbeats.each do |heartbeat|
+        report(heartbeat) do |response|
+          updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
+          @config.logger.info "Updated runtime settings after heartbeat"
+        end
       end
     end
 

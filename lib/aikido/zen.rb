@@ -44,14 +44,13 @@ module Aikido
     # Manages runtime metrics extracted from your app, which are uploaded to the
     # Aikido servers if configured to do so.
     def self.collector
+      check_and_handle_fork
       @collector ||= Collector.new
     end
 
     def self.detached_agent
-      if has_forked
-        @detached_agent&.handle_fork
-      end
-      @detached_agent ||= DetachedAgent.new
+      check_and_handle_fork
+      @detached_agent ||= DetachedAgent::Agent.new
     end
 
     # Gets the current context object that holds all information about the
@@ -76,11 +75,11 @@ module Aikido
     # @param request [Aikido::Zen::Request]
     # @return [void]
     def self.track_request(request)
-      detached_agent.track_request
+      collector.track_request
     end
 
     def self.track_discovered_route(request)
-      detached_agent.track_route(request)
+      collector.track_route(request)
     end
 
     # Tracks a network connection made to an external service.
@@ -88,7 +87,7 @@ module Aikido
     # @param connection [Aikido::Zen::OutboundConnection]
     # @return [void]
     def self.track_outbound(connection)
-      detached_agent.track_outbound(connection)
+      collector.track_outbound(connection)
     end
 
     # Track statistics about the result of a Sink's scan, and report it as
@@ -99,7 +98,7 @@ module Aikido
     # @raise [Aikido::Zen::UnderAttackError] if the scan detected an Attack
     #   and blocking_mode is enabled.
     def self.track_scan(scan)
-      detached_agent.track_scan(scan)
+      collector.track_scan(scan)
       agent.handle_attack(scan.attack) if scan.attack?
     end
 
@@ -111,7 +110,7 @@ module Aikido
       return if config.disabled?
 
       if (actor = Aikido::Zen::Actor(user))
-        detached_agent.track_user(actor)
+        collector.track_user(actor)
         current_context.request.actor = actor if current_context
       else
         config.logger.warn(format(<<~LOG, obj: user))
@@ -126,7 +125,7 @@ module Aikido
     # Marks that the Zen middleware was installed properly
     # @return void
     def self.middleware_installed!
-      detached_agent.middleware_installed!
+      collector.middleware_installed!
     end
 
     # Load all sinks matching libraries loaded into memory. This method should
@@ -154,7 +153,7 @@ module Aikido
     end
 
     def self.detached_agent_server
-      @detached_agent_server ||= DetachedAgentServer.start!
+      @detached_agent_server ||= DetachedAgent::Server.start!
     end
 
     class << self
@@ -167,6 +166,12 @@ module Aikido
         LOCK.synchronize do
           agent
           detached_agent_server
+        end
+      end
+
+      def check_and_handle_fork
+        if has_forked
+          @detached_agent&.handle_fork
         end
       end
 

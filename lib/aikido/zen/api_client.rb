@@ -72,16 +72,26 @@ module Aikido::Zen
     #   @return (see #fetch_settings)
     #   @raise (see #request)
     def report(event)
-      if @rate_limiter.throttle?(event)
-        @config.logger.error("Not reporting #{event.type.upcase} event due to rate limiting")
+      event_type = if event.respond_to?(:type)
+        event.type
+      else
+        event[:type]
+      end
+
+      if @rate_limiter.throttle?(event_type)
+        @config.logger.error("Not reporting #{event_type.upcase} event due to rate limiting")
         return
       end
 
-      @config.logger.debug("Reporting #{event.type.upcase} event")
+      @config.logger.debug("Reporting #{event_type.upcase} event")
 
       req = Net::HTTP::Post.new("/api/runtime/events", default_headers)
       req.content_type = "application/json"
-      req.body = @config.json_encoder.call(event.as_json)
+      req.body = if event.respond_to?(:as_json)
+        @config.json_encoder.call(event.as_json)
+      else
+        @config.json_encoder.call(event)
+      end
 
       request(req)
     rescue Aikido::Zen::RateLimitedError
