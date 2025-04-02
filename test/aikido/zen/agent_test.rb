@@ -235,9 +235,9 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#send_heartbeat reports a heartbeat event and updates the settings" do
-    hb = {dummy: :heartbeat}
-    @collector.push_heartbeat(hb)
-    @api_client.expect :report, {"receivedAnyStats" => true}, [hb]
+    dummy_heartbeat = Object.new
+    @collector.push_heartbeat(dummy_heartbeat)
+    @api_client.expect :report, {"receivedAnyStats" => true}, [dummy_heartbeat]
 
     assert_changes -> { Aikido::Zen.runtime_settings.received_any_stats }, to: true do
       @agent.send_heartbeat
@@ -267,10 +267,10 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#send_heartbeat does not try to update stats if the API returns null" do
-    hb = {dummy: :heartbeat}
+    dummy_heartbeat = Object.new
     # this happens e.g. when events are rate limited
-    @api_client.expect :report, nil, [hb]
-    @collector.push_heartbeat(hb)
+    @api_client.expect :report, nil, [dummy_heartbeat]
+    @collector.push_heartbeat(dummy_heartbeat)
 
     assert_nothing_raised do
       @agent.send_heartbeat
