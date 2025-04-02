@@ -12,11 +12,11 @@ module Aikido::Zen
         def initialize(
           config: Aikido::Zen.config,
           settings: Aikido::Zen.runtime_settings,
-          rate_limiter: Aikido::Zen::RateLimiter.new
+          detached_agent: Aikido::Zen.detached_agent
         )
           @config = config
           @settings = settings
-          @rate_limiter = rate_limiter
+          @detached_agent = detached_agent
         end
 
         def block?(controller)
@@ -43,16 +43,20 @@ module Aikido::Zen
         end
 
         private def should_throttle?(request)
-          return false if @settings.skip_protection_for_ips.include?(request.ip)
+          return false if Aikido::Zen.runtime_settings.skip_protection_for_ips.include?(request.ip)
 
-          @rate_limiter.throttle?(request)
+          result = @detached_agent.calculate_rate_limits(request)
+          return false unless result
+
+          request.env["aikido.rate_limiting"] = result
+          request.env["aikido.rate_limiting"].throttled?
         end
 
         # @param request [Aikido::Zen::Request]
         private def should_block_user?(request)
           return false if request.actor.nil?
 
-          @settings.blocked_user_ids&.include?(request.actor.id)
+          Aikido::Zen.runtime_settings.blocked_user_ids&.include?(request.actor.id)
         end
       end
 

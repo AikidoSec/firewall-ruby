@@ -1,5 +1,5 @@
 module WorkerHelpers
-  MockWorker = Struct.new(:jobs, :delayed, :shutdown_called) do
+  MockWorker = Struct.new(:jobs, :delayed, :restarted) do
     def initialize
       super([], [], false)
     end
@@ -20,8 +20,12 @@ module WorkerHelpers
     end
 
     def shutdown
-      self[:shutdown_called] = true
       jobs.each(&:shutdown)
+    end
+
+    def restart
+      jobs.clear
+      self[:restarted] = true
     end
   end
 

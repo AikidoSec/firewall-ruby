@@ -35,6 +35,10 @@ module Aikido
       @runtime_settings ||= RuntimeSettings.new
     end
 
+    def self.runtime_settings=(settings)
+      @runtime_settings = settings
+    end
+
     # Gets information about the current system configuration, which is sent to
     # the server along with any events.
     def self.system_info
