@@ -31,7 +31,6 @@ module Aikido::Zen
     private def recognize_in_route_set(request, route_set, prefix: nil)
       route_set.router.recognize(request) do |route, _|
         app = route.app
-        next unless app.matches?(request)
 
         if app.dispatcher?
           return build_route(route, request, prefix: prefix)
