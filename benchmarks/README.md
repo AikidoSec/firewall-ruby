@@ -13,11 +13,11 @@ In order to run a benchmarks against a single application, run the following
 from the root of the project:
 
 ```
-$ bundle exec rake bench:{app}:(k6|wrk)_run
+$ BUNDLE_GEMFILE=./sample_apps/{app}/Gemfile bundle exec rake bench:{app}:(k6|wrk)_run
 ```
 
 For example, for the WRK of `rails7.1_benchmark` application:
 
 ```
-$ bundle exec rake bench:rails7.1_benchmark:wrk_run
+$ BUNDLE_GEMFILE=./sample_apps/rails7.1_benchmark/Gemfile bundle exec rake bench:rails7.1_benchmark:wrk_run
 ```
