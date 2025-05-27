@@ -9,21 +9,29 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     include SinkAttackHelpers
 
     test "File.new" do
-      Helpers.temp_file_name do |tmp_file|
-        assert_nothing_raised do
-          tmp_file.new(tmp_file)
-          tmp_file.close
-        end
+      tmp_file_name = Helpers.temp_file_name
+      File.write(tmp_file_name, "")
+
+      tmp_file = nil
+      assert_nothing_raised do
+        tmp_file = File.new(tmp_file_name)
       end
+      tmp_file.close
+
+      File.unlink(tmp_file_name)
     end
 
     test "File.open" do
-      Helpers.temp_file_name do |tmp_file|
-        assert_nothing_raised do
-          tmp_file.open(tmp_file)
-          tmp_file.close
-        end
+      tmp_file_name = Helpers.temp_file_name
+      File.write(tmp_file_name, "")
+
+      tmp_file = nil
+      assert_nothing_raised do
+        tmp_file = File.open(tmp_file_name)
       end
+      tmp_file.close
+
+      File.unlink(tmp_file_name)
     end
 
     test "File.read" do
