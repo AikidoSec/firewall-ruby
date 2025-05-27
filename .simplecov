@@ -15,6 +15,12 @@ SimpleCov.start do
   minimum_coverage line: 95, branch: 85
 
   add_filter "/test/"
+
+  # WebMock excludes EM-HTTP-Request on Ruby 3.4:
+  # https://github.com/c960657/webmock/commit/34d16285dbcc574c90b273a89f16cb5fb9f4222a
+  if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.4.0") && Gem.loaded_specs["em-http-request"].version <= Gem::Version.new("1.1.7")
+    add_filter "lib/aikido/zen/sinks/em_http.rb"
+  end
 end
 
 # vim: ft=ruby
