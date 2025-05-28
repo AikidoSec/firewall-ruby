@@ -35,7 +35,7 @@ module Aikido::Zen
     end
 
     def start!
-      @config.logger.info "Starting Aikido agent"
+      @config.logger.info "Starting Aikido agent v#{Aikido::Zen::VERSION}"
 
       raise Aikido::ZenError, "Aikido Agent already started!" if started?
       @started_at = Time.now.utc
