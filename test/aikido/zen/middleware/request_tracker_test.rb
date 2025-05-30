@@ -21,7 +21,7 @@ class Aikido::Zen::Middleware::RequestTrackerTest < ActiveSupport::TestCase
     @middleware.call(Rack::MockRequest.env_for("/200"))
     @middleware.call(Rack::MockRequest.env_for("/400"))
 
-    assert_equal 5, Aikido::Zen.collector.stats.requests
+    assert_equal 3, Aikido::Zen.collector.stats.requests
     assert_equal 0, Aikido::Zen.collector.routes.visits.size
   end
 
@@ -33,9 +33,9 @@ class Aikido::Zen::Middleware::RequestTrackerTest < ActiveSupport::TestCase
     @middleware.call(Rack::MockRequest.env_for("/400"))
 
     # we made 5 request, 3 of them failing. We expect to have tracked:
-    #  * 5 request
+    #  * 3 request (as we don't track ignored requests)
     #  * 1 route with 3 hits
-    assert_equal Aikido::Zen.collector.stats.requests, 5
+    assert_equal Aikido::Zen.collector.stats.requests, 3
     assert_equal Aikido::Zen.collector.routes.visits.size, 1
 
     key = Aikido::Zen::Route.new(verb: "GET", path: "/:number")
