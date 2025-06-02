@@ -31,13 +31,13 @@ module Aikido::Zen
       @opened_at = @clock.call
     end
 
-    # @param event [#type] an event which we'll discriminate by type to decide
+    # @param event_type [String] an event type which we'll use to decide
     #   if we should throttle it.
     # @return [Boolean]
-    def throttle?(event)
+    def throttle?(event_type)
       return true if open? && !try_close
 
-      result = @bucket.increment(event.type)
+      result = @bucket.increment(event_type)
       result.throttled?
     end
 

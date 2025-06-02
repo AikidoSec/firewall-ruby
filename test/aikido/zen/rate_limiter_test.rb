@@ -11,24 +11,26 @@ class Aikido::Zen::RateLimiterTest < ActiveSupport::TestCase
   end
 
   def assert_throttled(request, **stats)
-    assert @rate_limiter.throttle?(request)
-
-    result = request.env["aikido.rate_limiting"]
+    result = @rate_limiter.calculate_rate_limits(request)
+    refute_nil result
     super(result, **stats) if result
   end
 
   def refute_throttled(request, **stats)
-    refute @rate_limiter.throttle?(request)
-
-    result = request.env["aikido.rate_limiting"]
+    result = @rate_limiter.calculate_rate_limits(request)
+    refute_nil result
     super(result, **stats) if result
   end
 
-  test "requests are allowed if rate limiting is disabled" do
+  def refute_throttled_because_disabled(request)
+    assert_nil @rate_limiter.calculate_rate_limits(request)
+  end
+
+  test "result is nil in case rate limiting is disabled" do
     configure "GET", "/", enabled: false, max_requests: 3, period: 1
 
     freeze_time do
-      4.times { refute_throttled build_request("GET", "/", ip: "1.2.3.4") }
+      4.times { assert_nil @rate_limiter.calculate_rate_limits(build_request("GET", "/", ip: "1.2.3.4")) }
     end
   end
 
@@ -102,8 +104,8 @@ class Aikido::Zen::RateLimiterTest < ActiveSupport::TestCase
     refute_throttled build_request("GET", "/", ip: "1.2.3.4"), current: 2
     refute_throttled build_request("GET", "/", ip: "1.2.3.4"), current: 3
 
-    refute_throttled build_request("GET", "/foo", ip: "1.2.3.4"), current: 1
-    refute_throttled build_request("GET", "/bar", ip: "1.2.3.4"), current: 1
+    refute_throttled_because_disabled build_request("GET", "/foo", ip: "1.2.3.4")
+    refute_throttled_because_disabled build_request("GET", "/bar", ip: "1.2.3.4")
   end
 
   test "requests via different HTTP methods are not throttled" do
@@ -113,10 +115,10 @@ class Aikido::Zen::RateLimiterTest < ActiveSupport::TestCase
     refute_throttled build_request("GET", "/", ip: "1.2.3.4"), current: 2
     refute_throttled build_request("GET", "/", ip: "1.2.3.4"), current: 3
 
-    refute_throttled build_request("POST", "/", ip: "1.2.3.4"), current: 1
-    refute_throttled build_request("POST", "/", ip: "1.2.3.4"), current: 2
-    refute_throttled build_request("POST", "/", ip: "1.2.3.4"), current: 3
-    refute_throttled build_request("POST", "/", ip: "1.2.3.4"), current: 4
+    refute_throttled_because_disabled build_request("POST", "/", ip: "1.2.3.4")
+    refute_throttled_because_disabled build_request("POST", "/", ip: "1.2.3.4")
+    refute_throttled_because_disabled build_request("POST", "/", ip: "1.2.3.4")
+    refute_throttled_because_disabled build_request("POST", "/", ip: "1.2.3.4")
   end
 
   test "requests to different endpoints can have different configurations" do

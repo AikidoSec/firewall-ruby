@@ -10,6 +10,7 @@ require_relative "zen/worker"
 require_relative "zen/agent"
 require_relative "zen/api_client"
 require_relative "zen/context"
+require_relative "zen/detached_agent"
 require_relative "zen/middleware/check_allowed_addresses"
 require_relative "zen/middleware/middleware"
 require_relative "zen/middleware/request_tracker"
@@ -34,6 +35,10 @@ module Aikido
       @runtime_settings ||= RuntimeSettings.new
     end
 
+    def self.runtime_settings=(settings)
+      @runtime_settings = settings
+    end
+
     # Gets information about the current system configuration, which is sent to
     # the server along with any events.
     def self.system_info
@@ -43,7 +48,13 @@ module Aikido
     # Manages runtime metrics extracted from your app, which are uploaded to the
     # Aikido servers if configured to do so.
     def self.collector
+      check_and_handle_fork
       @collector ||= Collector.new
+    end
+
+    def self.detached_agent
+      check_and_handle_fork
+      @detached_agent ||= DetachedAgent::Agent.new
     end
 
     # Gets the current context object that holds all information about the
@@ -68,12 +79,10 @@ module Aikido
     # @param request [Aikido::Zen::Request]
     # @return [void]
     def self.track_request(request)
-      autostart
-      collector.track_request(request)
+      collector.track_request
     end
 
     def self.track_discovered_route(request)
-      autostart
       collector.track_route(request)
     end
 
@@ -82,7 +91,6 @@ module Aikido
     # @param connection [Aikido::Zen::OutboundConnection]
     # @return [void]
     def self.track_outbound(connection)
-      autostart
       collector.track_outbound(connection)
     end
 
@@ -94,7 +102,6 @@ module Aikido
     # @raise [Aikido::Zen::UnderAttackError] if the scan detected an Attack
     #   and blocking_mode is enabled.
     def self.track_scan(scan)
-      autostart
       collector.track_scan(scan)
       agent.handle_attack(scan.attack) if scan.attack?
     end
@@ -107,7 +114,6 @@ module Aikido
       return if config.disabled?
 
       if (actor = Aikido::Zen::Actor(user))
-        autostart
         collector.track_user(actor)
         current_context.request.actor = actor if current_context
       else
@@ -140,7 +146,8 @@ module Aikido
     # @!visibility private
     # Stop any background threads.
     def self.stop!
-      agent&.stop!
+      @agent&.stop!
+      @detached_agent_server&.stop!
     end
 
     # @!visibility private
@@ -149,8 +156,34 @@ module Aikido
       @agent ||= Agent.start
     end
 
+    def self.detached_agent_server
+      @detached_agent_server ||= DetachedAgent::Server.start!
+    end
+
     class << self
-      alias_method :autostart, :agent
+      # `agent` and `detached_agent` are started on the first method call.
+      # A mutex controls thread execution to prevent multiple attempts.
+      LOCK = Mutex.new
+
+      def start!
+        @pid = Process.pid
+        LOCK.synchronize do
+          agent
+          detached_agent_server
+        end
+      end
+
+      def check_and_handle_fork
+        if has_forked
+          @detached_agent&.handle_fork
+        end
+      end
+
+      def has_forked
+        pid_changed = Process.pid != @pid
+        @pid = Process.pid
+        pid_changed
+      end
     end
   end
 end

@@ -15,6 +15,19 @@ module Aikido::Zen
 
       module IPSocketExtensions
         def self.scan_socket(hostname, socket)
+          # We're patching IPSocket.open(..) method.
+          # The IPSocket class hierarchy is:
+          #             IPSocket
+          #            /        \
+          #       TCPSocket    UDPSocket
+          #       /       \
+          # TCPServer     SOCKSSocket
+          #
+          # Because we want to scan only HTTP requests, we skip in case the
+          # socket is not *exactly* an instance of TCPSocket — it's any
+          # of it subclasses
+          return unless socket.instance_of?(TCPSocket)
+
           # ["AF_INET", 80, "10.0.0.1", "10.0.0.1"]
           addr_family, *, remote_address = socket.peeraddr
 

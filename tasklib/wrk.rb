@@ -1,9 +1,12 @@
 require "open3"
 require "time"
 
+NUMBER_OF_THREADS = ENV.fetch("BENCHMARK_NUMBER_OF_THREADS") { 12 }.to_s
+CONNECTIONS = ENV.fetch("BENCHMARK_WRK_CONNECTIONS") { 400 }
+
 def generate_wrk_command_for_url(url)
   # Define the command with wrk included
-  "wrk --threads 5 --connections 200 --duration 15s --timeout 5s #{url}"
+  "wrk --threads #{NUMBER_OF_THREADS} --connections #{CONNECTIONS} --duration 15s --timeout 5s --latency #{url}"
 end
 
 def cold_start(url)
@@ -49,7 +52,7 @@ def run_benchmark(route_no_zen:, route_zen:, description:, throughput_decrease_l
   puts <<~MSG
     WRK OUTPUT
     ================
-      FIREWALL ENABLED:
+    FIREWALL ENABLED:
         #{out}
     ----------------
   MSG
@@ -57,7 +60,7 @@ def run_benchmark(route_no_zen:, route_zen:, description:, throughput_decrease_l
 
   out, err, status = Open3.capture3(generate_wrk_command_for_url(route_no_zen))
   puts <<~MSG
-      FIREWALL DISABLED:
+    FIREWALL DISABLED:
         #{out}
     ================
   MSG

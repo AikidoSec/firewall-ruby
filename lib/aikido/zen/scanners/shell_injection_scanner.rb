@@ -5,14 +5,16 @@ require_relative "shell_injection/helpers"
 module Aikido::Zen
   module Scanners
     class ShellInjectionScanner
+      def self.skips_on_nil_context?
+        true
+      end
+
       # @param command [String]
       # @param sink [Aikido::Zen::Sink]
       # @param context [Aikido::Zen::Context]
       # @param operation [Symbol, String]
       #
       def self.call(command:, sink:, context:, operation:)
-        return unless context
-
         context.payloads.each do |payload|
           next unless new(command, payload.value).attack?
 
