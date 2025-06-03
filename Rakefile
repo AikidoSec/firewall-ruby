@@ -32,6 +32,20 @@ end
 # Push all the native gems before the libzen-less one.
 task "release:rubygem_push" => "libzen:release"
 
+VERSION_FILE = "./lib/aikido/zen/version.rb"
+
+namespace :version do
+  task :replace, [:version] do |_task, args|
+    unless args[:version]
+      abort "Usage: rake version:replace[version]"
+    end
+
+    content = File.read(VERSION_FILE)
+    content.gsub!("1.0-REPLACE-VERSION", args[:version])
+    File.write(VERSION_FILE, content)
+  end
+end
+
 Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
   namespace :build do
     desc "Ensure Gemfile.lock is up-to-date in the #{dir.basename} sample app"
