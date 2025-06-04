@@ -1,7 +1,7 @@
 PATH
   remote: ../..
   specs:
-    aikido-zen (1.0.pre.REPLACE.pre.VERSION)
+    aikido-zen (0.1.1)
       concurrent-ruby (~> 1.0)
       ffi
       rack
@@ -96,7 +96,7 @@ GEM
       reline (>= 0.3.8)
     drb (2.2.1)
     erubi (1.13.0)
-    ffi (1.17.2)
+    ffi (1.17.0)
     globalid (1.2.1)
       activesupport (>= 6.1)
     i18n (1.14.5)
