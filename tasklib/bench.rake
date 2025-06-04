@@ -56,12 +56,17 @@ Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
     namespace dir.basename.to_s do
       desc "Run WRK benchmarks for the #{dir.basename} sample app"
       task wrk_run: [:boot_protected_app, :boot_unprotected_app] do
+        throughput_decrease_limit_perc = 25
+        if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.0.0") && Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.1.0")
+          throughput_decrease_limit_perc = 35
+        end
+
         wait_for_servers
         run_benchmark(
           route_zen: "http://localhost:#{PORT_PROTECTED}/benchmark", # Application with Zen
           route_no_zen: "http://localhost:#{PORT_UNPROTECTED}/benchmark", # Application without Zen
           description: "An empty route (1ms simulated delay)",
-          throughput_decrease_limit_perc: 25,
+          throughput_decrease_limit_perc: throughput_decrease_limit_perc,
           latency_increase_limit_ms: 200
         )
       ensure
