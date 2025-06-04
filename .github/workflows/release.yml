@@ -15,9 +15,6 @@ jobs:
       contents: write
       id-token: write
 
-    env:
-      BUNDLE_FROZEN: false
-
     needs:
       - build
     steps:
@@ -28,8 +25,4 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
-      - name: Set the version for this release
-        run: |
-          TAG_NAME=${GITHUB_REF##*/}
-          bundle exec rake "version:replace[${TAG_NAME#v}]"
       - uses: rubygems/release-gem@v1
