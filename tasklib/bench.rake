@@ -58,6 +58,7 @@ Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
       task wrk_run: [:boot_protected_app, :boot_unprotected_app] do
         throughput_decrease_limit_perc = 25
         if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.0.0") && Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.1.0")
+          # add higher limit for ruby 3.0
           throughput_decrease_limit_perc = 35
         end
 
