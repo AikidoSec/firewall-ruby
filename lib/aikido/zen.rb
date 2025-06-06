@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# IMPORTANT: Any files that load sinks or start the Aikido Agent should
+# be required in `Aikido::Zen.protect!`.
+
 require_relative "zen/version"
 require_relative "zen/errors"
 require_relative "zen/actor"
@@ -20,10 +23,19 @@ require_relative "zen/outbound_connection_monitor"
 require_relative "zen/runtime_settings"
 require_relative "zen/rate_limiter"
 require_relative "zen/scanners"
-require_relative "zen/rails_engine" if defined?(::Rails)
 
 module Aikido
   module Zen
+    # Enable protection. Until this method is called no sinks are loaded
+    # and the Aikido Agent does not start.
+    #
+    # @return [void]
+    def self.protect!
+      # IMPORTANT: Any files that load sinks or start the Aikido Agent
+      # should be required here only.
+      require_relative "zen/rails_engine" if defined?(::Rails)
+    end
+
     # @return [Aikido::Zen::Config] the agent configuration.
     def self.config
       @config ||= Config.new
