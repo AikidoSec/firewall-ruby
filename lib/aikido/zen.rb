@@ -31,6 +31,8 @@ module Aikido
     #
     # @return [void]
     def self.protect!
+      return if config.disabled?
+
       # IMPORTANT: Any files that load sinks or start the Aikido Agent
       # should be required here only.
       require_relative "zen/rails_engine" if defined?(::Rails)
