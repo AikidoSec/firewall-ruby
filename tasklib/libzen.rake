@@ -1,11 +1,49 @@
 # frozen_string_literal: true
 
+require "ffi"
 require "open-uri"
 require "rubygems/package_task"
 
 require_relative "../lib/aikido/zen/version"
 
-LibZenDL = Struct.new(:os, :arch, :artifact) do
+class LibZen
+  attr_reader :platform, :artifact
+
+  def initialize(platform, artifact = nil)
+    @platform = Gem::Platform.new(platform)
+    @artifact = artifact
+  end
+
+  def version
+    "v#{Aikido::Zen::LIBZEN_VERSION}"
+  end
+
+  def suffix
+    return "" if artifact.nil?
+    File.extname(artifact)
+  end
+
+  def path
+    "lib/aikido/zen/libzen-#{version}-#{platform}#{suffix}"
+  end
+
+  def url
+    File.join("https://github.com/AikidoSec/zen-internals/releases/download", version, artifact)
+  end
+
+  def gemspec(source = Bundler.load_gemspec("aikido-zen.gemspec"))
+    return @spec if defined?(@spec)
+
+    @spec = source.dup
+    @spec.platform = platform
+    @spec.files << path
+    @spec
+  end
+
+  def gem_path
+    "pkg/#{gemspec.name}-#{gemspec.version}-#{gemspec.platform}.gem"
+  end
+
   def download
     puts "Downloading #{path}"
     File.open(path, "wb") { |file| FileUtils.copy_stream(URI(url).open("rb"), file) }
@@ -16,88 +54,45 @@ LibZenDL = Struct.new(:os, :arch, :artifact) do
     actual = Digest::SHA256.file(path).to_s
 
     if expected != actual
-      abort "Checksum mismatch on #{path}: Expected #{expected}, got #{actual}."
+      abort "Checksum verification failed for #{path}: expected #{expected}, but got #{actual}"
     end
   end
 
-  def version
-    "v#{Aikido::Zen::LIBZEN_VERSION}"
-  end
-
-  def path
-    [prefix, arch, ext].join(".")
-  end
-
-  def gem_path
-    platform = "-#{gemspec.platform}" unless gemspec.platform.to_s == "ruby"
-    "pkg/#{gemspec.name}-#{gemspec.version}#{platform}.gem"
+  def namespace
+    platform.to_s
   end
 
   def pkg_dir
     File.dirname(gem_path)
   end
-
-  def prefix
-    "lib/aikido/zen/libzen-#{version}"
-  end
-
-  def ext
-    case os
-    when :darwin then "dylib"
-    when :linux then "so"
-    when :windows then "dll"
-    end
-  end
-
-  def url
-    File.join("https://github.com/AikidoSec/zen-internals/releases/download", version, artifact)
-  end
-
-  def gem_platform
-    gem_os = (os == :windows) ? "mingw64" : os
-    platform = (arch == "aarch64") ? "arm64" : arch
-    Gem::Platform.new("#{platform}-#{gem_os}")
-  end
-
-  def gemspec(source = Bundler.load_gemspec("aikido-zen.gemspec"))
-    return @spec if defined?(@spec)
-
-    @spec = source.dup
-    @spec.platform = gem_platform
-    @spec.files << path
-    @spec
-  end
-
-  def namespace
-    "#{os}:#{arch}"
-  end
 end
 
-LIBZEN = [
-  LibZenDL.new(:darwin, "aarch64", "libzen_internals_aarch64-apple-darwin.dylib"),
-  LibZenDL.new(:darwin, "x86_64", "libzen_internals_x86_64-apple-darwin.dylib"),
-  LibZenDL.new(:linux, "aarch64", "libzen_internals_aarch64-unknown-linux-gnu.so"),
-  LibZenDL.new(:linux, "x86_64", "libzen_internals_x86_64-unknown-linux-gnu.so"),
-  LibZenDL.new(:windows, "x86_64", "libzen_internals_x86_64-pc-windows-gnu.dll")
+LIBZENS = [
+  LibZen.new("arm64-darwin", "libzen_internals_aarch64-apple-darwin.dylib"),
+  LibZen.new("arm64-linux", "libzen_internals_aarch64-unknown-linux-gnu.so"),
+  LibZen.new("x86_64-darwin", "libzen_internals_x86_64-apple-darwin.dylib"),
+  LibZen.new("x86_64-linux", "libzen_internals_x86_64-unknown-linux-gnu.so"),
+  LibZen.new("x86_64-mingw64", "libzen_internals_x86_64-pc-windows-gnu.dll")
 ]
+
 namespace :libzen do
-  LIBZEN.each do |lib|
-    desc "Download libzen for #{lib.os}-#{lib.arch} if necessary"
+  LIBZENS.each do |lib|
+    desc "Download libzen for #{lib.platform} if necessary"
     task(lib.namespace => lib.path)
 
-    file(lib.path) {
+    file(lib.path) do
       lib.download
       lib.verify
-    }
+    end
     CLEAN.include(lib.path)
 
     directory lib.pkg_dir
     CLOBBER.include(lib.pkg_dir)
 
-    file(lib.gem_path => [lib.path, lib.pkg_dir]) {
+    file(lib.gem_path => [lib.path, lib.pkg_dir]) do
       path = Gem::Package.build(lib.gemspec)
       mv path, lib.pkg_dir
-    }
+    end
     CLOBBER.include(lib.pkg_dir)
 
     task "#{lib.namespace}:release" => [lib.gem_path, "release:guard_clean"] do
@@ -105,24 +100,17 @@ namespace :libzen do
     end
   end
 
-  desc "Build all the native gems for the different libzen versions"
-  task gems: LIBZEN.map(&:gem_path)
+  desc "Build all the native gems"
+  task gems: LIBZENS.map(&:gem_path)
 
   desc "Push all the native gems to RubyGems"
-  task release: LIBZEN.map { |lib| "#{lib.namespace}:release" }
+  task release: LIBZENS.map { |lib| "#{lib.namespace}:release" }
 
   desc "Download the libzen pre-built library for all platforms"
-  task "download:all" => LIBZEN.map(&:path)
+  task "download:all" => LIBZENS.map(&:path)
 
   desc "Downloads the libzen library for the current platform"
   task "download:current" do
-    require "rbconfig"
-    os = case RbConfig::CONFIG["host_os"]
-    when /darwin/ then :darwin
-    when /mingw|cygwin|mswin/ then :windows
-    else :linux
-    end
-
-    Rake::Task["libzen:#{os}:#{RbConfig::CONFIG["build_cpu"]}"].invoke
+    Rake::Task["libzen:#{Gem::Platform.local}"].invoke
   end
 end

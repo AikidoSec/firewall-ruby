@@ -13,14 +13,38 @@ module Aikido::Zen
       attr_accessor :libzen_name
     end
 
-    self.libzen_name = [
-      "libzen-v#{LIBZEN_VERSION}",
-      FFI::Platform::ARCH,
-      FFI::Platform::LIBSUFFIX
-    ].join(".")
+    def self.libzen_names
+      lib_name = "libzen-v#{LIBZEN_VERSION}"
+      lib_ext = FFI::Platform::LIBSUFFIX
+
+      platform = Gem::Platform.local.dup
+
+      names = []
+
+      names << "#{lib_name}-#{platform}.#{lib_ext}"
+
+      unless platform.version.nil?
+        platform.version = nil
+        names << "#{lib_name}-#{platform}.#{lib_ext}"
+      end
+
+      names
+    end
+
+    def self.load_libzen
+      libzen_names.each do |libzen_name|
+        libzen_path = File.expand_path(libzen_name, __dir__)
+        begin
+          return ffi_lib(libzen_path)
+        rescue LoadError
+          # empty
+        end
+      end
+      raise LoadError, "Could not load libzen"
+    end
 
     begin
-      ffi_lib File.expand_path(libzen_name, __dir__)
+      load_libzen
 
       # @!method self.detect_sql_injection_native(query, input, dialect)
       # @param (see .detect_sql_injection)
@@ -30,7 +54,7 @@ module Aikido::Zen
       #   calling libzen.
       attach_function :detect_sql_injection_native, :detect_sql_injection,
         [:string, :string, :int], :int
-    rescue LoadError, FFI::NotFoundError => err
+    rescue FFI::NotFoundError => err
       # :nocov:
 
       # Emit an $stderr warning at startup.
