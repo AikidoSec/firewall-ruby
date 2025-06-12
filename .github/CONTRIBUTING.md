@@ -97,6 +97,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Aikido
 
 - clone the repository to your local machine
 - run `$ bin/setup` to install dependencies.
+- start the databases used by the tests with `$ docker compose up -d` in the `sample_apps` directory.
 - run `$ bundle exec rake test` to test the library.
 - run `$ bundle exec rake e2e` to run the end-to-end tests.
 - run `$ bundle exec rake standard` to lint the code, and `$ bundle exec rake

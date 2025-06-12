@@ -13,14 +13,16 @@ module Aikido::Zen
         request = Aikido::Zen::Middleware.request_from(env)
         response = @app.call(env)
 
-        Aikido::Zen.track_request request
-
-        if Aikido::Zen.config.collect_api_schema? && request.route && track?(
+        if request.route && track?(
           status_code: response[0],
           route: request.route.path,
           http_method: request.request_method
         )
-          Aikido::Zen.track_discovered_route(request)
+          Aikido::Zen.track_request request
+
+          if Aikido::Zen.config.collect_api_schema?
+            Aikido::Zen.track_discovered_route(request)
+          end
         end
 
         response
