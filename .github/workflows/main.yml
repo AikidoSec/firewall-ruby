@@ -47,7 +47,7 @@ jobs:
     - name: Set up the correct Gemfile for Ruby ${{ matrix.ruby }}
       run: bin/link_gemfile "${{ matrix.ruby }}"
     - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
+      uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1
       with:
         ruby-version: ${{ matrix.ruby }}
         bundler-cache: true
