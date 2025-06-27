@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "sink"
+require_relative "sinks_dsl"
 
 require_relative "sinks/socket"
 

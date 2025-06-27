@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "socket"
+require_relative "../scanners/stored_ssrf_scanner"
+require_relative "../scanners/ssrf_scanner"
 
 module Aikido::Zen
   module Sinks
@@ -8,13 +10,17 @@ module Aikido::Zen
     # there's no way to access the internal DNS resolution that happens in C
     # when using the socket primitives.
     module Socket
+      def self.load_sinks!
+        ::IPSocket.singleton_class.prepend(Socket::IPSocketExtensions)
+      end
+
       SINK = Sinks.add("socket", scanners: [
-        Aikido::Zen::Scanners::StoredSSRFScanner,
-        Aikido::Zen::Scanners::SSRFScanner
+        Scanners::StoredSSRFScanner,
+        Scanners::SSRFScanner
       ])
 
-      module IPSocketExtensions
-        def self.scan_socket(hostname, socket)
+      module Helpers
+        def self.scan(hostname, socket, operation)
           # We're patching IPSocket.open(..) method.
           # The IPSocket class hierarchy is:
           #             IPSocket
@@ -29,36 +35,37 @@ module Aikido::Zen
           return unless socket.instance_of?(TCPSocket)
 
           # ["AF_INET", 80, "10.0.0.1", "10.0.0.1"]
-          addr_family, *, remote_address = socket.peeraddr
+          address_family, _port, _hostname, numeric_address = socket.peeraddr(:numeric)
 
           # We only care about IPv4 (AF_INET) or IPv6 (AF_INET6) sockets
           # This might be overcautious, since this is _IP_Socket, so you
           # would expect it's only used for IP connections?
-          return unless addr_family.start_with?("AF_INET")
+          return unless address_family.start_with?("AF_INET")
 
-          if (context = Aikido::Zen.current_context)
-            context["dns.lookups"] ||= Aikido::Zen::Scanners::SSRF::DNSLookups.new
-            context["dns.lookups"].add(hostname, remote_address)
+          context = Aikido::Zen.current_context
+          if context
+            context["dns.lookups"] ||= Scanners::SSRF::DNSLookups.new
+            context["dns.lookups"].add(hostname, numeric_address)
           end
 
           SINK.scan(
             hostname: hostname,
-            addresses: [remote_address],
+            addresses: [numeric_address],
             request: context && context["ssrf.request"],
-            operation: "open"
+            operation: operation
           )
         end
+      end
 
-        def open(name, *)
-          socket = super
+      module IPSocketExtensions
+        extend Sinks::DSL
 
-          IPSocketExtensions.scan_socket(name, socket)
-
-          socket
+        sink_after :open do |socket, remote_host|
+          Helpers.scan(remote_host, socket, "open")
         end
       end
     end
   end
 end
 
-::IPSocket.singleton_class.prepend(Aikido::Zen::Sinks::Socket::IPSocketExtensions)
+Aikido::Zen::Sinks::Socket.load_sinks!

@@ -3,118 +3,114 @@
 module Aikido::Zen
   module Sinks
     module File
-      SINK = Sinks.add("File", scanners: [
-        Aikido::Zen::Scanners::PathTraversalScanner
-      ])
+      def self.load_sinks!
+        # Create a copy of the original method for internal use only to prevent
+        # recursion in PathTraversalScanner.
+        #
+        # IMPORTANT: The alias must be created before the method is overridden,
+        # when the extensions are prepended.
+        ::File.singleton_class.alias_method(:expand_path__internal_for_aikido_zen, :expand_path)
 
-      module Extensions
-        def self.scan_path(filepath, operation)
+        ::File.singleton_class.prepend(FileClassExtensions)
+        ::File.prepend(FileExtensions)
+      end
+
+      SINK = Sinks.add("File", scanners: [Scanners::PathTraversalScanner])
+
+      module Helpers
+        def self.scan(filepath, operation)
           SINK.scan(
             filepath: filepath,
             operation: operation
           )
         end
+      end
 
-        # Module to extend only the initializer method of `File` (`File.new`)
-        module Initiliazer
-          def initialize(filename, *, **)
-            Extensions.scan_path(filename, "new")
-            super
+      module FileClassExtensions
+        extend Sinks::DSL
+
+        sink_before :open do |path|
+          Helpers.scan(path, "open")
+        end
+
+        sink_before :read do |path|
+          Helpers.scan(path, "read")
+        end
+
+        sink_before :write do |path|
+          Helpers.scan(path, "write")
+        end
+
+        sink_before :truncate do |file_name|
+          Helpers.scan(file_name, "truncate")
+        end
+
+        sink_before :rename do |old_name, new_name|
+          Helpers.scan(old_name, "rename")
+          Helpers.scan(new_name, "rename")
+        end
+
+        sink_before :unlink do |*file_names|
+          file_names.each do |file_name|
+            Helpers.scan(file_name, "unlink")
           end
         end
 
-        def open(filename, *, **)
-          Extensions.scan_path(filename, "open")
-          super
-        end
-
-        def read(filename, *)
-          Extensions.scan_path(filename, "read")
-          super
-        end
-
-        def write(filename, *, **)
-          Extensions.scan_path(filename, "write")
-          super
-        end
-
-        def join(*)
-          joined = super
-          Extensions.scan_path(joined, "join")
-          joined
-        end
-
-        def chmod(mode, *paths)
-          paths.each { |path| Extensions.scan_path(path, "chmod") }
-          super
-        end
-
-        def chown(user, group, *paths)
-          paths.each { |path| Extensions.scan_path(path, "chown") }
-          super
-        end
-
-        def rename(from, to)
-          Extensions.scan_path(from, "rename")
-          Extensions.scan_path(to, "rename")
-          super
-        end
-
-        def symlink(from, to)
-          Extensions.scan_path(from, "symlink")
-          Extensions.scan_path(to, "symlink")
-          super
-        end
-
-        def truncate(file_name, *)
-          Extensions.scan_path(file_name, "truncate")
-          super
-        end
-
-        def unlink(*args)
-          args.each do |arg|
-            Extensions.scan_path(arg, "unlink")
+        sink_before :delete do |*file_names|
+          file_names.each do |file_name|
+            Helpers.scan(file_name, "delete")
           end
-          super
         end
 
-        def delete(*args)
-          args.each do |arg|
-            Extensions.scan_path(arg, "delete")
+        sink_before :symlink do |old_name, new_name|
+          Helpers.scan(old_name, "symlink")
+          Helpers.scan(new_name, "symlink")
+        end
+
+        sink_before :chmod do |_mode_int, *file_names|
+          file_names.each do |file_name|
+            Helpers.scan(file_name, "chmod")
           end
-          super
         end
 
-        def utime(atime, mtime, *args)
-          args.each do |arg|
-            Extensions.scan_path(arg, "utime")
+        sink_before :chown do |_owner_int, group_int, *file_names|
+          file_names.each do |file_name|
+            Helpers.scan(file_name, "chown")
           end
-          super
         end
 
-        def expand_path(filename, *)
-          Extensions.scan_path(filename, "expand_path")
-          super
+        sink_before :utime do |_atime, _mtime, *file_names|
+          file_names.each do |file_name|
+            Helpers.scan(file_name, "utime")
+          end
         end
 
-        def realpath(filename, *)
-          Extensions.scan_path(filename, "realpath")
-          super
+        sink_after :join do |result|
+          Helpers.scan(result, "join")
         end
 
-        def realdirpath(filename, *)
-          Extensions.scan_path(filename, "realdirpath")
-          super
+        sink_before :expand_path do |file_name|
+          Helpers.scan(file_name, "expand_path")
+        end
+
+        sink_before :realpath do |file_name|
+          Helpers.scan(file_name, "realpath")
+        end
+
+        sink_before :realdirpath do |file_name|
+          Helpers.scan(file_name, "realdirpath")
+        end
+      end
+
+      module FileExtensions
+        extend Sinks::DSL
+
+        sink_before :initialize do |path|
+          Helpers.scan(path, "new")
         end
       end
     end
   end
 end
 
-# Internally, Path Traversal's scanner logic uses `expand_path`, in order to avoid recursion issues we keep
-# a copy of the original method, only to be used internally.
-# It's important to keep this line before prepend the Extensions module, otherwise the alias will call
-# the extended method.
-::File.singleton_class.alias_method :expand_path__internal_for_aikido_zen, :expand_path
-::File.singleton_class.prepend(Aikido::Zen::Sinks::File::Extensions)
-::File.prepend Aikido::Zen::Sinks::File::Extensions::Initiliazer
+Aikido::Zen::Sinks::File.load_sinks!

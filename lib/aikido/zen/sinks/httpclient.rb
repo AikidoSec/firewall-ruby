@@ -1,19 +1,23 @@
 # frozen_string_literal: true
 
-require_relative "../sink"
+require_relative "../scanners/ssrf_scanner"
 require_relative "../outbound_connection_monitor"
 
 module Aikido::Zen
   module Sinks
     module HTTPClient
+      def self.load_sinks!
+        ::HTTPClient.prepend(HTTPClient::HTTPClientExtensions)
+      end
+
       SINK = Sinks.add("httpclient", scanners: [
-        Aikido::Zen::Scanners::SSRFScanner,
-        Aikido::Zen::OutboundConnectionMonitor
+        Scanners::SSRFScanner,
+        OutboundConnectionMonitor
       ])
 
-      module Extensions
+      module Helpers
         def self.wrap_request(req)
-          Aikido::Zen::Scanners::SSRFScanner::Request.new(
+          Scanners::SSRFScanner::Request.new(
             verb: req.http_header.request_method,
             uri: req.http_header.request_uri,
             headers: req.headers
@@ -21,48 +25,61 @@ module Aikido::Zen
         end
 
         def self.wrap_response(resp)
-          Aikido::Zen::Scanners::SSRFScanner::Response.new(
+          Scanners::SSRFScanner::Response.new(
             status: resp.http_header.status_code,
             headers: resp.headers
           )
         end
 
-        def self.perform_scan(req, &block)
+        def self.scan(request, connection, operation)
+          SINK.scan(
+            request: request,
+            connection: connection,
+            operation: operation
+          )
+        end
+
+        def self.sink(req, &block)
           wrapped_request = wrap_request(req)
-          connection = Aikido::Zen::OutboundConnection.from_uri(req.http_header.request_uri)
+          connection = OutboundConnection.from_uri(req.http_header.request_uri)
 
           # Store the request information so the DNS sinks can pick it up.
-          if (context = Aikido::Zen.current_context)
+          context = Aikido::Zen.current_context
+          if context
             prev_request = context["ssrf.request"]
             context["ssrf.request"] = wrapped_request
           end
 
-          SINK.scan(connection: connection, request: wrapped_request, operation: "request")
+          scan(wrapped_request, connection, "request")
 
           yield
         ensure
           context["ssrf.request"] = prev_request if context
         end
+      end
 
-        def do_get_block(req, *)
-          Extensions.perform_scan(req) { super }
+      module HTTPClientExtensions
+        extend Sinks::DSL
+
+        private
+
+        sink_around :do_get_block do |super_call, req|
+          Helpers.sink(req, &super_call)
         end
 
-        def do_get_stream(req, *)
-          Extensions.perform_scan(req) { super }
+        sink_around :do_get_stream do |super_call, req|
+          Helpers.sink(req, &super_call)
         end
 
-        def do_get_header(req, res, *)
-          super.tap do
-            Aikido::Zen::Scanners::SSRFScanner.track_redirects(
-              request: Extensions.wrap_request(req),
-              response: Extensions.wrap_response(res)
-            )
-          end
+        sink_after :do_get_header do |_result, req, res, _sess|
+          Scanners::SSRFScanner.track_redirects(
+            request: Helpers.wrap_request(req),
+            response: Helpers.wrap_response(res)
+          )
         end
       end
     end
   end
 end
 
-::HTTPClient.prepend(Aikido::Zen::Sinks::HTTPClient::Extensions)
+Aikido::Zen::Sinks::HTTPClient.load_sinks!

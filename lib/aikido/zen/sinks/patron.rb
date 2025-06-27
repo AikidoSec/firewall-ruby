@@ -1,56 +1,71 @@
 # frozen_string_literal: true
 
-require_relative "../sink"
+require_relative "../scanners/ssrf_scanner"
 require_relative "../outbound_connection_monitor"
 
 module Aikido::Zen
   module Sinks
     module Patron
+      def self.load_sinks!
+        ::Patron::Session.prepend(SessionExtensions)
+      end
+
       SINK = Sinks.add("patron", scanners: [
-        Aikido::Zen::Scanners::SSRFScanner,
-        Aikido::Zen::OutboundConnectionMonitor
+        Scanners::SSRFScanner,
+        OutboundConnectionMonitor
       ])
 
-      module Extensions
+      module Helpers
         def self.wrap_response(request, response)
           # In this case, automatic redirection happened inside libcurl.
           if response.url != request.url && !response.url.to_s.empty?
-            Aikido::Zen::Scanners::SSRFScanner::Response.new(
+            Scanners::SSRFScanner::Response.new(
               status: 302, # We can't know what the actual status was, but we just need a 3XX
               headers: response.headers.merge("Location" => response.url)
             )
           else
-            Aikido::Zen::Scanners::SSRFScanner::Response.new(
+            Scanners::SSRFScanner::Response.new(
               status: response.status,
               headers: response.headers
             )
           end
         end
 
-        def handle_request(request)
-          wrapped_request = Aikido::Zen::Scanners::SSRFScanner::Request.new(
+        def self.scan(request, connection, operation)
+          SINK.scan(
+            request: request,
+            connection: connection,
+            operation: operation
+          )
+        end
+      end
+
+      module SessionExtensions
+        extend Sinks::DSL
+
+        sink_around :handle_request do |super_call, request|
+          wrapped_request = Scanners::SSRFScanner::Request.new(
             verb: request.action,
             uri: URI(request.url),
             headers: request.headers
           )
 
           # Store the request information so the DNS sinks can pick it up.
-          if (context = Aikido::Zen.current_context)
+          context = Aikido::Zen.current_context
+          if context
             prev_request = context["ssrf.request"]
             context["ssrf.request"] = wrapped_request
           end
 
-          SINK.scan(
-            connection: Aikido::Zen::OutboundConnection.from_uri(URI(request.url)),
-            request: wrapped_request,
-            operation: "request"
-          )
+          connection = OutboundConnection.from_uri(URI(request.url))
 
-          response = super
+          Helpers.scan(wrapped_request, connection, "request")
 
-          Aikido::Zen::Scanners::SSRFScanner.track_redirects(
+          response = super_call.call
+
+          Scanners::SSRFScanner.track_redirects(
             request: wrapped_request,
-            response: Extensions.wrap_response(request, response)
+            response: Helpers.wrap_response(request, response)
           )
 
           # When libcurl has follow_location set, it will handle redirections
@@ -62,18 +77,16 @@ module Aikido::Zen
           # stop the response from being exposed to the user. This downgrades
           # the SSRF into a blind SSRF, which is better than doing nothing.
           if request.url != response.url && !response.url.to_s.empty?
-            last_effective_request = Aikido::Zen::Scanners::SSRFScanner::Request.new(
+            last_effective_request = Scanners::SSRFScanner::Request.new(
               verb: request.action,
               uri: URI(response.url),
               headers: request.headers
             )
             context["ssrf.request"] = last_effective_request if context
 
-            SINK.scan(
-              connection: Aikido::Zen::OutboundConnection.from_uri(URI(response.url)),
-              request: last_effective_request,
-              operation: "request"
-            )
+            connection = OutboundConnection.from_uri(URI(response.url))
+
+            Helpers.scan(last_effective_request, connection, "request")
           end
 
           response
@@ -85,4 +98,4 @@ module Aikido::Zen
   end
 end
 
-::Patron::Session.prepend(Aikido::Zen::Sinks::Patron::Extensions)
+Aikido::Zen::Sinks::Patron.load_sinks!
