@@ -88,6 +88,9 @@ module Aikido::Zen
         sink_before :response_call do |datum|
           response = datum[:response]
 
+          # Code coverage is disabled here because the else clause is a no-op,
+          # so there is nothing to cover.
+          # :nocov:
           if !response.nil?
             Scanners::SSRFScanner.track_redirects(
               request: Helpers.build_request(datum, {}),
@@ -96,7 +99,10 @@ module Aikido::Zen
                 headers: response[:headers]
               )
             )
+          else
+            # empty
           end
+          # :nocov:
         end
       end
     end

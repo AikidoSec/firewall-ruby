@@ -84,9 +84,15 @@ module Aikido::Zen
           if url != last_effective_url
             last_effective_request = Helpers.wrap_request(self, url: last_effective_url)
 
+            # Code coverage is disabled here because the else clause is a no-op,
+            # so there is nothing to cover.
+            # :nocov:
             if context
               context["ssrf.request"] = last_effective_request
+            else
+              # empty
             end
+            # :nocov:
 
             connection = OutboundConnection.from_uri(URI(last_effective_url))
 

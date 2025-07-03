@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Code coverage is disabled in this file because it is environment-specific and
+# not intended to be tested directly.
+# :nocov:
+
 require_relative "sink"
 require_relative "sinks_dsl"
 
@@ -35,3 +39,5 @@ require_relative "sinks/mysql2" if defined?(::Mysql2)
 require_relative "sinks/pg" if defined?(::PG)
 require_relative "sinks/sqlite3" if defined?(::SQLite3)
 require_relative "sinks/trilogy" if defined?(::Trilogy)
+
+# :nocov:

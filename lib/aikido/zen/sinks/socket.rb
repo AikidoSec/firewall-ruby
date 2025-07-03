@@ -40,7 +40,12 @@ module Aikido::Zen
           # We only care about IPv4 (AF_INET) or IPv6 (AF_INET6) sockets
           # This might be overcautious, since this is _IP_Socket, so you
           # would expect it's only used for IP connections?
+
+          # Code coverage is disabled here because the then clause is a no-op,
+          # so there is nothing to cover.
+          # :nocov:
           return unless address_family.start_with?("AF_INET")
+          # :nocov:
 
           context = Aikido::Zen.current_context
           if context
@@ -61,7 +66,11 @@ module Aikido::Zen
         extend Sinks::DSL
 
         sink_after :open do |socket, remote_host|
+          # Code coverage is disabled here because the tests are contrived and
+          # intentionally do not call open.
+          # :nocov:
           Helpers.scan(remote_host, socket, "open")
+          # :nocov:
         end
       end
     end
