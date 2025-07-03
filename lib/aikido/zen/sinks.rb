@@ -16,7 +16,13 @@ if RUBY_VERSION >= "3.0"
 end
 require_relative "sinks/resolv" if defined?(::Resolv)
 require_relative "sinks/net_http" if defined?(::Net::HTTP)
-require_relative "sinks/http" if defined?(::HTTP)
+
+# http.rb aims to support and is tested against Ruby 3.0+:
+# https://github.com/httprb/http?tab=readme-ov-file#supported-ruby-versions
+if RUBY_VERSION >= "3.0"
+  require_relative "sinks/http" if defined?(::HTTP)
+end
+
 require_relative "sinks/httpx" if defined?(::HTTPX)
 require_relative "sinks/httpclient" if defined?(::HTTPClient)
 require_relative "sinks/excon" if defined?(::Excon)
