@@ -5,7 +5,7 @@ module Aikido::Zen
     module DSL
       extend self
 
-      class SafeError < StandardError
+      class PresafeError < StandardError
       end
 
       # Safely execute the given block
@@ -16,7 +16,7 @@ module Aikido::Zen
       #
       # Error suppression is disabled when `Aikido::Zen.config.debugging?` is true.
       #
-      # When an error is wrapped in `SafeError` the original error is reraised.
+      # When an error is wrapped in `PresafeError` the original error is reraised.
       #
       # @yield the block to execute
       def safe
@@ -27,7 +27,7 @@ module Aikido::Zen
             yield
           rescue Aikido::Zen::UnderAttackError
             raise
-          rescue SafeError => err
+          rescue PresafeError => err
             raise err.cause
           rescue
             # empty
@@ -35,25 +35,25 @@ module Aikido::Zen
         end
       end
 
-      # Unsafely execute the given block
+      # Presafely execute the given block
       #
-      # Safely wrap standard errors in `SafeError` so that the original error is
+      # Safely wrap standard errors in `PresafeError` so that the original error is
       # reraised when rescued in `safe`.
       #
       # @yield the block to execute
-      def unsafe
+      def presafe
         if Aikido::Zen.config.debugging?
           yield
         else
           begin
             yield
           rescue => err
-            raise SafeError, cause: err
+            raise PresafeError, cause: err
           end
         end
       end
 
-      # Define a method `method_name` that unsafely executes the given block before
+      # Define a method `method_name` that presafely executes the given block before
       # the original method.
       #
       # @param method_name [Symbol, String] the name of the method to define
@@ -62,7 +62,7 @@ module Aikido::Zen
       # @yieldparam kwargs [Hash] the keyword arguments passed to the original method
       #
       # @return [void]
-      def unsafe_sink_before(method_name, &block)
+      def presafe_sink_before(method_name, &block)
         define_method(method_name) do |*args, **kwargs, &blk|
           instance_exec(*args, **kwargs, &block)
           super(*args, **kwargs, &blk)
@@ -81,14 +81,14 @@ module Aikido::Zen
       #
       # @note the block is executed within `safe` to handle errors safely; the original method is executed outside of `safe` to preserve the original behavior
       def sink_before(method_name, &block)
-        unsafe_sink_before(method_name) do |*args, **kwargs|
+        presafe_sink_before(method_name) do |*args, **kwargs|
           DSL.safe do
             instance_exec(*args, **kwargs, &block)
           end
         end
       end
 
-      # Define a method `method_name` that unsafely executes the given block after
+      # Define a method `method_name` that presafely executes the given block after
       # the original method.
       #
       # @param method_name [Symbol, String] the name of the method to define
@@ -98,7 +98,7 @@ module Aikido::Zen
       # @yieldparam kwargs [Hash] the keyword arguments passed to the original method
       #
       # @return [void]
-      def unsafe_sink_after(method_name, &block)
+      def presafe_sink_after(method_name, &block)
         define_method(method_name) do |*args, **kwargs, &blk|
           result = super(*args, **kwargs, &blk)
           instance_exec(result, *args, **kwargs, &block)
@@ -119,14 +119,14 @@ module Aikido::Zen
       #
       # @note the block is executed within `safe` to handle errors safely; the original method is executed outside of `safe` to preserve the original behavior
       def sink_after(method_name, &block)
-        unsafe_sink_after(method_name) do |result, *args, **kwargs|
+        presafe_sink_after(method_name) do |result, *args, **kwargs|
           DSL.safe do
             instance_exec(result, *args, **kwargs, &block)
           end
         end
       end
 
-      # Define a method `method_name` that unsafely executes the given block around
+      # Define a method `method_name` that presafely executes the given block around
       # the original method.
       #
       # @param method_name [Symbol, String] the name of the method to define
@@ -136,7 +136,7 @@ module Aikido::Zen
       # @yieldparam kwargs [Hash] the keyword arguments passed to the original method
       #
       # @return [void]
-      def unsafe_sink_around(method_name, &block)
+      def presafe_sink_around(method_name, &block)
         define_method(method_name) do |*args, **kwargs, &blk|
           result = nil
           super_call = proc do
@@ -158,21 +158,21 @@ module Aikido::Zen
       #
       # @return [void]
       #
-      # @note the block is executed within `safe` to handle errors safely; the original method is executed within `unsafe` to preserve the original behavior
+      # @note the block is executed within `safe` to handle errors safely; the original method is executed within `presafe` to preserve the original behavior
       # @note if the block does not call `super_call`, the original method is called automatically after the block is executed
       def sink_around(method_name, &block)
-        unsafe_sink_around(method_name) do |unsafe_super_call, *args, **kwargs|
+        presafe_sink_around(method_name) do |presafe_super_call, *args, **kwargs|
           super_called = false
           super_call = proc do
             super_called = true
-            DSL.unsafe do
-              unsafe_super_call.call
+            DSL.presafe do
+              presafe_super_call.call
             end
           end
           DSL.safe do
             instance_exec(super_call, *args, **kwargs, &block)
           end
-          unsafe_super_call.call unless super_called
+          presafe_super_call.call unless super_called
         end
       end
     end

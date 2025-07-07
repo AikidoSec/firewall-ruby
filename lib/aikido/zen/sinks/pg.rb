@@ -46,7 +46,7 @@ module Aikido::Zen
           send_query exec sync_exec async_exec
           send_query_params exec_params sync_exec_params async_exec_params
         ].each do |method_name|
-          unsafe_sink_before method_name do |query|
+          presafe_sink_before method_name do |query|
             Helpers.safe do
               Helpers.scan(query, method_name)
             end
@@ -56,7 +56,7 @@ module Aikido::Zen
         %i[
           send_prepare prepare async_prepare sync_prepare
         ].each do |method_name|
-          unsafe_sink_before method_name do |_, query|
+          presafe_sink_before method_name do |_, query|
             Helpers.safe do
               Helpers.scan(query, method_name)
             end
