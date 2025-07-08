@@ -83,8 +83,8 @@ module Aikido::Zen
         raise
       rescue PresafeError => err
         raise err.cause
-      rescue
-        # empty
+      rescue => err
+        Aikido::Zen.config.logger.debug("[safe] #{err.class}: #{err.message}")
       end
 
       # Presafely execute the given block
