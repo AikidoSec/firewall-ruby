@@ -95,6 +95,16 @@ class Aikido::Zen::Request::HeuristicRouterTest < ActiveSupport::TestCase
       into: "/posts/00000000-0000-1000-6000-000000000000"
   end
 
+  test "replaces ULIDs" do
+    assert_parameterizes "/posts/01ARZ3NDEKTSV4RRFFQ69G5FAV", into: "/posts/:ulid"
+    assert_parameterizes "/posts/01arz3ndektsv4rrffq69g5fav", into: "/posts/:ulid"
+  end
+
+  test "replaces ObjectIds" do
+    assert_parameterizes "/posts/66EC29159D00113616FC7184", into: "/posts/:objectId"
+    assert_parameterizes "/posts/66ec29159d00113616fc7184", into: "/posts/:objectId"
+  end
+
   test "replaces emails" do
     assert_parameterizes "/login/john.doe@acme.com", into: "/login/:email"
     assert_parameterizes "/login/john.doe+alias@acme.com", into: "/login/:email"

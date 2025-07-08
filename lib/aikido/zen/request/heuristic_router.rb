@@ -30,6 +30,10 @@ module Aikido::Zen
 
     private def parameterize_segment(segment)
       case segment
+      when ULID
+        ":ulid"
+      when OBJECT_ID
+        ":objectId"
       when NUMBER
         ":number"
       when UUID
@@ -57,6 +61,8 @@ module Aikido::Zen
             | 00000000-0000-0000-0000-000000000000
             | ffffffff-ffff-ffff-ffff-ffffffffffff
             )\z/ix
+    ULID = /\A[0-9A-HJKMNP-TV-Z]{26}\z/i
+    OBJECT_ID = /\A[0-9a-f]{24}\z/i
     EMAIL = /\A
               [a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+
               @
