@@ -25,8 +25,8 @@ module Aikido::Zen
         end
 
         def self.wrap_response(resp)
-          # To understand why code coverage is disabled here see the comment in
-          # HTTPClientExtensions#do_get_header.
+          # Code coverage is disabled here because `do_get_header` is not called,
+          # because WebMock does not mock it.
           # :nocov:
           Scanners::SSRFScanner::Response.new(
             status: resp.http_header.status_code,
@@ -76,7 +76,7 @@ module Aikido::Zen
         end
 
         sink_after :do_get_header do |_result, req, res, _sess|
-          # Code coverage is disabled here because do_get_header is not called,
+          # Code coverage is disabled here because `do_get_header` is not called,
           # because WebMock does not mock it.
           # :nocov:
           Scanners::SSRFScanner.track_redirects(
