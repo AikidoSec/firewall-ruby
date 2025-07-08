@@ -70,12 +70,17 @@ module Aikido::Zen
           )
 
           response
-        rescue ::Excon::Error::Socket => err
-          # Excon wraps errors inside the lower level layer. This only happens
-          # to our scanning exceptions when a request is using RedirectFollower,
-          # so we unwrap them when it happens so host apps can handle errors
-          # consistently.
-          raise err.cause if err.cause.is_a?(Aikido::Zen::UnderAttackError)
+        rescue Sinks::DSL::PresafeError => err
+          outer_cause = err.cause
+          case outer_cause
+          when ::Excon::Error::Socket
+            inner_cause = outer_cause.cause
+            # Excon wraps errors inside the lower level layer. This only happens
+            # to our scanning exceptions when a request is using RedirectFollower,
+            # so we unwrap them when it happens so host apps can handle errors
+            # consistently.
+            raise inner_cause if inner_cause.is_a?(Aikido::Zen::UnderAttackError)
+          end
           raise
         ensure
           context["ssrf.request"] = prev_request if context
