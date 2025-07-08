@@ -74,25 +74,17 @@ module Aikido::Zen
       # This ensures that unexpected errors do not interrupt the execution of the
       # original method, while all detected attacks are raised.
       #
-      # Error suppression is disabled when `Aikido::Zen.config.debugging?` is true.
-      #
       # When an error is wrapped in `PresafeError` the original error is reraised.
       #
       # @yield the block to execute
       def safe
-        if Aikido::Zen.config.debugging?
-          yield
-        else
-          begin
-            yield
-          rescue Aikido::Zen::UnderAttackError
-            raise
-          rescue PresafeError => err
-            raise err.cause
-          rescue
-            # empty
-          end
-        end
+        yield
+      rescue Aikido::Zen::UnderAttackError
+        raise
+      rescue PresafeError => err
+        raise err.cause
+      rescue
+        # empty
       end
 
       # Presafely execute the given block
@@ -102,15 +94,9 @@ module Aikido::Zen
       #
       # @yield the block to execute
       def presafe
-        if Aikido::Zen.config.debugging?
-          yield
-        else
-          begin
-            yield
-          rescue => err
-            raise PresafeError, cause: err
-          end
-        end
+        yield
+      rescue => err
+        raise PresafeError, cause: err
       end
 
       # Define a method `method_name` that presafely executes the given block before
