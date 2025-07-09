@@ -1,30 +1,45 @@
 # frozen_string_literal: true
 
-require_relative "../sink"
-
 module Aikido::Zen
   module Sinks
     module SQLite3
+      def self.load_sinks!
+        ::SQLite3::Database.prepend(DatabaseExtensions)
+        ::SQLite3::Statement.prepend(StatementExtensions)
+      end
+
       SINK = Sinks.add("sqlite3", scanners: [Scanners::SQLInjectionScanner])
 
-      module DatabaseExt
-        def exec_batch(sql, *)
-          SINK.scan(query: sql, dialect: :sqlite, operation: "exec_batch")
-
-          super
+      module Helpers
+        def self.scan(query, operation)
+          SINK.scan(
+            query: query,
+            dialect: :sqlite,
+            operation: operation
+          )
         end
       end
 
-      module StatementExt
-        def initialize(_, sql, *)
-          SINK.scan(query: sql, dialect: :sqlite, operation: "statement.execute")
+      module DatabaseExtensions
+        extend Sinks::DSL
 
-          super
+        private
+
+        # SQLite3::Database#exec_batch is an internal native private method.
+        sink_before :exec_batch do |sql|
+          Helpers.scan(sql, "exec_batch")
+        end
+      end
+
+      module StatementExtensions
+        extend Sinks::DSL
+
+        sink_before :initialize do |_db, sql|
+          Helpers.scan(sql, "statement.execute")
         end
       end
     end
   end
 end
 
-::SQLite3::Database.prepend(Aikido::Zen::Sinks::SQLite3::DatabaseExt)
-::SQLite3::Statement.prepend(Aikido::Zen::Sinks::SQLite3::StatementExt)
+Aikido::Zen::Sinks::SQLite3.load_sinks!

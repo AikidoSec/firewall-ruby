@@ -115,6 +115,9 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
   test "#scan returns nil if protection is disabled for the current context" do
     context = Minitest::Mock.new
     context.expect :protection_disabled?, true
+    context.expect :scanning, false
+    context.expect :scanning=, true, [true]
+    context.expect :scanning=, false, [false]
 
     sink = Aikido::Zen::Sink.new("test", reporter: NOOP, scanners: [
       FakeScanner.new { raise Exception, "oops" } # StandardError would be caught
