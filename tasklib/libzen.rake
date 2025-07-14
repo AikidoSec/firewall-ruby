@@ -80,6 +80,7 @@ LIBZENS = [
   LibZen.new("x86_64-freebsd.so"),
   LibZen.new("x86_64-linux.so", "libzen_internals_x86_64-unknown-linux-gnu.so"),
   LibZen.new("x86_64-linux-musl.so", "libzen_internals_x86_64-unknown-linux-musl.so"),
+  LibZen.new("x86_64-solaris.so"),
   LibZen.new("x86_64-mingw64.dll", "libzen_internals_x86_64-pc-windows-gnu.dll")
 ].filter(&:resolvable?)
 
