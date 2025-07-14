@@ -70,8 +70,10 @@ end
 LIBZENS = [
   LibZen.new("arm64-darwin", "libzen_internals_aarch64-apple-darwin.dylib"),
   LibZen.new("arm64-linux", "libzen_internals_aarch64-unknown-linux-gnu.so"),
+  LibZen.new("arm64-linux-musl", "libzen_internals_aarch64-unknown-linux-musl.so"),
   LibZen.new("x86_64-darwin", "libzen_internals_x86_64-apple-darwin.dylib"),
   LibZen.new("x86_64-linux", "libzen_internals_x86_64-unknown-linux-gnu.so"),
+  LibZen.new("x86_64-linux-musl", "libzen_internals_x86_64-unknown-linux-musl.so"),
   LibZen.new("x86_64-mingw64", "libzen_internals_x86_64-pc-windows-gnu.dll")
 ]
 
