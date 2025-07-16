@@ -54,7 +54,7 @@ module Aikido::Zen
       #   calling libzen.
       attach_function :detect_sql_injection_native, :detect_sql_injection,
         [:string, :string, :int], :int
-    rescue FFI::NotFoundError => err
+    rescue LoadError, FFI::NotFoundError => err
       # :nocov:
 
       # Emit an $stderr warning at startup.
