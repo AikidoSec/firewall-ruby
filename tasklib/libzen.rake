@@ -125,6 +125,7 @@ namespace :libzen do
     platform = Gem::Platform.local.dup
     platform.version = nil unless Rake::Task.task_defined?("libzen:#{platform}")
 
+    # Invoke the most specific task
     Rake::Task["libzen:#{platform}"].invoke
   end
 end

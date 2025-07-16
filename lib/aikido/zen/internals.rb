@@ -17,8 +17,17 @@ module Aikido::Zen
       lib_name = "libzen-v#{LIBZEN_VERSION}"
       lib_ext = FFI::Platform::LIBSUFFIX
 
+      # Gem::Platform#version should be understood as an arbitrary Ruby defined
+      # OS specific string. A platform with a version string is considered more
+      # specific than a platform without a version string.
+      # https://docs.ruby-lang.org/en/3.3/Gem/Platform.html
+
       platform = Gem::Platform.local.dup
 
+      # Library names in preferred order.
+      #
+      # If two library names are added, the specific platform library names is
+      # first and the generic platform library name is second.
       names = []
 
       names << "#{lib_name}-#{platform}.#{lib_ext}"
@@ -31,6 +40,7 @@ module Aikido::Zen
       names
     end
 
+    # Load the most specific library
     def self.load_libzen
       libzen_names.each do |libzen_name|
         libzen_path = File.expand_path(libzen_name, __dir__)
