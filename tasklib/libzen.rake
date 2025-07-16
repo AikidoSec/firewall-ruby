@@ -77,11 +77,12 @@ LIBZENS = [
   LibZen.new("arm64-linux.so", "libzen_internals_aarch64-unknown-linux-gnu.so"),
   LibZen.new("arm64-linux-musl.so", "libzen_internals_aarch64-unknown-linux-musl.so"),
   LibZen.new("x86_64-darwin.dylib", "libzen_internals_x86_64-apple-darwin.dylib"),
-  LibZen.new("x86_64-freebsd.so"),
   LibZen.new("x86_64-linux.so", "libzen_internals_x86_64-unknown-linux-gnu.so"),
   LibZen.new("x86_64-linux-musl.so", "libzen_internals_x86_64-unknown-linux-musl.so"),
-  LibZen.new("x86_64-solaris.so"),
-  LibZen.new("x86_64-mingw64.dll", "libzen_internals_x86_64-pc-windows-gnu.dll")
+  LibZen.new("x86_64-mingw64.dll", "libzen_internals_x86_64-pc-windows-gnu.dll"),
+  # Not officially supported, but used during testing:
+  LibZen.new("x86_64-freebsd.so"),
+  LibZen.new("x86_64-solaris.so")
 ].filter(&:resolvable?)
 
 namespace :libzen do
