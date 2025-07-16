@@ -122,6 +122,9 @@ namespace :libzen do
 
   desc "Downloads the libzen library for the current platform"
   task "download:current" do
-    Rake::Task["libzen:#{Gem::Platform.local}"].invoke
+    platform = Gem::Platform.local.dup
+    platform.version = nil unless Rake::Task.task_defined?("libzen:#{platform}")
+
+    Rake::Task["libzen:#{platform}"].invoke
   end
 end
