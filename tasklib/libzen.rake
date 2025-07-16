@@ -41,6 +41,14 @@ class LibZen
     "pkg/#{gemspec.name}-#{gemspec.version}-#{gemspec.platform}.gem"
   end
 
+  def resolvable?
+    downloadable? || File.exist?(path)
+  end
+
+  def downloadable?
+    !artifact.nil?
+  end
+
   def download
     puts "Downloading #{path}"
     File.open(path, "wb") { |file| FileUtils.copy_stream(URI(url).open("rb"), file) }
@@ -72,18 +80,20 @@ LIBZENS = [
   LibZen.new("x86_64-linux.so", "libzen_internals_x86_64-unknown-linux-gnu.so"),
   LibZen.new("x86_64-linux-musl.so", "libzen_internals_x86_64-unknown-linux-musl.so"),
   LibZen.new("x86_64-mingw64.dll", "libzen_internals_x86_64-pc-windows-gnu.dll")
-]
+].filter(&:resolvable?)
 
 namespace :libzen do
   LIBZENS.each do |lib|
     desc "Download libzen for #{lib.platform} if necessary"
     task(lib.namespace => lib.path)
 
-    file(lib.path) do
-      lib.download
-      lib.verify
+    if lib.downloadable?
+      file(lib.path) do
+        lib.download
+        lib.verify
+      end
+      CLEAN.include(lib.path)
     end
-    CLEAN.include(lib.path)
 
     directory lib.pkg_dir
     CLOBBER.include(lib.pkg_dir)
