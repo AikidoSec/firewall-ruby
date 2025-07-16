@@ -7,10 +7,12 @@ require "rubygems/package_task"
 require_relative "../lib/aikido/zen/version"
 
 class LibZen
-  attr_reader :platform, :artifact
+  attr_reader :platform, :suffix, :artifact
 
-  def initialize(platform, artifact = nil)
+  def initialize(platform_suffix, artifact = nil)
+    platform, suffix = platform_suffix.split(".", 2)
     @platform = Gem::Platform.new(platform)
+    @suffix = suffix
     @artifact = artifact
   end
 
@@ -18,13 +20,8 @@ class LibZen
     "v#{Aikido::Zen::LIBZEN_VERSION}"
   end
 
-  def suffix
-    return "" if artifact.nil?
-    File.extname(artifact)
-  end
-
   def path
-    "lib/aikido/zen/libzen-#{version}-#{platform}#{suffix}"
+    "lib/aikido/zen/libzen-#{version}-#{platform}.#{suffix}"
   end
 
   def url
@@ -68,13 +65,13 @@ class LibZen
 end
 
 LIBZENS = [
-  LibZen.new("arm64-darwin", "libzen_internals_aarch64-apple-darwin.dylib"),
-  LibZen.new("arm64-linux", "libzen_internals_aarch64-unknown-linux-gnu.so"),
-  LibZen.new("arm64-linux-musl", "libzen_internals_aarch64-unknown-linux-musl.so"),
-  LibZen.new("x86_64-darwin", "libzen_internals_x86_64-apple-darwin.dylib"),
-  LibZen.new("x86_64-linux", "libzen_internals_x86_64-unknown-linux-gnu.so"),
-  LibZen.new("x86_64-linux-musl", "libzen_internals_x86_64-unknown-linux-musl.so"),
-  LibZen.new("x86_64-mingw64", "libzen_internals_x86_64-pc-windows-gnu.dll")
+  LibZen.new("arm64-darwin.dylib", "libzen_internals_aarch64-apple-darwin.dylib"),
+  LibZen.new("arm64-linux.so", "libzen_internals_aarch64-unknown-linux-gnu.so"),
+  LibZen.new("arm64-linux-musl.so", "libzen_internals_aarch64-unknown-linux-musl.so"),
+  LibZen.new("x86_64-darwin.dylib", "libzen_internals_x86_64-apple-darwin.dylib"),
+  LibZen.new("x86_64-linux.so", "libzen_internals_x86_64-unknown-linux-gnu.so"),
+  LibZen.new("x86_64-linux-musl.so", "libzen_internals_x86_64-unknown-linux-musl.so"),
+  LibZen.new("x86_64-mingw64.dll", "libzen_internals_x86_64-pc-windows-gnu.dll")
 ]
 
 namespace :libzen do
