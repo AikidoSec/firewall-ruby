@@ -8,7 +8,11 @@ module Aikido::Zen
     module Async
       module HTTP
         def self.load_sinks!
-          ::Async::HTTP::Client.prepend(Async::HTTP::ClientExtensions)
+          if Gem.loaded_specs["async-http"]
+            require "async/http"
+
+            ::Async::HTTP::Client.prepend(Async::HTTP::ClientExtensions)
+          end
         end
 
         SINK = Sinks.add("async-http", scanners: [

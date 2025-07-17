@@ -8,6 +8,9 @@ module Aikido::Zen
     module Net
       module HTTP
         def self.load_sinks!
+          # In stdlib but not always required
+          require "net/http"
+
           ::Net::HTTP.prepend(Net::HTTP::HTTPExtensions)
         end
 

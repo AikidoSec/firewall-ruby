@@ -7,8 +7,12 @@ module Aikido::Zen
   module Sinks
     module Excon
       def self.load_sinks!
-        ::Excon::Connection.prepend(ConnectionExtensions)
-        ::Excon::Middleware::RedirectFollower.prepend(RedirectFollowerExtensions)
+        if Gem.loaded_specs["excon"]
+          require "excon"
+
+          ::Excon::Connection.prepend(ConnectionExtensions)
+          ::Excon::Middleware::RedirectFollower.prepend(RedirectFollowerExtensions)
+        end
       end
 
       SINK = Sinks.add("excon", scanners: [

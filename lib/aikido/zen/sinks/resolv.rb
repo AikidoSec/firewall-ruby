@@ -7,6 +7,9 @@ module Aikido::Zen
   module Sinks
     module Resolv
       def self.load_sinks!
+        # In stdlib but not always required
+        require "resolv"
+
         ::Resolv.prepend(ResolvExtensions)
       end
 

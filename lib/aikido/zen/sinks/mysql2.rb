@@ -4,7 +4,11 @@ module Aikido::Zen
   module Sinks
     module Mysql2
       def self.load_sinks!
-        ::Mysql2::Client.prepend(ClientExtensions)
+        if Gem.loaded_specs["mysql2"]
+          require "mysql2"
+
+          ::Mysql2::Client.prepend(ClientExtensions)
+        end
       end
 
       SINK = Sinks.add("mysql2", scanners: [Scanners::SQLInjectionScanner])

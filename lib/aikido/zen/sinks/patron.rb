@@ -7,7 +7,11 @@ module Aikido::Zen
   module Sinks
     module Patron
       def self.load_sinks!
-        ::Patron::Session.prepend(SessionExtensions)
+        if Gem.loaded_specs["patron"]
+          require "patron"
+
+          ::Patron::Session.prepend(SessionExtensions)
+        end
       end
 
       SINK = Sinks.add("patron", scanners: [

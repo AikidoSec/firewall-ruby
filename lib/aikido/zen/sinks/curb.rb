@@ -7,7 +7,11 @@ module Aikido::Zen
   module Sinks
     module Curl
       def self.load_sinks!
-        ::Curl::Easy.prepend(Curl::EasyExtensions)
+        if Gem.loaded_specs["curb"]
+          require "curb"
+
+          ::Curl::Easy.prepend(Curl::EasyExtensions)
+        end
       end
 
       SINK = Sinks.add("curb", scanners: [

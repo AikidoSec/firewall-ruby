@@ -7,7 +7,11 @@ module Aikido::Zen
   module Sinks
     module HTTPClient
       def self.load_sinks!
-        ::HTTPClient.prepend(HTTPClient::HTTPClientExtensions)
+        if Gem.loaded_specs["httpclient"]
+          require "httpclient"
+
+          ::HTTPClient.prepend(HTTPClient::HTTPClientExtensions)
+        end
       end
 
       SINK = Sinks.add("httpclient", scanners: [

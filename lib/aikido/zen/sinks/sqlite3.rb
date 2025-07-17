@@ -4,8 +4,12 @@ module Aikido::Zen
   module Sinks
     module SQLite3
       def self.load_sinks!
-        ::SQLite3::Database.prepend(DatabaseExtensions)
-        ::SQLite3::Statement.prepend(StatementExtensions)
+        if Gem.loaded_specs["sqlite3"]
+          require "sqlite3"
+
+          ::SQLite3::Database.prepend(DatabaseExtensions)
+          ::SQLite3::Statement.prepend(StatementExtensions)
+        end
       end
 
       SINK = Sinks.add("sqlite3", scanners: [Scanners::SQLInjectionScanner])
