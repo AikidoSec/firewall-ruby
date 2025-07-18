@@ -4,7 +4,11 @@ module Aikido::Zen
   module Sinks
     module Trilogy
       def self.load_sinks!
-        ::Trilogy.prepend(TrilogyExtensions)
+        if Gem.loaded_specs["trilogy"]
+          require "trilogy"
+
+          ::Trilogy.prepend(TrilogyExtensions)
+        end
       end
 
       SINK = Sinks.add("trilogy", scanners: [Scanners::SQLInjectionScanner])

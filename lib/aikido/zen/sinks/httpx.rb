@@ -7,7 +7,11 @@ module Aikido::Zen
   module Sinks
     module HTTPX
       def self.load_sinks!
-        ::HTTPX::Session.prepend(HTTPX::SessionExtensions)
+        if Gem.loaded_specs["httpx"]
+          require "httpx"
+
+          ::HTTPX::Session.prepend(HTTPX::SessionExtensions)
+        end
       end
 
       SINK = Sinks.add("httpx", scanners: [

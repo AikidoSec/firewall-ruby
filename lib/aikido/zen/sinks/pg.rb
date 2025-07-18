@@ -4,7 +4,11 @@ module Aikido::Zen
   module Sinks
     module PG
       def self.load_sinks!
-        ::PG::Connection.prepend(PG::ConnectionExtensions)
+        if Gem.loaded_specs["pg"]
+          require "pg"
+
+          ::PG::Connection.prepend(PG::ConnectionExtensions)
+        end
       end
 
       SINK = Sinks.add("pg", scanners: [Scanners::SQLInjectionScanner])

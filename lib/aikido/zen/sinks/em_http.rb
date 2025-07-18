@@ -8,12 +8,16 @@ module Aikido::Zen
     module EventMachine
       module HttpRequest
         def self.load_sinks!
-          ::EventMachine::HttpRequest.use(EventMachine::HttpRequest::Middleware)
+          if Gem.loaded_specs["em-http-request"]
+            require "em-http-request"
 
-          # NOTE: We can't use middleware to intercept requests as we want to ensure any
-          # modifications to the request from user-supplied middleware are already applied
-          # before we scan the request.
-          ::EventMachine::HttpClient.prepend(EventMachine::HttpRequest::HttpClientExtensions)
+            ::EventMachine::HttpRequest.use(EventMachine::HttpRequest::Middleware)
+
+            # NOTE: We can't use middleware to intercept requests as we want to ensure any
+            # modifications to the request from user-supplied middleware are already applied
+            # before we scan the request.
+            ::EventMachine::HttpClient.prepend(EventMachine::HttpRequest::HttpClientExtensions)
+          end
         end
 
         SINK = Sinks.add("em-http-request", scanners: [
