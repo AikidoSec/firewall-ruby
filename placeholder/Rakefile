@@ -1,0 +1,57 @@
+# frozen_string_literal: true
+
+require "rake"
+require "rake/clean"
+require "rubygems/package"
+
+GEM_NAMES = %w[aikido aikidozen]
+
+# Clean up generated gemspec and gem files
+CLEAN.include(*GEM_NAMES.map { |name| "#{name}.gemspec" })
+CLOBBER.include(*GEM_NAMES.map { |name| "#{name}-*.gem" })
+
+namespace :build do
+  GEM_NAMES.each do |gem_name|
+    gemspec_path = "#{gem_name}.gemspec"
+
+    # Generate gemspec from template if needed
+    file gemspec_path => ["aikido-zen.gemspec.template"] do
+      template = File.read("aikido-zen.gemspec.template")
+      content = template.gsub("@GEM_NAME", gem_name)
+      File.write(gemspec_path, content)
+      puts "Generated #{gemspec_path}"
+    end
+
+    desc "Build the #{gem_name} gem"
+    task gem_name => [gemspec_path] do
+      gemspec = Gem::Specification.load(gemspec_path)
+      raise "Failed to load gemspec: #{gemspec_path}" unless gemspec
+
+      gem_path = Gem::Package.build(gemspec)
+      puts "Built #{gem_path}"
+    end
+  end
+
+  desc "Build all gems"
+  task all: GEM_NAMES.map { |gem_name| "build:#{gem_name}" }
+end
+
+namespace :release do
+  GEM_NAMES.each do |gem_name|
+    gemspec_path = "#{gem_name}.gemspec"
+
+    desc "Build and publish the #{gem_name} to RubyGems"
+    task gem_name => ["build:#{gem_name}"] do
+      gemspec = Gem::Specification.load(gemspec_path)
+      raise "Failed to load gemspec: #{gemspec_path}" unless gemspec
+
+      gem_path = "#{gemspec.name}-#{gemspec.version}.gem"
+
+      puts "Publishing #{gem_path} to RubyGem..."
+      sh "gem push #{gem_path}"
+    end
+  end
+
+  desc "Build and publish all gems to RubyGems"
+  task all: GEM_NAMES.map { |gem_name| "release:#{gem_name}" }
+end
