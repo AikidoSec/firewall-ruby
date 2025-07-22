@@ -64,7 +64,7 @@ We use GitHub issues to track bugs and errors. If you run into an issue with the
 
 - Open an [Issue](https://github.com/AikidoSec/firewall-ruby/issues/new). (Since we can't be sure at this point whether it is a bug or not, we ask you not to talk about a bug yet and not to label the issue.)
 - Explain the behavior you would expect and the actual behavior.
-- Please provide as much context as possible and describe the *reproduction steps* that someone else can follow to recreate the issue on their own. This usually includes your code. For good bug reports you should isolate the problem and create a reduced test case.
+- Please provide as much context as possible and describe the _reproduction steps_ that someone else can follow to recreate the issue on their own. This usually includes your code. For good bug reports you should isolate the problem and create a reduced test case.
 - Provide the information you collected in the previous section.
 
 Once it's filed:
@@ -96,13 +96,12 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Aikido
 ### Your First Code Contribution
 
 - clone the repository to your local machine
-- run `$ bin/setup` to install dependencies.
-- start the databases used by the tests with `$ docker compose up -d` in the `sample_apps` directory.
-- run `$ bundle exec rake test` to test the library.
-- run `$ bundle exec rake e2e` to run the end-to-end tests.
-- run `$ bundle exec rake standard` to lint the code, and `$ bundle exec rake
-standard:fix` to autofix any linting violations.
-- run `$ bundle exec rake bench` to run all benchmarks.
+- run `$ bin/setup` to install dependencies
+- start the databases used by the tests with `$ docker compose up -d` in the `sample_apps` directory
+- run `$ bundle exec rake test` to test the library
+- run `$ bundle exec rake e2e` to run the end-to-end tests
+- run `$ bundle exec rake standard` to lint the code, and `$ bundle exec rake standard:fix` to autofix any linting violations
+- run `$ bundle exec rake bench` to run all benchmarks
 
 #### Common issues :
 - `mkmf.rb can't find header files for ruby at /usr/share/include/ruby.h`, If this error occurs you are most likely missing the ruby dev package, checkout [the following Gist](https://gist.github.com/johngerome/133b127c9f8545dccc54)
