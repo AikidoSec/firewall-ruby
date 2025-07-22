@@ -44,14 +44,14 @@ Zen for Ruby 2.7+ is compatible with:
 * ✅ [`mysql2`](https://github.com/brianmario/mysql2) 0.x
 * ✅ [`trilogy`](https://github.com/trilogy-libraries/trilogy) 2.x
 
-### ORMs and Query Builders
+### ORMs and query builders
 
 See list above for supported database drivers.
 
 * ✅ [ActiveRecord](https://github.com/rails/rails)
 * ✅ [Sequel](https://github.com/jeremyevans/sequel)
 
-### HTTP Clients
+### HTTP clients
 
 * ✅ [`net-http`](https://github.com/ruby/net-http)
 * ✅ [`http.rb`](https://github.com/httprb/http) 1.x, 2.x, 3.x, 4.x, 5.x
