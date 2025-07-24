@@ -15,8 +15,8 @@ namespace :build do
     gemspec_path = "#{gem_name}.gemspec"
 
     # Generate gemspec from template if needed
-    file gemspec_path => ["aikido-zen.gemspec.template"] do
-      template = File.read("aikido-zen.gemspec.template")
+    file gemspec_path => ["placeholder.gemspec.template"] do
+      template = File.read("placeholder.gemspec.template")
       content = template.gsub("@GEM_NAME", gem_name)
       File.write(gemspec_path, content)
       puts "Generated #{gemspec_path}"
