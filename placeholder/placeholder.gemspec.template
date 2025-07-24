@@ -5,7 +5,7 @@ Gem::Specification.new do |spec|
   spec.version = "0.0.1"
   spec.authors = ["Aikido Security"]
   spec.email = ["support@aikido.dev"]
-  spec.summary = "Security placeholder published by Aikido Security."
+  spec.summary = "Security placeholder for 'aikido-zen'."
   spec.description = "This gem has been published by Aikido Security to help prevent supply chain attacks. It is not intended for direct use. Please use 'aikido-zen' instead."
   spec.homepage = "https://aikido.dev"
   spec.license = "AGPL-3.0-or-later"
