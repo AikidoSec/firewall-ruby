@@ -4,13 +4,16 @@ Gem::Specification.new do |spec|
   spec.name = "@GEM_NAME"
   spec.version = "0.0.1"
   spec.authors = ["Aikido Security"]
-  spec.email = ["support@aikido.dev"]
+  spec.email = ["dev-admin@aikido.dev"]
   spec.summary = "Security placeholder for 'aikido-zen'."
   spec.description = "This gem has been published by Aikido Security to help prevent supply chain attacks. It is not intended for direct use. Please use 'aikido-zen' instead."
-  spec.homepage = "https://aikido.dev"
+  spec.homepage = "https://aikido.dev/zen"
   spec.license = "AGPL-3.0-or-later"
 
   spec.required_ruby_version = ">= 2.3"
+
+  spec.metadata["homepage_uri"] = spec.homepage
+  spec.metadata["source_code_uri"] = "https://github.com/aikidosec/firewall-ruby"
 
   spec.files = Dir.glob("lib/**/*.rb") + ["README.md", "../LICENSE"]
   spec.require_paths = ["lib"]

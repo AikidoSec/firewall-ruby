@@ -5,12 +5,13 @@ require_relative "lib/aikido/zen/version"
 Gem::Specification.new do |spec|
   spec.name = "aikido-zen"
   spec.version = Aikido::Zen::VERSION
-  spec.authors = ["Nicolas Sanguinetti"]
-  spec.email = ["foca@foca.io"]
+  spec.authors = ["Aikido Security"]
+  spec.email = ["dev-admin@aikido.dev"]
+  spec.summary = "Embedded Web Application Firewall."
+  spec.description = "Zen by Aikido is an embedded Web Application Firewall that autonomously protects Ruby apps against common and critical attacks."
+  spec.homepage = "https://aikido.dev/zen"
   spec.license = "AGPL-3.0-or-later"
 
-  spec.summary = "Embedded Web Application Firewall that autonomously protects Ruby apps against common and critical attacks."
-  spec.homepage = "https://aikido.dev"
   spec.required_ruby_version = ">= 2.7"
 
   spec.metadata["homepage_uri"] = spec.homepage
