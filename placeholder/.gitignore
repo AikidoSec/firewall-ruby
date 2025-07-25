@@ -1,2 +1,4 @@
+LICENSE
 *.gemspec
+/lib/*.rb
 *.gem
