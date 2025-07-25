@@ -4,7 +4,7 @@ require "rake"
 require "rake/clean"
 require "rubygems/package"
 
-GEM_NAMES = %w[aikido aikidozen]
+GEM_NAMES = %w[aikido]
 
 # Clean up generated gemspec and gem files
 CLEAN.include(*GEM_NAMES.map { |name| "#{name}.gemspec" })
