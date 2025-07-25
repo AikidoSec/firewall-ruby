@@ -6,15 +6,26 @@ require "rubygems/package"
 
 GEM_NAMES = %w[aikido]
 
-# Clean up generated gemspec and gem files
+# Clean up generated entry point, gemspec and gem files
 CLEAN.include(*GEM_NAMES.map { |name| "#{name}.gemspec" })
+CLEAN.include(*GEM_NAMES.map { |name| "lib/#{name}.rb" })
 CLOBBER.include(*GEM_NAMES.map { |name| "#{name}-*.gem" })
 
 namespace :build do
   GEM_NAMES.each do |gem_name|
+    entry_point_path = "lib/#{gem_name}.rb"
+
+    # Generate the entry point file from template if needed
+    file entry_point_path => ["lib/placeholder.rb.template"] do
+      template = File.read("lib/placeholder.rb.template")
+      content = template.gsub("@GEM_NAME", gem_name)
+      File.write(entry_point_path, content)
+      puts "Generated #{entry_point_path}"
+    end
+
     gemspec_path = "#{gem_name}.gemspec"
 
-    # Generate gemspec from template if needed
+    # Generate gemspec file from template if needed
     file gemspec_path => ["placeholder.gemspec.template"] do
       template = File.read("placeholder.gemspec.template")
       content = template.gsub("@GEM_NAME", gem_name)
@@ -23,7 +34,7 @@ namespace :build do
     end
 
     desc "Build the #{gem_name} gem"
-    task gem_name => [gemspec_path] do
+    task gem_name => [entry_point_path, gemspec_path] do
       gemspec = Gem::Specification.load(gemspec_path)
       raise "Failed to load gemspec: #{gemspec_path}" unless gemspec
 

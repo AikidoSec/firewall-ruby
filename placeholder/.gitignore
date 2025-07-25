@@ -1,2 +1,3 @@
 *.gemspec
+/lib/*.rb
 *.gem

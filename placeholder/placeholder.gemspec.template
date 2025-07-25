@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |spec|
   spec.name = "@GEM_NAME"
-  spec.version = "0.0.1"
+  spec.version = "0.0.2"
   spec.authors = ["Aikido Security"]
   spec.email = ["dev-admin@aikido.dev"]
   spec.summary = "Security placeholder for 'aikido-zen'."
@@ -15,6 +15,6 @@ Gem::Specification.new do |spec|
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/aikidosec/firewall-ruby"
 
-  spec.files = Dir.glob("lib/**/*.rb") + ["README.md", "LICENSE"]
+  spec.files = ["lib/@GEM_NAME.rb", "README.md", "LICENSE"]
   spec.require_paths = ["lib"]
 end
