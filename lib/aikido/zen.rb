@@ -31,7 +31,10 @@ module Aikido
     #
     # @return [void]
     def self.protect!
-      return if config.disabled?
+      if config.disabled?
+        config.logger.warn("Zen has been disabled and will not run.")
+        return
+      end
 
       # IMPORTANT: Any files that load sinks or start the Aikido Agent
       # should be required here only.
