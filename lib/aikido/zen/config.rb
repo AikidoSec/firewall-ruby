@@ -57,7 +57,7 @@ module Aikido::Zen
 
     # @return [string] Path of the socket where the detached agent will listen.
     # By default, is stored under the root application path with file name
-    # `aikido-detached-agent.socket`
+    # `aikido-detached-agent.sock`
     attr_reader :detached_agent_socket_path
 
     # @return [Boolean] is the agent in debugging mode?
@@ -158,7 +158,7 @@ module Aikido::Zen
       self.debugging = read_boolean_from_env(ENV.fetch("AIKIDO_DEBUG", false))
       self.logger = Logger.new($stdout, progname: "aikido", level: debugging ? Logger::DEBUG : Logger::INFO)
       self.max_performance_samples = 5000
-      self.detached_agent_socket_path = "aikido-detached-agent.socket"
+      self.detached_agent_socket_path = ENV.fetch("AIKIDO_DETACHED_AGENT_SOCKET_PATH", DEFAULT_DETACHED_AGENT_SOCKET_PATH)
       self.max_compressed_stats = 100
       self.max_outbound_connections = 200
       self.max_users_tracked = 1000
@@ -245,6 +245,9 @@ module Aikido::Zen
 
     # @!visibility private
     DEFAULT_JSON_DECODER = JSON.method(:parse)
+
+    # @!visibility private
+    DEFAULT_DETACHED_AGENT_SOCKET_PATH = "aikido-detached-agent.sock"
 
     # @!visibility private
     DEFAULT_BLOCKED_RESPONDER = ->(request, blocking_type) do
