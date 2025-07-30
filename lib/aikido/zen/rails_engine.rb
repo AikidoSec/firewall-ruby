@@ -10,7 +10,7 @@ module Aikido::Zen
     end
 
     initializer "aikido.add_middleware" do |app|
-      next if config.zen.disabled?
+      next unless config.zen.protect?
 
       app.middleware.use Aikido::Zen::Middleware::SetContext
       app.middleware.use Aikido::Zen::Middleware::CheckAllowedAddresses
@@ -37,8 +37,6 @@ module Aikido::Zen
       logger = ActiveSupport::TaggedLogging.new(logger) unless logger.respond_to?(:tagged)
       app.config.zen.logger = logger.tagged("aikido")
 
-      next if config.zen.disabled?
-
       app.config.zen.request_builder = Aikido::Zen::Context::RAILS_REQUEST_BUILDER
 
       # Plug Rails' JSON encoder/decoder, but only if the user hasn't changed
@@ -53,10 +51,7 @@ module Aikido::Zen
     end
 
     config.after_initialize do
-      if config.zen.disabled?
-        config.zen.logger.warn("Zen has been disabled and will not run.")
-        next
-      end
+      next unless config.zen.protect?
 
       # Make sure this is run at the end of the initialization process, so
       # that any gems required after aikido-zen are detected and patched
@@ -64,7 +59,6 @@ module Aikido::Zen
       Aikido::Zen.load_sinks!
 
       # It's important we start after loading sinks, so we can report the installed packages
-      Aikido::Zen.start!
       Aikido::Zen.start!
 
       # Agent's bootstrap process has finished —Controllers are patched to block
