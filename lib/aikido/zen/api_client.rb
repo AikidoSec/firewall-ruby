@@ -128,8 +128,10 @@ module Aikido::Zen
     end
 
     private def http_settings(base_url)
-      use_ssl = base_url.scheme == "https"
-      {use_ssl: use_ssl, max_retries: 2}.merge(@config.api_timeouts)
+      @http_settings ||= {
+        use_ssl: base_url.scheme == "https",
+        max_retries: 2
+      }.merge(@config.api_timeouts)
     end
 
     private def default_headers
