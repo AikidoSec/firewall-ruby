@@ -38,7 +38,10 @@ module Aikido
 
       # IMPORTANT: Any files that load sinks or start the Aikido Agent
       # should be required here only.
-      require_relative "zen/rails_engine" if defined?(::Rails)
+
+      if Aikido::Zen.satisfy "rails", ">= 7.0"
+        require_relative "zen/rails_engine"
+      end
 
       if Aikido::Zen::Sinks.registry.empty?
         warn "Zen could not find any supported libraries or frameworks. Visit https://github.com/AikidoSec/firewall-ruby for more information."

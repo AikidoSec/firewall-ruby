@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-return unless Aikido::Zen.satisfy "rails", ">= 7.0"
-
 require "action_dispatch"
 
 module Aikido::Zen
