@@ -41,6 +41,21 @@ module Aikido
       require_relative "zen/rails_engine" if defined?(::Rails)
     end
 
+    # @!visibility private
+    # Returns whether the loaded named Gem specification satisfies the
+    # listed requirements.
+    #
+    # False is returned when the named Gem specification is not loaded.
+    #
+    # @return [Boolean]
+    def self.satisfy(name, *requirements)
+      spec = Gem.loaded_specs[name]
+
+      return false if spec.nil?
+
+      Gem::Requirement.new(*requirements).satisfied_by?(spec.version)
+    end
+
     # @return [Aikido::Zen::Config] the agent configuration.
     def self.config
       @config ||= Config.new
