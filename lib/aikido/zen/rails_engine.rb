@@ -1,9 +1,6 @@
 # frozen_string_literal: true
 
-unless Aikido::Zen.satisfy "rails", ">= 7.0"
-  warn "rails < 7.0 is not supported!" if Aikido::Zen.config.debugging?
-  return
-end
+return unless Aikido::Zen.satisfy "rails", ">= 7.0"
 
 require "action_dispatch"
 
