@@ -49,12 +49,14 @@ module Aikido
     end
 
     # @!visibility private
-    # Returns whether the loaded named Gem specification satisfies the
-    # listed requirements.
+    # Returns whether the loaded gem specification satisfies the listed requirements.
     #
-    # False is returned when the named Gem specification is not loaded.
+    # Returns false if the gem specification is not loaded.
     #
-    # @return [Boolean]
+    # @param name [String] the gem name
+    # @param requirements [Array<String>] a variable number of gem requirement strings
+    #
+    # @return [Boolean] true if the gem specification is loaded and all gem requirements are satisfied
     def self.satisfy(name, *requirements)
       spec = Gem.loaded_specs[name]
 
