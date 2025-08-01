@@ -7,12 +7,6 @@ module Aikido::Zen
   module Internals
     extend FFI::Library
 
-    class << self
-      # @return [String] the name of the extension we're loading, which we can
-      #   use in error messages to identify the architecture.
-      attr_accessor :libzen_name
-    end
-
     def self.libzen_names
       lib_name = "libzen-v#{LIBZEN_VERSION}"
       lib_ext = FFI::Platform::LIBSUFFIX
@@ -40,17 +34,24 @@ module Aikido::Zen
       names
     end
 
+    # @return [String] the name of the extension we're loading, which we can
+    # use in error messages.
+    def self.libzen_name
+      # The most generic platform library name.
+      libzen_names.last
+    end
+
     # Load the most specific library
     def self.load_libzen
-      libzen_names.each do |libzen_name|
-        libzen_path = File.expand_path(libzen_name, __dir__)
+      libzen_names.each do |name|
+        path = File.expand_path(name, __dir__)
         begin
-          return ffi_lib(libzen_path)
+          return ffi_lib(path)
         rescue LoadError
           # empty
         end
       end
-      raise LoadError, "Could not load libzen"
+      raise LoadError, "Zen could not load its native extension #{libzen_name}"
     end
 
     begin
@@ -68,11 +69,11 @@ module Aikido::Zen
       # :nocov:
 
       # Emit an $stderr warning at startup.
-      warn "Zen could not load its binary extension #{libzen_name}: #{err}"
+      warn "Zen could not load its native extension #{libzen_name}: #{err}"
 
       def self.detect_sql_injection(query, *)
         attempt = format("%p for SQL injection", query)
-        raise InternalsError.new(attempt, "loading", Internals.libzen_name)
+        raise InternalsError.new(attempt, "loading", libzen_name)
       end
 
       # :nocov:
