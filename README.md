@@ -61,7 +61,7 @@ See list above for supported database drivers.
 * ✅ [`curb`](https://github.com/taf2/curb) 0.x (0.2.3+), 1.x
 * ✅ [`patron`](https://github.com/toland/patron) 0.x (0.6.4+)
 * ✅ [`typhoeus`](https://github.com/typhoeus/typhoeus) 0.x (0.5.0+), 1.x
-* ✅ [`async-http`](https://github.com/igrigorik/em-http-request) 0.x (0.70.0+)
+* ✅ [`async-http`](https://github.com/socketry/async-http) 0.x (0.70.0+)
 * ✅ [`em-http-request`](https://github.com/igrigorik/em-http-request) 1.x
 
 ## Installation
