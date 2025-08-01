@@ -38,7 +38,31 @@ module Aikido
 
       # IMPORTANT: Any files that load sinks or start the Aikido Agent
       # should be required here only.
-      require_relative "zen/rails_engine" if defined?(::Rails)
+
+      if Aikido::Zen.satisfy "rails", ">= 7.0"
+        require_relative "zen/rails_engine"
+      end
+
+      if Aikido::Zen::Sinks.registry.empty?
+        warn "Zen could not find any supported libraries or frameworks. Visit https://github.com/AikidoSec/firewall-ruby for more information."
+      end
+    end
+
+    # @!visibility private
+    # Returns whether the loaded gem specification satisfies the listed requirements.
+    #
+    # Returns false if the gem specification is not loaded.
+    #
+    # @param name [String] the gem name
+    # @param requirements [Array<String>] a variable number of gem requirement strings
+    #
+    # @return [Boolean] true if the gem specification is loaded and all gem requirements are satisfied
+    def self.satisfy(name, *requirements)
+      spec = Gem.loaded_specs[name]
+
+      return false if spec.nil?
+
+      Gem::Requirement.new(*requirements).satisfied_by?(spec.version)
     end
 
     # @return [Aikido::Zen::Config] the agent configuration.

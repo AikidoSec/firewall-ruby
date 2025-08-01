@@ -7,7 +7,7 @@ module Aikido::Zen
   module Sinks
     module Curl
       def self.load_sinks!
-        if Gem.loaded_specs["curb"]
+        if Aikido::Zen.satisfy "curb", ">= 0.2.3"
           require "curb"
 
           ::Curl::Easy.prepend(Curl::EasyExtensions)

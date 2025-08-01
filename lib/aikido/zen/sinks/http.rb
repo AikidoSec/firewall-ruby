@@ -7,7 +7,7 @@ module Aikido::Zen
   module Sinks
     module HTTP
       def self.load_sinks!
-        if Gem.loaded_specs["http"]
+        if Aikido::Zen.satisfy "http", ">= 1.0"
           require "http"
 
           ::HTTP::Client.prepend(ClientExtensions)

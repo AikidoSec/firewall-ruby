@@ -4,7 +4,7 @@ module Aikido::Zen
   module Sinks
     module SQLite3
       def self.load_sinks!
-        if Gem.loaded_specs["sqlite3"]
+        if Aikido::Zen.satisfy "sqlite3", ">= 1.0"
           require "sqlite3"
 
           ::SQLite3::Database.prepend(DatabaseExtensions)

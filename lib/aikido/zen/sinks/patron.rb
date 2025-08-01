@@ -7,7 +7,7 @@ module Aikido::Zen
   module Sinks
     module Patron
       def self.load_sinks!
-        if Gem.loaded_specs["patron"]
+        if Aikido::Zen.satisfy "patron", ">= 0.6.4"
           require "patron"
 
           ::Patron::Session.prepend(SessionExtensions)

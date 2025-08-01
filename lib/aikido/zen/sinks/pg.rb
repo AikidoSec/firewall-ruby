@@ -4,7 +4,7 @@ module Aikido::Zen
   module Sinks
     module PG
       def self.load_sinks!
-        if Gem.loaded_specs["pg"]
+        if Aikido::Zen.satisfy "pg", ">= 1.0"
           require "pg"
 
           ::PG::Connection.prepend(PG::ConnectionExtensions)

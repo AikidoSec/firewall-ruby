@@ -8,7 +8,7 @@ module Aikido::Zen
     module Async
       module HTTP
         def self.load_sinks!
-          if Gem.loaded_specs["async-http"]
+          if Aikido::Zen.satisfy "async-http", ">= 0.70.0"
             require "async/http"
 
             ::Async::HTTP::Client.prepend(Async::HTTP::ClientExtensions)

@@ -7,7 +7,7 @@ module Aikido::Zen
   module Sinks
     module HTTPX
       def self.load_sinks!
-        if Gem.loaded_specs["httpx"]
+        if Aikido::Zen.satisfy "httpx", ">= 1.1.3"
           require "httpx"
 
           ::HTTPX::Session.prepend(HTTPX::SessionExtensions)
