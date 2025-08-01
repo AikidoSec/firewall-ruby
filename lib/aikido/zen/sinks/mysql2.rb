@@ -4,7 +4,7 @@ module Aikido::Zen
   module Sinks
     module Mysql2
       def self.load_sinks!
-        if Gem.loaded_specs["mysql2"]
+        if Aikido::Zen.satisfy "mysql2"
           require "mysql2"
 
           ::Mysql2::Client.prepend(ClientExtensions)

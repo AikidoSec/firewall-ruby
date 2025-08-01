@@ -8,7 +8,7 @@ module Aikido::Zen
     module EventMachine
       module HttpRequest
         def self.load_sinks!
-          if Gem.loaded_specs["em-http-request"]
+          if Aikido::Zen.satisfy "em-http-request", ">= 1.0"
             require "em-http-request"
 
             ::EventMachine::HttpRequest.use(EventMachine::HttpRequest::Middleware)

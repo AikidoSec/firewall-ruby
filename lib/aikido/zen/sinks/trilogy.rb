@@ -4,7 +4,7 @@ module Aikido::Zen
   module Sinks
     module Trilogy
       def self.load_sinks!
-        if Gem.loaded_specs["trilogy"]
+        if Aikido::Zen.satisfy "trilogy", ">= 2.0"
           require "trilogy"
 
           ::Trilogy.prepend(TrilogyExtensions)

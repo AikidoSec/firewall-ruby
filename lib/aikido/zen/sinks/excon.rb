@@ -7,7 +7,7 @@ module Aikido::Zen
   module Sinks
     module Excon
       def self.load_sinks!
-        if Gem.loaded_specs["excon"]
+        if Aikido::Zen.satisfy "excon", ">= 0.50.0"
           require "excon"
 
           ::Excon::Connection.prepend(ConnectionExtensions)
