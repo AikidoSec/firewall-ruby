@@ -34,8 +34,8 @@ module Aikido::Zen
       # Allow the logger to be configured before checking if disabled? so we can
       # let the user know that the agent is disabled.
       logger = ::Rails.logger
-      logger = ActiveSupport::TaggedLogging.new(logger) unless logger.respond_to?(:tagged)
-      app.config.zen.logger = logger.tagged("aikido")
+      logger = logger.tagged("aikido") if logger.respond_to?(:tagged)
+      app.config.zen.logger = logger
 
       app.config.zen.request_builder = Aikido::Zen::Context::RAILS_REQUEST_BUILDER
 
