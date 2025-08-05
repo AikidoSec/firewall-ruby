@@ -12,7 +12,9 @@ module Aikido::Zen
 
   # @!visibility private
   Context::RAILS_REQUEST_BUILDER = ->(env) do
-    delegate = ActionDispatch::Request.new(env)
+    # Duplicate the Rack environment to prevent unexpected modifications from
+    # breaking Rails routing.
+    delegate = ActionDispatch::Request.new(env.dup)
     request = Aikido::Zen::Request.new(
       delegate, framework: "rails", router: Rails.router
     )
