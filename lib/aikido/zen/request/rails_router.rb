@@ -29,6 +29,11 @@ module Aikido::Zen
     end
 
     private def recognize_in_route_set(request, route_set, prefix: nil)
+      # ActionDispatch::Journey::Router#recognize modifies the Rack environment.
+      # This is correct for Rails routing, but it is not expected to be used in
+      # Rack middleware, and using it here can break Rails routing.
+      #
+      # To avoid this, the Rack environment is duplicated when building request.
       route_set.router.recognize(request) do |route, _|
         app = route.app
         next unless app.matches?(request)
