@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-# IMPORTANT: Any files that load sinks or start the Aikido Agent should
-# be required in `Aikido::Zen.protect!`.
-
 require_relative "zen/version"
 require_relative "zen/errors"
 require_relative "zen/actor"
@@ -29,6 +26,9 @@ module Aikido
     # Enable protection. Until this method is called no sinks are loaded
     # and the Aikido Agent does not start.
     #
+    # This method should be called only once, in the application after the
+    # initialization process is complete.
+    #
     # @return [void]
     def self.protect!
       if config.disabled?
@@ -36,16 +36,14 @@ module Aikido
         return
       end
 
-      # IMPORTANT: Any files that load sinks or start the Aikido Agent
-      # should be required here only.
+      return unless config.protect?
 
-      if Aikido::Zen.satisfy "rails", ">= 7.0"
-        require_relative "zen/rails_engine"
+      unless load_sources! && load_sinks!
+        config.logger.warn "Zen could not find any supported libraries or frameworks. Visit https://github.com/AikidoSec/firewall-ruby for more information."
+        return
       end
 
-      if Aikido::Zen::Sinks.registry.empty?
-        warn "Zen could not find any supported libraries or frameworks. Visit https://github.com/AikidoSec/firewall-ruby for more information."
-      end
+      middleware_installed!
     end
 
     # @!visibility private
@@ -173,15 +171,28 @@ module Aikido
       collector.middleware_installed!
     end
 
-    # Load all sinks matching libraries loaded into memory. This method should
-    # be called after all other dependencies have been loaded into memory (i.e.
-    # at the end of the initialization process).
+    # @!visibility private
+    # Load all sources.
     #
-    # If a new gem is required, this method can be called again safely.
+    # @return [Boolean] true if any sources were loaded
+    def self.load_sources!
+      if Aikido::Zen.satisfy("rails", ">= 7.0")
+        require_relative "zen/rails_engine"
+
+        return true
+      end
+
+      false
+    end
+
+    # @!visibility private
+    # Load all sinks.
     #
-    # @return [void]
+    # @return [Boolean] true if any sinks were loaded
     def self.load_sinks!
       require_relative "zen/sinks"
+
+      !Aikido::Zen::Sinks.registry.empty?
     end
 
     # @!visibility private
