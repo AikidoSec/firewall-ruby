@@ -10,8 +10,6 @@ module Aikido::Zen
     end
 
     initializer "aikido.add_middleware" do |app|
-      next unless config.zen.protect?
-
       app.middleware.use Aikido::Zen::Middleware::SetContext
       app.middleware.use Aikido::Zen::Middleware::CheckAllowedAddresses
       # Request Tracker stats do not consider failed request or 40x, so the middleware
