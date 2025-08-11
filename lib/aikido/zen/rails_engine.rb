@@ -10,8 +10,6 @@ module Aikido::Zen
     end
 
     initializer "aikido.add_middleware" do |app|
-      next unless config.zen.protect?
-
       app.middleware.use Aikido::Zen::Middleware::SetContext
       app.middleware.use Aikido::Zen::Middleware::CheckAllowedAddresses
       # Request Tracker stats do not consider failed request or 40x, so the middleware
@@ -51,20 +49,8 @@ module Aikido::Zen
     end
 
     config.after_initialize do
-      next unless config.zen.protect?
-
-      # Make sure this is run at the end of the initialization process, so
-      # that any gems required after aikido-zen are detected and patched
-      # accordingly.
-      Aikido::Zen.load_sinks!
-
-      # It's important we start after loading sinks, so we can report the installed packages
+      # Start the Aikido Agent only once the application starts.
       Aikido::Zen.start!
-
-      # Agent's bootstrap process has finished —Controllers are patched to block
-      # unwanted requests, sinks are loaded, scanners are running—, so we mark
-      # the agent as installed.
-      Aikido::Zen.middleware_installed!
     end
   end
 end
