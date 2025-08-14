@@ -10,10 +10,6 @@ module Aikido::Zen
     # there's no way to access the internal DNS resolution that happens in C
     # when using the socket primitives.
     module Socket
-      def self.load_sinks!
-        ::IPSocket.singleton_class.prepend(Socket::IPSocketExtensions)
-      end
-
       SINK = Sinks.add("socket", scanners: [
         Scanners::StoredSSRFScanner,
         Scanners::SSRFScanner
@@ -62,15 +58,17 @@ module Aikido::Zen
         end
       end
 
-      module IPSocketExtensions
-        extend Sinks::DSL
+      def self.load_sinks!
+        ::IPSocket.singleton_class.class_eval do
+          extend Sinks::DSL
 
-        sink_after :open do |socket, remote_host|
-          # Code coverage is disabled here because the tests are contrived and
-          # intentionally do not call open.
-          # :nocov:
-          Helpers.scan(remote_host, socket, "open")
-          # :nocov:
+          sink_after :open do |socket, remote_host|
+            # Code coverage is disabled here because the tests are contrived and
+            # intentionally do not call open.
+            # :nocov:
+            Helpers.scan(remote_host, socket, "open")
+            # :nocov:
+          end
         end
       end
     end

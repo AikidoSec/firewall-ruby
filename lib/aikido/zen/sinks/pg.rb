@@ -3,14 +3,6 @@
 module Aikido::Zen
   module Sinks
     module PG
-      def self.load_sinks!
-        if Aikido::Zen.satisfy "pg", ">= 1.0"
-          require "pg"
-
-          ::PG::Connection.prepend(PG::ConnectionExtensions)
-        end
-      end
-
       SINK = Sinks.add("pg", scanners: [Scanners::SQLInjectionScanner])
 
       module Helpers
@@ -43,26 +35,32 @@ module Aikido::Zen
         end
       end
 
-      module ConnectionExtensions
-        extend Sinks::DSL
+      def self.load_sinks!
+        if Aikido::Zen.satisfy "pg", ">= 1.0"
+          require "pg"
 
-        %i[
-          send_query exec sync_exec async_exec
-          send_query_params exec_params sync_exec_params async_exec_params
-        ].each do |method_name|
-          presafe_sink_before method_name do |query|
-            Helpers.safe do
-              Helpers.scan(query, method_name)
+          ::PG::Connection.class_eval do
+            extend Sinks::DSL
+
+            %i[
+              send_query exec sync_exec async_exec
+              send_query_params exec_params sync_exec_params async_exec_params
+            ].each do |method_name|
+              presafe_sink_before method_name do |query|
+                Helpers.safe do
+                  Helpers.scan(query, method_name)
+                end
+              end
             end
-          end
-        end
 
-        %i[
-          send_prepare prepare async_prepare sync_prepare
-        ].each do |method_name|
-          presafe_sink_before method_name do |_, query|
-            Helpers.safe do
-              Helpers.scan(query, method_name)
+            %i[
+              send_prepare prepare async_prepare sync_prepare
+            ].each do |method_name|
+              presafe_sink_before method_name do |_, query|
+                Helpers.safe do
+                  Helpers.scan(query, method_name)
+                end
+              end
             end
           end
         end

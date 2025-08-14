@@ -7,19 +7,6 @@ module Aikido::Zen
   module Sinks
     module EventMachine
       module HttpRequest
-        def self.load_sinks!
-          if Aikido::Zen.satisfy "em-http-request", ">= 1.0"
-            require "em-http-request"
-
-            ::EventMachine::HttpRequest.use(EventMachine::HttpRequest::Middleware)
-
-            # NOTE: We can't use middleware to intercept requests as we want to ensure any
-            # modifications to the request from user-supplied middleware are already applied
-            # before we scan the request.
-            ::EventMachine::HttpClient.prepend(EventMachine::HttpRequest::HttpClientExtensions)
-          end
-        end
-
         SINK = Sinks.add("em-http-request", scanners: [
           Scanners::SSRFScanner,
           OutboundConnectionMonitor
@@ -35,26 +22,37 @@ module Aikido::Zen
           end
         end
 
-        module HttpClientExtensions
-          extend Sinks::DSL
+        def self.load_sinks!
+          if Aikido::Zen.satisfy "em-http-request", ">= 1.0"
+            require "em-http-request"
 
-          sink_before :send_request do
-            wrapped_request = Scanners::SSRFScanner::Request.new(
-              verb: req.method.to_s,
-              uri: URI(req.uri),
-              headers: req.headers
-            )
+            ::EventMachine::HttpRequest.use(EventMachine::HttpRequest::Middleware)
 
-            # Store the request information so the DNS sinks can pick it up.
-            context = Aikido::Zen.current_context
-            context["ssrf.request"] = wrapped_request if context
+            # NOTE: We can't use middleware to intercept requests as we want to ensure any
+            # modifications to the request from user-supplied middleware are already applied
+            # before we scan the request.
+            ::EventMachine::HttpClient.class_eval do
+              extend Sinks::DSL
 
-            connection = OutboundConnection.new(
-              host: req.host,
-              port: req.port
-            )
+              sink_before :send_request do
+                wrapped_request = Scanners::SSRFScanner::Request.new(
+                  verb: req.method.to_s,
+                  uri: URI(req.uri),
+                  headers: req.headers
+                )
 
-            Helpers.scan(wrapped_request, connection, "request")
+                # Store the request information so the DNS sinks can pick it up.
+                context = Aikido::Zen.current_context
+                context["ssrf.request"] = wrapped_request if context
+
+                connection = OutboundConnection.new(
+                  host: req.host,
+                  port: req.port
+                )
+
+                Helpers.scan(wrapped_request, connection, "request")
+              end
+            end
           end
         end
 

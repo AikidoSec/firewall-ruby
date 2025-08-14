@@ -6,14 +6,6 @@ require_relative "../outbound_connection_monitor"
 module Aikido::Zen
   module Sinks
     module Curl
-      def self.load_sinks!
-        if Aikido::Zen.satisfy "curb", ">= 0.2.3"
-          require "curb"
-
-          ::Curl::Easy.prepend(Curl::EasyExtensions)
-        end
-      end
-
       SINK = Sinks.add("curb", scanners: [
         Scanners::SSRFScanner,
         OutboundConnectionMonitor
@@ -53,59 +45,65 @@ module Aikido::Zen
         end
       end
 
-      module EasyExtensions
-        extend Sinks::DSL
+      def self.load_sinks!
+        if Aikido::Zen.satisfy "curb", ">= 0.2.3"
+          require "curb"
 
-        sink_around :perform do |super_call|
-          wrapped_request = Helpers.wrap_request(self)
+          ::Curl::Easy.class_eval do
+            extend Sinks::DSL
 
-          # Store the request information so the DNS sinks can pick it up.
-          context = Aikido::Zen.current_context
-          if context
-            prev_request = context["ssrf.request"]
-            context["ssrf.request"] = wrapped_request
-          end
+            sink_around :perform do |original_call|
+              wrapped_request = Helpers.wrap_request(self)
 
-          connection = OutboundConnection.from_uri(URI(url))
+              # Store the request information so the DNS sinks can pick it up.
+              context = Aikido::Zen.current_context
+              if context
+                prev_request = context["ssrf.request"]
+                context["ssrf.request"] = wrapped_request
+              end
 
-          Helpers.scan(wrapped_request, connection, "request")
+              connection = OutboundConnection.from_uri(URI(url))
 
-          response = super_call.call
+              Helpers.scan(wrapped_request, connection, "request")
 
-          Scanners::SSRFScanner.track_redirects(
-            request: wrapped_request,
-            response: Helpers.wrap_response(self)
-          )
+              response = original_call.call
 
-          # When libcurl has follow_location set, it will handle redirections
-          # internally, and expose the "last_effective_url" as the URI that was
-          # last requested in the redirect chain.
-          #
-          # In this case, we can't actually stop the request from happening, but
-          # we can scan again (now that we know another request happened), to
-          # stop the response from being exposed to the user. This downgrades
-          # the SSRF into a blind SSRF, which is better than doing nothing.
-          if url != last_effective_url
-            last_effective_request = Helpers.wrap_request(self, url: last_effective_url)
+              Scanners::SSRFScanner.track_redirects(
+                request: wrapped_request,
+                response: Helpers.wrap_response(self)
+              )
 
-            # Code coverage is disabled here because the else clause is a no-op,
-            # so there is nothing to cover.
-            # :nocov:
-            if context
-              context["ssrf.request"] = last_effective_request
-            else
-              # empty
+              # When libcurl has follow_location set, it will handle redirections
+              # internally, and expose the "last_effective_url" as the URI that was
+              # last requested in the redirect chain.
+              #
+              # In this case, we can't actually stop the request from happening, but
+              # we can scan again (now that we know another request happened), to
+              # stop the response from being exposed to the user. This downgrades
+              # the SSRF into a blind SSRF, which is better than doing nothing.
+              if url != last_effective_url
+                last_effective_request = Helpers.wrap_request(self, url: last_effective_url)
+
+                # Code coverage is disabled here because the else clause is a no-op,
+                # so there is nothing to cover.
+                # :nocov:
+                if context
+                  context["ssrf.request"] = last_effective_request
+                else
+                  # empty
+                end
+                # :nocov:
+
+                connection = OutboundConnection.from_uri(URI(last_effective_url))
+
+                Helpers.scan(last_effective_request, connection, "request")
+              end
+
+              response
+            ensure
+              context["ssrf.request"] = prev_request if context
             end
-            # :nocov:
-
-            connection = OutboundConnection.from_uri(URI(last_effective_url))
-
-            Helpers.scan(last_effective_request, connection, "request")
           end
-
-          response
-        ensure
-          context["ssrf.request"] = prev_request if context
         end
       end
     end
