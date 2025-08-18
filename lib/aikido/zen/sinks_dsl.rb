@@ -115,6 +115,8 @@ module Aikido::Zen
           instance_exec(*args, **kwargs, &block)
           original.bind_call(self, *args, **kwargs, &blk)
         end
+      rescue NameError
+        Aikido::Zen.config.logger.warn("cannot wrap method `#{method_name}' for class `#{self}'")
       end
 
       # Define a method `method_name` that safely executes the given block before
@@ -154,6 +156,8 @@ module Aikido::Zen
           instance_exec(result, *args, **kwargs, &block)
           result
         end
+      rescue NameError
+        Aikido::Zen.config.logger.warn("cannot wrap method `#{method_name}' for class `#{self}'")
       end
 
       # Define a method `method_name` that safely executes the given block after
@@ -197,6 +201,8 @@ module Aikido::Zen
           instance_exec(original_call, *args, **kwargs, &block)
           result
         end
+      rescue NameError
+        Aikido::Zen.config.logger.warn("cannot wrap method `#{method_name}' for class `#{self}'")
       end
 
       # Define a method `method_name` that safely executes the given block around
