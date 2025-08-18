@@ -9,10 +9,7 @@ require_relative "sinks_dsl"
 
 require_relative "sinks/action_controller" if defined?(::ActionController)
 
-# Sadly, in ruby versions lower than 3.0, it's not possible to patch the
-# Kernel module because how the `prepend` method is applied
-# (https://stackoverflow.com/questions/78110397/prepend-kernel-module-function-globally#comment137713906_78112924)
-require_relative "sinks/kernel" if RUBY_VERSION >= "3.0"
+require_relative "sinks/kernel"
 
 require_relative "sinks/file"
 require_relative "sinks/socket"
