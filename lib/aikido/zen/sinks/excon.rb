@@ -6,15 +6,6 @@ require_relative "../outbound_connection_monitor"
 module Aikido::Zen
   module Sinks
     module Excon
-      def self.load_sinks!
-        if Aikido::Zen.satisfy "excon", ">= 0.50.0"
-          require "excon"
-
-          ::Excon::Connection.prepend(ConnectionExtensions)
-          ::Excon::Middleware::RedirectFollower.prepend(RedirectFollowerExtensions)
-        end
-      end
-
       SINK = Sinks.add("excon", scanners: [
         Scanners::SSRFScanner,
         OutboundConnectionMonitor
@@ -46,72 +37,78 @@ module Aikido::Zen
         end
       end
 
-      module ConnectionExtensions
-        extend Sinks::DSL
+      def self.load_sinks!
+        if Aikido::Zen.satisfy "excon", ">= 0.50.0"
+          require "excon"
 
-        sink_around :request do |super_call, params = {}|
-          request = Helpers.build_request(@data, params)
+          ::Excon::Connection.class_eval do
+            extend Sinks::DSL
 
-          # Store the request information so the DNS sinks can pick it up.
-          context = Aikido::Zen.current_context
-          if context
-            prev_request = context["ssrf.request"]
-            context["ssrf.request"] = request
-          end
+            sink_around :request do |original_call, params = {}|
+              request = Helpers.build_request(@data, params)
 
-          connection = OutboundConnection.from_uri(request.uri)
+              # Store the request information so the DNS sinks can pick it up.
+              context = Aikido::Zen.current_context
+              if context
+                prev_request = context["ssrf.request"]
+                context["ssrf.request"] = request
+              end
 
-          Helpers.scan(request, connection, "request")
+              connection = OutboundConnection.from_uri(request.uri)
 
-          response = super_call.call
+              Helpers.scan(request, connection, "request")
 
-          Scanners::SSRFScanner.track_redirects(
-            request: request,
-            response: Scanners::SSRFScanner::Response.new(
-              status: response.status,
-              headers: response.headers.to_h
-            )
-          )
+              response = original_call.call
 
-          response
-        rescue Sinks::DSL::PresafeError => err
-          outer_cause = err.cause
-          case outer_cause
-          when ::Excon::Error::Socket
-            inner_cause = outer_cause.cause
-            # Excon wraps errors inside the lower level layer. This only happens
-            # to our scanning exceptions when a request is using RedirectFollower,
-            # so we unwrap them when it happens so host apps can handle errors
-            # consistently.
-            raise inner_cause if inner_cause.is_a?(Aikido::Zen::UnderAttackError)
-          end
-          raise
-        ensure
-          context["ssrf.request"] = prev_request if context
-        end
-      end
-
-      module RedirectFollowerExtensions
-        extend Sinks::DSL
-
-        sink_before :response_call do |datum|
-          response = datum[:response]
-
-          # Code coverage is disabled here because the else clause is a no-op,
-          # so there is nothing to cover.
-          # :nocov:
-          if !response.nil?
-            Scanners::SSRFScanner.track_redirects(
-              request: Helpers.build_request(datum, {}),
-              response: Scanners::SSRFScanner::Response.new(
-                status: response[:status],
-                headers: response[:headers]
+              Scanners::SSRFScanner.track_redirects(
+                request: request,
+                response: Scanners::SSRFScanner::Response.new(
+                  status: response.status,
+                  headers: response.headers.to_h
+                )
               )
-            )
-          else
-            # empty
+
+              response
+            rescue Sinks::DSL::PresafeError => err
+              outer_cause = err.cause
+              case outer_cause
+              when ::Excon::Error::Socket
+                inner_cause = outer_cause.cause
+                # Excon wraps errors inside the lower level layer. This only happens
+                # to our scanning exceptions when a request is using RedirectFollower,
+                # so we unwrap them when it happens so host apps can handle errors
+                # consistently.
+                raise inner_cause if inner_cause.is_a?(Aikido::Zen::UnderAttackError)
+              end
+              raise
+            ensure
+              context["ssrf.request"] = prev_request if context
+            end
           end
-          # :nocov:
+
+          ::Excon::Middleware::RedirectFollower.class_eval do
+            extend Sinks::DSL
+
+            sink_before :response_call do |datum|
+              response = datum[:response]
+
+              # Code coverage is disabled here because the else clause is a no-op,
+              # so there is nothing to cover.
+              # :nocov:
+              if !response.nil?
+                Scanners::SSRFScanner.track_redirects(
+                  request: Helpers.build_request(datum, {}),
+                  response: Scanners::SSRFScanner::Response.new(
+                    status: response[:status],
+                    headers: response[:headers]
+                  )
+                )
+              else
+                # empty
+              end
+              # :nocov:
+            end
+          end
         end
       end
     end

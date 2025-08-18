@@ -7,14 +7,6 @@ module Aikido::Zen
   module Sinks
     module Async
       module HTTP
-        def self.load_sinks!
-          if Aikido::Zen.satisfy "async-http", ">= 0.70.0"
-            require "async/http"
-
-            ::Async::HTTP::Client.prepend(Async::HTTP::ClientExtensions)
-          end
-        end
-
         SINK = Sinks.add("async-http", scanners: [
           Scanners::SSRFScanner,
           OutboundConnectionMonitor
@@ -30,48 +22,54 @@ module Aikido::Zen
           end
         end
 
-        module ClientExtensions
-          extend Sinks::DSL
+        def self.load_sinks!
+          if Aikido::Zen.satisfy "async-http", ">= 0.70.0"
+            require "async/http"
 
-          sink_around :call do |super_call, request|
-            uri = URI(format("%<scheme>s://%<authority>s%<path>s", {
-              scheme: request.scheme || scheme,
-              authority: request.authority || authority,
-              path: request.path
-            }))
+            ::Async::HTTP::Client.class_eval do
+              extend Sinks::DSL
 
-            wrapped_request = Scanners::SSRFScanner::Request.new(
-              verb: request.method,
-              uri: uri,
-              headers: request.headers.to_h,
-              header_normalizer: ->(value) { Array(value).join(", ") }
-            )
+              sink_around :call do |original_call, request|
+                uri = URI(format("%<scheme>s://%<authority>s%<path>s", {
+                  scheme: request.scheme || scheme,
+                  authority: request.authority || authority,
+                  path: request.path
+                }))
 
-            # Store the request information so the DNS sinks can pick it up.
-            context = Aikido::Zen.current_context
-            if context
-              prev_request = context["ssrf.request"]
-              context["ssrf.request"] = wrapped_request
+                wrapped_request = Scanners::SSRFScanner::Request.new(
+                  verb: request.method,
+                  uri: uri,
+                  headers: request.headers.to_h,
+                  header_normalizer: ->(value) { Array(value).join(", ") }
+                )
+
+                # Store the request information so the DNS sinks can pick it up.
+                context = Aikido::Zen.current_context
+                if context
+                  prev_request = context["ssrf.request"]
+                  context["ssrf.request"] = wrapped_request
+                end
+
+                connection = OutboundConnection.from_uri(uri)
+
+                Helpers.scan(wrapped_request, connection, "request")
+
+                response = original_call.call
+
+                Scanners::SSRFScanner.track_redirects(
+                  request: wrapped_request,
+                  response: Scanners::SSRFScanner::Response.new(
+                    status: response.status,
+                    headers: response.headers.to_h,
+                    header_normalizer: ->(value) { Array(value).join(", ") }
+                  )
+                )
+
+                response
+              ensure
+                context["ssrf.request"] = prev_request if context
+              end
             end
-
-            connection = OutboundConnection.from_uri(uri)
-
-            Helpers.scan(wrapped_request, connection, "request")
-
-            response = super_call.call
-
-            Scanners::SSRFScanner.track_redirects(
-              request: wrapped_request,
-              response: Scanners::SSRFScanner::Response.new(
-                status: response.status,
-                headers: response.headers.to_h,
-                header_normalizer: ->(value) { Array(value).join(", ") }
-              )
-            )
-
-            response
-          ensure
-            context["ssrf.request"] = prev_request if context
           end
         end
       end

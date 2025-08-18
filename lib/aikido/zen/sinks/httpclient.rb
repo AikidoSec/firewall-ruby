@@ -6,14 +6,6 @@ require_relative "../outbound_connection_monitor"
 module Aikido::Zen
   module Sinks
     module HTTPClient
-      def self.load_sinks!
-        if Aikido::Zen.satisfy "httpclient", ">= 2.0"
-          require "httpclient"
-
-          ::HTTPClient.prepend(HTTPClient::HTTPClientExtensions)
-        end
-      end
-
       SINK = Sinks.add("httpclient", scanners: [
         Scanners::SSRFScanner,
         OutboundConnectionMonitor
@@ -66,28 +58,34 @@ module Aikido::Zen
         end
       end
 
-      module HTTPClientExtensions
-        extend Sinks::DSL
+      def self.load_sinks!
+        if Aikido::Zen.satisfy "httpclient", ">= 2.0"
+          require "httpclient"
 
-        private
+          ::HTTPClient.class_eval do
+            extend Sinks::DSL
 
-        sink_around :do_get_block do |super_call, req|
-          Helpers.sink(req, &super_call)
-        end
+            private
 
-        sink_around :do_get_stream do |super_call, req|
-          Helpers.sink(req, &super_call)
-        end
+            sink_around :do_get_block do |original_call, req|
+              Helpers.sink(req, &original_call)
+            end
 
-        sink_after :do_get_header do |_result, req, res, _sess|
-          # Code coverage is disabled here because `do_get_header` is not called,
-          # because WebMock does not mock it.
-          # :nocov:
-          Scanners::SSRFScanner.track_redirects(
-            request: Helpers.wrap_request(req),
-            response: Helpers.wrap_response(res)
-          )
-          # :nocov:
+            sink_around :do_get_stream do |original_call, req|
+              Helpers.sink(req, &original_call)
+            end
+
+            sink_after :do_get_header do |_result, req, res, _sess|
+              # Code coverage is disabled here because `do_get_header` is not called,
+              # because WebMock does not mock it.
+              # :nocov:
+              Scanners::SSRFScanner.track_redirects(
+                request: Helpers.wrap_request(req),
+                response: Helpers.wrap_response(res)
+              )
+              # :nocov:
+            end
+          end
         end
       end
     end

@@ -3,15 +3,6 @@
 module Aikido::Zen
   module Sinks
     module SQLite3
-      def self.load_sinks!
-        if Aikido::Zen.satisfy "sqlite3", ">= 1.0"
-          require "sqlite3"
-
-          ::SQLite3::Database.prepend(DatabaseExtensions)
-          ::SQLite3::Statement.prepend(StatementExtensions)
-        end
-      end
-
       SINK = Sinks.add("sqlite3", scanners: [Scanners::SQLInjectionScanner])
 
       module Helpers
@@ -24,22 +15,28 @@ module Aikido::Zen
         end
       end
 
-      module DatabaseExtensions
-        extend Sinks::DSL
+      def self.load_sinks!
+        if Aikido::Zen.satisfy "sqlite3", ">= 1.0"
+          require "sqlite3"
 
-        private
+          ::SQLite3::Database.class_eval do
+            extend Sinks::DSL
 
-        # SQLite3::Database#exec_batch is an internal native private method.
-        sink_before :exec_batch do |sql|
-          Helpers.scan(sql, "exec_batch")
-        end
-      end
+            private
 
-      module StatementExtensions
-        extend Sinks::DSL
+            # SQLite3::Database#exec_batch is an internal native private method.
+            sink_before :exec_batch do |sql|
+              Helpers.scan(sql, "exec_batch")
+            end
+          end
 
-        sink_before :initialize do |_db, sql|
-          Helpers.scan(sql, "statement.execute")
+          ::SQLite3::Statement.class_eval do
+            extend Sinks::DSL
+
+            sink_before :initialize do |_db, sql|
+              Helpers.scan(sql, "statement.execute")
+            end
+          end
         end
       end
     end

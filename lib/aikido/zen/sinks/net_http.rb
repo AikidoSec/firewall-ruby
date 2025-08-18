@@ -7,13 +7,6 @@ module Aikido::Zen
   module Sinks
     module Net
       module HTTP
-        def self.load_sinks!
-          # In stdlib but not always required
-          require "net/http"
-
-          ::Net::HTTP.prepend(Net::HTTP::HTTPExtensions)
-        end
-
         SINK = Sinks.add("net-http", scanners: [
           Scanners::SSRFScanner,
           OutboundConnectionMonitor
@@ -66,33 +59,38 @@ module Aikido::Zen
           end
         end
 
-        module HTTPExtensions
-          extend Sinks::DSL
+        def self.load_sinks!
+          # In stdlib but not always required
+          require "net/http"
 
-          sink_around :request do |super_call, req|
-            wrapped_request = Helpers.wrap_request(req, self)
+          ::Net::HTTP.class_eval do
+            extend Sinks::DSL
 
-            # Store the request information so the DNS sinks can pick it up.
-            context = Aikido::Zen.current_context
-            if context
-              prev_request = context["ssrf.request"]
-              context["ssrf.request"] = wrapped_request
+            sink_around :request do |original_call, req|
+              wrapped_request = Helpers.wrap_request(req, self)
+
+              # Store the request information so the DNS sinks can pick it up.
+              context = Aikido::Zen.current_context
+              if context
+                prev_request = context["ssrf.request"]
+                context["ssrf.request"] = wrapped_request
+              end
+
+              connection = Helpers.build_outbound(self)
+
+              Helpers.scan(wrapped_request, connection, "request")
+
+              response = original_call.call
+
+              Scanners::SSRFScanner.track_redirects(
+                request: wrapped_request,
+                response: Helpers.wrap_response(response)
+              )
+
+              response
+            ensure
+              context["ssrf.request"] = prev_request if context
             end
-
-            connection = Helpers.build_outbound(self)
-
-            Helpers.scan(wrapped_request, connection, "request")
-
-            response = super_call.call
-
-            Scanners::SSRFScanner.track_redirects(
-              request: wrapped_request,
-              response: Helpers.wrap_response(response)
-            )
-
-            response
-          ensure
-            context["ssrf.request"] = prev_request if context
           end
         end
       end

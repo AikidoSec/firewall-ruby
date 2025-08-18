@@ -3,14 +3,6 @@
 module Aikido::Zen
   module Sinks
     module Trilogy
-      def self.load_sinks!
-        if Aikido::Zen.satisfy "trilogy", ">= 2.0"
-          require "trilogy"
-
-          ::Trilogy.prepend(TrilogyExtensions)
-        end
-      end
-
       SINK = Sinks.add("trilogy", scanners: [Scanners::SQLInjectionScanner])
 
       module Helpers
@@ -19,11 +11,17 @@ module Aikido::Zen
         end
       end
 
-      module TrilogyExtensions
-        extend Sinks::DSL
+      def self.load_sinks!
+        if Aikido::Zen.satisfy "trilogy", ">= 2.0"
+          require "trilogy"
 
-        sink_before :query do |query|
-          Helpers.scan(query, "query")
+          ::Trilogy.class_eval do
+            extend Sinks::DSL
+
+            sink_before :query do |query|
+              Helpers.scan(query, "query")
+            end
+          end
         end
       end
     end

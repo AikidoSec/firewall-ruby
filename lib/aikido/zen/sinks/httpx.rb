@@ -6,14 +6,6 @@ require_relative "../outbound_connection_monitor"
 module Aikido::Zen
   module Sinks
     module HTTPX
-      def self.load_sinks!
-        if Aikido::Zen.satisfy "httpx", ">= 1.1.3"
-          require "httpx"
-
-          ::HTTPX::Session.prepend(HTTPX::SessionExtensions)
-        end
-      end
-
       SINK = Sinks.add("httpx", scanners: [
         Scanners::SSRFScanner,
         OutboundConnectionMonitor
@@ -44,33 +36,39 @@ module Aikido::Zen
         end
       end
 
-      module SessionExtensions
-        extend Sinks::DSL
+      def self.load_sinks!
+        if Aikido::Zen.satisfy "httpx", ">= 1.1.3"
+          require "httpx"
 
-        sink_around :send_request do |super_call, request|
-          wrapped_request = Helpers.wrap_request(request)
+          ::HTTPX::Session.class_eval do
+            extend Sinks::DSL
 
-          # Store the request information so the DNS sinks can pick it up.
-          context = Aikido::Zen.current_context
-          if context
-            prev_request = context["ssrf.request"]
-            context["ssrf.request"] = wrapped_request
+            sink_around :send_request do |original_call, request|
+              wrapped_request = Helpers.wrap_request(request)
+
+              # Store the request information so the DNS sinks can pick it up.
+              context = Aikido::Zen.current_context
+              if context
+                prev_request = context["ssrf.request"]
+                context["ssrf.request"] = wrapped_request
+              end
+
+              connection = OutboundConnection.from_uri(request.uri)
+
+              Helpers.scan(wrapped_request, connection, "request")
+
+              request.on(:response) do |response|
+                Scanners::SSRFScanner.track_redirects(
+                  request: wrapped_request,
+                  response: Helpers.wrap_response(response)
+                )
+              end
+
+              original_call.call
+            ensure
+              context["ssrf.request"] = prev_request if context
+            end
           end
-
-          connection = OutboundConnection.from_uri(request.uri)
-
-          Helpers.scan(wrapped_request, connection, "request")
-
-          request.on(:response) do |response|
-            Scanners::SSRFScanner.track_redirects(
-              request: wrapped_request,
-              response: Helpers.wrap_response(response)
-            )
-          end
-
-          super_call.call
-        ensure
-          context["ssrf.request"] = prev_request if context
         end
       end
     end

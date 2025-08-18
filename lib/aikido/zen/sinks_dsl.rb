@@ -109,10 +109,14 @@ module Aikido::Zen
       #
       # @return [void]
       def presafe_sink_before(method_name, &block)
+        original = instance_method(method_name)
+
         define_method(method_name) do |*args, **kwargs, &blk|
           instance_exec(*args, **kwargs, &block)
-          super(*args, **kwargs, &blk)
+          original.bind_call(self, *args, **kwargs, &blk)
         end
+      rescue NameError
+        Aikido::Zen.config.logger.warn("cannot wrap method `#{method_name}' for class `#{self}'")
       end
 
       # Define a method `method_name` that safely executes the given block before
@@ -145,11 +149,15 @@ module Aikido::Zen
       #
       # @return [void]
       def presafe_sink_after(method_name, &block)
+        original = instance_method(method_name)
+
         define_method(method_name) do |*args, **kwargs, &blk|
-          result = super(*args, **kwargs, &blk)
+          result = original.bind_call(self, *args, **kwargs, &blk)
           instance_exec(result, *args, **kwargs, &block)
           result
         end
+      rescue NameError
+        Aikido::Zen.config.logger.warn("cannot wrap method `#{method_name}' for class `#{self}'")
       end
 
       # Define a method `method_name` that safely executes the given block after
@@ -177,20 +185,24 @@ module Aikido::Zen
       #
       # @param method_name [Symbol, String] the name of the method to define
       # @yield the block to execute around the original method
-      # @yieldparam super_call [Proc] the proc that calls the original method
+      # @yieldparam original_call [Proc] the proc that calls the original method
       # @yieldparam args [Array] the positional arguments passed to the original method
       # @yieldparam kwargs [Hash] the keyword arguments passed to the original method
       #
       # @return [void]
       def presafe_sink_around(method_name, &block)
+        original = instance_method(method_name)
+
         define_method(method_name) do |*args, **kwargs, &blk|
           result = nil
-          super_call = proc do
-            result = super(*args, **kwargs, &blk)
+          original_call = proc do
+            result = original.bind_call(self, *args, **kwargs, &blk)
           end
-          instance_exec(super_call, *args, **kwargs, &block)
+          instance_exec(original_call, *args, **kwargs, &block)
           result
         end
+      rescue NameError
+        Aikido::Zen.config.logger.warn("cannot wrap method `#{method_name}' for class `#{self}'")
       end
 
       # Define a method `method_name` that safely executes the given block around
@@ -198,27 +210,27 @@ module Aikido::Zen
       #
       # @param method_name [Symbol, String] the name of the method to define
       # @yield the block to execute around the original method
-      # @yieldparam super_call [Proc] the proc that calls the original method
+      # @yieldparam original_call [Proc] the proc that calls the original method
       # @yieldparam args [Array] the positional arguments passed to the original method
       # @yieldparam kwargs [Hash] the keyword arguments passed to the original method
       #
       # @return [void]
       #
       # @note the block is executed within `safe` to handle errors safely; the original method is executed within `presafe` to preserve the original behavior
-      # @note if the block does not call `super_call`, the original method is called automatically after the block is executed
+      # @note if the block does not call `original_call`, the original method is called automatically after the block is executed
       def sink_around(method_name, &block)
-        presafe_sink_around(method_name) do |presafe_super_call, *args, **kwargs|
-          super_called = false
-          super_call = proc do
-            super_called = true
+        presafe_sink_around(method_name) do |presafe_original_call, *args, **kwargs|
+          original_called = false
+          original_call = proc do
+            original_called = true
             DSL.presafe do
-              presafe_super_call.call
+              presafe_original_call.call
             end
           end
           DSL.safe do
-            instance_exec(super_call, *args, **kwargs, &block)
+            instance_exec(original_call, *args, **kwargs, &block)
           end
-          presafe_super_call.call unless super_called
+          presafe_original_call.call unless original_called
         end
       end
     end

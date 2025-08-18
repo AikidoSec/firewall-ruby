@@ -6,13 +6,6 @@ require_relative "../scanners/ssrf_scanner"
 module Aikido::Zen
   module Sinks
     module Resolv
-      def self.load_sinks!
-        # In stdlib but not always required
-        require "resolv"
-
-        ::Resolv.prepend(ResolvExtensions)
-      end
-
       SINK = Sinks.add("resolv", scanners: [
         Scanners::StoredSSRFScanner,
         Scanners::SSRFScanner
@@ -35,23 +28,30 @@ module Aikido::Zen
         end
       end
 
-      module ResolvExtensions
-        def each_address(*args, **kwargs, &blk)
-          # each_address is defined "manually" because no sink method pattern
-          # is applicable.
+      def self.load_sinks!
+        # In stdlib but not always required
+        require "resolv"
 
-          name, = args
+        ::Resolv.class_eval do
+          alias_method :each_address__internal_for_aikido_zen, :each_address
 
-          addresses = []
-          super(*args, **kwargs) do |address| # rubocop:disable Style/SuperArguments
-            addresses << address
-            blk.call(address)
-          end
-        ensure
-          # Ensure partial results are scanned.
+          def each_address(*args, **kwargs, &blk)
+            # each_address is defined "manually" because no sink method pattern
+            # is applicable.
 
-          Sinks::DSL.safe do
-            Helpers.scan(name, addresses, "lookup")
+            name, = args
+
+            addresses = []
+            each_address__internal_for_aikido_zen(*args, **kwargs) do |address|
+              addresses << address
+              blk.call(address)
+            end
+          ensure
+            # Ensure partial results are scanned.
+
+            Sinks::DSL.safe do
+              Helpers.scan(name, addresses, "lookup")
+            end
           end
         end
       end
