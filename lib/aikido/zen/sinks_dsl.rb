@@ -109,6 +109,8 @@ module Aikido::Zen
       #
       # @return [void]
       def presafe_sink_before(method_name, &block)
+        raise ArgumentError, "block required" unless block
+
         original = instance_method(method_name)
 
         define_method(method_name) do |*args, **kwargs, &blk|
@@ -131,6 +133,8 @@ module Aikido::Zen
       #
       # @note the block is executed within `safe` to handle errors safely; the original method is executed outside of `safe` to preserve the original behavior
       def sink_before(method_name, &block)
+        raise ArgumentError, "block required" unless block
+
         presafe_sink_before(method_name) do |*args, **kwargs|
           DSL.safe do
             instance_exec(*args, **kwargs, &block)
@@ -149,6 +153,8 @@ module Aikido::Zen
       #
       # @return [void]
       def presafe_sink_after(method_name, &block)
+        raise ArgumentError, "block required" unless block
+
         original = instance_method(method_name)
 
         define_method(method_name) do |*args, **kwargs, &blk|
@@ -173,6 +179,8 @@ module Aikido::Zen
       #
       # @note the block is executed within `safe` to handle errors safely; the original method is executed outside of `safe` to preserve the original behavior
       def sink_after(method_name, &block)
+        raise ArgumentError, "block required" unless block
+
         presafe_sink_after(method_name) do |result, *args, **kwargs|
           DSL.safe do
             instance_exec(result, *args, **kwargs, &block)
@@ -191,6 +199,8 @@ module Aikido::Zen
       #
       # @return [void]
       def presafe_sink_around(method_name, &block)
+        raise ArgumentError, "block required" unless block
+
         original = instance_method(method_name)
 
         define_method(method_name) do |*args, **kwargs, &blk|
@@ -219,6 +229,8 @@ module Aikido::Zen
       # @note the block is executed within `safe` to handle errors safely; the original method is executed within `presafe` to preserve the original behavior
       # @note if the block does not call `original_call`, the original method is called automatically after the block is executed
       def sink_around(method_name, &block)
+        raise ArgumentError, "block required" unless block
+
         presafe_sink_around(method_name) do |presafe_original_call, *args, **kwargs|
           original_called = false
           original_call = proc do
