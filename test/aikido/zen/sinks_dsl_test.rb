@@ -27,6 +27,18 @@ class Aikido::Zen::SinksDSLTest < ActiveSupport::TestCase
     def original_for_around
       "result of MyClass#original_for_around"
     end
+
+    def original_for_presafe_before
+      "result of MyClass#original_for_before"
+    end
+
+    def original_for_presafe_after
+      "result of MyClass#original_for_after"
+    end
+
+    def original_for_presafe_around
+      "result of MyClass#original_for_around"
+    end
   end
 
   MyClass.singleton_class.class_eval do
@@ -111,6 +123,21 @@ class Aikido::Zen::SinksDSLTest < ActiveSupport::TestCase
       @sink_around_original_after_original_call = true
 
       # rubocop:enable Lint/UnreachableCode
+    end
+
+    presafe_sink_before :original_for_presafe_before do
+      # Simulate error in sink, should escape sink.
+      raise StandardError
+    end
+
+    presafe_sink_after :original_for_presafe_after do
+      # Simulate error in sink, should escape sink.
+      raise StandardError
+    end
+
+    presafe_sink_around :original_for_presafe_around do
+      # Simulate error in sink, should escape sink.
+      raise StandardError
     end
   end
 
@@ -362,6 +389,21 @@ class Aikido::Zen::SinksDSLTest < ActiveSupport::TestCase
         sink_around
       end
     end
+  end
+
+  test "presafe sink before instance method raises exceptions" do
+    instance = MyClass.new
+    assert_raises(StandardError) { instance.original_for_presafe_before }
+  end
+
+  test "presafe sink after instance method raises exceptions" do
+    instance = MyClass.new
+    assert_raises(StandardError) { instance.original_for_presafe_after }
+  end
+
+  test "presafe sink around instance method raises exceptions" do
+    instance = MyClass.new
+    assert_raises(StandardError) { instance.original_for_presafe_around }
   end
 
   test "presafe sink before usage" do
