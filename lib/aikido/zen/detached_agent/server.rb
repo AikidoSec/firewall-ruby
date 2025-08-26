@@ -4,59 +4,72 @@ require "fileutils"
 
 module Aikido::Zen::DetachedAgent
   class Server
-    def initialize(config: Aikido::Zen.config)
-      detached_agent_socket_path = config.detached_agent_socket_path
+    # Initialize and start a detached agent server instance.
+    #
+    # @return [Aikido::Zen::DetachedAgent::Server]
+    def self.start(**opts)
+      new(**opts).tap(&:start!)
+    end
 
-      socket_path = detached_agent_socket_path.delete_prefix("drbunix:")
+    def initialize(config: Aikido::Zen.config)
+      @started_at = nil
+
+      @config = config
+
+      @socket_path = config.detached_agent_socket_path
+      @socket_uri = config.detached_agent_socket_uri
+    end
+
+    def started?
+      !!@started_at
+    end
+
+    def start!
+      @config.logger.info("Starting DRb Server...")
 
       begin
         # Try to connect to the Unix domain socket.
-        UNIXSocket.new(socket_path).close
+        UNIXSocket.new(@socket_path).close
 
         # Connection successful...
       rescue Errno::ECONNREFUSED
         # Remove the residual Unix domain socket.
-        FileUtils.rm_f(socket_path)
+        FileUtils.rm_f(@socket_path)
       rescue
         # empty
       end
 
-      @detached_agent_front = FrontObject.new
+      @front = FrontObject.new
 
       # If the Unix domain socket is already in use and/or could not be removed
       # DRb will raise an appropriate error.
-      @drb_server = DRb.start_service(detached_agent_socket_path, @detached_agent_front)
+      @drb_server = DRb.start_service(@socket_uri, @front)
 
       # Only show DRb output in debug mode.
-      @drb_server.verbose = config.logger.debug?
-    end
+      @drb_server.verbose = @config.logger.debug?
 
-    def alive?
-      @drb_server.alive?
+      # Ensure that the DRb server is alive.
+      max_attempts = 10
+      attempts = 0
+      until @drb_server.alive?
+        @config.logger.info("DRb Server still not alive. #{max_attempts - attempts} attempts remaining")
+        sleep 0.1
+        attempts += 1
+        raise Aikido::Zen::DetachedAgentError.new("Impossible to start the dRB server (socket=#{Aikido::Zen.config.detached_agent_socket_path})") \
+          if attempts == max_attempts
+      end
+
+      @started_at = Time.now.utc
+
+      at_exit { stop! if started? }
     end
 
     def stop!
-      @drb_server.stop_service
+      @config.logger.info("Stopping DRb Server...")
+      @started_at = nil
+
+      @drb_server.stop_service if @drb_server.alive?
       DRb.stop_service
-    end
-
-    class << self
-      def start!
-        Aikido::Zen.config.logger.debug("Starting DRb Server...")
-        max_attempts = 10
-        @server = new
-
-        attempts = 0
-        until @server.alive?
-          Aikido::Zen.config.logger.info("DRb Server still not alive. #{max_attempts - attempts} attempts remaining")
-          sleep 0.1
-          attempts += 1
-          raise Aikido::Zen::DetachedAgentError.new("Impossible to start the dRB server (socket=#{Aikido::Zen.config.detached_agent_socket_path})") \
-            if attempts == max_attempts
-        end
-
-        @server
-      end
     end
   end
 end
