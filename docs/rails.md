@@ -27,6 +27,32 @@ Bundler.require(*Rails.groups)
 That's it! Zen will start to run inside your app when it starts getting
 requests.
 
+## Rate limiting and user blocking
+
+If you want to add the rate limiting feature to your app, modify your code like this:
+
+```ruby
+# app/controllers/application_controller.rb
+class ApplicationController < ActionController::Base
+  private
+
+  def current_user
+    return unless session[:user_id]
+    User.find(session[:user_id])
+  end
+
+  def authenticate_user!
+    # Your authentication logic here
+    # ...
+    # Optional, if you want to use user based rate limiting or block specific users
+    Aikido::Zen.track_user(
+      id: current_user.id,
+      name: current_user.name
+    )
+  end
+end
+```
+
 ## Configuration
 
 Zen exposes its configuration object to the Rails configuration, which you can
