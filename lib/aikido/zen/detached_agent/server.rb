@@ -1,12 +1,33 @@
 # frozen_string_literal: true
 
+require "fileutils"
+
 module Aikido::Zen::DetachedAgent
   class Server
     def initialize(config: Aikido::Zen.config)
-      @detached_agent_front = FrontObject.new
-      @drb_server = DRb.start_service(config.detached_agent_socket_path, @detached_agent_front)
+      detached_agent_socket_path = config.detached_agent_socket_path
 
-      # We don't want to see drb logs unless in debug mode
+      socket_path = detached_agent_socket_path.delete_prefix("drbunix:")
+
+      begin
+        # Try to connect to the Unix domain socket.
+        UNIXSocket.new(socket_path).close
+
+        # Connection successful...
+      rescue Errno::ECONNREFUSED
+        # Remove the residual Unix domain socket.
+        FileUtils.rm_f(socket_path)
+      rescue
+        # empty
+      end
+
+      @detached_agent_front = FrontObject.new
+
+      # If the Unix domain socket is already in use and/or could not be removed
+      # DRb will raise an appropriate error.
+      @drb_server = DRb.start_service(detached_agent_socket_path, @detached_agent_front)
+
+      # Only show DRb output in debug mode.
       @drb_server.verbose = config.logger.debug?
     end
 
