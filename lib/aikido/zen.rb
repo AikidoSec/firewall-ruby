@@ -165,6 +165,11 @@ module Aikido
       end
     end
 
+    # Align with other Zen implementations, while keeping internal consistency.
+    class << self
+      alias_method :set_user, :track_user
+    end
+
     # Marks that the Zen middleware was installed properly
     # @return void
     def self.middleware_installed!
