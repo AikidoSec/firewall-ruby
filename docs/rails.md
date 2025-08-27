@@ -66,7 +66,7 @@ Rails.application.config.zen.api_timeouts = 20
 You can access the configuration object both as `Aikido::Zen.config` or
 `Rails.configuration.zen`.
 
-See our [configuration guide](docs/config.md) for more details.
+See our [configuration guide](./config.md) for more details.
 
 ## Using Rails encrypted credentials
 
