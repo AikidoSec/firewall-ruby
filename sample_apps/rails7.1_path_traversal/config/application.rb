@@ -6,12 +6,13 @@ require "action_controller/railtie"
 require "action_view/railtie"
 require "rails/test_unit/railtie"
 
+# Enable protection after `aikido-zen` has been required.
+require "aikido-zen"
+Aikido::Zen.protect!
+
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
-
-# Enable protection after `aikido-zen` has been required.
-Aikido::Zen.protect!
 
 module Cats
   class Application < Rails::Application
