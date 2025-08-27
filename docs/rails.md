@@ -45,7 +45,7 @@ class ApplicationController < ActionController::Base
     # Your authentication logic here
     # ...
     # Optional, if you want to use user based rate limiting or block specific users
-    Aikido::Zen.track_user(
+    Aikido::Zen.set_user(
       id: current_user.id,
       name: current_user.name
     )
