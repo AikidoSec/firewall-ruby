@@ -214,7 +214,7 @@ module Aikido
     end
 
     def self.detached_agent_server
-      @detached_agent_server ||= DetachedAgent::Server.start!
+      @detached_agent_server ||= DetachedAgent::Server.start
     end
 
     class << self

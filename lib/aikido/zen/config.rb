@@ -64,7 +64,7 @@ module Aikido::Zen
     # @return [string] Path of the socket where the detached agent will listen.
     # By default, is stored under the root application path with file name
     # `aikido-detached-agent.sock`
-    attr_reader :detached_agent_socket_path
+    attr_accessor :detached_agent_socket_path
 
     # @return [Boolean] is the agent in debugging mode?
     attr_accessor :debugging
@@ -222,9 +222,8 @@ module Aikido::Zen
       @api_timeouts.update(value)
     end
 
-    def detached_agent_socket_path=(path)
-      @detached_agent_socket_path = path
-      @detached_agent_socket_path = "drbunix:" + @detached_agent_socket_path unless @detached_agent_socket_path.start_with?("drbunix:")
+    def detached_agent_socket_uri
+      "drbunix:" + @detached_agent_socket_path
     end
 
     private
