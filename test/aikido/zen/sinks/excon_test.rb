@@ -44,18 +44,6 @@ class Aikido::Zen::Sinks::ExconTest < ActiveSupport::TestCase
       assert_requested :get, "http://localhost"
     end
 
-    test "raises a useful error message" do
-      set_context_from_request_to "/?host=localhost"
-
-      error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        Excon.get("https://localhost/safe")
-      end
-
-      assert_equal \
-        "SSRF: Request to user-supplied hostname «localhost» detected in excon.request (GET https://localhost/safe).",
-        error.message
-    end
-
     test "does not log an outbound connection if the request was blocked" do
       set_context_from_request_to "/?host=localhost"
 

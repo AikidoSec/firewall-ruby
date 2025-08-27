@@ -45,7 +45,7 @@ module Aikido::Zen
     # @param data [Hash] the decoded JSON payload from the /api/runtime/config
     #   API endpoint.
     #
-    # @return [void]
+    # @return [bool]
     def update_from_json(data)
       last_updated_at = updated_at
 
@@ -56,7 +56,7 @@ module Aikido::Zen
       self.skip_protection_for_ips = RuntimeSettings::IPSet.from_json(data["allowedIPAddresses"])
       self.received_any_stats = data["receivedAnyStats"]
 
-      Aikido::Zen.agent.updated_settings! if updated_at != last_updated_at
+      updated_at != last_updated_at
     end
   end
 end

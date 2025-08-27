@@ -10,10 +10,11 @@ module Aikido::Zen
     end
 
     initializer "aikido.add_middleware" do |app|
-      next if config.zen.disabled?
-
       app.middleware.use Aikido::Zen::Middleware::SetContext
       app.middleware.use Aikido::Zen::Middleware::CheckAllowedAddresses
+      # Request Tracker stats do not consider failed request or 40x, so the middleware
+      # must be the last one wrapping the request.
+      app.middleware.use Aikido::Zen::Middleware::RequestTracker
 
       ActiveSupport.on_load(:action_controller) do
         # Due to how Rails sets up its middleware chain, the routing is evaluated
@@ -30,9 +31,9 @@ module Aikido::Zen
     initializer "aikido.configuration" do |app|
       # Allow the logger to be configured before checking if disabled? so we can
       # let the user know that the agent is disabled.
-      app.config.zen.logger = ::Rails.logger.tagged("aikido")
-
-      next if config.zen.disabled?
+      logger = ::Rails.logger
+      logger = logger.tagged("aikido") if logger.respond_to?(:tagged)
+      app.config.zen.logger = logger
 
       app.config.zen.request_builder = Aikido::Zen::Context::RAILS_REQUEST_BUILDER
 
@@ -48,15 +49,8 @@ module Aikido::Zen
     end
 
     config.after_initialize do
-      if config.zen.disabled?
-        config.zen.logger.warn("Zen has been disabled and will not run.")
-        next
-      end
-
-      # Make sure this is run at the end of the initialization process, so
-      # that any gems required after aikido-zen are detected and patched
-      # accordingly.
-      Aikido::Zen.load_sinks!
+      # Start the Aikido Agent only once the application starts.
+      Aikido::Zen.start!
     end
   end
 end

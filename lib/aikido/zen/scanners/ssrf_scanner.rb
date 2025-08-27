@@ -6,6 +6,12 @@ require_relative "ssrf/dns_lookups"
 module Aikido::Zen
   module Scanners
     class SSRFScanner
+      # SSRF attacks can be triggered through external inputs, so it is essential
+      # to have a valid context to safeguard against these attacks.
+      def self.skips_on_nil_context?
+        true
+      end
+
       # Checks if an outbound HTTP request is to a hostname supplied from user
       # input that resolves to a "dangerous" address. This is called from two
       # different places:
@@ -32,7 +38,6 @@ module Aikido::Zen
       # @return [Aikido::Zen::Attacks::SSRFAttack, nil] an Attack if any user
       #   input is detected to be attempting SSRF, or +nil+ if not.
       def self.call(request:, sink:, context:, operation:, **)
-        return if context.nil?
         return if request.nil? # See NOTE above.
 
         context["ssrf.redirects"] ||= RedirectChains.new

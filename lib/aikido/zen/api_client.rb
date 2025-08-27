@@ -36,7 +36,7 @@ module Aikido::Zen
 
       response = request(
         Net::HTTP::Get.new("/config", default_headers),
-        base_url: @config.runtime_api_base_url
+        base_url: @config.realtime_endpoint
       )
 
       new_updated_at = Time.at(response["configUpdatedAt"].to_i / 1000)
@@ -72,16 +72,26 @@ module Aikido::Zen
     #   @return (see #fetch_settings)
     #   @raise (see #request)
     def report(event)
-      if @rate_limiter.throttle?(event)
-        @config.logger.error("Not reporting #{event.type.upcase} event due to rate limiting")
+      event_type = if event.respond_to?(:type)
+        event.type
+      else
+        event[:type]
+      end
+
+      if @rate_limiter.throttle?(event_type)
+        @config.logger.error("Not reporting #{event_type.upcase} event due to rate limiting")
         return
       end
 
-      @config.logger.debug("Reporting #{event.type.upcase} event")
+      @config.logger.debug("Reporting #{event_type.upcase} event")
 
       req = Net::HTTP::Post.new("/api/runtime/events", default_headers)
       req.content_type = "application/json"
-      req.body = @config.json_encoder.call(event.as_json)
+      req.body = if event.respond_to?(:as_json)
+        @config.json_encoder.call(event.as_json)
+      else
+        @config.json_encoder.call(event)
+      end
 
       request(req)
     rescue Aikido::Zen::RateLimitedError
@@ -93,15 +103,15 @@ module Aikido::Zen
     # response.
     #
     # @param request [Net::HTTPRequest]
-    # @param base_url [URI] which API to use. Defaults to +Config#api_base_url+.
+    # @param base_url [URI] which API to use. Defaults to +Config#api_endpoint+.
     #
     # @return [Object] the result of decoding the JSON response from the server.
     #
     # @raise [Aikido::Zen::APIError] in case of a 4XX or 5XX response.
     # @raise [Aikido::Zen::NetworkError] if an error occurs trying to make the
     #   request.
-    private def request(request, base_url: @config.api_base_url)
-      Net::HTTP.start(base_url.host, base_url.port, http_settings) do |http|
+    private def request(request, base_url: @config.api_endpoint)
+      Net::HTTP.start(base_url.host, base_url.port, http_settings(base_url)) do |http|
         response = http.request(request)
 
         case response
@@ -117,8 +127,11 @@ module Aikido::Zen
       raise NetworkError.new(request, err)
     end
 
-    private def http_settings
-      @http_settings ||= {use_ssl: true, max_retries: 2}.merge(@config.api_timeouts)
+    private def http_settings(base_url)
+      @http_settings ||= {
+        use_ssl: base_url.scheme == "https",
+        max_retries: 2
+      }.merge(@config.api_timeouts)
     end
 
     private def default_headers

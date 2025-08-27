@@ -60,7 +60,7 @@ module Aikido::Zen
     end
 
     def os_version
-      Gem::Platform.local.version
+      Gem::Platform.local.version || "unknown"
     end
 
     def as_json

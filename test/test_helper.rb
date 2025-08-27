@@ -18,6 +18,26 @@ require "pathname"
 require "debug" if RUBY_VERSION >= "3"
 require "support/capture_stream"
 
+class FakeDetachedAgent
+  extend Forwardable
+
+  def_delegators :@collector, :track_request, :track_route, :track_outbound, :track_scan, :track_user, :track_attack
+  def_delegator :@rate_limiter, :calculate_rate_limits
+
+  def initialize(collector, rate_limiter)
+    @collector = collector
+    @rate_limiter = rate_limiter
+  end
+
+  def handle_fork
+  end
+end
+
+Aikido::Zen.instance_variable_set(
+  :@detached_agent,
+  FakeDetachedAgent.new(Aikido::Zen::Collector.new, Aikido::Zen::RateLimiter.new)
+)
+
 # Silence warnings that result from loading HTTPClient.
 ActiveSupport::Testing::Stream.quietly { require "webmock" }
 # For the HTTP adapters shipped with WebMock by default, requiring webmock first
@@ -36,6 +56,7 @@ require_relative "support/fake_rails_app"
 require_relative "support/http_connection_tracking_assertions"
 require_relative "support/rate_limiting_assertions"
 require_relative "support/sink_attack_helpers"
+require_relative "support/worker_helpers"
 
 # Utility proc that does nothing.
 NOOP = ->(*args, **opts) {}
@@ -48,14 +69,32 @@ class ActiveSupport::TestCase
     Aikido::Zen.instance_variable_set(:@info, nil)
     Aikido::Zen.instance_variable_set(:@agent, nil)
     Aikido::Zen.instance_variable_set(:@config, nil)
-    Aikido::Zen.instance_variable_set(:@collector, nil)
+
+    collector = Aikido::Zen::Collector.new
+
+    Aikido::Zen.instance_variable_set(:@collector, collector)
+    Aikido::Zen.detached_agent.instance_variable_set(:@collector, collector)
+
     Aikido::Zen.instance_variable_set(:@runtime_settings, nil)
+    Aikido::Zen.detached_agent.instance_variable_set(:@rate_limiter, Aikido::Zen::RateLimiter.new)
+
     Aikido::Zen.current_context = nil
+
+    Aikido::Zen.singleton_class.remove_method(:track_scan)
+    Aikido::Zen.singleton_class.define_method(:track_scan) do |scan|
+      collector.track_scan(scan)
+
+      if scan.attack?
+        attack = scan.attack
+        collector.track_attack(attack)
+        raise attack
+      end
+    end
 
     @_old_sinks_registry = Aikido::Zen::Sinks.registry.dup
     Aikido::Zen::Sinks.registry.clear
 
-    Aikido::Zen::Sinks::ActionController.instance_variable_set(:@throttler, nil)
+    Aikido::Zen::Sinks::ActionController.instance_variable_set(:@block_request_checker, nil)
 
     WebMock.reset!
   end
@@ -82,7 +121,8 @@ class ActiveSupport::TestCase
   # Capture log output and make it testable
   setup do
     @log_output = StringIO.new
-    Aikido::Zen.config.logger.reopen(@log_output)
+    Aikido::Zen.config.debugging = true
+    Aikido::Zen.config.logger = Aikido::Zen.config.logger.reopen(@log_output)
   end
 
   # rubocop:disable Style/OptionalArguments
@@ -113,6 +153,7 @@ class ActiveSupport::TestCase
 
     refute lines.any? { |line| pattern === line && (match_level === line or true) }, reason
   end
+
   # rubocop:enable Style/OptionalArguments
 
   # Checks that all the data in {subset} is part of the {container} hash.
@@ -122,6 +163,12 @@ class ActiveSupport::TestCase
   #   assert_hash_subset_of data, {name: "Alice", id: 3}
   def assert_hash_subset_of(container, subset)
     assert_equal container.slice(*subset.keys), subset
+  end
+
+  def skip_if_ruby_lower_than(expected_ruby_version)
+    if expected_ruby_version > RUBY_VERSION
+      skip "Skipping test #{__method__} because unexpected ruby version (#{RUBY_VERSION} < #{expected_ruby_version})"
+    end
   end
 
   module StubsCurrentContext

@@ -48,6 +48,24 @@ module Aikido::Zen
       {body: body, query: query_schema.as_json, auth: auth_schema.as_json}.compact
     end
 
+    def self.from_json(data)
+      if data.empty?
+        return Request::Schema.new(
+          content_type: nil,
+          body_schema: EMPTY_SCHEMA,
+          query_schema: EMPTY_SCHEMA,
+          auth_schema: Aikido::Zen::Request::Schema::AuthSchemas.new([])
+        )
+      end
+
+      Request::Schema.new(
+        content_type: data[:body].nil? ? nil : data[:body][:type],
+        body_schema: data[:body].nil? ? EMPTY_SCHEMA : Aikido::Zen::Request::Schema::Definition.new(data[:body][:schema]),
+        query_schema: data[:query].nil? ? EMPTY_SCHEMA : Aikido::Zen::Request::Schema::Definition.new(data[:query]),
+        auth_schema: Aikido::Zen::Request::Schema::AuthSchemas.from_json(data[:auth])
+      )
+    end
+
     # Merges the request specification with another request's specification.
     #
     # @param other [Aikido::Zen::Request::Schema, nil]
@@ -56,9 +74,6 @@ module Aikido::Zen
       return self if other.nil?
 
       self.class.new(
-        # TODO: this is currently overriding the content type with the new
-        # value, but we should support APIs that accept input in many types
-        # (e.g. JSON and XML)
         content_type: other.content_type,
         body_schema: body_schema.merge(other.body_schema),
         query_schema: query_schema.merge(other.query_schema),

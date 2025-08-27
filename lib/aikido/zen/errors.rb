@@ -60,7 +60,6 @@ module Aikido
       attr_reader :attack
 
       def initialize(attack)
-        super(attack.log_message)
         @attack = attack
       end
     end
@@ -75,6 +74,16 @@ module Aikido
       def_delegators :@attack, :request, :input
     end
 
+    class PathTraversalError < UnderAttackError
+      extend Forwardable
+      def_delegators :@attack, :input
+    end
+
+    class ShellInjectionError < UnderAttackError
+      extend Forwardable
+      def_delegators :@attack, :input
+    end
+
     # Raised when there's any problem communicating (or loading) libzen.
     class InternalsError < ZenError
       # @param attempt [String] description of what we were trying to do.
@@ -84,6 +93,14 @@ module Aikido
         super(format(<<~MSG.chomp, attempt, problem, libname))
           Zen could not scan %s due to a problem %s the library `%s'
         MSG
+      end
+    end
+
+    class DetachedAgentError < ZenError
+      extend Forwardable
+
+      def initialize(msg)
+        super
       end
     end
   end

@@ -5,6 +5,8 @@ require "test_helper"
 class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
   setup do
     @client = Aikido::Zen::APIClient.new
+    Aikido::Zen.config.debugging = true
+    Aikido::Zen.config.logger = ::Logger.new($stdout, level: Logger::DEBUG)
   end
 
   test "reports it cannot make requests if the configured token is nil" do
@@ -29,7 +31,6 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
   #
   # This avoids this by replacing the Aikido::Zen methods by NOOP calls.
   #
-  # FIXME: Make this easier to stub.
   module DisableAgentReporting
     def self.included(base)
       original_agent_interface = {
@@ -58,6 +59,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
 
     setup do
       Aikido::Zen.config.api_token = "TOKEN"
+      Aikido::Zen.config.debugging = true
       Aikido::Zen.runtime_settings.updated_at = Time.at(0)
 
       @client = Aikido::Zen::APIClient.new
@@ -176,7 +178,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     end
 
     test "uses the host configured in the agent config" do
-      Aikido::Zen.config.api_base_url = "https://test.aikido.dev"
+      Aikido::Zen.config.api_endpoint = "https://test.aikido.dev"
 
       stub_request(:get, "https://test.aikido.dev/api/runtime/config")
         .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
@@ -301,7 +303,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     end
 
     test "uses the host configured in the agent config" do
-      Aikido::Zen.config.api_base_url = "https://app.local.aikido.io"
+      Aikido::Zen.config.api_endpoint = "https://app.local.aikido.io"
 
       stub_request(:post, "https://app.local.aikido.io/api/runtime/events")
         .with(body: hash_including(type: "started"))
@@ -325,7 +327,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
 
     test "logs an error and skips making a request if the rate limiter decides to throttle" do
       rate_limiter = Minitest::Mock.new
-      rate_limiter.expect :throttle?, true, [Aikido::Zen::Event]
+      rate_limiter.expect :throttle?, true, ["started"]
 
       @client = Aikido::Zen::APIClient.new(rate_limiter: rate_limiter)
       assert_nil @client.report(Aikido::Zen::Events::Started.new)

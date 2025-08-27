@@ -7,6 +7,8 @@ module Aikido::Zen
   #
   # Keeps track of the visited routes.
   class Collector::Routes
+    attr_reader :visits
+
     def initialize(config = Aikido::Zen.config)
       @config = config
       @visits = Hash.new { |h, k| h[k] = Record.new }

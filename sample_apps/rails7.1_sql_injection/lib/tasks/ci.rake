@@ -1,1 +1,3 @@
-../../../../test/e2e/rails_ci.rake
+namespace :ci do
+  task setup: ["db:setup", "db:test:prepare"]
+end

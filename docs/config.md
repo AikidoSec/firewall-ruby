@@ -17,7 +17,7 @@ requiring a full deploy.)
 ## Blocking mode
 
 In order to have Aikido block requests that look like attacks, you can set
-`AIKIDO_BLOCKING=true` in your environment, or set
+`AIKIDO_BLOCK=true` in your environment, or set
 `Aikido::Zen.config.blocking_mode = true`.
 
 (We recommend the ENV variable as you can normally change this easily without
@@ -79,21 +79,23 @@ Aikido::Zen.rate_limited_responder = ->(request) {
 }
 ```
 
-## IP Blocking responses
+## Blocking responses
 
-If you're using the IP blocking features of Zen, you can configure the response
+If you're using the IP, users or bot blocking features of Zen, you can configure the response
 we send users when their request is rejected with a Proc that returns a
 Rack-compatible response tuple, like this:
 
 ``` ruby
-Aikido::Zen.blocked_ip_responder = ->(request) {
+Aikido::Zen.blocked_responder = ->(request, blocking_type) {
   # Here, request is an instance of Aikido::Zen::Request, which follows the
   # underlying Rack::Request (or ActionDispatch::Request in Rails) API.
-  [403, {"Content-Type" => "application/json"}, ['{"error":"ip_blocked"}']]
+  # And blocking_type is [:ip, :user]
+  
+  [403, {"Content-Type" => "application/json"}, ['{"error":"#{blocking_type.to_s}_blocked"}']]
 }
 ```
 
-By default, Zen emits a `text/plain` 403 response that tells the user their IP
+By default, Zen emits a `text/plain` 403 response that tells the user the request
 is not allowed.
 
 ## API schema sampling

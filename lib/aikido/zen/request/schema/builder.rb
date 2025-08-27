@@ -68,8 +68,6 @@ module Aikido::Zen
           new(type: "boolean")
         when String
           new(type: "string")
-        when Integer
-          new(type: "integer")
         when Numeric
           new(type: "number")
         when Array

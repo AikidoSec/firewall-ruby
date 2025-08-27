@@ -10,19 +10,20 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   test "default values" do
     assert_equal false, @config.blocking_mode
     assert_nil @config.api_token
-    assert_equal URI("https://guard.aikido.dev"), @config.api_base_url
-    assert_equal URI("https://runtime.aikido.dev"), @config.runtime_api_base_url
+    assert_equal URI("https://guard.aikido.dev"), @config.api_endpoint
+    assert_equal URI("https://runtime.aikido.dev"), @config.realtime_endpoint
     assert_equal 10, @config.api_timeouts[:open_timeout]
     assert_equal 10, @config.api_timeouts[:read_timeout]
     assert_equal 10, @config.api_timeouts[:write_timeout]
     assert_kind_of ::Logger, @config.logger
+    refute @config.debugging
     assert_equal 5000, @config.max_performance_samples
     assert_equal 100, @config.max_compressed_stats
     assert_equal 200, @config.max_outbound_connections
     assert_equal 1000, @config.max_users_tracked
     assert_equal 60, @config.initial_heartbeat_delay
     assert_equal 60, @config.polling_interval
-    assert_kind_of Proc, @config.blocked_ip_responder
+    assert_kind_of Proc, @config.blocked_responder
     assert_kind_of Proc, @config.rate_limited_responder
     assert_kind_of Proc, @config.rate_limiting_discriminator
     assert_equal 3600, @config.client_rate_limit_period
@@ -32,55 +33,37 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 20, @config.api_schema_collection_max_properties
     assert_equal ["metadata.google.internal", "metadata.goog"], @config.imds_allowed_hosts
     assert_equal false, @config.disabled
+    assert_equal "aikido-detached-agent.sock", @config.detached_agent_socket_path
   end
 
   test "can set AIKIDO_DISABLED to configure if the agent should be turned off" do
-    with_env "AIKIDO_DISABLED" => "true" do
-      config = Aikido::Zen::Config.new
-      assert config.disabled?
-    end
-
-    with_env "AIKIDO_DISABLED" => "1" do
-      config = Aikido::Zen::Config.new
-      assert config.disabled?
-    end
-
-    with_env "AIKIDO_DISABLED" => "t" do
-      config = Aikido::Zen::Config.new
-      assert config.disabled?
-    end
-
-    with_env "AIKIDO_DISABLED" => "false" do
-      config = Aikido::Zen::Config.new
-      refute config.disabled?
-    end
-
-    with_env "AIKIDO_DISABLED" => "f" do
-      config = Aikido::Zen::Config.new
-      refute config.disabled?
-    end
-
-    with_env "AIKIDO_DISABLED" => "0" do
-      config = Aikido::Zen::Config.new
-      refute config.disabled?
-    end
-
-    with_env "AIKIDO_DISABLED" => "" do
-      config = Aikido::Zen::Config.new
-      refute config.disabled?
+    assert_boolean_env_var "AIKIDO_DISABLED" do |config|
+      config.disabled?
     end
   end
 
-  test "can overwrite the api_base_url" do
-    @config.api_base_url = "http://app.local.aikido.io"
-
-    assert_equal URI("http://app.local.aikido.io"), @config.api_base_url
+  test "can set AIKIDO_DEBUG to configure agent's debugging mode" do
+    assert_boolean_env_var "AIKIDO_DEBUG" do |config|
+      config.debugging?
+    end
   end
 
-  test "can overwrite the runtime_api_base_url" do
-    @config.runtime_api_base_url = "http://localhost:3000"
+  test "can set AIKIDO_FEATURE_COLLECT_API_SCHEMA to configure if the agent should collect API schema" do
+    assert_boolean_env_var "AIKIDO_FEATURE_COLLECT_API_SCHEMA" do |config|
+      config.collect_api_schema?
+    end
+  end
 
-    assert_equal URI("http://localhost:3000"), @config.runtime_api_base_url
+  test "can overwrite the api_endpoint" do
+    @config.api_endpoint = "http://app.local.aikido.io"
+
+    assert_equal URI("http://app.local.aikido.io"), @config.api_endpoint
+  end
+
+  test "can overwrite the realtime_endpoint" do
+    @config.realtime_endpoint = "http://localhost:3000"
+
+    assert_equal URI("http://localhost:3000"), @config.realtime_endpoint
   end
 
   test "can set granular timeouts" do
@@ -127,16 +110,22 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   end
 
   test "can override the default base URL with an ENV variable" do
-    with_env "AIKIDO_BASE_URL" => "https://test.aikido.dev" do
+    with_env "AIKIDO_ENDPOINT" => "https://test.aikido.dev" do
       config = Aikido::Zen::Config.new
-      assert_equal URI("https://test.aikido.dev"), config.api_base_url
+      assert_equal URI("https://test.aikido.dev"), config.api_endpoint
+    end
+  end
+
+  test "can override the default realtime URL with an ENV variable" do
+    with_env "AIKIDO_REALTIME_ENDPOINT" => "https://test.aikido.dev" do
+      config = Aikido::Zen::Config.new
+      assert_equal URI("https://test.aikido.dev"), config.realtime_endpoint
     end
   end
 
   test "can set blocking_mode via an ENV variable" do
-    with_env "AIKIDO_BLOCKING" => "1" do
-      config = Aikido::Zen::Config.new
-      assert_equal true, config.blocking_mode
+    assert_boolean_env_var "AIKIDO_BLOCK" do |config|
+      config.blocking_mode
     end
   end
 
@@ -154,16 +143,24 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal "Array", @config.json_encoder.call([1, 2])
   end
 
-  test "the default #blocked_ip_responder returns the expected Rack response" do
+  test "the default #blocked_responder returns the expected Rack response" do
     request = Minitest::Mock.new
     request.expect :ip, "1.2.3.4"
 
-    status, headers, body = @config.blocked_ip_responder.call(request)
+    status, headers, body = @config.blocked_responder.call(request, :ip)
 
     assert_equal 403, status
     assert_equal({"Content-Type" => "text/plain"}, headers)
     assert_equal \
       ["Your IP address is not allowed to access this resource. (Your IP: 1.2.3.4)"],
+      body
+
+    status, headers, body = @config.blocked_responder.call(request, :user)
+
+    assert_equal 403, status
+    assert_equal({"Content-Type" => "text/plain"}, headers)
+    assert_equal \
+      ["You are blocked by Zen."],
       body
 
     assert_mock request
@@ -189,6 +186,31 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     value = @config.rate_limiting_discriminator.call(request)
 
     assert_equal "actor:123", value
+  end
+
+  def assert_boolean_env_var(env_var, &block)
+    %w[true 1 t].each do |truthy_value|
+      with_env env_var => truthy_value do
+        assert block.call(Aikido::Zen::Config.new)
+      end
+    end
+
+    ["false", "f", "0", ""].each do |truthy_value|
+      with_env env_var => truthy_value do
+        refute block.call(Aikido::Zen::Config.new)
+      end
+    end
+  end
+
+  test "if logger is updated it overrides the severity level according debugging mode" do
+    config = Aikido::Zen::Config.new
+    assert_equal config.logger.level, Logger::INFO
+    config.logger = ::Logger.new($stdout, level: Logger::INFO)
+    assert_equal config.logger.level, Logger::INFO
+
+    config.debugging = true
+    config.logger = ::Logger.new($stdout, level: Logger::INFO)
+    assert_equal config.logger.level, Logger::DEBUG
   end
 
   def with_env(data = {})

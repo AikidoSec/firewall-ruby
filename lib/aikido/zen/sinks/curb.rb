@@ -1,19 +1,19 @@
 # frozen_string_literal: true
 
-require_relative "../sink"
+require_relative "../scanners/ssrf_scanner"
 require_relative "../outbound_connection_monitor"
 
 module Aikido::Zen
   module Sinks
     module Curl
       SINK = Sinks.add("curb", scanners: [
-        Aikido::Zen::Scanners::SSRFScanner,
-        Aikido::Zen::OutboundConnectionMonitor
+        Scanners::SSRFScanner,
+        OutboundConnectionMonitor
       ])
 
-      module Extensions
+      module Helpers
         def self.wrap_request(curl, url: curl.url)
-          Aikido::Zen::Scanners::SSRFScanner::Request.new(
+          Scanners::SSRFScanner::Request.new(
             verb: nil, # Curb hides this by directly setting an option in C
             uri: URI(url),
             headers: curl.headers
@@ -33,57 +33,81 @@ module Aikido::Zen
             status = curl.status.to_i
           end
 
-          Aikido::Zen::Scanners::SSRFScanner::Response.new(status: status, headers: headers)
+          Scanners::SSRFScanner::Response.new(status: status, headers: headers)
         end
 
-        def perform
-          wrapped_request = Extensions.wrap_request(self)
-
-          # Store the request information so the DNS sinks can pick it up.
-          if (context = Aikido::Zen.current_context)
-            prev_request = context["ssrf.request"]
-            context["ssrf.request"] = wrapped_request
-          end
-
+        def self.scan(request, connection, operation)
           SINK.scan(
-            connection: Aikido::Zen::OutboundConnection.from_uri(URI(url)),
-            request: wrapped_request,
-            operation: "request"
+            request: request,
+            connection: connection,
+            operation: operation
           )
+        end
+      end
 
-          response = super
+      def self.load_sinks!
+        if Aikido::Zen.satisfy "curb", ">= 0.2.3"
+          require "curb"
 
-          Aikido::Zen::Scanners::SSRFScanner.track_redirects(
-            request: wrapped_request,
-            response: Extensions.wrap_response(self)
-          )
+          ::Curl::Easy.class_eval do
+            extend Sinks::DSL
 
-          # When libcurl has follow_location set, it will handle redirections
-          # internally, and expose the "last_effective_url" as the URI that was
-          # last requested in the redirect chain.
-          #
-          # In this case, we can't actually stop the request from happening, but
-          # we can scan again (now that we know another request happened), to
-          # stop the response from being exposed to the user. This downgrades
-          # the SSRF into a blind SSRF, which is better than doing nothing.
-          if url != last_effective_url
-            last_effective_request = Extensions.wrap_request(self, url: last_effective_url)
-            context["ssrf.request"] = last_effective_request if context
+            sink_around :perform do |original_call|
+              wrapped_request = Helpers.wrap_request(self)
 
-            SINK.scan(
-              connection: Aikido::Zen::OutboundConnection.from_uri(URI(last_effective_url)),
-              request: last_effective_request,
-              operation: "request"
-            )
+              # Store the request information so the DNS sinks can pick it up.
+              context = Aikido::Zen.current_context
+              if context
+                prev_request = context["ssrf.request"]
+                context["ssrf.request"] = wrapped_request
+              end
+
+              connection = OutboundConnection.from_uri(URI(url))
+
+              Helpers.scan(wrapped_request, connection, "request")
+
+              response = original_call.call
+
+              Scanners::SSRFScanner.track_redirects(
+                request: wrapped_request,
+                response: Helpers.wrap_response(self)
+              )
+
+              # When libcurl has follow_location set, it will handle redirections
+              # internally, and expose the "last_effective_url" as the URI that was
+              # last requested in the redirect chain.
+              #
+              # In this case, we can't actually stop the request from happening, but
+              # we can scan again (now that we know another request happened), to
+              # stop the response from being exposed to the user. This downgrades
+              # the SSRF into a blind SSRF, which is better than doing nothing.
+              if url != last_effective_url
+                last_effective_request = Helpers.wrap_request(self, url: last_effective_url)
+
+                # Code coverage is disabled here because the else clause is a no-op,
+                # so there is nothing to cover.
+                # :nocov:
+                if context
+                  context["ssrf.request"] = last_effective_request
+                else
+                  # empty
+                end
+                # :nocov:
+
+                connection = OutboundConnection.from_uri(URI(last_effective_url))
+
+                Helpers.scan(last_effective_request, connection, "request")
+              end
+
+              response
+            ensure
+              context["ssrf.request"] = prev_request if context
+            end
           end
-
-          response
-        ensure
-          context["ssrf.request"] = prev_request if context
         end
       end
     end
   end
 end
 
-::Curl::Easy.prepend(Aikido::Zen::Sinks::Curl::Extensions)
+Aikido::Zen::Sinks::Curl.load_sinks!

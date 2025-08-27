@@ -80,15 +80,23 @@ module Aikido::Zen
     # @raise [Aikido::UnderAttackError] if an attack is detected and
     #   blocking_mode is enabled.
     def scan(context: Aikido::Zen.current_context, **scan_params)
+      return if context&.scanning
+      context&.scanning = true
+
       return if context&.protection_disabled?
 
       scan = Scan.new(sink: self, context: context)
 
+      scans_performed = 0
       scan.perform do
         result = nil
 
         scanners.each do |scanner|
+          next if scanner.skips_on_nil_context? && context.nil?
+
           result = scanner.call(sink: self, context: context, **scan_params)
+          scans_performed += 1
+
           break result if result
         rescue Aikido::Zen::InternalsError => error
           Aikido::Zen.config.logger.warn(error.message)
@@ -100,9 +108,11 @@ module Aikido::Zen
         result
       end
 
-      @reporter.call(scan)
+      @reporter.call(scan) if scans_performed > 0
 
       scan
+    ensure
+      context&.scanning = false
     end
   end
 end

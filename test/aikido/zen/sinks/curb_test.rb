@@ -44,18 +44,6 @@ class Aikido::Zen::Sinks::CurbTest < ActiveSupport::TestCase
       assert_requested :get, "http://localhost"
     end
 
-    test "raises a useful error message" do
-      set_context_from_request_to "/?host=localhost"
-
-      error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
-        Curl.get("https://localhost/safe")
-      end
-
-      assert_equal \
-        "SSRF: Request to user-supplied hostname «localhost» detected in curb.request (https://localhost/safe).",
-        error.message
-    end
-
     test "does not log an outbound connection if the request was blocked" do
       set_context_from_request_to "/?host=localhost"
 
@@ -78,7 +66,7 @@ class Aikido::Zen::Sinks::CurbTest < ActiveSupport::TestCase
         response = Curl.get("https://this-is-harmless-i-swear.com/")
         assert_equal 301, response.status.to_i
 
-        wrapped = Aikido::Zen::Sinks::Curl::Extensions.wrap_response(response)
+        wrapped = Aikido::Zen::Sinks::Curl::Helpers.wrap_response(response)
         Curl.get(wrapped.redirect_to)
       end
 

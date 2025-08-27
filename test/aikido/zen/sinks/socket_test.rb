@@ -10,13 +10,14 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
   # a network that can actually resolve 169.254.169.254. So the tests here are a
   # little contrived and not as high level as we'd like, but rather just test
   # the scanning behavior in isolation, off of a stubbed "socket" object.
-  def build_socket(name, port, family: "AF_INET")
-    address = @stubbed_dns.fetch(name, name)
+  def build_socket(name, port, address_family: "AF_INET")
+    numeric_address = @stubbed_dns.fetch(name, name)
 
     socket = Minitest::Mock.new(Object.new)
-    socket.expect :peeraddr, [family, port, address, address]
+    socket.expect :peeraddr, [address_family, port, numeric_address, numeric_address], [:numeric]
+    socket.expect :instance_of?, true, [TCPSocket]
 
-    Aikido::Zen::Sinks::Socket::IPSocketExtensions.scan_socket(name, socket)
+    Aikido::Zen::Sinks::Socket::Helpers.scan(name, socket, "open")
 
     assert_mock socket
 
@@ -24,6 +25,15 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
   end
 
   setup { @stubbed_dns = {} }
+
+  test "if socket is not exactly a TCPSocket it should skip the scan" do
+    socket = Minitest::Mock.new(Object.new)
+    socket.expect :instance_of?, false, [TCPSocket]
+
+    Aikido::Zen::Sinks::Socket::Helpers.scan(name, socket, "open")
+
+    assert_mock socket
+  end
 
   test "scanning does not interfere with sockets normally" do
     @stubbed_dns["example.com"] = "1.2.3.4"
@@ -36,13 +46,9 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
   test "scanning will detect stored SSRFs against IMDS addresses" do
     @stubbed_dns["trust-me.com"] = "169.254.169.254"
 
-    error = assert_attack Aikido::Zen::Attacks::StoredSSRFAttack do
+    assert_attack Aikido::Zen::Attacks::StoredSSRFAttack do
       build_socket("trust-me.com", 443)
     end
-
-    assert_equal \
-      "Stored SSRF: Request to sensitive host «trust-me.com» (169.254.169.254) detected from unknown source in socket.open",
-      error.message
   end
 
   def build_request_to(uri)
@@ -60,13 +66,9 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
 
     @stubbed_dns["trust-me.com"] = "10.0.0.1"
 
-    error = assert_attack Aikido::Zen::Attacks::SSRFAttack do
+    assert_attack Aikido::Zen::Attacks::SSRFAttack do
       build_socket("trust-me.com", 443)
     end
-
-    assert_equal \
-      "SSRF: Request to user-supplied hostname «trust-me.com» detected in socket.open (GET https://trust-me.com/im-safe).",
-      error.message
   end
 
   test "scanning will not consider it an SSRF if the socket is for a user-supplied hostname used for an HTTP request that does not resolve to a dangerous address" do

@@ -100,20 +100,30 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
     end
   end
 
+  def setup
+    Aikido::Zen.runtime_settings.blocked_user_ids = []
+  end
+
   def assert_throttled(controller)
     assert_equal({status: 429, plain: "Too many requests."}, controller.response)
     assert_hash_subset_of controller.headers, {"Content-Type" => "text/plain"}
   end
 
-  def refute_throttled(controller)
-    refute_equal({status: 429, plain: "Too many requests."}, controller.response)
+  def assert_blocked(controller)
+    assert_equal({status: 403, plain: "You are blocked by Zen."}, controller.response)
+    assert_hash_subset_of controller.headers, {"Content-Type" => "text/plain"}
   end
 
-  test "controller executes normally when no rate limiting is configured" do
+  def refute_throttled_or_blocked(controller)
+    refute_equal({status: 429, plain: "Too many requests."}, controller.response)
+    refute_equal({status: 403, plain: "Too many requests."}, controller.response)
+  end
+
+  test "controller executes normally when no rate limiting or user blocking is configured" do
     request = build_request("GET", "/", ip: "1.2.3.4", user: {id: 1234})
     controller = make_request(request)
 
-    refute_throttled(controller)
+    refute_throttled_or_blocked(controller)
     assert_equal \
       [:before, :auth_check, :before_around, :get_root, :after_around, :after],
       controller.sequence
@@ -123,7 +133,7 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
     request = build_request("GET", "/", ip: "1.2.3.4")
     controller = make_request(request, only_allow_authenticated: true)
 
-    refute_throttled(controller)
+    refute_throttled_or_blocked(controller)
     assert_equal [:before, :auth_check, :after], controller.sequence
   end
 
@@ -132,11 +142,18 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
 
     request = build_request("GET", "/", ip: "1.2.3.4")
 
-    refute_throttled make_request(request)
-    refute_throttled make_request(request)
-    refute_throttled make_request(request)
+    refute_throttled_or_blocked make_request(request)
+    refute_throttled_or_blocked make_request(request)
+    refute_throttled_or_blocked make_request(request)
 
     assert_throttled make_request(request)
+
+    env = request.env
+    assert env["aikido.rate_limiting"].throttled?
+    assert_equal "1.2.3.4", env["aikido.rate_limiting"].discriminator
+    assert_equal 3, env["aikido.rate_limiting"].current_requests
+    assert_equal 3, env["aikido.rate_limiting"].max_requests
+    assert_equal 10, env["aikido.rate_limiting"].time_remaining
   end
 
   test "controller does not rate limit reuests from different IPs" do
@@ -145,11 +162,11 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
     from_first_ip = build_request("GET", "/", ip: "1.2.3.4")
     from_second_ip = build_request("GET", "/", ip: "4.3.2.1")
 
-    refute_throttled make_request(from_first_ip)
-    refute_throttled make_request(from_first_ip)
-    refute_throttled make_request(from_first_ip)
+    refute_throttled_or_blocked make_request(from_first_ip)
+    refute_throttled_or_blocked make_request(from_first_ip)
+    refute_throttled_or_blocked make_request(from_first_ip)
 
-    refute_throttled make_request(from_second_ip)
+    refute_throttled_or_blocked make_request(from_second_ip)
   end
 
   test "controller does not rate limit requests to endpoints that aren't configured" do
@@ -157,10 +174,10 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
 
     unconfigured_endpoint = build_request("GET", "/another", ip: "1.2.3.4")
 
-    refute_throttled make_request(unconfigured_endpoint)
-    refute_throttled make_request(unconfigured_endpoint)
-    refute_throttled make_request(unconfigured_endpoint)
-    refute_throttled make_request(unconfigured_endpoint)
+    refute_throttled_or_blocked make_request(unconfigured_endpoint)
+    refute_throttled_or_blocked make_request(unconfigured_endpoint)
+    refute_throttled_or_blocked make_request(unconfigured_endpoint)
+    refute_throttled_or_blocked make_request(unconfigured_endpoint)
   end
 
   test "controller does not rate limit requests with different HTTP methods" do
@@ -168,10 +185,10 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
 
     post_request = build_request("POST", "/", ip: "1.2.3.4")
 
-    refute_throttled make_request(post_request)
-    refute_throttled make_request(post_request)
-    refute_throttled make_request(post_request)
-    refute_throttled make_request(post_request)
+    refute_throttled_or_blocked make_request(post_request)
+    refute_throttled_or_blocked make_request(post_request)
+    refute_throttled_or_blocked make_request(post_request)
+    refute_throttled_or_blocked make_request(post_request)
   end
 
   test "authenticated requests are throttled by User ID, not IP" do
@@ -180,16 +197,30 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
     from_user_1 = build_request("GET", "/", ip: "1.2.3.4", user: {id: 123})
     from_user_2 = build_request("GET", "/", ip: "1.2.3.4", user: {id: 456})
 
-    refute_throttled make_request(from_user_1)
-    refute_throttled make_request(from_user_1)
-    refute_throttled make_request(from_user_1)
+    refute_throttled_or_blocked make_request(from_user_1)
+    refute_throttled_or_blocked make_request(from_user_1)
+    refute_throttled_or_blocked make_request(from_user_1)
 
-    refute_throttled make_request(from_user_2)
-    refute_throttled make_request(from_user_2)
-    refute_throttled make_request(from_user_2)
+    refute_throttled_or_blocked make_request(from_user_2)
+    refute_throttled_or_blocked make_request(from_user_2)
+    refute_throttled_or_blocked make_request(from_user_2)
 
     assert_throttled make_request(from_user_1)
     assert_throttled make_request(from_user_2)
+
+    env = from_user_1.env
+    assert env["aikido.rate_limiting"].throttled?
+    assert_equal "1.2.3.4", env["aikido.rate_limiting"].discriminator
+    assert_equal 3, env["aikido.rate_limiting"].current_requests
+    assert_equal 3, env["aikido.rate_limiting"].max_requests
+    assert_equal 10, env["aikido.rate_limiting"].time_remaining
+
+    env = from_user_2.env
+    assert env["aikido.rate_limiting"].throttled?
+    assert_equal "actor:456", env["aikido.rate_limiting"].discriminator
+    assert_equal 3, env["aikido.rate_limiting"].current_requests
+    assert_equal 3, env["aikido.rate_limiting"].max_requests
+    assert_equal 10, env["aikido.rate_limiting"].time_remaining
   end
 
   test "requests to different endpoints can have different configurations" do
@@ -199,15 +230,29 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
     root = build_request("GET", "/", ip: "1.2.3.4")
     other = build_request("GET", "/another", ip: "1.2.3.4")
 
-    refute_throttled make_request(root)
-    refute_throttled make_request(root)
-    refute_throttled make_request(root)
+    refute_throttled_or_blocked make_request(root)
+    refute_throttled_or_blocked make_request(root)
+    refute_throttled_or_blocked make_request(root)
 
-    refute_throttled make_request(other)
-    refute_throttled make_request(other)
+    refute_throttled_or_blocked make_request(other)
+    refute_throttled_or_blocked make_request(other)
 
     assert_throttled make_request(root)
     assert_throttled make_request(other)
+
+    env = root.env
+    assert env["aikido.rate_limiting"].throttled?
+    assert_equal "1.2.3.4", env["aikido.rate_limiting"].discriminator
+    assert_equal 3, env["aikido.rate_limiting"].current_requests
+    assert_equal 3, env["aikido.rate_limiting"].max_requests
+    assert_equal 1, env["aikido.rate_limiting"].time_remaining
+
+    env = other.env
+    assert env["aikido.rate_limiting"].throttled?
+    assert_equal "1.2.3.4", env["aikido.rate_limiting"].discriminator
+    assert_equal 2, env["aikido.rate_limiting"].current_requests
+    assert_equal 2, env["aikido.rate_limiting"].max_requests
+    assert_equal 1, env["aikido.rate_limiting"].time_remaining
   end
 
   test "requests are allowed after the window slides past old requests" do
@@ -217,27 +262,37 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
 
     with_mocked_clock do |clock|
       clock.expect :call, 0
-      refute_throttled make_request(request)
+      refute_throttled_or_blocked make_request(request)
 
       clock.expect :call, 1
-      refute_throttled make_request(request)
+      refute_throttled_or_blocked make_request(request)
 
       clock.expect :call, 2
-      refute_throttled make_request(request)
+      refute_throttled_or_blocked make_request(request)
 
       clock.expect :call, 3
       assert_throttled make_request(request)
 
       # Advances 3 seconds to "free up" the request rom t=0
       clock.expect :call, 6
-      refute_throttled make_request(request)
+      refute_throttled_or_blocked make_request(request)
 
       # Advances 2 seconds to free up 2 requests. Because this "clears" the
       # window (as the first set of requests ended at t=2), we now have 3
       # seconds remaining (the current 5 seconds window started at t=6)
       clock.expect :call, 8
-      refute_throttled make_request(request)
+      refute_throttled_or_blocked make_request(request)
     end
+  end
+
+  test "requests are blocked if the user is in the blocking list" do
+    Aikido::Zen.runtime_settings.blocked_user_ids = ["1234"]
+
+    non_blocked_user_request = build_request("GET", "/", ip: "1.2.3.4", user: {id: 9876})
+    blocked_user_request = build_request("GET", "/", ip: "1.2.3.4", user: {id: 1234})
+
+    refute_throttled_or_blocked make_request(non_blocked_user_request)
+    assert_blocked make_request(blocked_user_request)
   end
 
   def build_request(method, path, extra_env = {}, ip: nil, user: nil)

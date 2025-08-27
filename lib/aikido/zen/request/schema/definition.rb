@@ -65,11 +65,6 @@ module Aikido::Zen
         in {type: _}, {type: "null"}
           new(definition.merge(optional: true))
 
-        # number | integer => number
-        in [{type: "integer"}, {type: "number"}] |
-           [{type: "number"}, {type: "integer"}]
-          new(definition.merge(other.definition).merge(type: "number"))
-
         # x | y => [x, y] if x != y
         else
           left_type, right_type = definition[:type], other.definition[:type]

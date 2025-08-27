@@ -148,7 +148,7 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
         properties: {
           "bool" => schema(type: "boolean"),
           "num" => schema(type: "number"),
-          "int" => schema(type: "integer"),
+          "int" => schema(type: "number"), # we are treating int as number
           "str" => schema(type: "string"),
           "nil" => schema(type: "null")
         }
@@ -162,7 +162,7 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
 
       assert_schema builder, schema(
         type: "array",
-        items: schema(type: "integer")
+        items: schema(type: "number")
       )
     end
 
@@ -173,7 +173,7 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
 
       assert_schema builder, schema(
         type: "array",
-        items: schema(type: "integer")
+        items: schema(type: "number")
       )
     end
 
@@ -195,7 +195,7 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
         items: schema(
           type: "object",
           properties: {
-            id: schema(type: "integer")
+            id: schema(type: "number")
           }
         )
       )
@@ -214,7 +214,7 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
             items: schema(
               type: "object",
               properties: schema(
-                id: schema(type: "integer")
+                id: schema(type: "number")
               )
             )
           )
@@ -232,9 +232,9 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
       assert_schema builder, schema(
         type: "object",
         properties: {
-          one: schema(type: "integer"),
-          two: schema(type: "integer"),
-          three: schema(type: "integer")
+          one: schema(type: "number"),
+          two: schema(type: "number"),
+          three: schema(type: "number")
         }
       )
     end

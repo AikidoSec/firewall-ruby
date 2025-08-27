@@ -3,25 +3,33 @@
 module Aikido::Zen
   module Sinks
     module ActionController
-      # Implements the "middleware" for rate limiting in Rails apps, where we
-      # need to check at the end of the `before_action` chain, rather than in
-      # an actual Rack middleware, to allow for calls to Zen.track_user being
-      # made from before_actions in the host app, thus allowing rate-limiting
-      # by user ID rather than solely by IP.
-      class Throttler
+      # Implements the "middleware" for blocking requests (i.e.: rate-limiting or blocking
+      # user/bots) in Rails apps, where we need to check at the end of the `before_action`
+      # chain, rather than in an actual Rack middleware, to allow for calls to
+      # `Zen.track_user` being made from before_actions in the host app, thus allowing
+      # block/rate-limit by user ID rather than solely by IP.
+      class BlockRequestChecker
         def initialize(
           config: Aikido::Zen.config,
           settings: Aikido::Zen.runtime_settings,
-          rate_limiter: Aikido::Zen::RateLimiter.new
+          detached_agent: Aikido::Zen.detached_agent
         )
           @config = config
           @settings = settings
-          @rate_limiter = rate_limiter
+          @detached_agent = detached_agent
         end
 
-        def throttle(controller)
+        def block?(controller)
           context = controller.request.env[Aikido::Zen::ENV_KEY]
           request = context.request
+
+          if should_block_user?(request)
+            status, headers, body = @config.blocked_responder.call(request, :user)
+            controller.headers.update(headers)
+            controller.render plain: Array(body).join, status: status
+
+            return true
+          end
 
           if should_throttle?(request)
             status, headers, body = @config.rate_limited_responder.call(request)
@@ -35,14 +43,26 @@ module Aikido::Zen
         end
 
         private def should_throttle?(request)
+          return false unless @settings.endpoints[request.route].rate_limiting.enabled?
           return false if @settings.skip_protection_for_ips.include?(request.ip)
 
-          @rate_limiter.throttle?(request)
+          result = @detached_agent.calculate_rate_limits(request)
+          return false unless result
+
+          request.env["aikido.rate_limiting"] = result
+          request.env["aikido.rate_limiting"].throttled?
+        end
+
+        # @param request [Aikido::Zen::Request]
+        private def should_block_user?(request)
+          return false if request.actor.nil?
+
+          Aikido::Zen.runtime_settings.blocked_user_ids&.include?(request.actor.id)
         end
       end
 
-      def self.throttler
-        @throttler ||= Aikido::Zen::Sinks::ActionController::Throttler.new
+      def self.block_request_checker
+        @block_request_checker ||= Aikido::Zen::Sinks::ActionController::BlockRequestChecker.new
       end
 
       module Extensions
@@ -50,10 +70,9 @@ module Aikido::Zen
           return super unless kind == :process_action
 
           super do
-            rate_limiter = Aikido::Zen::Sinks::ActionController.throttler
-            throttled = rate_limiter.throttle(self)
+            checker = Aikido::Zen::Sinks::ActionController.block_request_checker
 
-            yield if block_given? && !throttled
+            yield if block_given? && !checker.block?(self)
           end
         end
       end

@@ -15,10 +15,7 @@ module Aikido::Zen
       end
 
       def call(env)
-        context = Context.from_rack_env(env)
-
-        Aikido::Zen.current_context = env[ENV_KEY] = context
-        Aikido::Zen.track_request(context.request)
+        Aikido::Zen.current_context = env[ENV_KEY] = Context.from_rack_env(env)
 
         @app.call(env)
       ensure
