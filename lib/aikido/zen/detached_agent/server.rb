@@ -27,11 +27,11 @@ module Aikido::Zen::DetachedAgent
     def start!
       @config.logger.info("Starting DRb Server...")
 
+      # Try to ensure that the DRb service can start if the DRb service did
+      # not stop cleanly.
       begin
-        # Try to connect to the Unix domain socket.
+        # Check whether the Unix domain socket is in use by another process.
         UNIXSocket.new(@socket_path).close
-
-        # Connection successful...
       rescue Errno::ECONNREFUSED
         @config.logger.debug("Removing residual Unix domain socket...")
 
@@ -43,8 +43,9 @@ module Aikido::Zen::DetachedAgent
 
       @front = FrontObject.new
 
-      # If the Unix domain socket is already in use and/or could not be removed
-      # DRb will raise an appropriate error.
+      # If the Unix domain socket is in use by another process and/or the
+      # residual Unix domain socket could not be removed DRb will raise an
+      # appropriate error.
       @drb_server = DRb.start_service(@socket_uri, @front)
 
       # Only show DRb output in debug mode.
