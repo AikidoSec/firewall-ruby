@@ -9,8 +9,8 @@ jobs:
         ruby: [ "3.3" ]
         # macos-14 is ARM-based
         # macos-14-large is x86-based
-        # Ubuntu is not included because the full test suite runs on Ubuntu
-        os: [ macos-14, macos-14-large ]
+        # ubuntu-latest (x86) is not included because the full test suite runs on it
+        os: [ macos-14, macos-14-large, ubuntu-22.04-arm ]
 
     runs-on: ${{ matrix.os }}
 
@@ -18,14 +18,19 @@ jobs:
     continue-on-error: true
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up the correct Gemfile for Ruby ${{ matrix.ruby }}
         run: bin/link_gemfile "${{ matrix.ruby }}"
       # Lock files are generated for a specific platform
       - run: rm Gemfile.lock
-      - run: |
+      - name: Install system dependencies
+        if: runner.os == 'macOS'
+        run: |
           brew install mysql postgresql
           bundle config set build.mysql2 --with-opt-dir=$(brew --prefix zstd)
+      - name: Install system dependencies
+        if: runner.os == 'Linux'
+        run: "sudo apt-get install libmysqlclient-dev libpq-dev libcurl4-openssl-dev"
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
