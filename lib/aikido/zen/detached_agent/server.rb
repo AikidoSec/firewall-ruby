@@ -33,6 +33,8 @@ module Aikido::Zen::DetachedAgent
 
         # Connection successful...
       rescue Errno::ECONNREFUSED
+        @config.logger.debug("Removing residual Unix domain socket...")
+
         # Remove the residual Unix domain socket.
         FileUtils.rm_f(@socket_path)
       rescue
