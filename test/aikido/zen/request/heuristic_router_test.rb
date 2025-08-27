@@ -133,6 +133,19 @@ class Aikido::Zen::Request::HeuristicRouterTest < ActiveSupport::TestCase
       into: "/confirm/:secret"
   end
 
+  test "replaces object ids" do
+    assert_parameterizes "/posts/66ec29159d00113616fc7184", into: "/posts/:objectId"
+  end
+
+  test "replaces ulid strings" do
+    assert_parameterizes "/posts/01ARZ3NDEKTSV4RRFFQ69G5FAV", into: "/posts/:ulid"
+    assert_parameterizes "/posts/01arz3ndektsv4rrffq69g5fav", into: "/posts/:ulid"
+    # Different lengths
+    assert_parameterizes "/posts/01ARZ3NDEKTSV4RRFFQ69G5FA", into: "/posts/:secret"
+    assert_parameterizes "/posts/01ARZ3NDEKTSV4RRFFQ69G5FAvv", into: "/posts/:secret"
+  end
+
+
   class SecretMatcherTest < ActiveSupport::TestCase
     SecretMatcher = Aikido::Zen::Request::HeuristicRouter::SecretMatcher
 

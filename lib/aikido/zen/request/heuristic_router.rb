@@ -34,6 +34,10 @@ module Aikido::Zen
         ":number"
       when UUID
         ":uuid"
+      when ULID
+        ":ulid"
+      when OBJECT_ID
+        ":objectId"
       when DATE
         ":date"
       when EMAIL
@@ -49,6 +53,8 @@ module Aikido::Zen
       end
     end
 
+    OBJECT_ID = /^[0-9a-f]{24}$/i
+    ULID = /^[0-9A-HJKMNP-TV-Z]{26}$/i
     NUMBER = /\A\d+\z/
     HEX = /\A[a-f0-9]+\z/i
     DATE = /\A\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4}\z/
