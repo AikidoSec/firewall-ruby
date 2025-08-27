@@ -30,7 +30,7 @@ jobs:
           bundle config set build.mysql2 --with-opt-dir=$(brew --prefix zstd)
       - name: Install system dependencies
         if: runner.os == 'Linux'
-        run: "sudo apt-get install libmysqlclient-dev libpq-dev"
+        run: "sudo apt-get install libmysqlclient-dev libpq-dev libcurl4-openssl-dev"
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
