@@ -99,6 +99,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Aikido
 - run `$ bin/setup` to install dependencies
 - run `$ docker compose up -d` in the `sample_apps` directory to start the databases used by the tests
 - run `$ bundle exec rake test` to test the library
+- run `$ ruby -Itest ./test/file_to_test.rb` to test a specific file
 - run `$ bundle exec rake e2e` to run the end-to-end tests
 - run `$ bundle exec rake standard` to lint the code, and `$ bundle exec rake standard:fix` to autofix any linting violations
 - run `$ bundle exec rake bench` to run all benchmarks
