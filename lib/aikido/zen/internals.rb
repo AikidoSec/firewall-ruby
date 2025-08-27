@@ -7,20 +7,55 @@ module Aikido::Zen
   module Internals
     extend FFI::Library
 
-    class << self
-      # @return [String] the name of the extension we're loading, which we can
-      #   use in error messages to identify the architecture.
-      attr_accessor :libzen_name
+    def self.libzen_names
+      lib_name = "libzen-v#{LIBZEN_VERSION}"
+      lib_ext = FFI::Platform::LIBSUFFIX
+
+      # Gem::Platform#version should be understood as an arbitrary Ruby defined
+      # OS specific string. A platform with a version string is considered more
+      # specific than a platform without a version string.
+      # https://docs.ruby-lang.org/en/3.3/Gem/Platform.html
+
+      platform = Gem::Platform.local.dup
+
+      # Library names in preferred order.
+      #
+      # If two library names are added, the specific platform library names is
+      # first and the generic platform library name is second.
+      names = []
+
+      names << "#{lib_name}-#{platform}.#{lib_ext}"
+
+      unless platform.version.nil?
+        platform.version = nil
+        names << "#{lib_name}-#{platform}.#{lib_ext}"
+      end
+
+      names
     end
 
-    self.libzen_name = [
-      "libzen-v#{LIBZEN_VERSION}",
-      FFI::Platform::ARCH,
-      FFI::Platform::LIBSUFFIX
-    ].join(".")
+    # @return [String] the name of the extension we're loading, which we can
+    # use in error messages.
+    def self.libzen_name
+      # The most generic platform library name.
+      libzen_names.last
+    end
+
+    # Load the most specific library
+    def self.load_libzen
+      libzen_names.each do |name|
+        path = File.expand_path(name, __dir__)
+        begin
+          return ffi_lib(path)
+        rescue LoadError
+          # empty
+        end
+      end
+      raise LoadError, "Zen could not load its native extension #{libzen_name}"
+    end
 
     begin
-      ffi_lib File.expand_path(libzen_name, __dir__)
+      load_libzen
 
       # @!method self.detect_sql_injection_native(query, input, dialect)
       # @param (see .detect_sql_injection)
@@ -30,15 +65,15 @@ module Aikido::Zen
       #   calling libzen.
       attach_function :detect_sql_injection_native, :detect_sql_injection,
         [:string, :string, :int], :int
-    rescue LoadError, FFI::NotFoundError => err
+    rescue LoadError, FFI::NotFoundError => err # rubocop:disable Lint/ShadowedException
       # :nocov:
 
       # Emit an $stderr warning at startup.
-      warn "Zen could not load its binary extension #{libzen_name}: #{err}"
+      warn "Zen could not load its native extension #{libzen_name}: #{err}"
 
       def self.detect_sql_injection(query, *)
         attempt = format("%p for SQL injection", query)
-        raise InternalsError.new(attempt, "loading", Internals.libzen_name)
+        raise InternalsError.new(attempt, "loading", libzen_name)
       end
 
       # :nocov:

@@ -2,19 +2,63 @@
 
 To install Zen, add the gem:
 
-```
+```sh
 bundle add aikido-zen
+```
+
+And require it before `Bundler.require` in `config/application.rb`:
+
+```ruby
+# config/application.rb
+require_relative "boot"
+
+require "rails/all"
+
+require "aikido-zen"
+Aikido::Zen.protect!
+
+# Require the gems listed in Gemfile, including any gems
+# you've limited to :test, :development, or :production.
+Bundler.require(*Rails.groups)
+
+...
 ```
 
 That's it! Zen will start to run inside your app when it starts getting
 requests.
+
+## Rate limiting and user blocking
+
+If you want to add the rate limiting feature to your app, modify your code like this:
+
+```ruby
+# app/controllers/application_controller.rb
+class ApplicationController < ActionController::Base
+  private
+
+  def current_user
+    return unless session[:user_id]
+    User.find(session[:user_id])
+  end
+
+  def authenticate_user!
+    # Your authentication logic here
+    # ...
+    # Optional, if you want to use user based rate limiting or block specific users
+    Aikido::Zen.set_user(
+      id: current_user.id,
+      name: current_user.name
+    )
+  end
+end
+```
 
 ## Configuration
 
 Zen exposes its configuration object to the Rails configuration, which you can
 modify in an initializer if desired:
 
-``` ruby
+```ruby
 # config/initializers/zen.rb
 Rails.application.config.zen.api_timeouts = 20
 ```
@@ -30,7 +74,7 @@ If you're using Rails' [encrypted credentials][creds], and prefer not storing
 sensitive values in your env vars, you can easily configure Zen for it. For
 example, assuming the following credentials structure:
 
-``` yaml
+```yaml
 # config/credentials.yml.enc
 zen:
   token: "AIKIDO_RUNTIME_..."
@@ -38,7 +82,7 @@ zen:
 
 You can just tell Zen to use it like so:
 
-``` ruby
+```ruby
 # config/initializers/zen.rb
 Rails.application.config.zen.token = Rails.application.credentials.zen.token
 ```
@@ -61,7 +105,7 @@ way.
 By default, Zen will use the Rails logger, prefixing messages with `[aikido]`.
 You can redirect the log to a separate stream by overriding the logger:
 
-```
+```ruby
 # config/initializers/zen.rb
 Rails.application.config.zen.logger = Logger.new(...)
 ```

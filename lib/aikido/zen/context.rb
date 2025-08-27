@@ -20,6 +20,9 @@ module Aikido::Zen
     # @return [Aikido::Zen::Request]
     attr_reader :request
 
+    # @return [Boolean]
+    attr_accessor :scanning
+
     # @param request [Rack::Request] a Request object that implements the
     #   Rack::Request API, to which we will delegate behavior.
     # @param settings [Aikido::Zen::RuntimeSettings]
@@ -32,6 +35,7 @@ module Aikido::Zen
       @settings = settings
       @payload_sources = sources
       @metadata = {}
+      @scanning = false
     end
 
     # Fetch some metadata stored in the Context.

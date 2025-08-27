@@ -1,21 +1,31 @@
 # frozen_string_literal: true
 
-require_relative "../sink"
-
 module Aikido::Zen
   module Sinks
     module Trilogy
       SINK = Sinks.add("trilogy", scanners: [Scanners::SQLInjectionScanner])
 
-      module Extensions
-        def query(query, *)
-          SINK.scan(query: query, dialect: :mysql, operation: "query")
+      module Helpers
+        def self.scan(query, operation)
+          SINK.scan(query: query, dialect: :mysql, operation: operation)
+        end
+      end
 
-          super
+      def self.load_sinks!
+        if Aikido::Zen.satisfy "trilogy", ">= 2.0"
+          require "trilogy"
+
+          ::Trilogy.class_eval do
+            extend Sinks::DSL
+
+            sink_before :query do |query|
+              Helpers.scan(query, "query")
+            end
+          end
         end
       end
     end
   end
 end
 
-::Trilogy.prepend(Aikido::Zen::Sinks::Trilogy::Extensions)
+Aikido::Zen::Sinks::Trilogy.load_sinks!

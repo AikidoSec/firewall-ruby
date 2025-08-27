@@ -32,7 +32,7 @@ module Aikido::Zen::DetachedAgent
       @polling_interval = polling_interval
       @worker = worker
       @collector = collector
-      @detached_agent_front = DRbObject.new_with_uri(config.detached_agent_socket_path)
+      @detached_agent_front = DRbObject.new_with_uri(config.detached_agent_socket_uri)
       @has_forked = false
       schedule_tasks
     end

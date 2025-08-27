@@ -1,0 +1,6 @@
+exclude:
+  paths:
+    - benchmarks/
+    - docs/
+    - sample_apps/
+    - tasklib/wrk.rb

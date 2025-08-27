@@ -111,7 +111,7 @@ module Aikido::Zen
     # @raise [Aikido::Zen::NetworkError] if an error occurs trying to make the
     #   request.
     private def request(request, base_url: @config.api_endpoint)
-      Net::HTTP.start(base_url.host, base_url.port, http_settings) do |http|
+      Net::HTTP.start(base_url.host, base_url.port, http_settings(base_url)) do |http|
         response = http.request(request)
 
         case response
@@ -127,8 +127,11 @@ module Aikido::Zen
       raise NetworkError.new(request, err)
     end
 
-    private def http_settings
-      @http_settings ||= {use_ssl: true, max_retries: 2}.merge(@config.api_timeouts)
+    private def http_settings(base_url)
+      @http_settings ||= {
+        use_ssl: base_url.scheme == "https",
+        max_retries: 2
+      }.merge(@config.api_timeouts)
     end
 
     private def default_headers

@@ -112,13 +112,15 @@ jobs:
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app }}/Gemfile
       WEB_CONCURRENCY: 3
+      # Ensure protection can be enabled without an AIKIDO_TOKEN.
+      AIKIDO_DEBUG: true
 
     steps:
     - uses: actions/checkout@v4
     - name: Set up the correct Gemfile for Ruby ${{ matrix.ruby }}
       run: bin/link_gemfile "${{ matrix.ruby }}"
     - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
+      uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1
       with:
         ruby-version: ${{ matrix.ruby }}
         bundler-cache: true
@@ -167,7 +169,7 @@ jobs:
       - name: Set up the correct Gemfile for Ruby ${{ matrix.ruby }}
         run: bin/link_gemfile "${{ matrix.ruby }}"
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true

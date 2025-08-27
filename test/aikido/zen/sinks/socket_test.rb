@@ -10,16 +10,14 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
   # a network that can actually resolve 169.254.169.254. So the tests here are a
   # little contrived and not as high level as we'd like, but rather just test
   # the scanning behavior in isolation, off of a stubbed "socket" object.
-  def build_socket(name, port, family: "AF_INET")
-    address = @stubbed_dns.fetch(name, name)
+  def build_socket(name, port, address_family: "AF_INET")
+    numeric_address = @stubbed_dns.fetch(name, name)
 
     socket = Minitest::Mock.new(Object.new)
-
-    socket.expect :peeraddr, [family, port, address, address]
-
+    socket.expect :peeraddr, [address_family, port, numeric_address, numeric_address], [:numeric]
     socket.expect :instance_of?, true, [TCPSocket]
 
-    Aikido::Zen::Sinks::Socket::IPSocketExtensions.scan_socket(name, socket)
+    Aikido::Zen::Sinks::Socket::Helpers.scan(name, socket, "open")
 
     assert_mock socket
 
@@ -30,9 +28,9 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
 
   test "if socket is not exactly a TCPSocket it should skip the scan" do
     socket = Minitest::Mock.new(Object.new)
-
     socket.expect :instance_of?, false, [TCPSocket]
-    Aikido::Zen::Sinks::Socket::IPSocketExtensions.scan_socket(name, socket)
+
+    Aikido::Zen::Sinks::Socket::Helpers.scan(name, socket, "open")
 
     assert_mock socket
   end

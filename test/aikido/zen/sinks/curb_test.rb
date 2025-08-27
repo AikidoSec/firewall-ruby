@@ -66,7 +66,7 @@ class Aikido::Zen::Sinks::CurbTest < ActiveSupport::TestCase
         response = Curl.get("https://this-is-harmless-i-swear.com/")
         assert_equal 301, response.status.to_i
 
-        wrapped = Aikido::Zen::Sinks::Curl::Extensions.wrap_response(response)
+        wrapped = Aikido::Zen::Sinks::Curl::Helpers.wrap_response(response)
         Curl.get(wrapped.redirect_to)
       end
 

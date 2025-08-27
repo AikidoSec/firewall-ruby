@@ -8,6 +8,12 @@ require_relative "context"
 
 module Aikido::Zen
   class Config
+    # @api private
+    # @return [Boolean] whether Aikido should protect.
+    def protect?
+      !api_token.nil? || blocking_mode? || debugging?
+    end
+
     # @return [Boolean] whether Aikido should be turned completely off (no
     #   intercepting calls to protect the app, no agent process running, no
     #   middleware installed). Defaults to false (so, enabled). Can be set
@@ -57,8 +63,8 @@ module Aikido::Zen
 
     # @return [string] Path of the socket where the detached agent will listen.
     # By default, is stored under the root application path with file name
-    # `aikido-detached-agent.socket`
-    attr_reader :detached_agent_socket_path
+    # `aikido-detached-agent.sock`
+    attr_accessor :detached_agent_socket_path
 
     # @return [Boolean] is the agent in debugging mode?
     attr_accessor :debugging
@@ -158,7 +164,7 @@ module Aikido::Zen
       self.debugging = read_boolean_from_env(ENV.fetch("AIKIDO_DEBUG", false))
       self.logger = Logger.new($stdout, progname: "aikido", level: debugging ? Logger::DEBUG : Logger::INFO)
       self.max_performance_samples = 5000
-      self.detached_agent_socket_path = "aikido-detached-agent.socket"
+      self.detached_agent_socket_path = ENV.fetch("AIKIDO_DETACHED_AGENT_SOCKET_PATH", DEFAULT_DETACHED_AGENT_SOCKET_PATH)
       self.max_compressed_stats = 100
       self.max_outbound_connections = 200
       self.max_users_tracked = 1000
@@ -216,9 +222,8 @@ module Aikido::Zen
       @api_timeouts.update(value)
     end
 
-    def detached_agent_socket_path=(path)
-      @detached_agent_socket_path = path
-      @detached_agent_socket_path = "drbunix:" + @detached_agent_socket_path unless @detached_agent_socket_path.start_with?("drbunix:")
+    def detached_agent_socket_uri
+      "drbunix:" + @detached_agent_socket_path
     end
 
     private
@@ -245,6 +250,9 @@ module Aikido::Zen
 
     # @!visibility private
     DEFAULT_JSON_DECODER = JSON.method(:parse)
+
+    # @!visibility private
+    DEFAULT_DETACHED_AGENT_SOCKET_PATH = "aikido-detached-agent.sock"
 
     # @!visibility private
     DEFAULT_BLOCKED_RESPONDER = ->(request, blocking_type) do
