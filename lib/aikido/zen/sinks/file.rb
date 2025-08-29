@@ -18,11 +18,12 @@ module Aikido::Zen
         ::File.singleton_class.class_eval do
           extend Sinks::DSL
 
-          # Create a copy of the original method for internal use only to prevent
+          # Create a copy of the original methods for internal use only to prevent
           # recursion in PathTraversalScanner.
           #
-          # IMPORTANT: The alias must be created before the method is overridden.
+          # IMPORTANT: The aliases must be created before the method is overridden.
           alias_method :expand_path__internal_for_aikido_zen, :expand_path
+          alias_method :join__internal_for_aikido_zen, :join
 
           sink_before :open do |path|
             Helpers.scan(path, "open")
