@@ -17,6 +17,8 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 10, @config.api_timeouts[:write_timeout]
     assert_kind_of ::Logger, @config.logger
     refute @config.debugging
+    assert_equal "aikido-detached-agent.sock", @config.detached_agent_socket_path
+    assert_equal nil, @config.client_ip_header
     assert_equal 5000, @config.max_performance_samples
     assert_equal 100, @config.max_compressed_stats
     assert_equal 200, @config.max_outbound_connections
@@ -33,7 +35,6 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 20, @config.api_schema_collection_max_properties
     assert_equal ["metadata.google.internal", "metadata.goog"], @config.imds_allowed_hosts
     assert_equal false, @config.disabled
-    assert_equal "aikido-detached-agent.sock", @config.detached_agent_socket_path
   end
 
   test "can set AIKIDO_DISABLED to configure if the agent should be turned off" do

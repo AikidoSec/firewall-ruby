@@ -157,6 +157,17 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       assert_equal "1.2.3.4", req.as_json[:ipAddress]
     end
 
+    test "#as_json includes the remote IP from the custom client IP header" do
+      Aikido::Zen.config.client_ip_header = "HTTP_CUSTOM_CLIENT_IP"
+
+      env = Rack::MockRequest.env_for("/test", "REMOTE_ADDR" => "1.2.3.4", "HTTP_CUSTOM_CLIENT_IP" => "4.3.2.1")
+      req = build_request(env)
+
+      assert_equal "4.3.2.1", req.as_json[:ipAddress]
+
+      Aikido::Zen.config.client_ip_header = nil
+    end
+
     test "#as_json includes the User-Agent" do
       env = Rack::MockRequest.env_for("/test", "HTTP_USER_AGENT" => "Some/UA")
       req = build_request(env)

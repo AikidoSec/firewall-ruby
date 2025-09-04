@@ -61,7 +61,7 @@ module Aikido::Zen
     # @return [Logger]
     attr_reader :logger
 
-    # @return [string] Path of the socket where the detached agent will listen.
+    # @return [String] Path of the socket where the detached agent will listen.
     # By default, is stored under the root application path with file name
     # `aikido-detached-agent.sock`
     attr_accessor :detached_agent_socket_path
@@ -150,6 +150,9 @@ module Aikido::Zen
     #   allow known hosts that should be able to resolve to the IMDS service.
     attr_accessor :imds_allowed_hosts
 
+    # @return [String] environment specific HTTP header providing the client IP.
+    attr_accessor :client_ip_header
+
     def initialize
       self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
       self.blocking_mode = read_boolean_from_env(ENV.fetch("AIKIDO_BLOCK", false))
@@ -163,8 +166,9 @@ module Aikido::Zen
       self.json_decoder = DEFAULT_JSON_DECODER
       self.debugging = read_boolean_from_env(ENV.fetch("AIKIDO_DEBUG", false))
       self.logger = Logger.new($stdout, progname: "aikido", level: debugging ? Logger::DEBUG : Logger::INFO)
-      self.max_performance_samples = 5000
       self.detached_agent_socket_path = ENV.fetch("AIKIDO_DETACHED_AGENT_SOCKET_PATH", DEFAULT_DETACHED_AGENT_SOCKET_PATH)
+      self.client_ip_header = ENV.fetch("AIKIDO_CLIENT_IP_HEADER", nil)
+      self.max_performance_samples = 5000
       self.max_compressed_stats = 100
       self.max_outbound_connections = 200
       self.max_users_tracked = 1000

@@ -17,8 +17,9 @@ module Aikido::Zen
     # @see Aikido::Zen.track_user
     attr_accessor :actor
 
-    def initialize(delegate, framework:, router:)
+    def initialize(delegate, config = Aikido::Zen.config, framework:, router:)
       super(delegate)
+      @config = config
       @framework = framework
       @router = router
       @body_read = false
@@ -44,6 +45,10 @@ module Aikido::Zen
     #
     # @return [String] the IP address of the client making the request.
     def client_ip
+      return @client_ip if @client_ip
+
+      @client_ip = env[@config.client_ip_header] if @config.client_ip_header
+
       @client_ip ||= respond_to?(:remote_ip) ? remote_ip : ip
     end
 
