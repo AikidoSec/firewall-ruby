@@ -40,6 +40,13 @@ module Aikido::Zen
       @schema ||= Aikido::Zen::Request::Schema.build
     end
 
+    # @api private
+    #
+    # @return [String] the IP address of the client making the request.
+    def client_ip
+      @client_ip ||= respond_to?(:remote_ip) ? remote_ip : ip
+    end
+
     # Map the CGI-style env Hash into "pretty-looking" headers, preserving the
     # values as-is. For example, HTTP_ACCEPT turns into "Accept", CONTENT_TYPE
     # turns into "Content-Type", and HTTP_X_FORWARDED_FOR turns into
@@ -87,7 +94,7 @@ module Aikido::Zen
       {
         method: request_method.downcase,
         url: url,
-        ipAddress: ip,
+        ipAddress: client_ip,
         userAgent: user_agent,
         headers: normalized_headers.reject { |_, val| val.to_s.empty? },
         body: truncated_body,
