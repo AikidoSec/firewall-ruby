@@ -67,7 +67,9 @@ module Aikido::Zen
       end
 
       def metadata
-        {filename: filepath}
+        {
+          filename: filepath
+        }
       end
 
       def humanized_name
@@ -133,7 +135,10 @@ module Aikido::Zen
       end
 
       def metadata
-        {sql: @query}
+        {
+          sql: @query,
+          dialect: @dialect
+        }
       end
 
       def exception(*)
@@ -165,7 +170,7 @@ module Aikido::Zen
 
       def metadata
         {
-          host: @request.uri.hostname,
+          hostname: @request.uri.hostname,
           port: @request.uri.port
         }
       end
@@ -200,7 +205,10 @@ module Aikido::Zen
       end
 
       def metadata
-        {}
+        {
+          hostname: @hostname,
+          privateIP: @address
+        }
       end
     end
   end
