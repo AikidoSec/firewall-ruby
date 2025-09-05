@@ -60,7 +60,7 @@ module Aikido::Zen
         payload: @input.value,
         metadata: {sql: @query},
         source: "routeParams",
-        pathToPayload: "id"
+        path: "id"
       }
 
       assert_equal expected, attack.as_json
@@ -80,7 +80,7 @@ module Aikido::Zen
         payload: @input.value,
         metadata: {sql: @query},
         source: "routeParams",
-        pathToPayload: "id"
+        path: "id"
       }
 
       assert_equal expected, attack.as_json

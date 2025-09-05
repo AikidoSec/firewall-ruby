@@ -165,7 +165,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     @agent.handle_attack(attack)
 
     assert_logged :error,
-      'Zen has detected a humanized test attack name: {"kind":"test_attack","blocked":false,"metadata":{"extra_metadata":"value"},"operation":"test","payload":"value","source":null,"pathToPayload":"path"}'
+      'Zen has detected a humanized test attack name: {"kind":"test_attack","blocked":false,"metadata":{"extra_metadata":"value"},"operation":"test","payload":"value","source":null,"path":"path"}'
   end
 
   test "#handle_attack reports an ATTACK event" do
