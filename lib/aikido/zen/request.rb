@@ -17,8 +17,9 @@ module Aikido::Zen
     # @see Aikido::Zen.track_user
     attr_accessor :actor
 
-    def initialize(delegate, framework:, router:)
+    def initialize(delegate, config = Aikido::Zen.config, framework:, router:)
       super(delegate)
+      @config = config
       @framework = framework
       @router = router
       @body_read = false
@@ -38,6 +39,24 @@ module Aikido::Zen
     # @return [Aikido::Zen::Request::Schema, nil]
     def schema
       @schema ||= Aikido::Zen::Request::Schema.build
+    end
+
+    # @api private
+    #
+    # @return [String] the IP address of the client making the request.
+    def client_ip
+      return @client_ip if @client_ip
+
+      if @config.client_ip_header
+        value = env[@config.client_ip_header]
+        if Resolv::AddressRegex.match?(value)
+          @client_ip = value
+        else
+          @config.logger.warn("Invalid IP address in custom client IP header `#{@config.client_ip_header}`: `#{value}`")
+        end
+      end
+
+      @client_ip ||= respond_to?(:remote_ip) ? remote_ip : ip
     end
 
     # Map the CGI-style env Hash into "pretty-looking" headers, preserving the
@@ -87,7 +106,7 @@ module Aikido::Zen
       {
         method: request_method.downcase,
         url: url,
-        ipAddress: ip,
+        ipAddress: client_ip,
         userAgent: user_agent,
         headers: normalized_headers.reject { |_, val| val.to_s.empty? },
         body: truncated_body,
