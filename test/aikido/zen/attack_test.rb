@@ -58,7 +58,10 @@ module Aikido::Zen
         operation: @op,
         blocked: false,
         payload: @input.value,
-        metadata: {sql: @query},
+        metadata: {
+          sql: @query,
+          dialect: @dialect
+        },
         source: "routeParams",
         path: "id"
       }
@@ -78,7 +81,10 @@ module Aikido::Zen
         operation: @op,
         blocked: true,
         payload: @input.value,
-        metadata: {sql: @query},
+        metadata: {
+          sql: @query,
+          dialect: @dialect
+        },
         source: "routeParams",
         path: "id"
       }
