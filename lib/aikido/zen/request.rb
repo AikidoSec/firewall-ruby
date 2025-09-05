@@ -47,7 +47,14 @@ module Aikido::Zen
     def client_ip
       return @client_ip if @client_ip
 
-      @client_ip = env[@config.client_ip_header] if @config.client_ip_header
+      if @config.client_ip_header
+        value = env[@config.client_ip_header]
+        if Resolv::AddressRegex.match?(value)
+          @client_ip = value
+        else
+          @config.logger.warn("Invalid IP address in custom client IP header `#{@config.client_ip_header}`: `#{value}`")
+        end
+      end
 
       @client_ip ||= respond_to?(:remote_ip) ? remote_ip : ip
     end
