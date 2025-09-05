@@ -27,7 +27,7 @@ module Aikido::Zen
       {
         payload: value.to_s,
         source: SOURCE_SERIALIZATIONS[source],
-        pathToPayload: path.to_s
+        path: path.to_s
       }
     end
 
