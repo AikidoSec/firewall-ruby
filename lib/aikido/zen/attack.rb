@@ -207,7 +207,7 @@ module Aikido::Zen
       def metadata
         {
           hostname: @hostname,
-          privateIP: @address
+          resolvedIP: @address
         }
       end
     end

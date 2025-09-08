@@ -70,6 +70,9 @@ module Aikido::Zen
     attr_accessor :debugging
     alias_method :debugging?, :debugging
 
+    # @return [String] environment specific HTTP header providing the client IP.
+    attr_accessor :client_ip_header
+
     # @return [Integer] maximum number of timing measurements to keep in memory
     #   before compressing them.
     attr_accessor :max_performance_samples
@@ -146,12 +149,15 @@ module Aikido::Zen
     #   the server returns a 429 response.
     attr_accessor :server_rate_limit_deadline
 
+    # @return [Boolean] whether Aikido Zen should scan for stored SSSRF attacks.
+    #   Defaults to true. Can be set through AIKIDO_FEATURE_STORED_SSRF
+    #   environment variable.
+    attr_accessor :stored_ssrf
+    alias_method :stored_ssrf?, :stored_ssrf
+
     # @return [Array<String>] when checking for stored SSRF attacks, we want to
     #   allow known hosts that should be able to resolve to the IMDS service.
     attr_accessor :imds_allowed_hosts
-
-    # @return [String] environment specific HTTP header providing the client IP.
-    attr_accessor :client_ip_header
 
     def initialize
       self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
@@ -183,6 +189,7 @@ module Aikido::Zen
       self.api_schema_max_samples = Integer(ENV.fetch("AIKIDO_MAX_API_DISCOVERY_SAMPLES", 10))
       self.api_schema_collection_max_depth = 20
       self.api_schema_collection_max_properties = 20
+      self.stored_ssrf = read_boolean_from_env(ENV.fetch("AIKIDO_FEATURE_STORED_SSRF", true))
       self.imds_allowed_hosts = ["metadata.google.internal", "metadata.goog"]
     end
 

@@ -33,7 +33,9 @@ module Aikido::Zen
       # @return [String, nil] either the offending address, or +nil+ if no
       #   address is deemed dangerous.
       def attack?
-        return false if @config.imds_allowed_hosts.include?(@hostname)
+        return unless @config.stored_ssrf? # Feature flag
+
+        return if @config.imds_allowed_hosts.include?(@hostname)
 
         @addresses.find do |candidate|
           DANGEROUS_ADDRESSES.any? { |address| address === candidate }
