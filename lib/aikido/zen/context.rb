@@ -92,17 +92,32 @@ module Aikido::Zen
 
     private
 
+    # @!visibility private
     def extract_payloads_from(data, source_type, prefix = nil)
       if data.respond_to?(:to_hash)
-        data.to_hash.flat_map { |name, val|
-          extract_payloads_from(val, source_type, [prefix, name].compact.join("."))
-        }
+        data.to_hash.flat_map do |key, value|
+          extract_payloads_from(value, source_type, [prefix, key].compact.join("."))
+        end
       elsif data.respond_to?(:to_ary)
-        data.to_ary.flat_map.with_index { |val, idx|
-          extract_payloads_from(val, source_type, [prefix, idx].compact.join("."))
-        }
+        array = data.to_ary
+        return array if array.empty?
+
+        payloads = array.flat_map.with_index do |value, index|
+          extract_payloads_from(value, source_type, [prefix, index].compact.join("."))
+        end
+
+        # Special case for File.join given a possibly nested array of strings,
+        # as might occur when a query parameter is an array.
+        begin
+          string = File.join__internal_for_aikido_zen(*array)
+          payloads << Payload.new(string, source_type, [prefix, "__File.join__"].compact.join("."))
+        rescue
+          # Could not create special payload for File.join.
+        end
+
+        payloads
       else
-        Payload.new(data, source_type, prefix.to_s)
+        [Payload.new(data, source_type, prefix.to_s)]
       end
     end
   end
