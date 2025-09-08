@@ -8,6 +8,7 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   end
 
   test "default values" do
+    assert_equal false, @config.disabled
     assert_equal false, @config.blocking_mode
     assert_nil @config.api_token
     assert_equal URI("https://guard.aikido.dev"), @config.api_endpoint
@@ -31,10 +32,11 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 3600, @config.client_rate_limit_period
     assert_equal 100, @config.client_rate_limit_max_events
     assert_equal 1800, @config.server_rate_limit_deadline
+    assert_equal true, @config.collect_api_schema?
     assert_equal 20, @config.api_schema_collection_max_depth
     assert_equal 20, @config.api_schema_collection_max_properties
+    assert_equal true, @config.stored_ssrf?
     assert_equal ["metadata.google.internal", "metadata.goog"], @config.imds_allowed_hosts
-    assert_equal false, @config.disabled
   end
 
   test "can set AIKIDO_DISABLED to configure if the agent should be turned off" do
@@ -52,6 +54,12 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   test "can set AIKIDO_FEATURE_COLLECT_API_SCHEMA to configure if the agent should collect API schema" do
     assert_boolean_env_var "AIKIDO_FEATURE_COLLECT_API_SCHEMA" do |config|
       config.collect_api_schema?
+    end
+  end
+
+  test "can set AIKIDO_FEATURE_STORED_SSRF to configure if the agent should scan for stored SSRF attacks" do
+    assert_boolean_env_var "AIKIDO_FEATURE_STORED_SSRF" do |config|
+      config.stored_ssrf?
     end
   end
 

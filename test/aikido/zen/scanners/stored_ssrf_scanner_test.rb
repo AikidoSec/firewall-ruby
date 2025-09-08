@@ -28,4 +28,13 @@ class Aikido::Zen::Scanners::StoredSSRFScannerTest < ActiveSupport::TestCase
     refute_attack "metadata.google.internal", ["169.254.169.254"]
     refute_attack "metadata.goog", ["169.254.169.254"]
   end
+
+  test "allows hostnames that are trying to access the IMDS service when the stored SSRF scanning is disabled" do
+    Aikido::Zen.config.stored_ssrf = false
+    refute_attack "trust-me-im-good.com", ["169.254.169.254"]
+    refute_attack "trust-me-im-good.com", ["fd00:ec2::254"]
+    refute_attack "trust-me-im-good.com", ["1.1.1.1", "169.254.169.254", "2.2.2.2"]
+  ensure
+    Aikido::Zen.config.stored_ssrf = true
+  end
 end
