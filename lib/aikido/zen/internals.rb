@@ -60,11 +60,11 @@ module Aikido::Zen
       # @!method self.detect_sql_injection_native(query, input, dialect)
       # @param (see .detect_sql_injection)
       # @returns [Integer] 0 if no injection detected, 1 if an injection was
-      #   detected, or 2 if there was an internal error.
+      #   detected, 2 if there was an internal error, or 3 if SQL tokenization failed.
       # @raise [Aikido::Zen::InternalsError] if there's a problem loading or
       #   calling libzen.
       attach_function :detect_sql_injection_native, :detect_sql_injection,
-        [:string, :string, :int], :int
+        [:pointer, :size_t, :pointer, :size_t, :int], :int
     rescue LoadError, FFI::NotFoundError => err # rubocop:disable Lint/ShadowedException
       # :nocov:
 
@@ -90,12 +90,24 @@ module Aikido::Zen
       # @raise [Aikido::Zen::InternalsError] if there's a problem loading or
       #   calling libzen.
       def self.detect_sql_injection(query, input, dialect)
-        case detect_sql_injection_native(query, input, dialect)
+        query_bytes = query.encode('UTF-8')
+        input_bytes = input.encode('UTF-8')
+
+        query_ptr = FFI::MemoryPointer.new(:uint8, query_bytes.bytesize)
+        input_ptr = FFI::MemoryPointer.new(:uint8, input_bytes.bytesize)
+
+        query_ptr.put_bytes(0, query_bytes)
+        input_ptr.put_bytes(0, input_bytes)
+
+        case detect_sql_injection_native(query_ptr, query_bytes.bytesize, input_ptr, input_bytes.bytesize, dialect)
         when 0 then false
         when 1 then true
         when 2
           attempt = format("%s query %p with input %p", dialect, query, input)
           raise InternalsError.new(attempt, "calling detect_sql_injection in", libzen_name)
+        when 3
+          # SQL tokenization failed - return false (no injection detected)
+          false
         end
       end
     end
