@@ -90,8 +90,8 @@ module Aikido::Zen
       # @raise [Aikido::Zen::InternalsError] if there's a problem loading or
       #   calling libzen.
       def self.detect_sql_injection(query, input, dialect)
-        query_bytes = query.encode('UTF-8')
-        input_bytes = input.encode('UTF-8')
+        query_bytes = encode_safely(query)
+        input_bytes = encode_safely(input)
 
         query_ptr = FFI::MemoryPointer.new(:uint8, query_bytes.bytesize)
         input_ptr = FFI::MemoryPointer.new(:uint8, input_bytes.bytesize)
@@ -109,6 +109,14 @@ module Aikido::Zen
           # SQL tokenization failed - return false (no injection detected)
           false
         end
+      end
+    end
+
+    class << self
+      private
+
+      def encode_safely(string)
+        string.encode("UTF-8", invalid: :replace, undef: :replace)
       end
     end
   end
