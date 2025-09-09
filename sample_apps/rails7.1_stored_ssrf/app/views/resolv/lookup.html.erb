@@ -1,0 +1,19 @@
+<h1>DNS Lookup</h1>
+
+<%= form_with url: lookup_path, method: :post, local: true do %>
+  <div>
+    <%= label_tag :hostname, "Enter a hostname:" %>
+    <%= text_field_tag :hostname, nil, placeholder: "example.com" %>
+  </div>
+
+  <div>
+    <%= submit_tag "Lookup" %>
+  </div>
+<% end %>
+
+<% if flash[:notice] %>
+  <p style="color: green;"><%= flash[:notice] %></p>
+<% elsif flash[:alert] %>
+  <p style="color: red;"><%= flash[:alert] %></p>
+<% end %>
+
