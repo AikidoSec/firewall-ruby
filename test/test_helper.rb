@@ -3,6 +3,7 @@
 require "bundler"
 Bundler.setup
 
+require "simplecov-lcov" if RUBY_VERSION >= "3"
 require "simplecov"
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)

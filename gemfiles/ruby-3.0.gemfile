@@ -17,6 +17,7 @@ gem "debug"
 gem "puma"
 gem "yard"
 gem "simplecov", require: false
+gem "simplecov-lcov", "~> 0.9.0", require: false
 
 ##
 # Gems we patch and require for testing

@@ -6,6 +6,12 @@
 return if RUBY_VERSION < "3.0"
 return if ENV["DISABLE_COVERAGE"] == "true"
 
+# Output coverage as LCOV to support CodeCov
+if ENV["COVERAGE_OUTPUT_LCOV"] == "true"
+  SimpleCov::Formatter::LcovFormatter.config.report_with_single_file = true
+  SimpleCov.formatter = SimpleCov::Formatter::LcovFormatter
+end
+
 SimpleCov.start do
   # Make sure SimpleCov waits until after the tests
   # are finished to generate the coverage reports.
