@@ -53,6 +53,15 @@ jobs:
         bundler-cache: true
     - name: Run the unit tests
       run: bundle exec rake test
+      env:
+          COVERAGE_OUTPUT_LCOV: true
+    - name: "Upload coverage"
+      uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574 # v5
+      with:
+        files: ./coverage/lcov/firewall-ruby.lcov
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        slug: AikidoSec/firewall-ruby
     - name: Lint the code
       run: bundle exec rake standard
     - name: Build the gem
