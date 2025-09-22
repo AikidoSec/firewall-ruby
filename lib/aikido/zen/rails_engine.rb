@@ -29,12 +29,6 @@ module Aikido::Zen
     end
 
     initializer "aikido.configuration" do |app|
-      # Allow the logger to be configured before checking if disabled? so we can
-      # let the user know that the agent is disabled.
-      logger = ::Rails.logger
-      logger = logger.tagged("aikido") if logger.respond_to?(:tagged)
-      app.config.zen.logger = logger
-
       app.config.zen.request_builder = Aikido::Zen::Context::RAILS_REQUEST_BUILDER
 
       # Plug Rails' JSON encoder/decoder, but only if the user hasn't changed

@@ -102,7 +102,6 @@ way.
 
 ## Logging
 
-By default, Zen will use the Rails logger, prefixing messages with `[aikido]`.
 You can redirect the log to a separate stream by overriding the logger:
 
 ```ruby
@@ -110,5 +109,5 @@ You can redirect the log to a separate stream by overriding the logger:
 Rails.application.config.zen.logger = Logger.new(...)
 ```
 
-You should supply an instance of ruby's [Logger](https://github.com/ruby/logger)
+You should supply an instance of Ruby's [Logger](https://github.com/ruby/logger)
 class.
