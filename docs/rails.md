@@ -102,12 +102,11 @@ way.
 
 ## Logging
 
-You can redirect the log to a separate stream by overriding the logger:
+You can override the logger to integrate with your application logging strategy:
 
 ```ruby
 # config/initializers/zen.rb
-Rails.application.config.zen.logger = Logger.new(...)
+Rails.application.config.zen.logger = ::Rails.logger
 ```
 
-You should supply an instance of Ruby's [Logger](https://github.com/ruby/logger)
-class.
+Zen expects an instance of Ruby's [Logger](https://github.com/ruby/logger) class.
