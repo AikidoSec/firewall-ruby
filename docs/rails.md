@@ -60,7 +60,7 @@ modify in an initializer if desired:
 
 ```ruby
 # config/initializers/zen.rb
-Rails.application.config.zen.api_timeouts = 20
+Rails.application.config.zen.option = value
 ```
 
 You can access the configuration object both as `Aikido::Zen.config` or
@@ -80,7 +80,7 @@ zen:
   token: "AIKIDO_RUNTIME_..."
 ```
 
-You can just tell Zen to use it like so:
+You can tell Zen to use it like so:
 
 ```ruby
 # config/initializers/zen.rb
