@@ -63,6 +63,16 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
       assert_equal File.join("base", ["some"], ["other", ["nested"]], "path"), "base/some/other/nested/path"
     end
 
+    test "hardened File.join" do
+      Aikido::Zen.config.harden = true
+
+      assert_raises(TypeError) do
+        File.join("base", ["some"], ["other", ["nested"]], "path")
+      end
+    ensure
+      Aikido::Zen.config.harden = false
+    end
+
     test "File.chmod" do
       Helpers.temp_file do |tmp_file|
         assert_equal File.chmod(0o755, tmp_file.path), 1

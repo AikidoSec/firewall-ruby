@@ -81,8 +81,18 @@ module Aikido::Zen
             end
           end
 
-          sink_after :join do |result|
-            Helpers.scan(result, "join")
+          def join(*args, **kwargs, &blk)
+            if Aikido::Zen.config.harden
+              if args.any? { |value| value.is_a?(Array) }
+                raise TypeError.new("no implicit conversion of Array to String")
+              end
+            end
+
+            result = join__internal_for_aikido_zen(*args, **kwargs, &blk)
+            Sinks::DSL.safe do
+              Helpers.scan(result, "join")
+            end
+            result
           end
 
           sink_before :expand_path do |file_name|
