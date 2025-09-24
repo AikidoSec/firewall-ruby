@@ -4,7 +4,8 @@ module Aikido::Zen
   module Scanners
     module PathTraversal
       DANGEROUS_PATH_PARTS = ["../", "..\\"]
-      LINUX_ROOT_FOLDERS = [
+
+      LINUX_PATH_STARTS = [
         "/bin/",
         "/boot/",
         "/dev/",
@@ -26,10 +27,12 @@ module Aikido::Zen
         "/var/"
       ]
 
-      DANGEROUS_PATH_STARTS = LINUX_ROOT_FOLDERS + ["c:/", "c:\\"]
+      WINDOWS_PATH_STARTS = ["c:/", "c:\\"]
+
+      DANGEROUS_PATH_STARTS = LINUX_PATH_STARTS + WINDOWS_PATH_STARTS
 
       module Helpers
-        def self.contains_unsafe_path_parts(filepath)
+        def self.include_unsafe_path_parts?(filepath)
           DANGEROUS_PATH_PARTS.each do |dangerous_part|
             return true if filepath.include?(dangerous_part)
           end
@@ -37,7 +40,7 @@ module Aikido::Zen
           false
         end
 
-        def self.starts_with_unsafe_path(filepath, user_input)
+        def self.start_with_unsafe_path?(filepath, user_input)
           # Check if path is relative (not absolute or drive letter path)
           # Required because `expand_path` will build absolute paths from relative paths
           return false if Pathname.new(filepath).relative? || Pathname.new(user_input).relative?
@@ -51,12 +54,12 @@ module Aikido::Zen
               # to prevent false positives.
               # e.g., if user input is /etc/ and the path is /etc/passwd, we don't want to flag it,
               # as long as the user input does not contain a subdirectory or filename
-              if user_input == dangerous_start || user_input == dangerous_start.chomp("/")
-                return false
-              end
+              return false if user_input == dangerous_start || user_input == dangerous_start.chomp("/")
+
               return true
             end
           end
+
           false
         end
       end
