@@ -110,7 +110,9 @@ module Aikido::Zen
         # as might occur when a query parameter is an array.
         begin
           string = File.join__internal_for_aikido_zen(*array)
-          payloads << Payload.new(string, source_type, [prefix, "__File.join__"].compact.join("."))
+          if unsafe_path?(string)
+            payloads << Payload.new(string, source_type, [prefix, "__File.join__"].compact.join("."))
+          end
         rescue
           # Could not create special payload for File.join.
         end
@@ -119,6 +121,20 @@ module Aikido::Zen
       else
         [Payload.new(data, source_type, prefix.to_s)]
       end
+    end
+
+    def unsafe_path?(filepath)
+      normalized_filepath = Pathname.new(filepath).cleanpath.to_s.downcase
+
+      Scanners::PathTraversal::DANGEROUS_PATH_PARTS.each do |dangerous_path_part|
+        return true if normalized_filepath.include?(dangerous_path_part)
+      end
+
+      Scanners::PathTraversal::DANGEROUS_PATH_STARTS.each do |dangerous_path_start|
+        return true if normalized_filepath.start_with?(dangerous_path_start)
+      end
+
+      false
     end
   end
 end
