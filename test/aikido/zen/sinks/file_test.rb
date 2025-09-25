@@ -51,26 +51,85 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
     end
 
     test "File.join" do
+      assert_equal File.join, ""
+      assert_equal File.join(""), ""
+
       assert_equal File.join("base"), "base"
       assert_equal File.join("base", "some"), "base/some"
       assert_equal File.join("base", "some", "path"), "base/some/path"
+
+      assert_equal File.join("", "base"), "/base"
+      assert_equal File.join("", "base", "some"), "/base/some"
+      assert_equal File.join("", "base", "some", "path"), "/base/some/path"
 
       # It's possible to call this method with 0 arguments if you expand an array
       empty_array = []
       assert_equal File.join(*empty_array), ""
 
-      # It's possible to call this method with possibly nested arrays
-      assert_equal File.join("base", ["some"], ["other", ["nested"]], "path"), "base/some/other/nested/path"
-    end
+      # It's possible to call File.join with possibly nested arrays but this is
+      # undocumented behavior that has been restricted in Zen's hardened method.
 
-    test "hardened File.join" do
-      Aikido::Zen.config.harden = true
+      assert_equal File.join([]), ""
+      assert_equal File.join(["base"]), "base"
+      assert_equal File.join(["base", "some"]), "base/some"
+      assert_equal File.join(["base", "some", "path"]), "base/some/path"
+
+      assert_equal File.join([""]), ""
+      assert_equal File.join(["", "base"]), "/base"
+      assert_equal File.join(["", "base", "some"]), "/base/some"
+      assert_equal File.join(["", "base", "some", "path"]), "/base/some/path"
 
       assert_raises(TypeError) do
-        File.join("base", ["some"], ["other", ["nested"]], "path")
+        File.join("base", ["some"])
       end
-    ensure
-      Aikido::Zen.config.harden = false
+
+      assert_raises(TypeError) do
+        File.join("base", ["some", ["other"]])
+      end
+
+      assert_raises(TypeError) do
+        File.join("base", ["some"], "path")
+      end
+
+      assert_raises(TypeError) do
+        File.join("base", "some", ["path"])
+      end
+
+      assert_raises(TypeError) do
+        File.join("base", ["some", ["other"]], "path")
+      end
+
+      assert_raises(TypeError) do
+        File.join("base", "some", ["other", ["path"]])
+      end
+
+      assert_raises(TypeError) do
+        File.join(["base"], "some")
+      end
+
+      assert_raises(TypeError) do
+        File.join(["base", ["some"]])
+      end
+
+      assert_raises(TypeError) do
+        File.join(["base", ["some", ["other"]]])
+      end
+
+      assert_raises(TypeError) do
+        File.join(["base", ["some"], "path"])
+      end
+
+      assert_raises(TypeError) do
+        File.join(["base", "some", ["path"]])
+      end
+
+      assert_raises(TypeError) do
+        File.join(["base", ["some", ["other"]], "path"])
+      end
+
+      assert_raises(TypeError) do
+        File.join(["base", "some", ["other", ["path"]]])
+      end
     end
 
     test "File.chmod" do
@@ -188,7 +247,7 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
       end
 
       refute_attack do
-        assert_equal File.join("base", ["some"], ["other", ["nested"]], "/../", "looks-like-an-attack"), "base/some/other/nested/../looks-like-an-attack"
+        assert_equal File.join(["base", "some", "/../", "looks-like-an-attack"]), "base/some/../looks-like-an-attack"
       end
     end
 

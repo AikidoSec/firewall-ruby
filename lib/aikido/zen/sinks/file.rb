@@ -82,10 +82,38 @@ module Aikido::Zen
           end
 
           def join(*args, **kwargs, &blk)
-            if Aikido::Zen.config.harden
-              if args.any? { |value| value.is_a?(Array) }
-                raise TypeError.new("no implicit conversion of Array to String")
-              end
+            # IMPORTANT: THE BEHAVIOR OF THIS METHOD IS CHANGED!
+            #
+            # File.join has undocumented behavior:
+            #
+            # File.join recursively joins nested string arrays.
+            #
+            # This prevents path traversal detection when an array originates
+            # from user input that was assumed to be a string.
+            #
+            # This undocumented behavior has been restricted to support path
+            # traversal detection.
+            #
+            # File.join no longer joins nested string arrays, but still accepts
+            # a single string array argument.
+
+            # File.join is often incorrectly called with a single array argument.
+            #
+            # i.e.
+            #
+            # File.join(["prefix", "filename"])
+            #
+            # This is considered acceptable.
+            #
+            # Calling File.join with a single string argument returns the string
+            # argument itself, having no practical effect. Therefore, it can be
+            # presumed that if File.join is called with a single array argument
+            # then this was its intended usage, and the array did not origiate
+            # from user input that was assumed to be a string.
+            strings = args
+            strings = args.first if args.size == 1 && args.first.is_a?(Array)
+            strings.each do |string|
+              raise TypeError.new("Zen prevented implicit conversion of Array to String") if string.is_a?(Array)
             end
 
             result = join__internal_for_aikido_zen(*args, **kwargs, &blk)
