@@ -316,23 +316,22 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert second_timer.running?
   end
 
-  test "#start! queues a one-off task if the server hasn't received stats yet" do
-    settings = Aikido::Zen.runtime_settings
-    settings.received_any_stats = false
+  test "#start! queues a one-off tasks for each initial heartbeat delay" do
+    size = @config.initial_heartbeat_delays.size
 
-    assert_difference "@worker.delayed.size", +1 do
+    assert_difference "@worker.delayed.size", size do
       @agent.start!
     end
 
-    task = @worker.delayed.last
-    assert_equal @config.initial_heartbeat_delay, task.initial_delay
-    assert task.pending? # is queued for execution
+    tasks = @worker.delayed.last(size)
+
+    size.times do |i|
+      assert_equal @config.initial_heartbeat_delays[i], tasks[i].initial_delay
+      assert tasks[i].pending? # is queued for execution
+    end
   end
 
-  test "#start! successfully sends the initial heartbeat if no stats have been received yet" do
-    settings = Aikido::Zen.runtime_settings
-    settings.received_any_stats = false
-
+  test "#start! successfully sends the initial heartbeats" do
     # Make sure there are _some_ stats
     @collector.track_request(stub_request)
 
@@ -348,27 +347,6 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     end
 
     assert heartbeat_sent
-  end
-
-  test "#start! only sends the initial heartbeat if there are stats to report" do
-    settings = Aikido::Zen.runtime_settings
-    settings.received_any_stats = false
-
-    # Make sure the collector has no stats
-    @collector.flush
-
-    # Ignore the actual delay
-    def @worker.delay(*)
-      yield
-    end
-
-    heartbeat_sent = false
-
-    @agent.stub(:send_heartbeat, -> { heartbeat_sent = true }) do
-      @agent.start!
-    end
-
-    refute heartbeat_sent
   end
 
   test "#updated_settings! does not queue a one-off task if the server received stats" do

@@ -67,8 +67,11 @@ module Aikido::Zen
 
       poll_for_setting_updates
 
-      @worker.delay(@config.initial_heartbeat_delay) do
-        send_heartbeat if @collector.stats.any?
+      @config.initial_heartbeat_delays.each do |heartbeat_delay|
+        @worker.delay(heartbeat_delay) do
+          @config.logger.info "Executing initial heartbeat after #{heartbeat_delay} seconds"
+          send_heartbeat
+        end
       end
     end
 

@@ -50,7 +50,7 @@ module Aikido::Zen
       last_updated_at = updated_at
 
       self.updated_at = Time.at(data["configUpdatedAt"].to_i / 1000)
-      self.heartbeat_interval = (data["heartbeatIntervalInMS"].to_i / 1000)
+      self.heartbeat_interval = data["heartbeatIntervalInMS"].to_i / 1000
       self.endpoints = RuntimeSettings::Endpoints.from_json(data["endpoints"])
       self.blocked_user_ids = data["blockedUserIds"]
       self.skip_protection_for_ips = RuntimeSettings::IPSet.from_json(data["allowedIPAddresses"])

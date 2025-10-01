@@ -24,7 +24,7 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 100, @config.max_compressed_stats
     assert_equal 200, @config.max_outbound_connections
     assert_equal 1000, @config.max_users_tracked
-    assert_equal 60, @config.initial_heartbeat_delay
+    assert_equal [30, 60 * 2], @config.initial_heartbeat_delays
     assert_equal 60, @config.polling_interval
     assert_kind_of Proc, @config.blocked_responder
     assert_kind_of Proc, @config.rate_limited_responder
