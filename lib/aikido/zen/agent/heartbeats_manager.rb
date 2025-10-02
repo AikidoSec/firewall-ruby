@@ -20,7 +20,7 @@ module Aikido::Zen
     # @return [Boolean] whether the currently running heartbeat matches the
     #   expected interval in the runtime settings.
     def stale_settings?
-      running? && @timer.execution_interval != @settings.heartbeat_interval
+      running? && @timer.execution_interval != interval
     end
 
     # Sets up the the timer to run the given block at the appropriate interval.
@@ -30,11 +30,11 @@ module Aikido::Zen
     def start(&task)
       return if running?
 
-      if @settings.heartbeat_interval&.nonzero?
-        @config.logger.debug "Scheduling heartbeats every #{@settings.heartbeat_interval} seconds"
-        @timer = @worker.every(@settings.heartbeat_interval, run_now: false, &task)
+      if interval&.nonzero?
+        @config.logger.debug "Scheduling heartbeats every #{interval} seconds"
+        @timer = @worker.every(interval, run_now: false, &task)
       else
-        @config.logger.warn(format("Heartbeat could not be set up (interval: %p)", @settings.heartbeat_interval))
+        @config.logger.warn(format("Heartbeat could not be set up (interval: %p)", interval))
       end
     end
 
