@@ -37,22 +37,22 @@ module Aikido::Zen
     end
 
     def start!
-      @config.logger.info "Starting Aikido agent v#{Aikido::Zen::VERSION}"
+      @config.logger.info("Starting Aikido agent v#{Aikido::Zen::VERSION}")
 
       raise Aikido::ZenError, "Aikido Agent already started!" if started?
       @started_at = Time.now.utc
       @collector.start(at: @started_at)
 
       if @config.blocking_mode?
-        @config.logger.info "Requests identified as attacks will be blocked"
+        @config.logger.info("Requests identified as attacks will be blocked")
       else
-        @config.logger.warn "Non-blocking mode enabled! No requests will be blocked."
+        @config.logger.warn("Non-blocking mode enabled! No requests will be blocked.")
       end
 
       if @api_client.can_make_requests?
-        @config.logger.info "API Token set! Reporting has been enabled."
+        @config.logger.info("API Token set! Reporting has been enabled.")
       else
-        @config.logger.warn "No API Token set! Reporting has been disabled."
+        @config.logger.warn("No API Token set! Reporting has been disabled.")
         return
       end
 
@@ -60,7 +60,7 @@ module Aikido::Zen
 
       report(Events::Started.new(time: @started_at)) do |response|
         updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
-        @config.logger.info "Updated runtime settings."
+        @config.logger.info("Updated runtime settings.")
       rescue => err
         @config.logger.error(err.message)
       end
@@ -80,7 +80,7 @@ module Aikido::Zen
     #
     # @return [void]
     def stop!
-      @config.logger.info "Stopping Aikido agent"
+      @config.logger.info("Stopping Aikido agent")
       @started_at = nil
       @worker.shutdown
     end
@@ -149,7 +149,7 @@ module Aikido::Zen
       @collector.flush_heartbeats.each do |heartbeat|
         report(heartbeat) do |response|
           updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
-          @config.logger.info "Updated runtime settings after heartbeat"
+          @config.logger.info("Updated runtime settings after heartbeat")
         end
       end
     end
@@ -165,7 +165,7 @@ module Aikido::Zen
       @worker.every(@config.polling_interval) do
         if @api_client.should_fetch_settings?
           updated_settings! if Aikido::Zen.runtime_settings.update_from_json(@api_client.fetch_settings)
-          @config.logger.info "Updated runtime settings after polling"
+          @config.logger.info("Updated runtime settings after polling")
         end
       end
     end
