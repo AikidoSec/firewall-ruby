@@ -69,8 +69,8 @@ module Aikido::Zen
 
       @config.initial_heartbeat_delays.each do |heartbeat_delay|
         @worker.delay(heartbeat_delay) do
-          @config.logger.info "Executing initial heartbeat after #{heartbeat_delay} seconds"
           send_heartbeat
+          @config.logger.info("Executed initial heartbeat after #{heartbeat_delay} seconds")
         end
       end
     end
