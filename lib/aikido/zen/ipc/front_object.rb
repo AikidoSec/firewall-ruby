@@ -3,7 +3,7 @@
 # dRB Front object that will work as a bridge communication between child & parent
 # processes.
 # Every method is called from the child but it runs in the parent process.
-module Aikido::Zen::DetachedAgent
+module Aikido::Zen::IPC
   class FrontObject
     def initialize(
       config: Aikido::Zen.config,

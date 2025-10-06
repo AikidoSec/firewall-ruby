@@ -10,7 +10,7 @@ require_relative "zen/worker"
 require_relative "zen/agent"
 require_relative "zen/api_client"
 require_relative "zen/context"
-require_relative "zen/detached_agent"
+require_relative "zen/ipc"
 require_relative "zen/middleware/check_allowed_addresses"
 require_relative "zen/middleware/middleware"
 require_relative "zen/middleware/request_tracker"
@@ -91,9 +91,9 @@ module Aikido
       @collector ||= Collector.new
     end
 
-    def self.detached_agent
+    def self.ipc_client
       check_and_handle_fork
-      @detached_agent ||= DetachedAgent::Agent.new
+      @ipc_client ||= IPC::Client.new
     end
 
     # Gets the current context object that holds all information about the
@@ -204,7 +204,7 @@ module Aikido
     # Stop any background threads.
     def self.stop!
       @agent&.stop!
-      @detached_agent_server&.stop!
+      @ipc_server&.stop!
     end
 
     # @!visibility private
@@ -213,12 +213,12 @@ module Aikido
       @agent ||= Agent.start
     end
 
-    def self.detached_agent_server
-      @detached_agent_server ||= DetachedAgent::Server.start
+    def self.ipc_server
+      @ipc_server ||= IPC::Server.start
     end
 
     class << self
-      # `agent` and `detached_agent` are started on the first method call.
+      # `agent` and `ipc_server` are started on the first method call.
       # A mutex controls thread execution to prevent multiple attempts.
       LOCK = Mutex.new
 
@@ -226,13 +226,13 @@ module Aikido
         @pid = Process.pid
         LOCK.synchronize do
           agent
-          detached_agent_server
+          ipc_server
         end
       end
 
       def check_and_handle_fork
         if has_forked
-          @detached_agent&.handle_fork
+          @ipc_client&.handle_fork
         end
       end
 

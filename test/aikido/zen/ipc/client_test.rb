@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Aikido::Zen::DetachedAgent::AgentTest < ActiveSupport::TestCase
+class Aikido::Zen::IPC::ClientTest < ActiveSupport::TestCase
   include WorkerHelpers
 
   def with_mocks(front_object, on_drb_start)
@@ -13,7 +13,7 @@ class Aikido::Zen::DetachedAgent::AgentTest < ActiveSupport::TestCase
         worker = MockWorker.new
         interval = 10
 
-        detached_agent_agent = Aikido::Zen::DetachedAgent::Agent.new(
+        ipc_client = Aikido::Zen::IPC::Client.new(
           heartbeat_interval: interval,
           config: config,
           worker: worker,
@@ -21,7 +21,7 @@ class Aikido::Zen::DetachedAgent::AgentTest < ActiveSupport::TestCase
         )
 
         yield ({
-          agent: detached_agent_agent,
+          ipc_client: ipc_client,
           interval: interval,
           config: config,
           worker: worker,
@@ -61,7 +61,7 @@ class Aikido::Zen::DetachedAgent::AgentTest < ActiveSupport::TestCase
       mocks[:collector].expect(:stats, stats)
       mocks[:collector].expect(:flush, hb, [], at: at)
 
-      mocks[:agent].send_heartbeat(at: at)
+      mocks[:ipc_client].send_heartbeat(at: at)
 
       assert_mock stats
       assert_mock mocks[:collector]
@@ -80,12 +80,12 @@ class Aikido::Zen::DetachedAgent::AgentTest < ActiveSupport::TestCase
     with_mocks(front_object, on_drb_start) do |mocks|
       front_object.expect :updated_settings, {new: :settings}
 
-      mocks[:agent].handle_fork
+      mocks[:ipc_client].handle_fork
 
       assert_equal({new: :settings}, Aikido::Zen.runtime_settings)
 
       assert mocks[:worker].restarted
-      assert_same mocks[:worker], mocks[:agent].worker
+      assert_same mocks[:worker], mocks[:ipc_client].worker
       assert_equal 2, mocks[:worker].jobs.size
 
       assert drb_start_called

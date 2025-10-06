@@ -2,11 +2,11 @@
 
 require "test_helper"
 
-class Aikido::Zen::DetachedAgent::FrontObjectTest < ActiveSupport::TestCase
+class Aikido::Zen::IPC::FrontObjectTest < ActiveSupport::TestCase
   setup do
     @config = Aikido::Zen::Config.new
     @collector = Minitest::Mock.new(Aikido::Zen::Collector.new(config: @config))
-    @front_object = Aikido::Zen::DetachedAgent::FrontObject.new(config: @config, collector: @collector)
+    @front_object = Aikido::Zen::IPC::FrontObject.new(config: @config, collector: @collector)
   end
 
   test "it pushes heartbeats into collector" do

@@ -19,7 +19,7 @@ require "pathname"
 require "debug" if RUBY_VERSION >= "3"
 require "support/capture_stream"
 
-class FakeDetachedAgent
+class FakeIPCClient
   extend Forwardable
 
   def_delegators :@collector, :track_request, :track_route, :track_outbound, :track_scan, :track_user, :track_attack
@@ -35,8 +35,8 @@ class FakeDetachedAgent
 end
 
 Aikido::Zen.instance_variable_set(
-  :@detached_agent,
-  FakeDetachedAgent.new(Aikido::Zen::Collector.new, Aikido::Zen::RateLimiter.new)
+  :@ipc_client,
+  FakeIPCClient.new(Aikido::Zen::Collector.new, Aikido::Zen::RateLimiter.new)
 )
 
 # Silence warnings that result from loading HTTPClient.
@@ -74,10 +74,10 @@ class ActiveSupport::TestCase
     collector = Aikido::Zen::Collector.new
 
     Aikido::Zen.instance_variable_set(:@collector, collector)
-    Aikido::Zen.detached_agent.instance_variable_set(:@collector, collector)
+    Aikido::Zen.ipc_client.instance_variable_set(:@collector, collector)
 
     Aikido::Zen.instance_variable_set(:@runtime_settings, nil)
-    Aikido::Zen.detached_agent.instance_variable_set(:@rate_limiter, Aikido::Zen::RateLimiter.new)
+    Aikido::Zen.ipc_client.instance_variable_set(:@rate_limiter, Aikido::Zen::RateLimiter.new)
 
     Aikido::Zen.current_context = nil
 

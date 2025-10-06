@@ -96,7 +96,7 @@ module Aikido
       end
     end
 
-    class DetachedAgentError < ZenError
+    class IPCError < ZenError
       extend Forwardable
 
       def initialize(msg)

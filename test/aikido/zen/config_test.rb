@@ -18,7 +18,7 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 10, @config.api_timeouts[:write_timeout]
     assert_kind_of ::Logger, @config.logger
     refute @config.debugging
-    assert_equal "aikido-detached-agent.sock", @config.detached_agent_socket_path
+    assert_equal "aikido-ipc-server.sock", @config.ipc_server_socket_path
     assert_nil @config.client_ip_header
     assert_equal 5000, @config.max_performance_samples
     assert_equal 100, @config.max_compressed_stats

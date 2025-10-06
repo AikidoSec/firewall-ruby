@@ -61,10 +61,10 @@ module Aikido::Zen
     # @return [Logger]
     attr_reader :logger
 
-    # @return [String] Path of the socket where the detached agent will listen.
+    # @return [String] Path of the socket where the IPC server will listen.
     # By default, is stored under the root application path with file name
-    # `aikido-detached-agent.sock`
-    attr_accessor :detached_agent_socket_path
+    # `aikido-ipc-server.sock`
+    attr_accessor :ipc_server_socket_path
 
     # @return [Boolean] is the agent in debugging mode?
     attr_accessor :debugging
@@ -172,7 +172,7 @@ module Aikido::Zen
       self.json_decoder = DEFAULT_JSON_DECODER
       self.debugging = read_boolean_from_env(ENV.fetch("AIKIDO_DEBUG", false))
       self.logger = Logger.new($stdout, progname: "aikido", level: debugging ? Logger::DEBUG : Logger::INFO)
-      self.detached_agent_socket_path = ENV.fetch("AIKIDO_DETACHED_AGENT_SOCKET_PATH", DEFAULT_DETACHED_AGENT_SOCKET_PATH)
+      self.ipc_server_socket_path = ENV.fetch("AIKIDO_IPC_SERVER_SOCKET_PATH", DEFAULT_IPC_SERVER_SOCKET_PATH)
       self.client_ip_header = ENV.fetch("AIKIDO_CLIENT_IP_HEADER", nil)
       self.max_performance_samples = 5000
       self.max_compressed_stats = 100
@@ -233,8 +233,8 @@ module Aikido::Zen
       @api_timeouts.update(value)
     end
 
-    def detached_agent_socket_uri
-      "drbunix:" + @detached_agent_socket_path
+    def ipc_server_socket_uri
+      "drbunix:" + @ipc_server_socket_path
     end
 
     private
@@ -263,7 +263,7 @@ module Aikido::Zen
     DEFAULT_JSON_DECODER = JSON.method(:parse)
 
     # @!visibility private
-    DEFAULT_DETACHED_AGENT_SOCKET_PATH = "aikido-detached-agent.sock"
+    DEFAULT_IPC_SERVER_SOCKET_PATH = "aikido-ipc-server.sock"
 
     # @!visibility private
     DEFAULT_BLOCKED_RESPONDER = ->(request, blocking_type) do

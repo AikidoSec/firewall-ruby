@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Aikido::Zen::DetachedAgent::ServerTest < ActiveSupport::TestCase
+class Aikido::Zen::IPC::ServerTest < ActiveSupport::TestCase
   FakeDrbServer = Struct.new(:stopped, :attempts) do
     def initialize(max_attempts)
       super
@@ -28,7 +28,7 @@ class Aikido::Zen::DetachedAgent::ServerTest < ActiveSupport::TestCase
     @fake_drb_server = FakeDrbServer.new(4)
 
     DRb.stub(:start_service, @fake_drb_server) do
-      Aikido::Zen::DetachedAgent::Server.start
+      Aikido::Zen::IPC::Server.start
     end
     assert_equal 4, @fake_drb_server.attempts
   end
@@ -36,8 +36,8 @@ class Aikido::Zen::DetachedAgent::ServerTest < ActiveSupport::TestCase
   test "An exception is raised in case we exhaust the max number of attempts while starting the server" do
     @fake_drb_server = FakeDrbServer.new(11)
     DRb.stub(:start_service, @fake_drb_server) do
-      assert_raises Aikido::Zen::DetachedAgentError do
-        Aikido::Zen::DetachedAgent::Server.start
+      assert_raises Aikido::Zen::IPCError do
+        Aikido::Zen::IPC::Server.start
       end
     end
   end
@@ -45,7 +45,7 @@ class Aikido::Zen::DetachedAgent::ServerTest < ActiveSupport::TestCase
   test "Server is stopped " do
     @fake_drb_server = FakeDrbServer.new(2)
     DRb.stub(:start_service, @fake_drb_server) do
-      server = Aikido::Zen::DetachedAgent::Server.start
+      server = Aikido::Zen::IPC::Server.start
       server.stop!
     end
     assert @fake_drb_server.stopped

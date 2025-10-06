@@ -19,7 +19,7 @@ module Aikido::Zen
     def initialize(
       config: Aikido::Zen.config,
       collector: Aikido::Zen.collector,
-      detached_agent: Aikido::Zen.detached_agent,
+      ipc_client: Aikido::Zen.ipc_client,
       worker: Aikido::Zen::Worker.new(config: config),
       api_client: Aikido::Zen::APIClient.new(config: config)
     )
@@ -29,7 +29,7 @@ module Aikido::Zen
       @worker = worker
       @api_client = api_client
       @collector = collector
-      @detached_agent = detached_agent
+      @ipc_client = ipc_client
     end
 
     def started?

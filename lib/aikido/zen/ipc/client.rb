@@ -5,7 +5,7 @@ require "drb/unix"
 require_relative "front_object"
 require_relative "../background_worker"
 
-module Aikido::Zen::DetachedAgent
+module Aikido::Zen::IPC
   # Agent that runs in forked processes. It communicates with the parent process to dRB
   # calls. It's in charge of schedule and send heartbeats to the *parent process*, to be
   # later pushed.
@@ -17,7 +17,7 @@ module Aikido::Zen::DetachedAgent
   # @detached_agent_front object. Unfortunately, the methods to be called are
   # created at runtime by `DRbObject`, which leads to an ugly warning about
   # private methods after the delegator is bound.
-  class Agent
+  class Client
     attr_reader :worker
 
     def initialize(
@@ -32,7 +32,7 @@ module Aikido::Zen::DetachedAgent
       @polling_interval = polling_interval
       @worker = worker
       @collector = collector
-      @detached_agent_front = DRbObject.new_with_uri(config.detached_agent_socket_uri)
+      @front_object = DRbObject.new_with_uri(config.ipc_server_socket_uri)
       @has_forked = false
       schedule_tasks
     end
@@ -41,7 +41,7 @@ module Aikido::Zen::DetachedAgent
       return unless @collector.stats.any?
 
       heartbeat = @collector.flush(at: at)
-      @detached_agent_front.send_heartbeat_to_parent_process(heartbeat.as_json)
+      @front_object.send_heartbeat_to_parent_process(heartbeat.as_json)
     end
 
     private def schedule_tasks
@@ -53,14 +53,14 @@ module Aikido::Zen::DetachedAgent
       # we are updating the global runtime_settings, we could have an infinite recursion.
       if @has_forked
         @worker.every(@polling_interval) do
-          Aikido::Zen.runtime_settings = @detached_agent_front.updated_settings
+          Aikido::Zen.runtime_settings = @front_object.updated_settings
           @config.logger.debug "Updated runtime settings after polling from child process #{Process.pid}"
         end
       end
     end
 
     def calculate_rate_limits(request)
-      @detached_agent_front.calculate_rate_limits(request.route, request.ip, request.actor.to_json)
+      @front_object.calculate_rate_limits(request.route, request.ip, request.actor.to_json)
     end
 
     # Every time a fork occurs (a new child process is created), we need to start

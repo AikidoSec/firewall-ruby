@@ -12,11 +12,11 @@ module Aikido::Zen
         def initialize(
           config: Aikido::Zen.config,
           settings: Aikido::Zen.runtime_settings,
-          detached_agent: Aikido::Zen.detached_agent
+          ipc_client: Aikido::Zen.ipc_client
         )
           @config = config
           @settings = settings
-          @detached_agent = detached_agent
+          @ipc_client = ipc_client
         end
 
         def block?(controller)
@@ -46,7 +46,7 @@ module Aikido::Zen
           return false unless @settings.endpoints[request.route].rate_limiting.enabled?
           return false if @settings.skip_protection_for_ips.include?(request.ip)
 
-          result = @detached_agent.calculate_rate_limits(request)
+          result = @ipc_client.calculate_rate_limits(request)
           return false unless result
 
           request.env["aikido.rate_limiting"] = result
