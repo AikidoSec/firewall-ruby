@@ -11,10 +11,11 @@ require_relative "zen/agent"
 require_relative "zen/api_client"
 require_relative "zen/context"
 require_relative "zen/detached_agent"
-require_relative "zen/middleware/check_allowed_addresses"
 require_relative "zen/middleware/middleware"
-require_relative "zen/middleware/request_tracker"
+require_relative "zen/middleware/fork_detector"
 require_relative "zen/middleware/set_context"
+require_relative "zen/middleware/check_allowed_addresses"
+require_relative "zen/middleware/request_tracker"
 require_relative "zen/outbound_connection"
 require_relative "zen/outbound_connection_monitor"
 require_relative "zen/runtime_settings"
@@ -87,12 +88,10 @@ module Aikido
     # Manages runtime metrics extracted from your app, which are uploaded to the
     # Aikido servers if configured to do so.
     def self.collector
-      check_and_handle_fork
       @collector ||= Collector.new
     end
 
     def self.detached_agent
-      check_and_handle_fork
       @detached_agent ||= DetachedAgent::Agent.new
     end
 
@@ -231,15 +230,17 @@ module Aikido
       end
 
       def check_and_handle_fork
-        if has_forked
-          @detached_agent&.handle_fork
-        end
+        handle_fork if has_forked
       end
 
       def has_forked
         pid_changed = Process.pid != @pid
         @pid = Process.pid
         pid_changed
+      end
+
+      def handle_fork
+        @detached_agent&.handle_fork
       end
     end
   end
