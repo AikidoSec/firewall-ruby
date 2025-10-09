@@ -11,8 +11,12 @@ module Aikido::Zen
       @users = Concurrent::AtomicReference.new(Users.new(@config))
       @hosts = Concurrent::AtomicReference.new(Hosts.new(@config))
       @routes = Concurrent::AtomicReference.new(Routes.new(@config))
-      @heartbeats = Queue.new
+
       @middleware_installed = Concurrent::AtomicBoolean.new
+
+      # Heartbeat data sent from child processes, returned by
+      # Aikido::Zen::Events::Heartbeat#as_json.
+      @heartbeats = Queue.new
     end
 
     # Flush all the stats into a Heartbeat event that can be reported back to
@@ -40,7 +44,7 @@ module Aikido::Zen
       @heartbeats << heartbeat
     end
 
-    # Drains into an array all the queued heartbeats
+    # Drains into an array all the queued heartbeats.
     def flush_heartbeats
       Array.new(@heartbeats.size) { @heartbeats.pop }
     end
@@ -61,12 +65,6 @@ module Aikido::Zen
       synchronize(@stats) { |stats| stats.add_request }
     end
 
-    #  Record the visited endpoint, and if enabled, the API schema for this endpoint.
-    # @param request [Aikido::Zen::Request]
-    def track_route(request)
-      synchronize(@routes) { |routes| routes.add(request) if request.route }
-    end
-
     # Track stats about a scan performed by one of our sinks.
     #
     # @param scan [Aikido::Zen::Scan]
@@ -85,14 +83,6 @@ module Aikido::Zen
       end
     end
 
-    # Track an HTTP connections to an external host.
-    #
-    # @param connection [Aikido::Zen::OutboundConnection]
-    # @return [void]
-    def track_outbound(connection)
-      synchronize(@hosts) { |hosts| hosts.add(connection) }
-    end
-
     # Track the user reported by the developer to be behind this request.
     #
     # @param actor [Aikido::Zen::Actor]
@@ -101,13 +91,27 @@ module Aikido::Zen
       synchronize(@users) { |users| users.add(actor) }
     end
 
+    # Track an HTTP connections to an external host.
+    #
+    # @param connection [Aikido::Zen::OutboundConnection]
+    # @return [void]
+    def track_outbound(connection)
+      synchronize(@hosts) { |hosts| hosts.add(connection) }
+    end
+
+    # Record the visited endpoint, and if enabled, the API schema for this endpoint.
+    # @param request [Aikido::Zen::Request]
+    def track_route(request)
+      synchronize(@routes) { |routes| routes.add(request) if request.route }
+    end
+
     def middleware_installed!
       @middleware_installed.make_true
     end
 
     # @api private
-    def routes
-      @routes.get
+    def stats
+      @stats.get
     end
 
     # @api private
@@ -121,8 +125,8 @@ module Aikido::Zen
     end
 
     # @api private
-    def stats
-      @stats.get
+    def routes
+      @routes.get
     end
 
     # @api private
