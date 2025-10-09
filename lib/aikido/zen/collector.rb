@@ -59,9 +59,8 @@ module Aikido::Zen
 
     # Track stats about the requests
     #
-    # @param request [Aikido::Zen::Request]
     # @return [void]
-    def track_request(*)
+    def track_request
       synchronize(@stats) { |stats| stats.add_request }
     end
 

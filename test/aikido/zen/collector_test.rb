@@ -19,8 +19,8 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
   test "#track_request increments the number of requests" do
     assert_difference "@collector.stats.requests", +2 do
-      @collector.track_request(stub_request)
-      @collector.track_request(stub_request)
+      @collector.track_request
+      @collector.track_request
     end
   end
 
@@ -190,7 +190,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
   test "#flush includes the request stats in the event" do
     @collector.start(at: Time.at(1234567890))
     3.times {
-      @collector.track_request(stub_request)
+      @collector.track_request
       @collector.track_route(stub_request)
     }
     event = @collector.flush(at: Time.at(1234577890))
@@ -223,7 +223,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
     2.times {
       stubbed_request = stub_request
-      @collector.track_request(stubbed_request)
+      @collector.track_request
       @collector.track_route(stubbed_request)
     }
     @collector.track_scan(stub_scan(sink: @sink))
@@ -293,7 +293,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
     2.times {
       stubbed_request = stub_request
-      @collector.track_request(stubbed_request)
+      @collector.track_request
       @collector.track_route(stubbed_request)
     }
 
@@ -367,7 +367,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
     2.times do
       stubbed_request = stub_request("/")
-      @collector.track_request(stubbed_request)
+      @collector.track_request
       @collector.track_route(stubbed_request)
     end
 

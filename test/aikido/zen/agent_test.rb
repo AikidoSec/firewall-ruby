@@ -333,7 +333,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
 
   test "#start! successfully sends the initial heartbeats" do
     # Make sure there are _some_ stats
-    @collector.track_request(stub_request)
+    @collector.track_request
 
     # Ignore the actual delay
     def @worker.delay(*)
