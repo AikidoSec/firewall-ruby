@@ -66,7 +66,9 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
   end
 
   test "#empty? is false after a scan is tracked" do
-    @stats.add_scan(stub_scan)
+    scan = stub_scan
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
     refute @stats.empty?
     assert @stats.any?
   end
@@ -85,15 +87,21 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
 
   test "#add_scan increments the total number of scans for the sink" do
     assert_difference -> { @stats.sinks[@sink.name].scans }, +2 do
-      @stats.add_scan(stub_scan(sink: @sink))
-      @stats.add_scan(stub_scan(sink: @sink))
+      scan = stub_scan(sink: @sink)
+      @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+      scan = stub_scan(sink: @sink)
+      @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
     end
   end
 
   test "#add_scan increments the number of errors if a scan caught an internal error" do
     assert_difference -> { @stats.sinks[@sink.name].errors }, +1 do
-      @stats.add_scan(stub_scan(sink: @sink, errors: [RuntimeError.new]))
-      @stats.add_scan(stub_scan(sink: @sink))
+      scan = stub_scan(sink: @sink, errors: [RuntimeError.new])
+      @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+      scan = stub_scan(sink: @sink)
+      @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
     end
   end
 
@@ -102,8 +110,11 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
 
     assert timings.empty?
 
-    @stats.add_scan(stub_scan(sink: @sink, duration: 0.03))
-    @stats.add_scan(stub_scan(sink: @sink, duration: 0.05))
+    scan = stub_scan(sink: @sink, duration: 0.03)
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+    scan = stub_scan(sink: @sink, duration: 0.05)
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
 
     assert_includes timings, 0.03
     assert_includes timings, 0.05
@@ -115,10 +126,17 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     stats = @stats.sinks[@sink.name]
 
     freeze_time do
-      @stats.add_scan(stub_scan(sink: @sink, duration: 2))
-      @stats.add_scan(stub_scan(sink: @sink, duration: 3))
-      @stats.add_scan(stub_scan(sink: @sink, duration: 1))
-      @stats.add_scan(stub_scan(sink: @sink, duration: 4))
+      scan = stub_scan(sink: @sink, duration: 2)
+      @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+      scan = stub_scan(sink: @sink, duration: 3)
+      @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+      scan = stub_scan(sink: @sink, duration: 1)
+      @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+      scan = stub_scan(sink: @sink, duration: 4)
+      @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
 
       # The last value is kept in the raw timings list
       assert_equal Set.new([4]), stats.timings
@@ -171,9 +189,14 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
   end
 
   test "#as_json includes the scans grouped by sink" do
-    @stats.add_scan(stub_scan(sink: @sink))
-    @stats.add_scan(stub_scan(sink: @sink))
-    @stats.add_scan(stub_scan(sink: stub_sink(name: "another")))
+    scan = stub_scan(sink: @sink)
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+    scan = stub_scan(sink: @sink)
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+    scan = stub_scan(sink: stub_sink(name: "another"))
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
 
     assert_hash_subset_of @stats.as_json, {
       sinks: {
@@ -202,9 +225,14 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
   end
 
   test "#as_json includes the number of scans that raised an error" do
-    @stats.add_scan(stub_scan(sink: @sink))
-    @stats.add_scan(stub_scan(sink: @sink, errors: [RuntimeError.new]))
-    @stats.add_scan(stub_scan(sink: stub_sink(name: "another")))
+    scan = stub_scan(sink: @sink)
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+    scan = stub_scan(sink: @sink, errors: [RuntimeError.new])
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+    scan = stub_scan(sink: stub_sink(name: "another"))
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
 
     assert_hash_subset_of @stats.as_json, {
       sinks: {
@@ -233,9 +261,14 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
   end
 
   test "#as_json includes the attacks grouped by sink" do
-    @stats.add_scan(stub_scan(sink: @sink))
-    @stats.add_scan(stub_scan(sink: @sink))
-    @stats.add_scan(stub_scan(sink: stub_sink(name: "another")))
+    scan = stub_scan(sink: @sink)
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+    scan = stub_scan(sink: @sink)
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+    scan = stub_scan(sink: stub_sink(name: "another"))
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
 
     @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
     @stats.add_attack(stub_attack(sink: stub_sink(name: "another")), being_blocked: true)
@@ -267,10 +300,18 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
   end
 
   test "#as_json includes the compressed timings grouped by sink" do
-    @stats.add_scan(stub_scan(sink: @sink, duration: 2))
-    @stats.add_scan(stub_scan(sink: @sink, duration: 3))
-    @stats.add_scan(stub_scan(sink: @sink, duration: 1))
-    @stats.add_scan(stub_scan(sink: stub_sink(name: "another"), duration: 1))
+    scan = stub_scan(sink: @sink, duration: 2)
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+    scan = stub_scan(sink: @sink, duration: 3)
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+    scan = stub_scan(sink: @sink, duration: 1)
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+    scan = stub_scan(sink: stub_sink(name: "another"), duration: 1)
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
     @stats.sinks.each_value { |s| s.compress_timings(at: Time.at(1234577890)) }
 
     assert_hash_subset_of @stats.as_json, {
@@ -335,9 +376,14 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     raw_timings = @stats.sinks[@sink.name].timings
     compressed_timings = @stats.sinks[@sink.name].compressed_timings
 
-    @stats.add_scan(stub_scan(sink: @sink, duration: 2))
-    @stats.add_scan(stub_scan(sink: @sink, duration: 3))
-    @stats.add_scan(stub_scan(sink: @sink, duration: 1))
+    scan = stub_scan(sink: @sink, duration: 2)
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+    scan = stub_scan(sink: @sink, duration: 3)
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+
+    scan = stub_scan(sink: @sink, duration: 1)
+    @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
 
     assert_difference -> { compressed_timings.size }, +1 do
       assert_difference -> { raw_timings.size }, -3 do

@@ -69,7 +69,9 @@ module Aikido::Zen
     # @param scan [Aikido::Zen::Scan]
     # @return [void]
     def track_scan(scan)
-      synchronize(@stats) { |stats| stats.add_scan(scan) }
+      synchronize(@stats) do |stats|
+        stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
+      end
     end
 
     # Track stats about an attack detected by our scanners.

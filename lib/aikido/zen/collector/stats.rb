@@ -60,14 +60,15 @@ module Aikido::Zen
       @requests += 1
     end
 
-    # @param scan [Aikido::Zen::Scan]
-    # @return [self]
-    def add_scan(scan)
-      stats = @sinks[scan.sink.name]
+    # @param sink_name [String] the name of the sink
+    # @param duration [Float] the length the scan in seconds
+    # @param has_errors [Boolean] whether errors occurred during the scan
+    # @return [void]
+    def add_scan(sink_name, duration, has_errors:)
+      stats = @sinks[sink_name]
       stats.scans += 1
-      stats.errors += 1 if scan.errors?
-      stats.add_timing(scan.duration)
-      self
+      stats.errors += 1 if has_errors
+      stats.add_timing(duration)
     end
 
     # @param attack [Aikido::Zen::Attack]
