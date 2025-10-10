@@ -80,7 +80,7 @@ module Aikido::Zen
     # @return [void]
     def track_attack(attack)
       synchronize(@stats) do |stats|
-        stats.add_attack(attack, being_blocked: attack.blocked?)
+        stats.add_attack(attack.sink.name, being_blocked: attack.blocked?)
       end
     end
 

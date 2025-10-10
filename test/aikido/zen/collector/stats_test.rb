@@ -74,7 +74,7 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
   end
 
   test "#empty? is false after an attack is tracked" do
-    @stats.add_attack(stub_attack, being_blocked: true)
+    @stats.add_attack(@sink.name, being_blocked: true)
     refute_empty @stats
   end
 
@@ -151,15 +151,15 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
 
   test "#add_attack increments the total number of attacks detected for the sink" do
     assert_difference -> { @stats.sinks[@sink.name].attacks }, +2 do
-      @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
-      @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
+      @stats.add_attack(@sink.name, being_blocked: true)
+      @stats.add_attack(@sink.name, being_blocked: true)
     end
   end
 
   test "#add_attack tracks how many attacks is told were blocked per sink" do
     assert_difference -> { @stats.sinks[@sink.name].blocked_attacks }, +1 do
-      @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
-      @stats.add_attack(stub_attack(sink: @sink), being_blocked: false)
+      @stats.add_attack(@sink.name, being_blocked: true)
+      @stats.add_attack(@sink.name, being_blocked: false)
     end
   end
 
@@ -270,8 +270,8 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     scan = stub_scan(sink: stub_sink(name: "another"))
     @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
 
-    @stats.add_attack(stub_attack(sink: @sink), being_blocked: true)
-    @stats.add_attack(stub_attack(sink: stub_sink(name: "another")), being_blocked: true)
+    @stats.add_attack(@sink.name, being_blocked: true)
+    @stats.add_attack("another", being_blocked: true)
 
     assert_hash_subset_of @stats.as_json, {
       sinks: {

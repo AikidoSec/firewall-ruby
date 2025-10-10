@@ -71,15 +71,13 @@ module Aikido::Zen
       stats.add_timing(duration)
     end
 
-    # @param attack [Aikido::Zen::Attack]
-    # @param being_blocked [Boolean] whether the Agent blocked the
-    #   request where this Attack happened or not.
-    # @return [self]
-    def add_attack(attack, being_blocked:)
-      stats = @sinks[attack.sink.name]
+    # @param sink_name [String] the name of the sink
+    # @param being_blocked [Boolean] whether the Agent blocked the request
+    # @return [void]
+    def add_attack(sink_name, being_blocked:)
+      stats = @sinks[sink_name]
       stats.attacks += 1
       stats.blocked_attacks += 1 if being_blocked
-      self
     end
 
     def as_json
