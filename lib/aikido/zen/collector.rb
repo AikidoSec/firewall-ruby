@@ -110,26 +110,36 @@ module Aikido::Zen
     end
 
     # @api private
+    #
+    # @note Visible for testing.
     def stats
       @stats.get
     end
 
     # @api private
+    #
+    # @note Visible for testing.
     def users
       @users.get
     end
 
     # @api private
+    #
+    # @note Visible for testing.
     def hosts
       @hosts.get
     end
 
     # @api private
+    #
+    # @note Visible for testing.
     def routes
       @routes.get
     end
 
     # @api private
+    #
+    # @note Visible for testing.
     def middleware_installed?
       @middleware_installed.true?
     end
