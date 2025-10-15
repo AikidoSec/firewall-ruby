@@ -16,7 +16,7 @@ module Aikido::Zen
           klass.class_eval do
             extend Sinks::DSL
 
-            %i[system spawn].each do |method_name|
+            %i[system spawn `].each do |method_name|
               sink_before method_name do |*args|
                 # Remove the optional environment argument before the command-line.
                 args.shift if args.first.is_a?(Hash)
