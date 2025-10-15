@@ -122,18 +122,6 @@ class Aikido::Zen::Sinks::KernelTest < ActiveSupport::TestCase
     end
   end
 
-  test "%x{} works normally" do
-    result = %x{echo -n hello}
-    assert_equal "hello", result
-
-    result = %x{echo '$(whoami)'}
-    assert_equal "$(whoami)\n", result
-
-    assert_raises Errno::ENOENT do
-      %x{invalid-command-123}
-    end
-  end
-
   test "attacks through backtick are detected" do
     skip_if_ruby_lower_than "3.0"
 
@@ -142,11 +130,23 @@ class Aikido::Zen::Sinks::KernelTest < ActiveSupport::TestCase
     end
   end
 
-  test "attacks through %x{} are detected" do
+  test "%x() works normally" do
+    result = %x(echo -n hello) # rubocop:disable Style/CommandLiteral
+    assert_equal "hello", result
+
+    result = %x(echo '$(whoami)') # rubocop:disable Style/CommandLiteral
+    assert_equal "$(whoami)\n", result
+
+    assert_raises Errno::ENOENT do
+      %x(invalid-command-123) # rubocop:disable Style/CommandLiteral
+    end
+  end
+
+  test "attacks through %x() are detected" do
     skip_if_ruby_lower_than "3.0"
 
     assert_shell_injection_attack "$(whoami)" do
-      %x{echo $(whoami)}
+      %x(echo $(whoami)) # rubocop:disable Style/CommandLiteral
     end
   end
 end
