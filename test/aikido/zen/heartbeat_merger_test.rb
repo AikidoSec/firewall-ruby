@@ -64,11 +64,18 @@ class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
                 "type" => "object",
                 "properties" => {
                   "title" => {"type" => "string"},
-                  "content" => {"type" => "string"}
+                  "content" => {"type" => "string"},
+                  "published" => {"type" => "boolean"},
+                  "tags" => {"type" => "string"}
                 }
               }
             }
           }
+        },
+        {
+          "method" => "GET",
+          "path" => "/api/health",
+          "hits" => 50
         }
       ],
       "stats" => {
@@ -143,6 +150,35 @@ class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
             "query" => {
               "type" => "object",
               "properties" => {"fields" => {"type" => "string"}}
+            }
+          }
+        },
+        {
+          "method" => "POST",
+          "path" => "/api/posts",
+          "hits" => 10,
+          "apispec" => {
+            "body" => {
+              "type" => "json",
+              "schema" => {
+                "type" => "object",
+                "properties" => {
+                  "title" => {"type" => "number"},
+                  "author" => {"type" => "string"},
+                  "tags" => {"type" => "boolean"}
+                }
+              }
+            }
+          }
+        },
+        {
+          "method" => "GET",
+          "path" => "/api/health",
+          "hits" => 30,
+          "apispec" => {
+            "query" => {
+              "type" => "object",
+              "properties" => {"verbose" => {"type" => "boolean"}}
             }
           }
         },
@@ -222,7 +258,8 @@ class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
             "query" => {
               "type" => "object",
               "properties" => {
-                "include" => {"type" => "string"}
+                "include" => {"type" => "string", "optional" => true},
+                "fields" => {"type" => "string", "optional" => true}
               }
             }
           }
@@ -230,16 +267,32 @@ class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
         {
           "method" => "POST",
           "path" => "/api/posts",
-          "hits" => 25,
+          "hits" => 35,
           "apispec" => {
             "body" => {
               "type" => "json",
               "schema" => {
                 "type" => "object",
                 "properties" => {
-                  "title" => {"type" => "string"},
-                  "content" => {"type" => "string"}
+                  "title" => {"type" => ["number", "string"]},
+                  "content" => {"type" => "string", "optional" => true},
+                  "published" => {"type" => "boolean", "optional" => true},
+                  "author" => {"type" => "string", "optional" => true},
+                  "tags" => {"type" => ["boolean", "string"]}
                 }
+              }
+            }
+          }
+        },
+        {
+          "method" => "GET",
+          "path" => "/api/health",
+          "hits" => 80,
+          "apispec" => {
+            "query" => {
+              "type" => "object",
+              "properties" => {
+                "verbose" => {"type" => "boolean"}
               }
             }
           }

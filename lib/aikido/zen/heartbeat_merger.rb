@@ -56,9 +56,14 @@ module Aikido::Zen
         if routes_by_key[key]
           routes_by_key[key]['hits'] += route['hits'] || 0
 
-          # Keep first schema (TODO: schema merging from JSON is complex)
-          if routes_by_key[key]['apispec'].nil? || routes_by_key[key]['apispec'].empty?
-            routes_by_key[key]['apispec'] = route['apispec'] || {}
+          # Only merge schemas if at least one route has an apispec
+          if routes_by_key[key].key?('apispec') || route.key?('apispec')
+            existing_data = deep_symbolize_keys(routes_by_key[key]['apispec'] || {})
+            incoming_data = deep_symbolize_keys(route['apispec'] || {})
+            existing_schema = Request::Schema.from_json(existing_data)
+            incoming_schema = Request::Schema.from_json(incoming_data)
+            merged_schema = existing_schema.merge(incoming_schema)
+            routes_by_key[key]['apispec'] = deep_stringify_keys(merged_schema.as_json)
           end
         else
           new_route = route.dup
@@ -134,6 +139,39 @@ module Aikido::Zen
           users_by_id[user_id] = new_user
           merged["users"] << new_user
         end
+      end
+    end
+
+    # Deep symbolize keys for nested hashes and arrays
+    private def deep_symbolize_keys(object)
+      case object
+      when Hash
+        object.each_with_object({}) do |(key, value), result|
+          symbolized_key = begin
+            key.to_sym
+          rescue
+            key
+          end
+          result[symbolized_key] = deep_symbolize_keys(value)
+        end
+      when Array
+        object.map { |e| deep_symbolize_keys(e) }
+      else
+        object
+      end
+    end
+
+    # Deep stringify keys for nested hashes and arrays
+    private def deep_stringify_keys(object)
+      case object
+      when Hash
+        object.each_with_object({}) do |(key, value), result|
+          result[Symbol === key ? key.name : key.to_s] = deep_stringify_keys(value)
+        end
+      when Array
+        object.map { |e| deep_stringify_keys(e) }
+      else
+        object
       end
     end
 
