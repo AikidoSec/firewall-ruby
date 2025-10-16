@@ -97,13 +97,11 @@ module Aikido::Zen
 
     private def merge_sink_into!(sinks, sink_name, sink_data)
       if sinks[sink_name]
-        # Add to existing sink
         sinks[sink_name]['total'] += sink_data['total'] || 0
         sinks[sink_name]['interceptorThrewError'] += sink_data['interceptorThrewError'] || 0
         sinks[sink_name]['attacksDetected']['total'] += sink_data.dig('attacksDetected', 'total') || 0
         sinks[sink_name]['attacksDetected']['blocked'] += sink_data.dig('attacksDetected', 'blocked') || 0
       else
-        # Add new sink
         sinks[sink_name] = {
           'total' => sink_data['total'] || 0,
           'interceptorThrewError' => sink_data['interceptorThrewError'] || 0,
