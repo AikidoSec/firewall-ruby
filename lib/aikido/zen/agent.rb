@@ -4,6 +4,7 @@ require "concurrent"
 require_relative "event"
 require_relative "config"
 require_relative "system_info"
+require_relative "heartbeat_merger"
 
 module Aikido::Zen
   # Handles the background processes that communicate with the Aikido servers,
@@ -184,4 +185,3 @@ module Aikido::Zen
 end
 
 require_relative "agent/heartbeats_manager"
-require_relative "heartbeat_merger"
