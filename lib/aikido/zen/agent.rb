@@ -151,7 +151,7 @@ module Aikido::Zen
 
       # Merge all child heartbeats with agent info
       merger = HeartbeatMerger.new
-      merged_heartbeat = merger.merge(child_heartbeats, agent_info: Aikido::Zen.system_info.as_json, at: at)
+      merged_heartbeat = merger.merge(child_heartbeats, system_info: Aikido::Zen.system_info, at: at)
 
       report(merged_heartbeat) do |response|
         updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
