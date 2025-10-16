@@ -149,7 +149,6 @@ module Aikido::Zen
       # Get all child heartbeats from the queue
       child_heartbeats = @collector.flush_heartbeats
 
-      # Merge all child heartbeats with agent info
       merger = HeartbeatMerger.new
       merged_heartbeat = merger.merge(child_heartbeats, system_info: Aikido::Zen.system_info, at: at)
 

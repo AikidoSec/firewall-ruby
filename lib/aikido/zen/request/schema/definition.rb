@@ -17,20 +17,17 @@ module Aikido::Zen
         @definition = definition
       end
 
-      # Creates a Definition from a JSON hash (recursively converts nested properties)
       def self.from_json(data)
         return EMPTY_SCHEMA if data.nil? || data.empty?
 
         definition = data.dup
 
-        # Recursively convert properties hash to Definition objects
         if definition[:properties].is_a?(Hash)
           definition[:properties] = definition[:properties].transform_values do |prop_data|
             from_json(prop_data)
           end
         end
 
-        # Recursively convert array items to Definition objects
         if definition[:items].is_a?(Hash)
           definition[:items] = from_json(definition[:items])
         end
