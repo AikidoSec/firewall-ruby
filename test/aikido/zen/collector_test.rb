@@ -112,8 +112,8 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
   test "#track_user tracks which users have visited the app" do
     initial_time = Time.utc(2024, 9, 1, 16, 20, 42)
 
-    u1 = stub_actor(id: "123", name: "Alice", seen_at: initial_time, ip: "1.2.3.4")
-    u2 = stub_actor(id: "345", name: "Bob", seen_at: initial_time + 5, ip: "2.3.4.5")
+    u1 = stub_actor(id: "123", name: "Alice", first_seen_at: initial_time, ip: "1.2.3.4")
+    u2 = stub_actor(id: "345", name: "Bob", first_seen_at: initial_time + 5, ip: "2.3.4.5")
 
     assert_difference "@collector.users.size", +2 do
       @collector.track_user(u1)
@@ -127,7 +127,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
   test "#track_user doesn't count a user more than once" do
     initial_time = Time.utc(2024, 9, 1, 16, 20, 42)
 
-    user = stub_actor(id: "123", name: "Alice", seen_at: initial_time, ip: "1.2.3.4")
+    user = stub_actor(id: "123", name: "Alice", first_seen_at: initial_time, ip: "1.2.3.4")
 
     assert_difference "@collector.users.size", +1 do
       @collector.track_user(user)
@@ -495,7 +495,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
   end
 
   def stub_actor(first_seen_at: nil, seen_at: nil, ip: nil, **opts)
-    opts = {seen_at: first_seen_at}.compact.merge(opts)
+    opts = {first_seen_at: first_seen_at}.compact.merge(opts)
     Aikido::Zen::Actor.new(**opts).tap do |actor|
       update_attrs = {seen_at: seen_at, ip: ip}.compact
       actor.update(**update_attrs) if update_attrs.any?

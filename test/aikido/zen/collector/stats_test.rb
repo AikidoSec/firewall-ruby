@@ -38,13 +38,6 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     Aikido::Zen::OutboundConnection.new(**opts)
   end
 
-  def stub_actor(seen_at: nil, ip: nil, **opts)
-    Aikido::Zen::Actor.new(**opts).tap do |actor|
-      update_attrs = {seen_at: seen_at, ip: ip}.compact
-      actor.update(**update_attrs) if update_attrs.any?
-    end
-  end
-
   test "#start tracks the time at which stats started being collected" do
     time = Time.at(1234567890)
 
