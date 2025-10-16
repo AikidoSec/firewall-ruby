@@ -151,7 +151,7 @@ module Aikido::Zen
 
       # If we have child heartbeats, merge them into a single heartbeat
       if !child_heartbeats.empty?
-        merger = HeartbeatMerger.new(config: @config)
+        merger = HeartbeatMerger.new
         merged_heartbeat = merger.merge(child_heartbeats, at: at)
 
         report(merged_heartbeat) do |response|

@@ -2,10 +2,6 @@
 
 module Aikido::Zen
   class HeartbeatMerger
-    def initialize(config: Aikido::Zen.config)
-      @config = config
-    end
-
     # Merge an array of heartbeat JSON objects into a single combined heartbeat
     #
     # @param heartbeats [Array<Hash>] array of heartbeat JSON objects

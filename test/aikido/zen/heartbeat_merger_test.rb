@@ -4,8 +4,7 @@ require "test_helper"
 
 class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
   setup do
-    @config = Aikido::Zen.config
-    @merger = Aikido::Zen::HeartbeatMerger.new(config: @config)
+    @merger = Aikido::Zen::HeartbeatMerger.new
   end
 
   test "#merge returns nil for empty array" do
