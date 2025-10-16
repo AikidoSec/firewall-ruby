@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Note: We're dropping compressedTimings from the sink stats during merging (this is intentional)
 module Aikido::Zen
   class HeartbeatMerger
     # Merge an array of heartbeat JSON objects into a single combined heartbeat
