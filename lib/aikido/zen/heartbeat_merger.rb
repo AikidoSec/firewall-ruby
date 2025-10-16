@@ -19,6 +19,7 @@ module Aikido::Zen
       merged = {
         "type" => "heartbeat",
         "time" => at.to_i * 1000,
+        # Every heartbeat has the same agent info
         "agent" => first["agent"],
         "routes" => [],
         "stats" => {
@@ -36,12 +37,13 @@ module Aikido::Zen
         "middlewareInstalled" => false
       }
 
-      # Accumulate data from all heartbeats
       heartbeats.each do |heartbeat|
         merge_routes_into!(merged, heartbeat["routes"] || [])
         merge_stats_into!(merged, heartbeat["stats"] || {})
         merge_users_into!(merged, heartbeat["users"] || [])
         merge_hostnames_into!(merged, heartbeat["hostnames"] || [])
+
+        # If any heartbeat has middlewareInstalled true, set it to true
         merged["middlewareInstalled"] ||= heartbeat["middlewareInstalled"]
       end
 
