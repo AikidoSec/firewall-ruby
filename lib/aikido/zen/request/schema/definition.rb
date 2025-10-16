@@ -17,6 +17,24 @@ module Aikido::Zen
         @definition = definition
       end
 
+      def self.from_json(data)
+        return EMPTY_SCHEMA if data.nil? || data.empty?
+
+        definition = data.dup
+
+        if definition[:properties].is_a?(Hash)
+          definition[:properties] = definition[:properties].transform_values do |prop_data|
+            from_json(prop_data)
+          end
+        end
+
+        if definition[:items].is_a?(Hash)
+          definition[:items] = from_json(definition[:items])
+        end
+
+        new(definition)
+      end
+
       # Recursively merges this schema definition with another one.
       #
       # * Properties missing in one or the other schemas are treated as optional.

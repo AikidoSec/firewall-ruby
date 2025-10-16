@@ -4,6 +4,7 @@ require "concurrent"
 require_relative "event"
 require_relative "config"
 require_relative "system_info"
+require_relative "heartbeat_merger"
 
 module Aikido::Zen
   # Handles the background processes that communicate with the Aikido servers,
@@ -146,11 +147,15 @@ module Aikido::Zen
     def send_heartbeat(at: Time.now.utc)
       return unless @api_client.can_make_requests?
 
-      @collector.flush_heartbeats.each do |heartbeat|
-        report(heartbeat) do |response|
-          updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
-          @config.logger.info("Updated runtime settings after heartbeat")
-        end
+      # Get all child heartbeats from the queue
+      child_heartbeats = @collector.flush_heartbeats
+
+      merger = HeartbeatMerger.new
+      merged_heartbeat = merger.merge(child_heartbeats, system_info: Aikido::Zen.system_info, at: at)
+
+      report(merged_heartbeat) do |response|
+        updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
+        @config.logger.info("Updated runtime settings after heartbeat")
       end
     end
 

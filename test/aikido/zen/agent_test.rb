@@ -235,9 +235,20 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#send_heartbeat reports a heartbeat event and updates the settings" do
-    dummy_heartbeat = Object.new
+    dummy_heartbeat = {
+      "routes" => [],
+      "stats" => {},
+      "users" => [],
+      "hostnames" => [],
+      "middlewareInstalled" => false
+    }
     @collector.push_heartbeat(dummy_heartbeat)
-    @api_client.expect :report, {"receivedAnyStats" => true}, [dummy_heartbeat]
+
+    @api_client.expect :report, {"receivedAnyStats" => true} do |heartbeat|
+      assert_equal "heartbeat", heartbeat["type"]
+      assert heartbeat["agent"]
+      true
+    end
 
     assert_changes -> { Aikido::Zen.runtime_settings.received_any_stats }, to: true do
       @agent.send_heartbeat
@@ -247,13 +258,21 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#send_heartbeat flushes the heartbeats before sending them" do
-    heartbeats = Minitest::Mock.new
-    heartbeats.expect :size, [2]
+    heartbeat1 = {"routes" => [], "stats" => {}, "users" => [], "hostnames" => [], "middlewareInstalled" => false}
+    heartbeat2 = {"routes" => [], "stats" => {}, "users" => [], "hostnames" => [], "middlewareInstalled" => false}
 
-    @collector.instance_variable_set(:@heartbeats, heartbeats)
+    @collector.push_heartbeat(heartbeat1)
+    @collector.push_heartbeat(heartbeat2)
+
+    @api_client.expect :report, {} do |heartbeat|
+      assert_equal "heartbeat", heartbeat["type"]
+      true
+    end
+
     @agent.send_heartbeat
 
-    assert_mock heartbeats
+    assert_mock @api_client
+    assert_equal 0, @collector.instance_variable_get(:@heartbeats).size
   end
 
   test "#send_heartbeat does nothing if we don't have an API token" do
@@ -267,9 +286,18 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#send_heartbeat does not try to update stats if the API returns null" do
-    dummy_heartbeat = Object.new
+    dummy_heartbeat = {
+      "routes" => [],
+      "stats" => {},
+      "users" => [],
+      "hostnames" => [],
+      "middlewareInstalled" => false
+    }
     # this happens e.g. when events are rate limited
-    @api_client.expect :report, nil, [dummy_heartbeat]
+    @api_client.expect :report, nil do |heartbeat|
+      assert_equal "heartbeat", heartbeat["type"]
+      true
+    end
     @collector.push_heartbeat(dummy_heartbeat)
 
     assert_nothing_raised do

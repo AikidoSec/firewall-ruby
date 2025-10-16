@@ -60,8 +60,8 @@ module Aikido::Zen
 
       Request::Schema.new(
         content_type: data[:body].nil? ? nil : data[:body][:type],
-        body_schema: data[:body].nil? ? EMPTY_SCHEMA : Aikido::Zen::Request::Schema::Definition.new(data[:body][:schema]),
-        query_schema: data[:query].nil? ? EMPTY_SCHEMA : Aikido::Zen::Request::Schema::Definition.new(data[:query]),
+        body_schema: data[:body].nil? ? EMPTY_SCHEMA : Aikido::Zen::Request::Schema::Definition.from_json(data[:body][:schema]),
+        query_schema: data[:query].nil? ? EMPTY_SCHEMA : Aikido::Zen::Request::Schema::Definition.from_json(data[:query]),
         auth_schema: Aikido::Zen::Request::Schema::AuthSchemas.from_json(data[:auth])
       )
     end
