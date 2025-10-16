@@ -192,11 +192,12 @@ class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
       "middlewareInstalled" => false
     }
 
-    result = @merger.merge([heartbeat1, heartbeat2])
+    at = Time.now.utc
+    result = @merger.merge([heartbeat1, heartbeat2], at: at)
 
     expected = {
       "type" => "heartbeat",
-      "time" => 1757692839981,
+      "time" => at.to_i * 1000,
       "agent" => {
         "dryMode" => false,
         "hostname" => "web-server-1",

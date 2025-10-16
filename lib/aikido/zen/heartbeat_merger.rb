@@ -9,15 +9,16 @@ module Aikido::Zen
     # Merge an array of heartbeat JSON objects into a single combined heartbeat
     #
     # @param heartbeats [Array<Hash>] array of heartbeat JSON objects
+    # @param at [Time] the time of the merged heartbeat
     # @return [Hash, nil] merged heartbeat or nil if array is empty
-    def merge(heartbeats)
+    def merge(heartbeats, at: Time.now.utc)
       return nil if heartbeats.nil? || heartbeats.empty?
 
       # Start with an empty merged heartbeat using the first heartbeat's metadata
       first = heartbeats.first
       merged = {
-        "type" => first["type"],
-        "time" => first["time"],
+        "type" => "heartbeat",
+        "time" => at.to_i * 1000,
         "agent" => first["agent"],
         "routes" => [],
         "stats" => {

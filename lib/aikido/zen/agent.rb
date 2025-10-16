@@ -152,13 +152,11 @@ module Aikido::Zen
       # If we have child heartbeats, merge them into a single heartbeat
       if !child_heartbeats.empty?
         merger = HeartbeatMerger.new(config: @config)
-        merged_heartbeat = merger.merge(child_heartbeats)
+        merged_heartbeat = merger.merge(child_heartbeats, at: at)
 
-        if merged_heartbeat
-          report(merged_heartbeat) do |response|
-            updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
-            @config.logger.info("Updated runtime settings after heartbeat")
-          end
+        report(merged_heartbeat) do |response|
+          updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
+          @config.logger.info("Updated runtime settings after heartbeat")
         end
       end
     end
