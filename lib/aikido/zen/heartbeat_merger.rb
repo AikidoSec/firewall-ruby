@@ -5,18 +5,15 @@ module Aikido::Zen
     # Merge an array of heartbeat JSON objects into a single combined heartbeat
     #
     # @param heartbeats [Array<Hash>] array of heartbeat JSON objects
+    # @param agent_info [Hash] agent info to use in the merged heartbeat
     # @param at [Time] the time of the merged heartbeat
-    # @return [Hash, nil] merged heartbeat or nil if array is empty
-    def merge(heartbeats, at: Time.now.utc)
-      return nil if heartbeats.nil? || heartbeats.empty?
-
-      # Start with an empty merged heartbeat using the first heartbeat's metadata
-      first = heartbeats.first
+    # @return [Hash] merged heartbeat
+    def merge(heartbeats, agent_info:, at: Time.now.utc)
+      # Start with an empty merged heartbeat
       merged = {
         "type" => "heartbeat",
         "time" => at.to_i * 1000,
-        # Every heartbeat has the same agent info
-        "agent" => first["agent"],
+        "agent" => agent_info,
         "routes" => [],
         "stats" => {
           "startedAt" => nil,
@@ -33,7 +30,7 @@ module Aikido::Zen
         "middlewareInstalled" => false
       }
 
-      heartbeats.each do |heartbeat|
+      (heartbeats || []).each do |heartbeat|
         merge_routes_into!(merged, heartbeat["routes"] || [])
         merge_stats_into!(merged, heartbeat["stats"] || {})
         merge_users_into!(merged, heartbeat["users"] || [])

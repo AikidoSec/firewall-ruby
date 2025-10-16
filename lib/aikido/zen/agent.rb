@@ -149,15 +149,13 @@ module Aikido::Zen
       # Get all child heartbeats from the queue
       child_heartbeats = @collector.flush_heartbeats
 
-      # If we have child heartbeats, merge them into a single heartbeat
-      if !child_heartbeats.empty?
-        merger = HeartbeatMerger.new
-        merged_heartbeat = merger.merge(child_heartbeats, at: at)
+      # Merge all child heartbeats with agent info
+      merger = HeartbeatMerger.new
+      merged_heartbeat = merger.merge(child_heartbeats, agent_info: Aikido::Zen.system_info.as_json, at: at)
 
-        report(merged_heartbeat) do |response|
-          updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
-          @config.logger.info("Updated runtime settings after heartbeat")
-        end
+      report(merged_heartbeat) do |response|
+        updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
+        @config.logger.info("Updated runtime settings after heartbeat")
       end
     end
 

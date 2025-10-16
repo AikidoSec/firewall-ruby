@@ -5,14 +5,34 @@ require "test_helper"
 class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
   setup do
     @merger = Aikido::Zen::HeartbeatMerger.new
+    @agent_info = {
+      "dryMode" => false,
+      "hostname" => "test-server",
+      "version" => "1.0.0",
+      "library" => "firewall-ruby"
+    }
   end
 
-  test "#merge returns nil for empty array" do
-    assert_nil @merger.merge([])
+  test "#merge returns empty heartbeat for empty array" do
+    at = Time.now.utc
+    result = @merger.merge([], agent_info: @agent_info, at: at)
+
+    assert_equal "heartbeat", result["type"]
+    assert_equal at.to_i * 1000, result["time"]
+    assert_equal @agent_info, result["agent"]
+    assert_equal [], result["routes"]
+    assert_equal [], result["users"]
+    assert_equal [], result["hostnames"]
+    assert_equal false, result["middlewareInstalled"]
   end
 
-  test "#merge returns nil for nil input" do
-    assert_nil @merger.merge(nil)
+  test "#merge returns empty heartbeat for nil input" do
+    at = Time.now.utc
+    result = @merger.merge(nil, agent_info: @agent_info, at: at)
+
+    assert_equal "heartbeat", result["type"]
+    assert_equal at.to_i * 1000, result["time"]
+    assert_equal @agent_info, result["agent"]
   end
 
   test "#merge combines two complete heartbeats" do
@@ -192,17 +212,12 @@ class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
     }
 
     at = Time.now.utc
-    result = @merger.merge([heartbeat1, heartbeat2], at: at)
+    result = @merger.merge([heartbeat1, heartbeat2], agent_info: @agent_info, at: at)
 
     expected = {
       "type" => "heartbeat",
       "time" => at.to_i * 1000,
-      "agent" => {
-        "dryMode" => false,
-        "hostname" => "web-server-1",
-        "version" => "1.0.0",
-        "library" => "firewall-ruby"
-      },
+      "agent" => @agent_info,
       "routes" => [
         {
           "method" => "GET",
