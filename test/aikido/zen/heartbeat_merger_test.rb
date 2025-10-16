@@ -172,7 +172,7 @@ class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
       "users" => [
         {
           "id" => "user-123",
-          "name" => "Alice Smith",
+          "name" => "Alice Johnson",
           "lastIpAddress" => "192.168.1.105",
           "firstSeenAt" => 1757692805000,
           "lastSeenAt" => 1757692838000
@@ -282,7 +282,7 @@ class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
       "users" => [
         {
           "id" => "user-123",
-          "name" => "Alice Smith",
+          "name" => "Alice Johnson",
           "lastIpAddress" => "192.168.1.105",
           "firstSeenAt" => 1757692805000,
           "lastSeenAt" => 1757692838000

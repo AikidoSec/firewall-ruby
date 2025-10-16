@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 module Aikido::Zen
-  # Merges multiple heartbeat JSON objects from child processes into a single combined heartbeat.
-  # This reduces the number of API calls and data transferred when using forked workers.
   class HeartbeatMerger
     def initialize(config: Aikido::Zen.config)
       @config = config
@@ -59,7 +57,6 @@ module Aikido::Zen
         key = "#{route['method']}:#{route['path']}"
 
         if routes_by_key[key]
-          # Add hits to existing route
           routes_by_key[key]['hits'] += route['hits'] || 0
 
           # Keep first schema (TODO: schema merging from JSON is complex)
@@ -67,7 +64,6 @@ module Aikido::Zen
             routes_by_key[key]['apispec'] = route['apispec'] || {}
           end
         else
-          # Add new route
           new_route = route.dup
           routes_by_key[key] = new_route
           merged["routes"] << new_route
@@ -78,14 +74,12 @@ module Aikido::Zen
     private def merge_stats_into!(merged, stats)
       merged_stats = merged["stats"]
 
-      # Merge request counts
       requests = stats['requests'] || {}
       merged_stats["requests"]["total"] += requests['total'] || 0
       merged_stats["requests"]["aborted"] += requests['aborted'] || 0
       merged_stats["requests"]["attacksDetected"]["total"] += requests.dig('attacksDetected', 'total') || 0
       merged_stats["requests"]["attacksDetected"]["blocked"] += requests.dig('attacksDetected', 'blocked') || 0
 
-      # Merge timestamps - keep earliest start and latest end
       if stats['startedAt']
         merged_stats["startedAt"] = [merged_stats["startedAt"], stats['startedAt']].compact.min
       end
@@ -94,7 +88,6 @@ module Aikido::Zen
         merged_stats["endedAt"] = [merged_stats["endedAt"], stats['endedAt']].compact.max
       end
 
-      # Merge sinks
       (stats['sinks'] || {}).each do |sink_name, sink_data|
         merge_sink_into!(merged_stats["sinks"], sink_name, sink_data)
       end
@@ -130,19 +123,16 @@ module Aikido::Zen
         next unless user_id
 
         if users_by_id[user_id]
-          # Update existing user with latest info
           existing = users_by_id[user_id]
 
-          # Keep the latest lastSeenAt and lastIpAddress
           if (user['lastSeenAt'] || 0) > (existing['lastSeenAt'] || 0)
             existing['lastSeenAt'] = user['lastSeenAt']
             existing['lastIpAddress'] = user['lastIpAddress']
+            existing['name'] = user['name'] if user['name']
           end
 
-          # Keep the earliest firstSeenAt
           existing['firstSeenAt'] = [existing['firstSeenAt'], user['firstSeenAt']].compact.min
         else
-          # Add new user
           new_user = user.dup
           users_by_id[user_id] = new_user
           merged["users"] << new_user
