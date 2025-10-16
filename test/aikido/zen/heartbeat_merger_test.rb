@@ -96,7 +96,14 @@ class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
             "attacksDetected" => {
               "total" => 3,
               "blocked" => 2
-            }
+            },
+            "compressedTimings" => [
+              {
+                "averageInMs" => 1500,
+                "percentiles" => {"50" => 1000, "75" => 2000, "90" => 2500},
+                "compressedAt" => 1757692800000
+              }
+            ]
           },
           "File.read" => {
             "total" => 89,
@@ -207,7 +214,14 @@ class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
             "attacksDetected" => {
               "total" => 1,
               "blocked" => 0
-            }
+            },
+            "compressedTimings" => [
+              {
+                "averageInMs" => 1200,
+                "percentiles" => {"50" => 1100, "75" => 1300, "90" => 1400},
+                "compressedAt" => 1757692820000
+              }
+            ]
           },
           "Net::HTTP#request" => {
             "total" => 45,
@@ -322,7 +336,19 @@ class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
             "attacksDetected" => {
               "total" => 4,
               "blocked" => 2
-            }
+            },
+            "compressedTimings" => [
+              {
+                "averageInMs" => 1500,
+                "percentiles" => {"50" => 1000, "75" => 2000, "90" => 2500},
+                "compressedAt" => 1757692800000
+              },
+              {
+                "averageInMs" => 1200,
+                "percentiles" => {"50" => 1100, "75" => 1300, "90" => 1400},
+                "compressedAt" => 1757692820000
+              }
+            ]
           },
           "File.read" => {
             "total" => 89,
@@ -330,7 +356,8 @@ class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
             "attacksDetected" => {
               "total" => 2,
               "blocked" => 1
-            }
+            },
+            "compressedTimings" => []
           },
           "Net::HTTP#request" => {
             "total" => 45,
@@ -338,7 +365,8 @@ class Aikido::Zen::HeartbeatMergerTest < ActiveSupport::TestCase
             "attacksDetected" => {
               "total" => 1,
               "blocked" => 1
-            }
+            },
+            "compressedTimings" => []
           }
         }
       },

@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# Note: We're dropping compressedTimings from the sink stats during merging (this is intentional)
 module Aikido::Zen
   class HeartbeatMerger
     # Merge an array of heartbeat JSON objects into a single combined heartbeat
@@ -101,6 +100,11 @@ module Aikido::Zen
         sinks[sink_name]['interceptorThrewError'] += sink_data['interceptorThrewError'] || 0
         sinks[sink_name]['attacksDetected']['total'] += sink_data.dig('attacksDetected', 'total') || 0
         sinks[sink_name]['attacksDetected']['blocked'] += sink_data.dig('attacksDetected', 'blocked') || 0
+
+        if sink_data['compressedTimings']
+          sinks[sink_name]['compressedTimings'] ||= []
+          sinks[sink_name]['compressedTimings'].concat(sink_data['compressedTimings'])
+        end
       else
         sinks[sink_name] = {
           'total' => sink_data['total'] || 0,
@@ -108,7 +112,8 @@ module Aikido::Zen
           'attacksDetected' => {
             'total' => sink_data.dig('attacksDetected', 'total') || 0,
             'blocked' => sink_data.dig('attacksDetected', 'blocked') || 0
-          }
+          },
+          'compressedTimings' => sink_data['compressedTimings'] || []
         }
       end
     end
