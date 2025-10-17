@@ -17,10 +17,6 @@ module Aikido::Zen
       @routes = Concurrent::AtomicReference.new(Routes.new(@config))
 
       @middleware_installed = Concurrent::AtomicBoolean.new
-
-      # Heartbeat data sent from child processes, returned by
-      # Aikido::Zen::Events::Heartbeat#as_json.
-      @heartbeats = Queue.new
     end
 
     # Add an event, to be handled in the collector in current process or sent
@@ -71,16 +67,6 @@ module Aikido::Zen
       Aikido::Zen::Events::Heartbeat.new(
         stats: stats, users: users, hosts: hosts, routes: routes, middleware_installed: middleware_installed?
       )
-    end
-
-    # Put heartbeats coming from child processes into the internal queue.
-    def push_heartbeat(heartbeat)
-      @heartbeats << heartbeat
-    end
-
-    # Drains into an array all the queued heartbeats.
-    def flush_heartbeats
-      Array.new(@heartbeats.size) { @heartbeats.pop }
     end
 
     # Sets the start time for this collection period.
