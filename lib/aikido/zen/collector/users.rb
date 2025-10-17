@@ -15,7 +15,7 @@ module Aikido::Zen
     # @return [void]
     def add(actor)
       if key?(actor.id)
-        self[actor.id].update
+        self[actor.id] |= actor
       else
         self[actor.id] = actor
       end

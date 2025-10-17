@@ -101,6 +101,24 @@ module Aikido::Zen
       @ip.try_update { |last_ip| [ip, last_ip].compact.first }
     end
 
+    # Merges the actor with another actor.
+    #
+    # @param other [Aikido::Zen::Actor]
+    # @return [Aikido::Zen::Actor]
+    def merge(other)
+      older = (first_seen_at < other.first_seen_at) ? self : other
+      newer = (last_seen_at > other.last_seen_at) ? self : other
+
+      self.class.new(
+        id: @id,
+        name: newer.name,
+        ip: newer.ip,
+        first_seen_at: older.first_seen_at,
+        last_seen_at: newer.last_seen_at
+      )
+    end
+    alias_method :|, :merge
+
     # @return [self]
     def to_aikido_actor
       self
