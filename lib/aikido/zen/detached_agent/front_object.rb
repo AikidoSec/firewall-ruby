@@ -19,10 +19,6 @@ module Aikido::Zen::DetachedAgent
 
     RequestKind = Struct.new(:route, :schema, :ip, :actor)
 
-    def send_heartbeat_to_parent_process(heartbeat)
-      @collector.push_heartbeat(heartbeat)
-    end
-
     def send_collector_events(events_data)
       events_data.each do |event_data|
         event = Aikido::Zen::Collector::Event.from_json(event_data)
