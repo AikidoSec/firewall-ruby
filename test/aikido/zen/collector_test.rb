@@ -142,7 +142,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
       travel(20)
 
-      assert_difference "user.last_seen_at", +20 do
+      assert_difference -> { @collector.users[user.id].last_seen_at }, +20 do
         same_user_in_diff_request = stub_actor(id: user.id)
         @collector.track_user(same_user_in_diff_request)
       end
@@ -155,7 +155,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
     env = Rack::MockRequest.env_for("/", "REMOTE_ADDR" => "6.7.8.9")
     with_context Aikido::Zen::Context.from_rack_env(env) do
-      assert_changes "user.ip", to: "6.7.8.9" do
+      assert_changes -> { @collector.users[user.id].ip }, to: "6.7.8.9" do
         same_user_in_diff_request = stub_actor(id: user.id)
         @collector.track_user(same_user_in_diff_request)
       end

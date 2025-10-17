@@ -10,13 +10,13 @@ class Aikido::ZenTest < ActiveSupport::TestCase
   test ".track_user tracks the actor object in the collector" do
     users = Aikido::Zen.collector.users
 
-    assert_difference "users.size", +1 do
+    assert_difference -> { Aikido::Zen.collector.users.size }, +1 do
       Aikido::Zen.track_user({id: 123, name: "Alice"})
     end
 
-    actor = users.to_a.last
-    assert_equal "123", actor.id
-    assert_equal "Alice", actor.name
+    user = users.to_a.last
+    assert_equal "123", user.id
+    assert_equal "Alice", user.name
   end
 
   test ".track_user tracks the actor object in the context's request" do
