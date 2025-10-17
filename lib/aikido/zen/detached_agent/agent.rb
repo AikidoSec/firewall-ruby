@@ -47,6 +47,11 @@ module Aikido::Zen::DetachedAgent
       @front_object.send_heartbeat_to_parent_process(heartbeat.as_json)
     end
 
+    def send_collector_events
+      events_data = @collector.flush_events.map(&:as_json)
+      @front_object.send_collector_events(events_data)
+    end
+
     def calculate_rate_limits(request)
       @front_object.calculate_rate_limits(request.route.as_json, request.ip, request.actor.as_json)
     end
@@ -69,6 +74,8 @@ module Aikido::Zen::DetachedAgent
       # For heartbeats is correct to send them from parent or child process. Otherwise, we'll lose
       # stats made by the parent process.
       @worker.every(@heartbeat_interval, run_now: false) { send_heartbeat }
+
+      @worker.every(@heartbeat_interval, run_now: false) { send_collector_events }
 
       # Runtime_settings fetch must happens only in the child processes, otherwise, due to
       # we are updating the global runtime_settings, we could have an infinite recursion.

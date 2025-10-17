@@ -23,6 +23,13 @@ module Aikido::Zen::DetachedAgent
       @collector.push_heartbeat(heartbeat)
     end
 
+    def send_collector_events(events_data)
+      events_data.each do |event_data|
+        event = Aikido::Zen::Collector::Event.from_json(event_data)
+        @collector.add_event(event)
+      end
+    end
+
     # Method called by child processes to get an up-to-date version of the
     # runtime_settings
     def updated_settings
