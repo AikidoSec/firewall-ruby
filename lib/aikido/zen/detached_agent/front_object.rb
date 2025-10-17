@@ -7,14 +7,14 @@ module Aikido::Zen::DetachedAgent
   class FrontObject
     def initialize(
       config: Aikido::Zen.config,
-      collector: Aikido::Zen.collector,
       runtime_settings: Aikido::Zen.runtime_settings,
+      collector: Aikido::Zen.collector,
       rate_limiter: Aikido::Zen::RateLimiter.new
     )
       @config = config
+      @runtime_settings = runtime_settings
       @collector = collector
       @rate_limiter = rate_limiter
-      @runtime_settings = runtime_settings
     end
 
     RequestKind = Struct.new(:route, :schema, :ip, :actor)
