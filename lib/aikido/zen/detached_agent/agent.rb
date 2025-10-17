@@ -48,7 +48,7 @@ module Aikido::Zen::DetachedAgent
     end
 
     def calculate_rate_limits(request)
-      @detached_agent_front.calculate_rate_limits(request.route, request.ip, request.actor.to_json)
+      @front_object.calculate_rate_limits(request.route.as_json, request.ip, request.actor.as_json)
     end
 
     # Every time a fork occurs (a new child process is created), we need to start
