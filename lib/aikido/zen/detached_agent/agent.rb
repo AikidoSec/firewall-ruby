@@ -40,13 +40,6 @@ module Aikido::Zen::DetachedAgent
       schedule_tasks
     end
 
-    def send_heartbeat(at: Time.now.utc)
-      return unless @collector.stats.any?
-
-      heartbeat = @collector.flush(at: at)
-      @front_object.send_heartbeat_to_parent_process(heartbeat.as_json)
-    end
-
     def send_collector_events
       events_data = @collector.flush_events.map(&:as_json)
       @front_object.send_collector_events(events_data)
@@ -71,10 +64,6 @@ module Aikido::Zen::DetachedAgent
     private
 
     def schedule_tasks
-      # For heartbeats is correct to send them from parent or child process. Otherwise, we'll lose
-      # stats made by the parent process.
-      @worker.every(@heartbeat_interval, run_now: false) { send_heartbeat }
-
       @worker.every(@heartbeat_interval, run_now: false) { send_collector_events }
 
       # Runtime_settings fetch must happens only in the child processes, otherwise, due to
