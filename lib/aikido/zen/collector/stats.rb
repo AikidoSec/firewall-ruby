@@ -35,10 +35,9 @@ module Aikido::Zen
     # Track the timestamp we start tracking this series of stats.
     #
     # @param at [Time]
-    # @return [self]
+    # @return [void]
     def start(at = Time.now.utc)
       @started_at = at
-      self
     end
 
     # Sets the end time for these stats block, freezes it to avoid any more
@@ -47,7 +46,7 @@ module Aikido::Zen
     #
     # @param at [Time] the time at which we're resetting, which is set as the
     #   ending time for the returned copy.
-    # @return [self]
+    # @return [void]
     def flush(at: Time.now.utc)
       # Make sure the timing stats are compressed before copying, since we
       # need these compressed when we serialize this for the API.
@@ -56,10 +55,9 @@ module Aikido::Zen
       freeze
     end
 
-    # @return [self]
+    # @return [void]
     def add_request
       @requests += 1
-      self
     end
 
     # @param scan [Aikido::Zen::Scan]
