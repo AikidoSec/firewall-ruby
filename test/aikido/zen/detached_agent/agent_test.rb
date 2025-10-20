@@ -31,7 +31,7 @@ class Aikido::Zen::DetachedAgent::AgentTest < ActiveSupport::TestCase
     end
   end
 
-  test "child to parent heartbeats are scheduled" do
+  test "child to parent events are scheduled" do
     drb_start_called = false
     on_drb_start = -> { drb_start_called = true }
 
