@@ -121,8 +121,6 @@ jobs:
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app }}/Gemfile
       WEB_CONCURRENCY: 3
-      # Ensure protection can be enabled without an AIKIDO_TOKEN.
-      AIKIDO_DEBUG: true
 
     steps:
     - uses: actions/checkout@v4
