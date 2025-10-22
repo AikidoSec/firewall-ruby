@@ -1,6 +1,9 @@
 Rails.application.routes.draw do
   # Defines routes for the cats resource.
-  resources :cats
+  resources :cats do
+    # collection route for counting all cats
+    get :count, on: :collection
+  end
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

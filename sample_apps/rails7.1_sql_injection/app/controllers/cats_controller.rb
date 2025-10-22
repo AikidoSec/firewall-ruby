@@ -68,14 +68,22 @@ class CatsController < ApplicationController
     end
   end
 
+  # GET /cats/count
+  def count
+    total = Cat.count
+
+    respond_to do |format|
+      format.html { render html: "<h1>Total cats: #{total}</h1>".html_safe }
+      format.json { render json: {count: total} }
+    end
+  end
+
   private
 
   def set_user
     # Track a pseudo-random user
     Aikido::Zen.track_user({id: [1, 2, 3, 4, 5].sample, name: SecureRandom.hex(5)})
   end
-
-  private
 
   def set_cat
     # NOTE: This is insecure by design as a means to demonstrate a
