@@ -94,7 +94,7 @@ export default function () {
   )
 
   test("test_get_page_without_attack",
-    (http) => http.get("/cats",
+    (http) => http.get("/cats/count",
     {
         headers: headers
     })
