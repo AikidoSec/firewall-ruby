@@ -1,6 +1,5 @@
 # Benchmarking Zen for Ruby
 
-
 We use [WRK](https://github.com/wg/wrk) & [Grafana K6](https://k6.io) for these.
 
 WRK benchmarks are only requesting a URL (`/benchmark`). In case you want to add more 
