@@ -36,8 +36,6 @@ module Aikido
         return
       end
 
-      return unless config.protect?
-
       unless load_sources! && load_sinks!
         config.logger.warn("Zen could not find any supported libraries or frameworks. Visit https://github.com/AikidoSec/firewall-ruby for more information.")
         return

@@ -8,12 +8,6 @@ require_relative "context"
 
 module Aikido::Zen
   class Config
-    # @api private
-    # @return [Boolean] whether Aikido should protect.
-    def protect?
-      !api_token.nil? || blocking_mode? || debugging?
-    end
-
     # @return [Boolean] whether Aikido should be turned completely off (no
     #   intercepting calls to protect the app, no agent process running, no
     #   middleware installed). Defaults to false (so, enabled). Can be set
