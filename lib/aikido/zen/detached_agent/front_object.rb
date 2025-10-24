@@ -34,7 +34,7 @@ module Aikido::Zen::DetachedAgent
 
     def calculate_rate_limits(route_data, ip, actor_data)
       actor = Aikido::Zen::Actor.from_json(actor_data)
-      route = Aikido::Zen::Route.form_json(route_data)
+      route = Aikido::Zen::Route.from_json(route_data)
       @rate_limiter.calculate_rate_limits(RequestKind.new(route, nil, ip, actor))
     end
   end
