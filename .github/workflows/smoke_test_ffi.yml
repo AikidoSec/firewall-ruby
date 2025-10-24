@@ -2,6 +2,9 @@ name: Smoke Test for FFI
 
 on: [pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   smoke_test_ffi:
     strategy:
