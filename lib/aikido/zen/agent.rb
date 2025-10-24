@@ -146,11 +146,10 @@ module Aikido::Zen
     def send_heartbeat(at: Time.now.utc)
       return unless @api_client.can_make_requests?
 
-      @collector.flush_heartbeats.each do |heartbeat|
-        report(heartbeat) do |response|
-          updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
-          @config.logger.info("Updated runtime settings after heartbeat")
-        end
+      heartbeat = @collector.flush
+      report(heartbeat) do |response|
+        updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
+        @config.logger.info("Updated runtime settings after heartbeat")
       end
     end
 

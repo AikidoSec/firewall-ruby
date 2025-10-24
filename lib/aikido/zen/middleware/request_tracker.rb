@@ -18,7 +18,7 @@ module Aikido::Zen
           route: request.route.path,
           http_method: request.request_method
         )
-          Aikido::Zen.track_request request
+          Aikido::Zen.track_request(request)
 
           if Aikido::Zen.config.collect_api_schema?
             Aikido::Zen.track_discovered_route(request)

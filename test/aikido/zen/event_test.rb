@@ -148,23 +148,25 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
     end
 
     test "it includes the API spec with the routes" do
-      @routes.add(build_request_for("/", stub_route("GET", "/")))
+      request = build_request_for("/", stub_route("GET", "/"))
+      @routes.add(request.route, request.schema)
 
-      @routes.add(build_request_for("/users", stub_route("POST", "/users(.:format)"), {
+      request = build_request_for("/users", stub_route("POST", "/users(.:format)"), {
         :method => "POST",
         :input => "user[name]=Alice&user[email]=alice@example.com",
         "CONTENT_TYPE" => "multipart/form-data"
-      }))
+      })
+      @routes.add(request.route, request.schema)
 
-      @routes.add(build_request_for("/users", stub_route("POST", "/users(.:format)"), {
+      request = build_request_for("/users", stub_route("POST", "/users(.:format)"), {
         :method => "POST",
         :input => %({"user":{"name":"Alice","email":"alice@example.com","age":35}}),
         "CONTENT_TYPE" => "application/json"
-      }))
+      })
+      @routes.add(request.route, request.schema)
 
-      @routes.add(
-        build_request_for("/users?search=alice&page=2", stub_route("GET", "/users(.:format)"))
-      )
+      request = build_request_for("/users?search=alice&page=2", stub_route("GET", "/users(.:format)"))
+      @routes.add(request.route, request.schema)
 
       event = Aikido::Zen::Events::Heartbeat.new(
         stats: @stats, users: @users, hosts: @hosts, routes: @routes, middleware_installed: true

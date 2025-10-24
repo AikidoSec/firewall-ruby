@@ -8,7 +8,7 @@ module HTTPConnectionTrackingAssertions
   def assert_tracks_outbound_to(host, port, &block)
     hosts = Aikido::Zen.collector.hosts
 
-    assert_difference "hosts.size", +1 do
+    assert_difference -> { Aikido::Zen.collector.hosts.size }, +1 do
       2.times(&block) # run the block twice to ensure we only count it once.
     end
 
@@ -19,7 +19,7 @@ module HTTPConnectionTrackingAssertions
   def refute_outbound_connection_to(host, port, &block)
     hosts = Aikido::Zen.collector.hosts
 
-    assert_no_difference "hosts.size" do
+    assert_no_difference -> { Aikido::Zen.collector.hosts.size } do
       yield
     end
 

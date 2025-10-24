@@ -15,9 +15,14 @@ class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
     get_request = build_request(get_root)
     post_request = build_request(post_users)
 
-    @routes.add(get_request.dup)
-    @routes.add(get_request.dup)
-    @routes.add(post_request.dup)
+    request = get_request.dup
+    @routes.add(request.route, request.schema)
+
+    request = get_request.dup
+    @routes.add(request.route, request.schema)
+
+    request = post_request.dup
+    @routes.add(request.route, request.schema)
 
     refute_empty @routes
 
@@ -54,9 +59,14 @@ class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
     get_root = build_route("GET", "/")
     post_users = build_route("POST", "/users")
 
-    @routes.add(build_request(get_root.dup, empty_schema))
-    @routes.add(build_request(get_root.dup, query_schema))
-    @routes.add(build_request(post_users.dup, body_schema))
+    request = build_request(get_root.dup, empty_schema)
+    @routes.add(request.route, request.schema)
+
+    request = build_request(get_root.dup, query_schema)
+    @routes.add(request.route, request.schema)
+
+    request = build_request(post_users.dup, body_schema)
+    @routes.add(request.route, request.schema)
 
     assert_equal 2, @routes[get_root].hits
     assert_equal @routes[get_root].schema.as_json, {
@@ -114,9 +124,14 @@ class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
     get_root = build_route("GET", "/")
     post_users = build_route("POST", "/users")
 
-    @routes.add(build_request(get_root.dup, empty_schema))
-    @routes.add(build_request(get_root.dup, query_schema))
-    @routes.add(build_request(post_users.dup, body_schema))
+    request = build_request(get_root.dup, empty_schema)
+    @routes.add(request.route, request.schema)
+
+    request = build_request(get_root.dup, query_schema)
+    @routes.add(request.route, request.schema)
+
+    request = build_request(post_users.dup, body_schema)
+    @routes.add(request.route, request.schema)
 
     assert_equal @routes.as_json, [
       {
@@ -149,6 +164,7 @@ class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
 
   test "the schema is only collected {api_schema_max_samples} times" do
     root_route = build_route("GET", "/")
+
     sampled_request = build_request(root_route, Aikido::Zen::Request::Schema.new(
       content_type: nil,
       body_schema: EMPTY_SCHEMA,
@@ -157,35 +173,37 @@ class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
     ))
 
     @config.api_schema_max_samples = 3
-    3.times { @routes.add(sampled_request) }
 
-    unsampled_request = OpenStruct.new(route: root_route)
-    def unsampled_request.schema
-      raise "better not try sampling this"
+    assert_difference -> { @routes[root_route].samples }, +3 do
+      3.times do
+        @routes.add(sampled_request.route, sampled_request.schema)
+      end
     end
 
-    assert_nothing_raised do
-      @routes.add(unsampled_request)
+    unsampled_request = build_request(root_route)
+
+    assert_difference -> { @routes[root_route].samples }, +0 do
+      @routes.add(unsampled_request.route, unsampled_request.schema)
     end
   end
 
   test "setting {api_schema_max_samples} to 0 disables sampling" do
-    request = OpenStruct.new(route: build_route("GET", "/"))
-    def request.schema
-      raise "nothing to see here"
-    end
+    root_route = build_route("GET", "/")
+
+    unsampled_request = build_request(root_route)
 
     @config.api_schema_max_samples = 0
 
-    assert_nothing_raised do
-      @routes.add(request)
+    assert_difference -> { @routes.visits[root_route].samples }, +0 do
+      @routes.add(unsampled_request.route, unsampled_request.schema)
     end
 
-    assert_nil @routes[request.route].schema.as_json
+    assert_nil @routes[unsampled_request.route].schema.as_json
   end
 
   test "#as_json omits apispec if the schema is not given for the route" do
-    @routes.add(build_request(build_route("GET", "/")))
+    request = build_request(build_route("GET", "/"))
+    @routes.add(request.route, request.schema)
 
     assert_equal [{method: "GET", path: "/", hits: 1}], @routes.as_json
   end

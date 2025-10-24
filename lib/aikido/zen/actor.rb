@@ -38,6 +38,16 @@ module Aikido::Zen
 
   # Represents someone connecting to the application and making requests.
   class Actor
+    def self.from_json(data)
+      new(
+        id: data[:id],
+        name: data[:name],
+        ip: data[:lastIpAddress],
+        first_seen_at: Time.at(data[:firstSeenAt] / 1000),
+        last_seen_at: Time.at(data[:lastSeenAt] / 1000)
+      )
+    end
+
     # @return [String] a unique identifier for this user.
     attr_reader :id
 
@@ -50,18 +60,20 @@ module Aikido::Zen
     # @param id [String]
     # @param name [String, nil]
     # @param ip [String, nil]
-    # @param seen_at [Time]
+    # @param first_seen_at [Time]
+    # @param last_seen_at [Time]
     def initialize(
       id:,
       name: nil,
       ip: Aikido::Zen.current_context&.request&.ip,
-      seen_at: Time.now.utc
+      first_seen_at: Time.now.utc,
+      last_seen_at: first_seen_at
     )
       @id = id
       @name = name
-      @first_seen_at = seen_at
-      @last_seen_at = Concurrent::AtomicReference.new(seen_at)
       @ip = Concurrent::AtomicReference.new(ip)
+      @first_seen_at = first_seen_at
+      @last_seen_at = Concurrent::AtomicReference.new(last_seen_at)
     end
 
     # @return [Time]
@@ -88,6 +100,24 @@ module Aikido::Zen
       @last_seen_at.try_update { |last_seen_at| [last_seen_at, seen_at].max }
       @ip.try_update { |last_ip| [ip, last_ip].compact.first }
     end
+
+    # Merges the actor with another actor.
+    #
+    # @param other [Aikido::Zen::Actor]
+    # @return [Aikido::Zen::Actor]
+    def merge(other)
+      older = (first_seen_at < other.first_seen_at) ? self : other
+      newer = (last_seen_at > other.last_seen_at) ? self : other
+
+      self.class.new(
+        id: @id,
+        name: newer.name,
+        ip: newer.ip,
+        first_seen_at: older.first_seen_at,
+        last_seen_at: newer.last_seen_at
+      )
+    end
+    alias_method :|, :merge
 
     # @return [self]
     def to_aikido_actor

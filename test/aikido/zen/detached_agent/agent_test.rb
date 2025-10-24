@@ -31,7 +31,7 @@ class Aikido::Zen::DetachedAgent::AgentTest < ActiveSupport::TestCase
     end
   end
 
-  test "child to parent heartbeats are scheduled" do
+  test "child to parent events are scheduled" do
     drb_start_called = false
     on_drb_start = -> { drb_start_called = true }
 
@@ -44,26 +44,20 @@ class Aikido::Zen::DetachedAgent::AgentTest < ActiveSupport::TestCase
     refute drb_start_called
   end
 
-  test "heartbeats are send to the front object" do
+  test "collector events are send to the front object" do
     drb_start_called = false
     on_drb_start = -> { drb_start_called = true }
     front_object = Minitest::Mock.new
 
     with_mocks(front_object, on_drb_start) do |mocks|
-      at = Time.now
-      hb = {dummy: :heartbeat}
+      events = Array.new(3) { Aikido::Zen::Collector::Events::TrackRequest.new }
 
-      front_object.expect(:send_heartbeat_to_parent_process, nil, [{"dummy" => "heartbeat"}])
+      mocks[:collector].expect(:flush_events, events)
 
-      stats = Minitest::Mock.new
-      stats.expect :any?, true
+      front_object.expect(:send_collector_events, nil, [events.map(&:as_json)])
 
-      mocks[:collector].expect(:stats, stats)
-      mocks[:collector].expect(:flush, hb, [], at: at)
+      mocks[:agent].send_collector_events
 
-      mocks[:agent].send_heartbeat(at: at)
-
-      assert_mock stats
       assert_mock mocks[:collector]
     end
 

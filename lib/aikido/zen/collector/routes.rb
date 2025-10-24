@@ -7,6 +7,8 @@ module Aikido::Zen
   #
   # Keeps track of the visited routes.
   class Collector::Routes
+    # @api private
+    # Visible for testing.
     attr_reader :visits
 
     def initialize(config = Aikido::Zen.config)
@@ -14,11 +16,11 @@ module Aikido::Zen
       @visits = Hash.new { |h, k| h[k] = Record.new }
     end
 
-    # @param request [Aikido::Zen::Request].
-    # @return [self]
-    def add(request)
-      @visits[request.route].increment(request) unless request.route.nil?
-      self
+    # @param route [Aikido::Zen::Route] the route of the request
+    # @param schema [Aikido::Zen::Request::Schema] the schema for the request
+    # @return [void]
+    def add(route, schema)
+      @visits[route].increment(schema) unless route.nil?
     end
 
     def as_json
@@ -33,6 +35,7 @@ module Aikido::Zen
     end
 
     # @api private
+    # Visible for testing.
     def [](route)
       @visits[route]
     end
@@ -49,16 +52,18 @@ module Aikido::Zen
         @config = config
       end
 
-      def increment(request)
+      def increment(schema)
         self.hits += 1
 
         if sample_schema?
           self.samples += 1
-          self.schema |= request.schema
+          self.schema |= schema
         end
       end
 
-      private def sample_schema?
+      private
+
+      def sample_schema?
         samples < @config.api_schema_max_samples
       end
     end

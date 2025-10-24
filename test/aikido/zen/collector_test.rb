@@ -19,8 +19,8 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
   test "#track_request increments the number of requests" do
     assert_difference "@collector.stats.requests", +2 do
-      @collector.track_request(stub_request)
-      @collector.track_request(stub_request)
+      @collector.track_request
+      @collector.track_request
     end
   end
 
@@ -112,8 +112,8 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
   test "#track_user tracks which users have visited the app" do
     initial_time = Time.utc(2024, 9, 1, 16, 20, 42)
 
-    u1 = stub_actor(id: "123", name: "Alice", seen_at: initial_time, ip: "1.2.3.4")
-    u2 = stub_actor(id: "345", name: "Bob", seen_at: initial_time + 5, ip: "2.3.4.5")
+    u1 = stub_actor(id: "123", name: "Alice", first_seen_at: initial_time, ip: "1.2.3.4")
+    u2 = stub_actor(id: "345", name: "Bob", first_seen_at: initial_time + 5, ip: "2.3.4.5")
 
     assert_difference "@collector.users.size", +2 do
       @collector.track_user(u1)
@@ -127,7 +127,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
   test "#track_user doesn't count a user more than once" do
     initial_time = Time.utc(2024, 9, 1, 16, 20, 42)
 
-    user = stub_actor(id: "123", name: "Alice", seen_at: initial_time, ip: "1.2.3.4")
+    user = stub_actor(id: "123", name: "Alice", first_seen_at: initial_time, ip: "1.2.3.4")
 
     assert_difference "@collector.users.size", +1 do
       @collector.track_user(user)
@@ -142,7 +142,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
       travel(20)
 
-      assert_difference "user.last_seen_at", +20 do
+      assert_difference -> { @collector.users[user.id].last_seen_at }, +20 do
         same_user_in_diff_request = stub_actor(id: user.id)
         @collector.track_user(same_user_in_diff_request)
       end
@@ -155,7 +155,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
     env = Rack::MockRequest.env_for("/", "REMOTE_ADDR" => "6.7.8.9")
     with_context Aikido::Zen::Context.from_rack_env(env) do
-      assert_changes "user.ip", to: "6.7.8.9" do
+      assert_changes -> { @collector.users[user.id].ip }, to: "6.7.8.9" do
         same_user_in_diff_request = stub_actor(id: user.id)
         @collector.track_user(same_user_in_diff_request)
       end
@@ -190,7 +190,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
   test "#flush includes the request stats in the event" do
     @collector.start(at: Time.at(1234567890))
     3.times {
-      @collector.track_request(stub_request)
+      @collector.track_request
       @collector.track_route(stub_request)
     }
     event = @collector.flush(at: Time.at(1234577890))
@@ -223,7 +223,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
     2.times {
       stubbed_request = stub_request
-      @collector.track_request(stubbed_request)
+      @collector.track_request
       @collector.track_route(stubbed_request)
     }
     @collector.track_scan(stub_scan(sink: @sink))
@@ -293,7 +293,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
     2.times {
       stubbed_request = stub_request
-      @collector.track_request(stubbed_request)
+      @collector.track_request
       @collector.track_route(stubbed_request)
     }
 
@@ -367,7 +367,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
     2.times do
       stubbed_request = stub_request("/")
-      @collector.track_request(stubbed_request)
+      @collector.track_request
       @collector.track_route(stubbed_request)
     end
 
@@ -495,7 +495,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
   end
 
   def stub_actor(first_seen_at: nil, seen_at: nil, ip: nil, **opts)
-    opts = {seen_at: first_seen_at}.compact.merge(opts)
+    opts = {first_seen_at: first_seen_at}.compact.merge(opts)
     Aikido::Zen::Actor.new(**opts).tap do |actor|
       update_attrs = {seen_at: seen_at, ip: ip}.compact
       actor.update(**update_attrs) if update_attrs.any?
