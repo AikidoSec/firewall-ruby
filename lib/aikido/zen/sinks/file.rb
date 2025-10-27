@@ -108,7 +108,7 @@ module Aikido::Zen
             # Calling File.join with a single string argument returns the string
             # argument itself, having no practical effect. Therefore, it can be
             # presumed that if File.join is called with a single array argument
-            # then this was its intended usage, and the array did not origiate
+            # then this was its intended usage, and the array did not originate
             # from user input that was assumed to be a string.
             strings = args
             strings = args.first if args.size == 1 && args.first.is_a?(Array)
