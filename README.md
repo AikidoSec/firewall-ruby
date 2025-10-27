@@ -6,6 +6,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 [![Unit tests](https://github.com/AikidoSec/firewall-ruby/actions/workflows/main.yml/badge.svg)](https://github.com/AikidoSec/firewall-ruby/actions/workflows/main.yml)
 [![Release](https://github.com/AikidoSec/firewall-ruby/actions/workflows/release.yml/badge.svg)](https://github.com/AikidoSec/firewall-ruby/actions/workflows/release.yml)
+[![codecov](https://codecov.io/gh/AikidoSec/firewall-ruby/graph/badge.svg?token=X0MLST7S15)](https://codecov.io/gh/AikidoSec/firewall-ruby)
 
 Zen, your in-app firewall for peace of mind - at runtime.
 
