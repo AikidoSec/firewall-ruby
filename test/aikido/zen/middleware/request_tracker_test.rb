@@ -40,7 +40,7 @@ class Aikido::Zen::Middleware::RequestTrackerTest < ActiveSupport::TestCase
 
     key = Aikido::Zen::Route.new(verb: "GET", path: "/:number")
     assert_equal Aikido::Zen.collector.routes.visits.keys, [key]
-    assert_equal Aikido::Zen.collector.routes.visits[key].hits, 3
+    assert_equal Aikido::Zen.collector.routes[key].hits, 3
   end
 
   test "it rejects invalid status codes" do

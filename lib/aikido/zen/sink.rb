@@ -4,7 +4,7 @@ require_relative "scan"
 
 module Aikido::Zen
   module Sinks
-    # @api internal
+    # @api private
     # @return [Hash<String, Sink>]
     def self.registry
       @registry ||= {}

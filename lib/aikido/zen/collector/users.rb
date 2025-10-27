@@ -11,9 +11,11 @@ module Aikido::Zen
       super(config.max_users_tracked)
     end
 
+    # @param actor [Aikido::Zen::Actor]
+    # @return [void]
     def add(actor)
       if key?(actor.id)
-        self[actor.id].update
+        self[actor.id] |= actor
       else
         self[actor.id] = actor
       end

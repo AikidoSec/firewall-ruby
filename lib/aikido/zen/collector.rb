@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "collector/event"
+
 module Aikido::Zen
   # Handles collecting all the runtime statistics to report back to the Aikido
   # servers.
@@ -7,12 +9,42 @@ module Aikido::Zen
     def initialize(config: Aikido::Zen.config)
       @config = config
 
+      @events = Queue.new
+
       @stats = Concurrent::AtomicReference.new(Stats.new(@config))
       @users = Concurrent::AtomicReference.new(Users.new(@config))
       @hosts = Concurrent::AtomicReference.new(Hosts.new(@config))
       @routes = Concurrent::AtomicReference.new(Routes.new(@config))
-      @heartbeats = Queue.new
+
       @middleware_installed = Concurrent::AtomicBoolean.new
+    end
+
+    # Add an event, to be handled in the collector in current process or sent
+    # to a collector in another process.
+    #
+    # @param event [Aikido::Zen::Collector::Event] the event to add
+    # @return [void]
+    def add_event(event)
+      @events << event
+    end
+
+    # @return [Boolean] whether the collector has any events
+    def has_events?
+      !@events.empty?
+    end
+
+    # Flush all events.
+    #
+    # @return [Array<Aikido::Zen::Collector::Event>]
+    def flush_events
+      Array.new(@events.size) { @events.pop }
+    end
+
+    # Handle the events in the queue.
+    #
+    # @return [void]
+    def handle
+      flush_events.each { |event| event.handle(self) }
     end
 
     # Flush all the stats into a Heartbeat event that can be reported back to
@@ -22,6 +54,8 @@ module Aikido::Zen
     #   of the new stats collection period. Defaults to now.
     # @return [Aikido::Zen::Events::Heartbeat]
     def flush(at: Time.now.utc)
+      handle
+
       stats = @stats.get_and_set(Stats.new(@config))
       users = @users.get_and_set(Users.new(@config))
       hosts = @hosts.get_and_set(Hosts.new(@config))
@@ -30,19 +64,9 @@ module Aikido::Zen
       start(at: at)
       stats = stats.flush(at: at)
 
-      Events::Heartbeat.new(
+      Aikido::Zen::Events::Heartbeat.new(
         stats: stats, users: users, hosts: hosts, routes: routes, middleware_installed: middleware_installed?
       )
-    end
-
-    # Put heartbeats coming from child processes into the internal queue.
-    def push_heartbeat(heartbeat)
-      @heartbeats << heartbeat
-    end
-
-    # Drains into an array all the queued heartbeats
-    def flush_heartbeats
-      Array.new(@heartbeats.size) { @heartbeats.pop }
     end
 
     # Sets the start time for this collection period.
@@ -55,16 +79,13 @@ module Aikido::Zen
 
     # Track stats about the requests
     #
-    # @param request [Aikido::Zen::Request]
     # @return [void]
-    def track_request(*)
-      synchronize(@stats) { |stats| stats.add_request }
+    def track_request
+      add_event(Events::TrackRequest.new)
     end
 
-    #  Record the visited endpoint, and if enabled, the API schema for this endpoint.
-    # @param request [Aikido::Zen::Request]
-    def track_route(request)
-      synchronize(@routes) { |routes| routes.add(request) if request.route }
+    def handle_track_request
+      synchronize(@stats) { |stats| stats.add_request }
     end
 
     # Track stats about a scan performed by one of our sinks.
@@ -72,7 +93,13 @@ module Aikido::Zen
     # @param scan [Aikido::Zen::Scan]
     # @return [void]
     def track_scan(scan)
-      synchronize(@stats) { |stats| stats.add_scan(scan) }
+      add_event(Events::TrackScan.new(scan.sink.name, scan.duration, has_errors: scan.errors?))
+    end
+
+    def handle_track_scan(sink_name, duration, has_errors:)
+      synchronize(@stats) do |stats|
+        stats.add_scan(sink_name, duration, has_errors: has_errors)
+      end
     end
 
     # Track stats about an attack detected by our scanners.
@@ -80,17 +107,13 @@ module Aikido::Zen
     # @param attack [Aikido::Zen::Attack]
     # @return [void]
     def track_attack(attack)
-      synchronize(@stats) do |stats|
-        stats.add_attack(attack, being_blocked: attack.blocked?)
-      end
+      add_event(Events::TrackAttack.new(attack.sink.name, being_blocked: attack.blocked?))
     end
 
-    # Track an HTTP connections to an external host.
-    #
-    # @param connection [Aikido::Zen::OutboundConnection]
-    # @return [void]
-    def track_outbound(connection)
-      synchronize(@hosts) { |hosts| hosts.add(connection) }
+    def handle_track_attack(sink_name, being_blocked:)
+      synchronize(@stats) do |stats|
+        stats.add_attack(sink_name, being_blocked: being_blocked)
+      end
     end
 
     # Track the user reported by the developer to be behind this request.
@@ -98,7 +121,35 @@ module Aikido::Zen
     # @param actor [Aikido::Zen::Actor]
     # @return [void]
     def track_user(actor)
+      add_event(Events::TrackUser.new(actor))
+    end
+
+    def handle_track_user(actor)
       synchronize(@users) { |users| users.add(actor) }
+    end
+
+    # Track an HTTP connections to an external host.
+    #
+    # @param connection [Aikido::Zen::OutboundConnection]
+    # @return [void]
+    def track_outbound(connection)
+      add_event(Events::TrackOutbound.new(connection))
+    end
+
+    def handle_track_outbound(connection)
+      synchronize(@hosts) { |hosts| hosts.add(connection) }
+    end
+
+    # Record the visited endpoint, and if enabled, the API schema for this endpoint.
+    #
+    # @param request [Aikido::Zen::Request]
+    # @return [void]
+    def track_route(request)
+      add_event(Events::TrackRoute.new(request.route, request.schema))
+    end
+
+    def handle_track_route(route, schema)
+      synchronize(@routes) { |routes| routes.add(route, schema) }
     end
 
     def middleware_installed!
@@ -106,26 +157,40 @@ module Aikido::Zen
     end
 
     # @api private
-    def routes
-      @routes.get
-    end
-
-    # @api private
-    def users
-      @users.get
-    end
-
-    # @api private
-    def hosts
-      @hosts.get
-    end
-
-    # @api private
+    #
+    # @note Visible for testing.
     def stats
+      handle
       @stats.get
     end
 
     # @api private
+    #
+    # @note Visible for testing.
+    def users
+      handle
+      @users.get
+    end
+
+    # @api private
+    #
+    # @note Visible for testing.
+    def hosts
+      handle
+      @hosts.get
+    end
+
+    # @api private
+    #
+    # @note Visible for testing.
+    def routes
+      handle
+      @routes.get
+    end
+
+    # @api private
+    #
+    # @note Visible for testing.
     def middleware_installed?
       @middleware_installed.true?
     end

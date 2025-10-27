@@ -3,6 +3,13 @@
 module Aikido::Zen
   # Simple data object to identify connections performed to outbound servers.
   class OutboundConnection
+    def self.from_json(data)
+      new(
+        host: data[:hostname],
+        port: data[:port]
+      )
+    end
+
     # Convenience factory to create connection descriptions out of URI objects.
     #
     # @param uri [URI]

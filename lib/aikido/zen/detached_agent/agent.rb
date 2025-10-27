@@ -14,53 +14,39 @@ module Aikido::Zen::DetachedAgent
   # parent process. We want to have the freshest data.
   #
   # It's possible to use `extend Forwardable` here for one-line forward calls to the
-  # @detached_agent_front object. Unfortunately, the methods to be called are
+  # @front_object object. Unfortunately, the methods to be called are
   # created at runtime by `DRbObject`, which leads to an ugly warning about
   # private methods after the delegator is bound.
   class Agent
     attr_reader :worker
 
     def initialize(
+      config: Aikido::Zen.config,
+      worker: Aikido::Zen::Worker.new(config: config),
       heartbeat_interval: 10,
       polling_interval: 10,
-      config: Aikido::Zen.config,
-      collector: Aikido::Zen.collector,
-      worker: Aikido::Zen::Worker.new(config: config)
+      collector: Aikido::Zen.collector
     )
       @config = config
+      @worker = worker
       @heartbeat_interval = heartbeat_interval
       @polling_interval = polling_interval
-      @worker = worker
+
       @collector = collector
-      @detached_agent_front = DRbObject.new_with_uri(config.detached_agent_socket_uri)
+
+      @front_object = DRbObject.new_with_uri(config.detached_agent_socket_uri)
+
       @has_forked = false
       schedule_tasks
     end
 
-    def send_heartbeat(at: Time.now.utc)
-      return unless @collector.stats.any?
-
-      heartbeat = @collector.flush(at: at)
-      @detached_agent_front.send_heartbeat_to_parent_process(heartbeat.as_json)
-    end
-
-    private def schedule_tasks
-      # For heartbeats is correct to send them from parent or child process. Otherwise, we'll lose
-      # stats made by the parent process.
-      @worker.every(@heartbeat_interval, run_now: false) { send_heartbeat }
-
-      # Runtime_settings fetch must happens only in the child processes, otherwise, due to
-      # we are updating the global runtime_settings, we could have an infinite recursion.
-      if @has_forked
-        @worker.every(@polling_interval) do
-          Aikido::Zen.runtime_settings = @detached_agent_front.updated_settings
-          @config.logger.debug "Updated runtime settings after polling from child process #{Process.pid}"
-        end
-      end
+    def send_collector_events
+      events_data = @collector.flush_events.map(&:as_json)
+      @front_object.send_collector_events(events_data)
     end
 
     def calculate_rate_limits(request)
-      @detached_agent_front.calculate_rate_limits(request.route, request.ip, request.actor.to_json)
+      @front_object.calculate_rate_limits(request.route.as_json, request.ip, request.actor.as_json)
     end
 
     # Every time a fork occurs (a new child process is created), we need to start
@@ -73,6 +59,21 @@ module Aikido::Zen::DetachedAgent
       # we reuse the same object
       @worker.restart
       schedule_tasks
+    end
+
+    private
+
+    def schedule_tasks
+      @worker.every(@heartbeat_interval, run_now: false) { send_collector_events }
+
+      # Runtime_settings fetch must happens only in the child processes, otherwise, due to
+      # we are updating the global runtime_settings, we could have an infinite recursion.
+      if @has_forked
+        @worker.every(@polling_interval) do
+          Aikido::Zen.runtime_settings = @front_object.updated_settings
+          @config.logger.debug "Updated runtime settings after polling from child process #{Process.pid}"
+        end
+      end
     end
   end
 end

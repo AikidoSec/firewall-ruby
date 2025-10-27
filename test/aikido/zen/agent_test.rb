@@ -235,9 +235,13 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#send_heartbeat reports a heartbeat event and updates the settings" do
-    dummy_heartbeat = Object.new
-    @collector.push_heartbeat(dummy_heartbeat)
-    @api_client.expect :report, {"receivedAnyStats" => true}, [dummy_heartbeat]
+    event = Aikido::Zen::Collector::Events::TrackRequest.new
+
+    @collector.add_event(event)
+
+    @api_client.expect :report, {"receivedAnyStats" => true} do |heartbeat|
+      heartbeat.is_a?(Aikido::Zen::Events::Heartbeat)
+    end
 
     assert_changes -> { Aikido::Zen.runtime_settings.received_any_stats }, to: true do
       @agent.send_heartbeat
@@ -246,14 +250,16 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert_mock @api_client
   end
 
-  test "#send_heartbeat flushes the heartbeats before sending them" do
-    heartbeats = Minitest::Mock.new
-    heartbeats.expect :size, [2]
+  test "#send_heartbeat flushes events when sending the heartbeat" do
+    event = Aikido::Zen::Collector::Events::TrackRequest.new
 
-    @collector.instance_variable_set(:@heartbeats, heartbeats)
+    @collector.add_event(event)
+
+    assert @collector.has_events?
+
     @agent.send_heartbeat
 
-    assert_mock heartbeats
+    refute @collector.has_events?
   end
 
   test "#send_heartbeat does nothing if we don't have an API token" do
@@ -267,10 +273,14 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#send_heartbeat does not try to update stats if the API returns null" do
-    dummy_heartbeat = Object.new
+    event = Aikido::Zen::Collector::Events::TrackRequest.new
+
     # this happens e.g. when events are rate limited
-    @api_client.expect :report, nil, [dummy_heartbeat]
-    @collector.push_heartbeat(dummy_heartbeat)
+    @api_client.expect :report, nil do |heartbeat|
+      heartbeat.is_a?(Aikido::Zen::Events::Heartbeat)
+    end
+
+    @collector.add_event(event)
 
     assert_nothing_raised do
       @agent.send_heartbeat
@@ -333,7 +343,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
 
   test "#start! successfully sends the initial heartbeats" do
     # Make sure there are _some_ stats
-    @collector.track_request(stub_request)
+    @collector.track_request
 
     # Ignore the actual delay
     def @worker.delay(*)

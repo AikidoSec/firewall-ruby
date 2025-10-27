@@ -5,6 +5,13 @@ module Aikido::Zen
   # framework to go from a given HTTP request to the code that handles said
   # request.
   class Route
+    def self.from_json(data)
+      new(
+        verb: data[:method],
+        path: data[:path]
+      )
+    end
+
     # @return [String] the HTTP verb used to request this route.
     attr_reader :verb
 

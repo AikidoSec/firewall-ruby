@@ -94,7 +94,7 @@ class Aikido::Zen::ActorTest < ActiveSupport::TestCase
   test "#update sets the #last_seen_at but does not change #first_seen_at" do
     first_seen = Time.utc(2024, 9, 1, 16, 20, 42)
 
-    actor = Aikido::Zen::Actor.new(id: "test", seen_at: first_seen)
+    actor = Aikido::Zen::Actor.new(id: "test", first_seen_at: first_seen)
     assert_equal first_seen, actor.first_seen_at
     assert_equal first_seen, actor.last_seen_at
 
@@ -106,7 +106,7 @@ class Aikido::Zen::ActorTest < ActiveSupport::TestCase
   test "#update does not override #last_seen_at if given an older timestamp" do
     timestamp = Time.utc(2024, 9, 1, 16, 20, 42)
 
-    actor = Aikido::Zen::Actor.new(id: "test", seen_at: timestamp)
+    actor = Aikido::Zen::Actor.new(id: "test", first_seen_at: timestamp)
 
     assert_no_changes "actor.last_seen_at" do
       actor.update(seen_at: timestamp - 1)
@@ -115,7 +115,7 @@ class Aikido::Zen::ActorTest < ActiveSupport::TestCase
 
   test "#update changes the #last_seen_at to the current time by default" do
     freeze_time do
-      actor = Aikido::Zen::Actor.new(id: "test", seen_at: Time.now.utc - 20)
+      actor = Aikido::Zen::Actor.new(id: "test", first_seen_at: Time.now.utc - 20)
 
       assert_changes "actor.last_seen_at", to: actor.first_seen_at + 20 do
         actor.update
@@ -155,7 +155,7 @@ class Aikido::Zen::ActorTest < ActiveSupport::TestCase
       id: "123",
       name: "Jane Doe",
       ip: "1.2.3.4",
-      seen_at: Time.at(1234567890)
+      first_seen_at: Time.at(1234567890)
     )
     actor.update(seen_at: Time.at(1234577890))
 
