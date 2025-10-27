@@ -51,12 +51,12 @@ module Aikido::Zen
         # We ignore cases where the user input is not part of the file path.
         return false unless @filepath.include?(@input)
 
-        if PathTraversal::Helpers.contains_unsafe_path_parts(@filepath) && PathTraversal::Helpers.contains_unsafe_path_parts(@input)
+        if PathTraversal::Helpers.include_unsafe_path_parts?(@filepath) && PathTraversal::Helpers.include_unsafe_path_parts?(@input)
           return true
         end
 
         # Check for absolute path traversal
-        PathTraversal::Helpers.starts_with_unsafe_path(@filepath, @input)
+        PathTraversal::Helpers.start_with_unsafe_path?(@filepath, @input)
       end
     end
   end
