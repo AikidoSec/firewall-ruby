@@ -115,7 +115,7 @@ module Aikido::Zen
         end
 
         def inspect
-          "#<#{self.class.name} #{@sink_name} #{format "%0.6f", @duration} #{@being_blocked}>"
+          "#<#{self.class.name} #{@sink_name} #{@being_blocked}>"
         end
       end
 
