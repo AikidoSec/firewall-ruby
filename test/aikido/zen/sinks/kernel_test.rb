@@ -71,8 +71,6 @@ class Aikido::Zen::Sinks::KernelTest < ActiveSupport::TestCase
   end
 
   test "attacks through calls to `system` are detected" do
-    skip_if_ruby_lower_than "3.0"
-
     assert_shell_injection_attack "$(whoami)" do
       system("echo $(whoami)")
     end
@@ -91,8 +89,6 @@ class Aikido::Zen::Sinks::KernelTest < ActiveSupport::TestCase
   end
 
   test "attacks through calls to `spawn` are detected" do
-    skip_if_ruby_lower_than "3.0"
-
     assert_shell_injection_attack "$(whoami)" do
       spawn "echo $(whoami)"
     end
@@ -107,6 +103,42 @@ class Aikido::Zen::Sinks::KernelTest < ActiveSupport::TestCase
 
     assert_shell_injection_attack "$(whoami)" do
       spawn SOME_ENV, "echo $(whoami)", unsetenv_others: true
+    end
+  end
+
+  test "backtick works normally" do
+    result = `echo -n hello`
+    assert_equal "hello", result
+
+    result = `echo '$(whoami)'`
+    assert_equal "$(whoami)\n", result
+
+    assert_raises Errno::ENOENT do
+      `invalid-command-123`
+    end
+  end
+
+  test "attacks through backtick are detected" do
+    assert_shell_injection_attack "$(whoami)" do
+      `echo $(whoami)`
+    end
+  end
+
+  test "%x() works normally" do
+    result = %x(echo -n hello) # rubocop:disable Style/CommandLiteral
+    assert_equal "hello", result
+
+    result = %x(echo '$(whoami)') # rubocop:disable Style/CommandLiteral
+    assert_equal "$(whoami)\n", result
+
+    assert_raises Errno::ENOENT do
+      %x(invalid-command-123) # rubocop:disable Style/CommandLiteral
+    end
+  end
+
+  test "attacks through %x() are detected" do
+    assert_shell_injection_attack "$(whoami)" do
+      %x(echo $(whoami)) # rubocop:disable Style/CommandLiteral
     end
   end
 end
