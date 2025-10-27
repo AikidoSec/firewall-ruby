@@ -142,7 +142,7 @@ module Aikido::Zen
         end
 
         def inspect
-          "#<#{self.class.name} #{@actor.id} #{actor.name}>"
+          "#<#{self.class.name} #{@actor.id} #{@actor.name}>"
         end
       end
 
