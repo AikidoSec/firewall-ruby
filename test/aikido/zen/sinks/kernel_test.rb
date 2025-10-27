@@ -71,8 +71,6 @@ class Aikido::Zen::Sinks::KernelTest < ActiveSupport::TestCase
   end
 
   test "attacks through calls to `system` are detected" do
-    skip_if_ruby_lower_than "3.0"
-
     assert_shell_injection_attack "$(whoami)" do
       system("echo $(whoami)")
     end
@@ -91,8 +89,6 @@ class Aikido::Zen::Sinks::KernelTest < ActiveSupport::TestCase
   end
 
   test "attacks through calls to `spawn` are detected" do
-    skip_if_ruby_lower_than "3.0"
-
     assert_shell_injection_attack "$(whoami)" do
       spawn "echo $(whoami)"
     end
@@ -123,8 +119,6 @@ class Aikido::Zen::Sinks::KernelTest < ActiveSupport::TestCase
   end
 
   test "attacks through backtick are detected" do
-    skip_if_ruby_lower_than "3.0"
-
     assert_shell_injection_attack "$(whoami)" do
       `echo $(whoami)`
     end
@@ -143,8 +137,6 @@ class Aikido::Zen::Sinks::KernelTest < ActiveSupport::TestCase
   end
 
   test "attacks through %x() are detected" do
-    skip_if_ruby_lower_than "3.0"
-
     assert_shell_injection_attack "$(whoami)" do
       %x(echo $(whoami)) # rubocop:disable Style/CommandLiteral
     end
