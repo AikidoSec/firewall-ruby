@@ -137,7 +137,7 @@ module Aikido::Zen
       def metadata
         {
           sql: @query,
-          dialect: @dialect
+          dialect: @dialect.name
         }
       end
 

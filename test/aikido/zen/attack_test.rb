@@ -60,7 +60,7 @@ module Aikido::Zen
         payload: @input.value,
         metadata: {
           sql: @query,
-          dialect: @dialect
+          dialect: @dialect.name
         },
         source: "routeParams",
         path: "id"
@@ -83,7 +83,7 @@ module Aikido::Zen
         payload: @input.value,
         metadata: {
           sql: @query,
-          dialect: @dialect
+          dialect: @dialect.name
         },
         source: "routeParams",
         path: "id"
