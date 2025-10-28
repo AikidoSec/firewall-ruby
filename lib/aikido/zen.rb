@@ -228,10 +228,10 @@ module Aikido
       end
 
       def check_and_handle_fork
-        handle_fork if has_forked
+        handle_fork if forked?
       end
 
-      def has_forked
+      def forked?
         pid_changed = Process.pid != @pid
         @pid = Process.pid
         pid_changed
