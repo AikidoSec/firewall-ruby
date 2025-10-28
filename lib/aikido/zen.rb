@@ -220,11 +220,20 @@ module Aikido
       LOCK = Mutex.new
 
       def start!
+        return unless start?
+
         @pid = Process.pid
+
         LOCK.synchronize do
           agent
           detached_agent_server
         end
+      end
+
+      def start?
+        !config.api_token.nil? ||
+          config.blocking_mode? ||
+          config.debugging?
       end
 
       def check_and_handle_fork
