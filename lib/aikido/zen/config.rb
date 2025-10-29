@@ -154,7 +154,7 @@ module Aikido::Zen
     attr_accessor :imds_allowed_hosts
 
     # @return [Boolean] whether Aikido Zen should harden methods where possible.
-    #   Defaults to false. Can be set through AIKIDO_HARDEN environment variable.
+    #   Defaults to true. Can be set through AIKIDO_HARDEN environment variable.
     attr_accessor :harden
     alias_method :harden?, :harden
 
