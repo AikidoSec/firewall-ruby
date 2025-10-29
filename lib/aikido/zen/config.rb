@@ -153,6 +153,11 @@ module Aikido::Zen
     #   allow known hosts that should be able to resolve to the IMDS service.
     attr_accessor :imds_allowed_hosts
 
+    # @return [Boolean] whether Aikido Zen should harden methods where possible.
+    #   Defaults to false. Can be set through AIKIDO_HARDEN environment variable.
+    attr_accessor :harden
+    alias_method :harden?, :harden
+
     def initialize
       self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
       self.blocking_mode = read_boolean_from_env(ENV.fetch("AIKIDO_BLOCK", false))
@@ -185,6 +190,7 @@ module Aikido::Zen
       self.api_schema_collection_max_properties = 20
       self.stored_ssrf = read_boolean_from_env(ENV.fetch("AIKIDO_FEATURE_STORED_SSRF", true))
       self.imds_allowed_hosts = ["metadata.google.internal", "metadata.goog"]
+      self.harden = read_boolean_from_env(ENV.fetch("AIKIDO_HARDEN", true))
     end
 
     # Set the base URL for API requests.

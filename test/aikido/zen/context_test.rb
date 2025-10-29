@@ -77,6 +77,32 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       assert_includes context.payloads, stub_payload(:body, "7", "y.w.j")
     end
 
+    test "relative path arrays in complex parameter structures are joined for File.join" do
+      context = build_context_for("/path?path1[]=..&path1[]=..&path1[]=..&path1[]=etc&path1[]=passwd", {
+        method: "POST",
+        params: {path2: ["..", "..", "..", "etc", "passwd"]}
+      })
+
+      assert_includes context.payloads, stub_payload(:query, "../../../etc/passwd", "path1.__File.join__")
+
+      assert_includes context.payloads, stub_payload(:body, "../../../etc/passwd", "path2.__File.join__")
+    end
+
+    test "absolute path arrays in complex parameter structures are joined for File.join" do
+      context = build_context_for("/path?path1[]=&path1[]=etc&path1[]=passwd&path2[]=/&path2[]=etc&path2[]=passwd&&path3[]=/etc&path3[]=passwd", {
+        method: "POST",
+        params: {path4: ["/", "etc", "passwd"], path5: ["", "etc", "passwd"], path6: ["/etc", "passwd"]}
+      })
+
+      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path1.__File.join__")
+      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path2.__File.join__")
+      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path3.__File.join__")
+
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path4.__File.join__")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path5.__File.join__")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path6.__File.join__")
+    end
+
     test "#protection_disabled? allows requests from allowed IPs" do
       settings = Aikido::Zen.runtime_settings
       settings.update_from_json({
@@ -103,6 +129,7 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
 
     setup do
       Aikido::Zen.config.request_builder = Aikido::Zen::Context::RACK_REQUEST_BUILDER
+      Aikido::Zen.config.harden = false
     end
 
     def build_context_for(path, env = {})
@@ -196,6 +223,7 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
 
     setup do
       Aikido::Zen.config.request_builder = Aikido::Zen::Context::RAILS_REQUEST_BUILDER
+      Aikido::Zen.config.harden = false
     end
 
     def env_for(path, env = {})
@@ -236,6 +264,28 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       assert_includes context.payloads, stub_payload(:body, 1, "array.0")
       assert_includes context.payloads, stub_payload(:body, 2, "array.1")
       assert_includes context.payloads, stub_payload(:body, 3, "array.2")
+    end
+
+    test "relative path arrays in body payloads read from JSON-encoded bodies are joined for File.join" do
+      context = build_context_for("/example", {
+        :method => "POST",
+        :input => %({"path":["..", "..", "..", "etc", "passwd"]}),
+        "CONTENT_TYPE" => "application/json"
+      })
+
+      assert_includes context.payloads, stub_payload(:body, "../../../etc/passwd", "path.__File.join__")
+    end
+
+    test "absolute path arrays in body payloads read from JSON-encoded bodies are joined for File.join" do
+      context = build_context_for("/example", {
+        :method => "POST",
+        :input => %({"path1": ["/", "etc", "passwd"], "path2": ["", "etc", "passwd"], "path3": ["/etc", "passwd"]}),
+        "CONTENT_TYPE" => "application/json"
+      })
+
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path1.__File.join__")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path2.__File.join__")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path3.__File.join__")
     end
 
     test "route payloads are read from the data extracted by the router" do
