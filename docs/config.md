@@ -34,6 +34,14 @@ set it via `Aikido::Zen.config.token = <token>`.
 
 **NOTE**: Never commit your token to the source code repository in plain text.
 
+## Hardened mode
+
+Zen hardens methods, restricting dangerous undocumented behavior to improve
+security and performance.
+
+To disable method hardening, set `AIKIDO_HARDEN=false` in your environment,
+or set `Aikido::Zen.config.harden = false`.
+
 ## Logger
 
 Zen logs to standard output by default. You can change this by changing the
