@@ -20,7 +20,8 @@ module Aikido::Zen
           address: offending_address,
           sink: sink,
           context: context,
-          operation: "#{sink.operation}.#{operation}"
+          operation: "#{sink.operation}.#{operation}",
+          stack: Aikido::Zen.clean_stack_trace
         )
       end
 
