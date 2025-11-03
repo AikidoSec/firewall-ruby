@@ -62,16 +62,31 @@ module Aikido::Zen
       nil
     end
 
-    private def build_route(route, request, prefix: request.script_name)
+    private
+
+    def build_route(route, request, prefix: request.script_name)
       route_wrapper = ActionDispatch::Routing::RouteWrapper.new(route)
 
       path = if prefix.present?
-        File.join(prefix.to_s, route_wrapper.path).chomp("/")
+        prefix_route_path(prefix.to_s, route_wrapper.path)
       else
         route_wrapper.path
       end
 
       Aikido::Zen::Route.new(verb: request.request_method, path: path)
+    end
+
+    def prefix_route_path(string1, string2)
+      # The strings appear to start with "/", allowing them to be concatenated
+      # directly after removing trailing "/". However, as it is not currently
+      # known whether this is guaranteed, we insert a separator when necessary.
+
+      separator = string2.start_with?("/") ? "" : "/"
+
+      string1 = string1.chomp("/")
+      string2 = string2.chomp("/")
+
+      "#{string1}#{separator}#{string2}"
     end
   end
 end
