@@ -10,10 +10,11 @@ module Aikido::Zen
     attr_reader :operation
     attr_accessor :sink
 
-    def initialize(context:, sink:, operation:)
+    def initialize(context:, sink:, operation:, stack: nil)
       @context = context
       @operation = operation
       @sink = sink
+      @stack = stack
       @blocked = false
     end
 
@@ -46,8 +47,9 @@ module Aikido::Zen
         kind: kind,
         blocked: blocked?,
         metadata: metadata,
-        operation: @operation
-      }.merge(input.as_json)
+        operation: @operation,
+        stack: @stack
+      }.compact.merge(input.as_json)
     end
 
     def exception(*)

@@ -28,7 +28,8 @@ module Aikido::Zen
             input: payload,
             filepath: filepath,
             context: context,
-            operation: "#{sink.operation}.#{operation}"
+            operation: "#{sink.operation}.#{operation}",
+            stack: Aikido::Zen.clean_stack_trace
           )
         end
 

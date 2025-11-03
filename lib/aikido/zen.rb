@@ -250,5 +250,24 @@ module Aikido
         @detached_agent&.handle_fork
       end
     end
+
+    # @!visibility private
+    # Returns the stack trace trimmed to where execution last entered Zen.
+    #
+    # @return [String]
+    def self.clean_stack_trace
+      stack_trace = caller_locations
+
+      spec = Gem.loaded_specs["aikido-zen"]
+
+      # Only trim stack frames from .../lib/aikido/zen/ in the aikido-zen gem,
+      # so calls in sample apps are preserved.
+      lib_path_start = File.expand_path(File.join(spec.full_gem_path, "lib", "aikido", "zen")) + File::SEPARATOR
+
+      index = stack_trace.index { |frame| !File.expand_path(frame.path).start_with?(lib_path_start) }
+      stack_trace = stack_trace[index..] if index
+
+      stack_trace.map(&:to_s).join("\n")
+    end
   end
 end
