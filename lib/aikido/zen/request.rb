@@ -22,13 +22,11 @@ module Aikido::Zen
       @config = config
       @framework = framework
       @router = router
-      @body_read = false
     end
 
     def __setobj__(delegate) # :nodoc:
       super
-      @body_read = false
-      @route = @normalized_header = @truncated_body = nil
+      @route = @normalized_header = nil
     end
 
     # @return [Aikido::Zen::Route] the framework route being requested.
@@ -74,42 +72,12 @@ module Aikido::Zen
         }
     end
 
-    # @api private
-    #
-    # Reads the first 16KiB of the request body, to include in attack reports
-    # back to the Aikido server. This method should only be called if an attack
-    # is detected during the current request.
-    #
-    # If the underlying IO object has been partially (or fully) read before,
-    # this will attempt to restore the previous cursor position after reading it
-    # if possible, or leave if rewund if not.
-    #
-    # @param max_size [Integer] number of bytes to read at most.
-    #
-    # @return [String]
-    def truncated_body(max_size: 16384)
-      return @truncated_body if @body_read
-      return nil if body.nil?
-
-      begin
-        initial_pos = body.pos if body.respond_to?(:pos)
-        body.rewind
-        @truncated_body = body.read(max_size)
-      ensure
-        @body_read = true
-        body.rewind
-        body.seek(initial_pos) if initial_pos && body.respond_to?(:seek)
-      end
-    end
-
     def as_json
       {
         method: request_method.downcase,
         url: url,
         ipAddress: client_ip,
         userAgent: user_agent,
-        headers: normalized_headers.reject { |_, val| val.to_s.empty? },
-        body: truncated_body,
         source: framework,
         route: route&.path
       }

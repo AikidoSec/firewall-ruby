@@ -41,81 +41,6 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       assert_equal "test_suite", req.normalized_headers["User-Agent"]
     end
 
-    test "#truncated_body returns the body as is if below the threshold" do
-      env = Rack::MockRequest.env_for("/test", {
-        :method => "POST",
-        :input => "request_body",
-        "CONTENT_TYPE" => "application/json"
-      })
-      req = build_request(env)
-
-      assert_equal "request_body", req.truncated_body
-    end
-
-    test "#truncated_body returns the body up to the specified size" do
-      env = Rack::MockRequest.env_for("/test", {
-        :method => "POST",
-        :input => "request_body",
-        "CONTENT_TYPE" => "application/json"
-      })
-      req = build_request(env)
-
-      assert_equal "reque", req.truncated_body(max_size: 5)
-    end
-
-    test "#truncated_body returns the entire body regardless of previous reads" do
-      env = Rack::MockRequest.env_for("/test", {
-        :method => "POST",
-        :input => "request_body",
-        "CONTENT_TYPE" => "application/json"
-      })
-      req = build_request(env)
-
-      assert_equal "request_body", req.body.read
-      assert_equal "", req.body.read
-
-      assert_equal "request_body", req.truncated_body
-    end
-
-    test "#truncated_body restores the IO's cursor at the end" do
-      env = Rack::MockRequest.env_for("/test", {
-        :method => "POST",
-        :input => "request_body",
-        "CONTENT_TYPE" => "application/json"
-      })
-      req = build_request(env)
-
-      assert_equal "requ", req.body.read(4)
-      assert_equal "request_body", req.truncated_body
-      assert_equal "est_body", req.body.read
-    end
-
-    test "#truncated_body defaults to 16KiB" do
-      env = Rack::MockRequest.env_for("/test", {
-        :method => "POST",
-        :input => ("a" * 1024 * 16 + "b"),
-        "CONTENT_TYPE" => "application/json"
-      })
-      req = build_request(env)
-
-      assert_match(/\Aa+\z/, req.truncated_body)
-      assert_equal 16384, req.truncated_body.size
-    end
-
-    test "#truncated_body returns nil for GET requests" do
-      env = Rack::MockRequest.env_for("/test", method: "GET")
-      req = build_request(env)
-
-      assert_nil req.truncated_body
-    end
-
-    test "#truncated_body can handle Puma's NullIO" do
-      env = Rack::MockRequest.env_for("/test", method: "GET", input: Puma::NullIO.new)
-      req = build_request(env)
-
-      assert_nil req.truncated_body
-    end
-
     test "#as_json includes the request method and URL" do
       env = Rack::MockRequest.env_for("/test", {
         :method => "POST",
@@ -130,25 +55,6 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       )
     end
 
-    test "#as_json includes the request headers" do
-      env = Rack::MockRequest.env_for("/test", {
-        :method => "POST",
-        :input => "request_body",
-        "CONTENT_TYPE" => "application/json",
-        "HTTP_ACCEPT" => "application/json",
-        "HTTP_AUTHORIZATION" => "Token S3CR3T"
-      })
-      req = build_request(env)
-
-      expected = {
-        "Content-Type" => "application/json",
-        "Content-Length" => "12",
-        "Accept" => "application/json",
-        "Authorization" => "Token S3CR3T"
-      }
-
-      assert_equal expected, req.as_json[:headers]
-    end
 
     test "#as_json includes the remote IP" do
       env = Rack::MockRequest.env_for("/test", "REMOTE_ADDR" => "1.2.3.4")
@@ -173,26 +79,6 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       req = build_request(env)
 
       assert_equal "Some/UA", req.as_json[:userAgent]
-    end
-
-    test "#as_json includes the request body" do
-      env = Rack::MockRequest.env_for("/test", {
-        :method => "POST",
-        :input => "request_body",
-        "CONTENT_TYPE" => "application/json",
-        "HTTP_ACCEPT" => "application/json",
-        "HTTP_AUTHORIZATION" => "Token S3CR3T"
-      })
-      req = build_request(env)
-
-      assert_equal "request_body", req.as_json[:body]
-    end
-
-    test "#as_json returns nil as the request body for body-less requests" do
-      env = Rack::MockRequest.env_for("/test", "REMOTE_ADDR" => "1.2.3.4")
-      req = build_request(env)
-
-      assert_nil req.as_json[:body]
     end
 
     test "#as_json includes the framework handling the request as source" do
