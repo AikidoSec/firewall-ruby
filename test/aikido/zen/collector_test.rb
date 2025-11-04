@@ -84,7 +84,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     assert_includes @collector.hosts, c2
   end
 
-  test "#add_outbound doesn't count the same host/port pair more than once" do
+  test "#track_outbound doesn't count the same host/port pair more than once" do
     conn = stub_outbound(host: "example.com", port: 443)
 
     assert_difference "@collector.hosts.size", +1 do
@@ -95,7 +95,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     assert_includes @collector.hosts, conn
   end
 
-  test "#add_outbound limits the amount of connections tracked" do
+  test "#track_outbound limits the amount of connections tracked" do
     conn = stub_outbound(host: "example.com", port: 0)
     @collector.track_outbound(conn)
 
@@ -107,6 +107,23 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
     assert_equal @config.max_outbound_connections, @collector.hosts.size
     refute_includes @collector.hosts, conn
+  end
+
+  test "#track_outbound increments the hits detected for the connection" do
+    conn = stub_outbound(host: "example.com", port: 443)
+
+    assert_nil conn.hits
+
+    refute_includes @collector.hosts, conn
+
+    @collector.track_outbound(conn)
+
+    assert_equal @collector.hosts[conn].hits, 1
+
+    assert_difference "@collector.hosts[conn].hits", +2 do
+      @collector.track_outbound(conn)
+      @collector.track_outbound(conn)
+    end
   end
 
   test "#track_user tracks which users have visited the app" do
@@ -441,9 +458,9 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         }
       ],
       hostnames: [
-        {hostname: "example.com", port: 2000},
-        {hostname: "example.com", port: 2001},
-        {hostname: "example.com", port: 2002}
+        {hostname: "example.com", port: 2000, hits: 1},
+        {hostname: "example.com", port: 2001, hits: 1},
+        {hostname: "example.com", port: 2002, hits: 1}
       ]
     }
   end

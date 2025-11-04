@@ -25,13 +25,23 @@ module Aikido::Zen
     # @return [Integer] the port number to which the connection was attempted.
     attr_reader :port
 
+    # @return [Integer] the number of times that this connection was seen by
+    #   the hosts collector.
+    attr_reader :hits
+
     def initialize(host:, port:)
       @host = host
       @port = port
     end
 
+    def hit
+      # Lazy initialize @hits, so it stays nil until the connection is tracked.
+      @hits ||= 0
+      @hits += 1
+    end
+
     def as_json
-      {hostname: host, port: port}
+      {hostname: host, port: port, hits: hits}.compact
     end
 
     def ==(other)

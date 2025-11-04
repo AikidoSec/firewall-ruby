@@ -21,8 +21,8 @@ module Aikido::Zen
       end
     end
 
-    def each(&b)
-      each_value(&b)
+    def each(&blk)
+      each_value(&blk)
     end
 
     def as_json
