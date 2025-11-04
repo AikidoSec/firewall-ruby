@@ -55,7 +55,6 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       )
     end
 
-
     test "#as_json includes the remote IP" do
       env = Rack::MockRequest.env_for("/test", "REMOTE_ADDR" => "1.2.3.4")
       req = build_request(env)
