@@ -32,7 +32,7 @@ module Aikido::Zen
         end
 
         context.payloads.each do |payload|
-          next unless new(query, payload.value, dialect).attack?
+          next unless new(query, payload.value.to_s, dialect).attack?
 
           return Attacks::SQLInjectionAttack.new(
             sink: sink,
