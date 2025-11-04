@@ -109,6 +109,23 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     refute_includes @collector.hosts, conn
   end
 
+  test "#track_outbound increments the hits detected for the connection" do
+    conn = stub_outbound(host: "example.com", port: 443)
+
+    assert_nil conn.hits
+
+    refute_includes @collector.hosts, conn
+
+    @collector.track_outbound(conn)
+
+    assert_equal @collector.hosts[conn].hits, 1
+
+    assert_difference "@collector.hosts[conn].hits", +2 do
+      @collector.track_outbound(conn)
+      @collector.track_outbound(conn)
+    end
+  end
+
   test "#track_user tracks which users have visited the app" do
     initial_time = Time.utc(2024, 9, 1, 16, 20, 42)
 
@@ -441,9 +458,9 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         }
       ],
       hostnames: [
-        {hostname: "example.com", port: 2000},
-        {hostname: "example.com", port: 2001},
-        {hostname: "example.com", port: 2002}
+        {hostname: "example.com", port: 2000, hits: 1},
+        {hostname: "example.com", port: 2001, hits: 1},
+        {hostname: "example.com", port: 2002, hits: 1}
       ]
     }
   end
