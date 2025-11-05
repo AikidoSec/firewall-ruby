@@ -39,6 +39,12 @@ module Aikido::Zen
       [verb, path].hash
     end
 
+    def match?(other)
+      other.is_a?(Route) &&
+        File.fnmatch?(verb, other.verb) &&
+        File.fnmatch?(path, other.path)
+    end
+
     def inspect
       "#<#{self.class.name} #{verb} #{path.inspect}>"
     end

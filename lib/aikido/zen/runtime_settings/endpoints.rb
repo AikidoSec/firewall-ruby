@@ -33,7 +33,15 @@ module Aikido::Zen
     # @param route [Aikido::Zen::Route]
     # @return [Aikido::Zen::RuntimeSettings::ProtectionSettings]
     def [](route)
-      @endpoints[route]
+      return @endpoints[route] if @endpoints.key?(route)
+
+      # Wildcard endpoint matching
+
+      @endpoints.each do |pattern, settings|
+        return settings if pattern.match?(route)
+      end
+
+      @endpoints.default
     end
 
     # @!visibility private
