@@ -401,4 +401,52 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
       refute_attack "SELECT $tag$text$tag$", "$tag$text$tag$"
     end
   end
+
+  class RailsRequestTest < ActiveSupport::TestCase
+    setup do
+      Aikido::Zen.config.request_builder = Aikido::Zen::Context::RAILS_REQUEST_BUILDER
+    end
+
+    def env_for(path, env = {})
+      env = Rack::MockRequest.env_for(path, env)
+      Rails.application.env_config.merge(env)
+    end
+
+    def build_context_for(path, env = {})
+      env = env_for(path, env)
+      Aikido::Zen::Context.from_rack_env(env)
+    end
+
+    def stub_sink(name:)
+      Aikido::Zen::Sink.new(name, operation: "test", scanners: [NOOP])
+    end
+
+    def stub_payload(source, value, path)
+      Aikido::Zen::Payload.new(value, source, path)
+    end
+
+    test ".call detects attack when non-string value precedes malicious value in context" do
+      context = build_context_for("/users", {
+        :method => "POST",
+        :input => %({
+          "a": true,
+          "user": "1; DROP TABLE users;"
+        }),
+        "CONTENT_TYPE" => "application/json"
+      })
+
+      attack = Aikido::Zen::Scanners::SQLInjectionScanner.call(
+        query: "SELECT * FROM users WHERE id=1; DROP TABLE users;",
+        dialect: :common,
+        sink: stub_sink(name: "test"),
+        context: context,
+        operation: "test"
+      )
+
+      assert_kind_of Aikido::Zen::Attacks::SQLInjectionAttack, attack
+
+      assert_equal "SELECT * FROM users WHERE id=1; DROP TABLE users;", attack.query
+      assert_equal stub_payload(:body, "1; DROP TABLE users;", "user"), attack.input
+    end
+  end
 end
