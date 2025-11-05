@@ -16,7 +16,7 @@ module Aikido::Zen
       #
       def self.call(command:, sink:, context:, operation:)
         context.payloads.each do |payload|
-          next unless new(command, payload.value).attack?
+          next unless new(command, payload.value.to_s).attack?
 
           return Attacks::ShellInjectionAttack.new(
             sink: sink,

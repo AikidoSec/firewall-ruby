@@ -303,4 +303,51 @@ class Aikido::Zen::Scanners::ShellInjectionScannerTest < ActiveSupport::TestCase
   test "it detects shell injection with uppercase characters" do
     assert_attack "rm -rf", "rm -rf"
   end
+
+  class RailsRequestTest < ActiveSupport::TestCase
+    setup do
+      Aikido::Zen.config.request_builder = Aikido::Zen::Context::RAILS_REQUEST_BUILDER
+    end
+
+    def env_for(path, env = {})
+      env = Rack::MockRequest.env_for(path, env)
+      Rails.application.env_config.merge(env)
+    end
+
+    def build_context_for(path, env = {})
+      env = env_for(path, env)
+      Aikido::Zen::Context.from_rack_env(env)
+    end
+
+    def stub_sink(name:)
+      Aikido::Zen::Sink.new(name, operation: "test", scanners: [NOOP])
+    end
+
+    def stub_payload(source, value, path)
+      Aikido::Zen::Payload.new(value, source, path)
+    end
+
+    test ".call detects attack when non-string value precedes malicious value in context" do
+      context = build_context_for("/users", {
+        :method => "POST",
+        :input => %({
+          "a": true,
+          "user": "user; rm -rf /app/users"
+        }),
+        "CONTENT_TYPE" => "application/json"
+      })
+
+      attack = Aikido::Zen::Scanners::ShellInjectionScanner.call(
+        command: "ls /app/users/user; rm -rf /app/users",
+        sink: stub_sink(name: "test"),
+        context: context,
+        operation: "test"
+      )
+
+      assert_kind_of Aikido::Zen::Attacks::ShellInjectionAttack, attack
+
+      assert_equal stub_payload(:body, "user; rm -rf /app/users", "user"), attack.input
+      assert_equal "ls /app/users/user; rm -rf /app/users", attack.command
+    end
+  end
 end
