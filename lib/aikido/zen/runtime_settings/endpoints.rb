@@ -16,17 +16,17 @@ module Aikido::Zen
     # @param data [Array<Hash>]
     # @return [Aikido::Zen::RuntimeSettings::Endpoints]
     def self.from_json(data)
-      data = Array(data).map { |item|
+      endpoints = Array(data).map do |item|
         route = Route.new(verb: item["method"], path: item["route"])
         settings = RuntimeSettings::ProtectionSettings.from_json(item)
         [route, settings]
-      }.to_h
+      end.to_h
 
-      new(data)
+      new(endpoints)
     end
 
-    def initialize(data = {})
-      @endpoints = data
+    def initialize(endpoints = {})
+      @endpoints = endpoints
       @endpoints.default = RuntimeSettings::ProtectionSettings.none
     end
 
