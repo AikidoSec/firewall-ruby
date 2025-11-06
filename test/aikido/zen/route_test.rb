@@ -28,4 +28,32 @@ class Aikido::Zen::RouteTest < ActiveSupport::TestCase
     route = Aikido::Zen::Route.new(verb: "GET", path: "/users/:id")
     assert_equal({method: "GET", path: "/users/:id"}, route.as_json)
   end
+
+  test "routes support wildcard matching on verbs" do
+    pattern = Aikido::Zen::Route.new(verb: "*", path: "/users")
+
+    route1 = Aikido::Zen::Route.new(verb: "GET", path: "/users")
+    route2 = Aikido::Zen::Route.new(verb: "POST", path: "/users")
+
+    assert pattern.match?(route1)
+    assert pattern.match?(route2)
+  end
+
+  test "routes support wildcard matching on paths" do
+    pattern = Aikido::Zen::Route.new(verb: "GET", path: "/users/*")
+
+    route1 = Aikido::Zen::Route.new(verb: "GET", path: "/users/1")
+    route2 = Aikido::Zen::Route.new(verb: "GET", path: "/users/2")
+
+    assert pattern.match?(route1)
+    assert pattern.match?(route2)
+
+    pattern = Aikido::Zen::Route.new(verb: "GET", path: "/users/*/file/*")
+
+    route1 = Aikido::Zen::Route.new(verb: "GET", path: "/users/1/file/one.txt")
+    route2 = Aikido::Zen::Route.new(verb: "GET", path: "/users/2/file/two.txt")
+
+    assert pattern.match?(route1)
+    assert pattern.match?(route2)
+  end
 end
