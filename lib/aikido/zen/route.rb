@@ -41,12 +41,27 @@ module Aikido::Zen
 
     def match?(other)
       other.is_a?(Route) &&
-        File.fnmatch?(verb, other.verb) &&
-        File.fnmatch?(path, other.path)
+        pattern(verb).match?(other.verb) &&
+        pattern(path).match?(other.path)
     end
 
     def inspect
       "#<#{self.class.name} #{verb} #{path.inspect}>"
+    end
+
+    # Construct a regular expression equivalent to the wildcard string,
+    # where '*' is the wildcard operator.
+    #
+    # The resulting pattern matches the entire input, allows an optional
+    # trailing slash, and is case-insensitive.
+    #
+    # All other special characters in the regular expression are escaped
+    # so that they are treated literally.
+    #
+    # @param string [String] wildcard string
+    # @return [Regexp] regular expression matching the wildcard string
+    private def pattern(string)
+      /^#{Regexp.escape(string).gsub("\\*", ".*")}\/?$/i
     end
   end
 end
