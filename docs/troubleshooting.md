@@ -53,12 +53,6 @@ Rails.application.config.zen.debugging = true
 
 Or set `AIKIDO_DEBUG=true` in your environment.
 
-## Confirm the gem is installed
-
-```sh
-bundle exec gem which aikido-zen
-```
-
 ## Contact support
 
 If you still can't resolve the problem:
