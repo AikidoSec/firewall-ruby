@@ -3,7 +3,7 @@
 require "test_helper"
 
 class Aikido::Zen::RouteTest < ActiveSupport::TestCase
-  test "two routes are equal if their verb and path are equql" do
+  test "two routes are equal if their verb and path are equal" do
     r1 = Aikido::Zen::Route.new(verb: "GET", path: "/")
     r2 = Aikido::Zen::Route.new(verb: "GET", path: "/")
     r3 = Aikido::Zen::Route.new(verb: "GET", path: "/nope")
