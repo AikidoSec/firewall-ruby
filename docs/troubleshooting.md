@@ -10,7 +10,7 @@ Make sure:
 - Your runtime and framework are supported (see [Supported libraries and frameworks](../README.md#supported-libraries-and-frameworks)).
 - The package installed successfully.
 - The firewall is initialized early in your app.
-- Your framework-specific integration matches the example in the README.
+- Your framework-specific integration matches the example in the docs (for Rails, see the example in [docs/rails.md](../docs/rails.md)).
 
 ## Check connection to Aikido
 
