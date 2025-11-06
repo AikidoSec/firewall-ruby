@@ -1,30 +1,40 @@
 # Troubleshooting
 
+If the Zen Firewall isn't working as expected, follow these steps in order to diagnose common issues.
+
 ## Review installation steps
 
 Double-check your setup against the [installation guide](../README.md#installation).
+
 Make sure:
-- The package installed correctly.
-- The firewall is initialized early in your app (before routes or handlers).
-- Your framework-specific integration (middleware, decorator, etc.) matches the example in the README.
-- You’re running a supported runtime version for your language.
+- Your runtime and framework are supported (see [Supported libraries and frameworks](../README.md#supported-libraries-and-frameworks)).
+- The package installed successfully.
+- The firewall is initialized early in your app.
+- Your framework-specific integration matches the example in the README.
 
 ## Check connection to Aikido
 
-The firewall must be able to reach Aikido’s API endpoints.
+The firewall must be able to reach Aikido's API endpoints.
 
-Test from the same environment where your app runs and follow the instructions on this page: https://help.aikido.dev/zen-firewall/miscellaneous/outbound-network-connections-for-zen
+Test connectivity from the same environment where your app runs, following the instructions on this page: https://help.aikido.dev/zen-firewall/miscellaneous/outbound-network-connections-for-zen
 
 ## Check logs for errors
 
 Common places:
+- Local dev: `cat log/development.log` or `tail -f log/development.log`
 - Docker: `docker logs <your-app-container>`
 - systemd: `journalctl -u <your-app-service> --since "1 hour ago"`
-- Local dev: your terminal or IDE run console
 
-Tip: search for lines that contain `Aikido` or `AikidoZen`.
+Tip: search logs for lines containing `Aikido` or `Zen`.
 
-## Enable debug logs temporarily
+For example:
+
+```sh
+grep -Ei 'aikido|zen' log/development.log
+```
+
+## Enable debug output temporarily
+
 If you use Rails, set the log level to `info` or `debug` while you investigate.
 
 ```ruby
@@ -32,63 +42,28 @@ If you use Rails, set the log level to `info` or `debug` while you investigate.
 config.log_level = :info # use :debug if needed
 ```
 
-If you have your own logger, make sure AikidoZen logs go to stdout.
+If you have your own logger, make sure Zen logs go to stdout.
+
+You can enable Zen debugging mode as follows.
+
+```ruby
+# config/initializers/zen.rb
+Rails.application.config.zen.debugging = true
+```
+
+Or set `AIKIDO_DEBUG=true` in your environment.
 
 ## Confirm the gem is installed
 
-```
-bundle list | grep -i aikido
-gem list | grep -i aikido
-```
-
-## Confirm it is wired early in the Rack stack
-The firewall must see every request before your routes or other middleware.
-
-Rails
-
-Add the middleware near the top of the stack.
-
-```
-# config/application.rb
-config.middleware.insert_before 0, AikidoZen::Middleware
-```
-
-You can also keep this in an initializer:
-
-```
-# config/initializers/aikido_zen.rb
-Rails.application.config.middleware.insert_before 0, AikidoZen::Middleware
-```
-
-Check the stack order: `rails middleware`
-
-Sinatra or pure Rack
-
-Use the middleware in config.ru before routes are mounted.
-
-```
-# config.ru
-require "aikido_zen"
-use AikidoZen::Middleware
-run MyApp
-
-```
-
-If your integration uses an explicit call
-
-Some setups expose a helper to wrap the app.
-
-```
-# config.ru
-require "aikido_zen"
-run AikidoZen.protect(MyApp)
+```sh
+bundle exec gem which aikido-zen
 ```
 
 ## Contact support
 
-If you still can’t resolve the issue:
+If you still can't resolve the problem:
 
 - Use the in-app chat to reach our support team directly.
 - Or create an issue on [GitHub](https://github.com/AikidoSec/firewall-ruby/issues) with details about your setup, framework, and logs.
 
-Include as much context as possible (framework, logs, and how Aikido was added) so we can help you quickly.
+Include as much context as possible; this helps us respond faster.
