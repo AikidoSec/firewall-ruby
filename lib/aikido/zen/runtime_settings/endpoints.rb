@@ -16,15 +16,22 @@ module Aikido::Zen
     # @param data [Array<Hash>]
     # @return [Aikido::Zen::RuntimeSettings::Endpoints]
     def self.from_json(data)
-      endpoints = Array(data).map do |item|
-        route = Route.new(verb: item["method"], path: item["route"])
-        settings = RuntimeSettings::ProtectionSettings.from_json(item)
+      endpoint_pairs = Array(data).map do |value|
+        route = Route.new(verb: value["method"], path: value["route"])
+        settings = RuntimeSettings::ProtectionSettings.from_json(value)
         [route, settings]
-      end.to_h
+      end
 
-      new(endpoints)
+      # Sort endpoints by wildcard matching order
+      endpoint_pairs.sort_by! do |route, settings|
+        route.sort_key
+      end
+
+      new(endpoint_pairs.to_h)
     end
 
+    # @param endpoints [Hash] the endpoints in wildcard matching order
+    # @return [Aikido::Zen::RuntimeSettings::Endpoints]
     def initialize(endpoints = {})
       @endpoints = endpoints
       @endpoints.default = RuntimeSettings::ProtectionSettings.none

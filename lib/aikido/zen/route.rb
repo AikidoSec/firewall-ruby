@@ -39,6 +39,35 @@ module Aikido::Zen
       [verb, path].hash
     end
 
+    # Sort routes by wildcard matching order deterministically:
+    #
+    #   1. Exact path before wildcard path
+    #   2. Fewer wildcards in path relative to path length
+    #   3. Earliest wildcard position in path
+    #   4. Exact verb before wildcard verb
+    #   5. Lexicographic path (tie-break)
+    #   6. Lexicographic verb (tie-break)
+    #
+    # @return [Array] the sort key
+    def sort_key
+      @sort_key ||= begin
+        stars = []
+        i = -1
+        while (i = path.index("*", i + 1))
+          stars << i
+        end
+
+        [
+          stars.empty? ? 0 : 1,
+          stars.length - path.length,
+          stars,
+          (verb == "*") ? 1 : 0,
+          path,
+          verb
+        ].freeze
+      end
+    end
+
     def match?(other)
       other.is_a?(Route) &&
         pattern(verb).match?(other.verb) &&
