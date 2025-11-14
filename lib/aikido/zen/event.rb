@@ -41,12 +41,12 @@ module Aikido::Zen
 
       def as_json
         result = super.update(attack: @attack.as_json)
-        
+
         # Include request data only if context and request are available
         if @attack.context&.request
           result[:request] = @attack.context.request.as_json
         end
-        
+
         result
       end
     end
