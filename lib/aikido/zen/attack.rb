@@ -199,7 +199,7 @@ module Aikido::Zen
       end
 
       def kind
-        "ssrf"
+        "stored_ssrf"
       end
 
       def input
