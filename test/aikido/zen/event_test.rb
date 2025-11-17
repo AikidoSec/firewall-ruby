@@ -81,6 +81,13 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
       assert_equal context.request.as_json, event.as_json[:request]
     end
 
+    test "request key is absent when context is nil" do
+      attack = TestAttack.new(context: nil)
+      event = Aikido::Zen::Events::Attack.new(attack: attack)
+
+      refute event.as_json.key?(:request)
+    end
+
     def stub_context(**options)
       env = Rack::MockRequest.env_for("/test", **options)
       Aikido::Zen::Context.from_rack_env(env)

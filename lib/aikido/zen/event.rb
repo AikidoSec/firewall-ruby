@@ -41,8 +41,10 @@ module Aikido::Zen
 
       def as_json
         super.update(
-          attack: @attack.as_json,
-          request: @attack.context.request.as_json
+          {
+            attack: @attack.as_json,
+            request: @attack.context&.request&.as_json
+          }.compact
         )
       end
     end
