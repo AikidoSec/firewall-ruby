@@ -24,16 +24,16 @@ module Aikido::Zen
       def self.suspicious_path?(path)
         path_parts = path.downcase.split("/")
 
-        file_name = path_parts.pop
+        file_name = path_parts.pop if path_parts.length > 0
 
         if file_name
           return true if SUSPICIOUS_FILE_NAMES.include?(file_name)
 
-          filename_parts = file_name.split(".")
+          file_name_parts = file_name.split(".")
 
-          extension = filename_parts.pop
+          file_extension = file_name_parts.pop if file_name_parts.length > 1
 
-          return true if SUSPICIOUS_FILE_EXTENSIONS.include?(extension)
+          return true if SUSPICIOUS_FILE_EXTENSIONS.include?(file_extension)
         end
 
         path_parts.any? do |directory_name|
