@@ -21,28 +21,39 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
 
   test "#call detects attack waves, collects statistics, and reports the event" do
     app = Minitest::Mock.new
-    app.expect :call, [200, {}, ["OK"]], [Hash]
-
     zen = Minitest::Mock.new
+    agent = Minitest::Mock.new
 
     middleware = Aikido::Zen::Middleware::AttackWaveProtector.new(app, zen: zen)
 
     context = build_context_for("/.config", DEFAULT_ENV)
 
+    zen.expect :current_context, context
     zen.expect :attack_wave_detector, Aikido::Zen.attack_wave_detector
-    middleware.protect(context)
+    app.expect :call, [200, {}, ["OK"]], [Hash]
+    middleware.call({})
 
+    assert_mock zen
+    assert_mock app
+
+    zen.expect :current_context, context
     zen.expect :attack_wave_detector, Aikido::Zen.attack_wave_detector
-    middleware.protect(context)
+    app.expect :call, [200, {}, ["OK"]], [Hash]
+    middleware.call({})
 
-    agent = Minitest::Mock.new
-    agent.expect(:report, nil) { |arg| arg.is_a?(Aikido::Zen::Events::AttackWave) }
+    assert_mock zen
+    assert_mock app
 
+    zen.expect :current_context, context
     zen.expect :attack_wave_detector, Aikido::Zen.attack_wave_detector
     zen.expect :agent, agent
     zen.expect(:track_attack_wave, nil) { |arg| arg.is_a?(Aikido::Zen::Events::AttackWave) }
-    middleware.protect(context)
+    agent.expect(:report, nil) { |arg| arg.is_a?(Aikido::Zen::Events::AttackWave) }
+    app.expect :call, [200, {}, ["OK"]], [Hash]
+    middleware.call({})
 
     assert_mock zen
+    assert_mock agent
+    assert_mock app
   end
 end

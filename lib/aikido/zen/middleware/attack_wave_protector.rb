@@ -10,7 +10,7 @@ module Aikido
         end
 
         def call(env)
-          context = Aikido::Zen.current_context
+          context = @zen.current_context
           protect(context)
 
           @app.call(env)
