@@ -89,10 +89,6 @@ module Aikido
       @collector ||= Collector.new
     end
 
-    def self.detached_agent
-      @detached_agent ||= DetachedAgent::Agent.new
-    end
-
     # Gets the current context object that holds all information about the
     # current request.
     #
@@ -217,6 +213,10 @@ module Aikido
     # Starts the background agent if it has not been started yet.
     def self.agent
       @agent ||= Agent.start
+    end
+
+    def self.detached_agent
+      @detached_agent ||= DetachedAgent::Agent.new
     end
 
     def self.detached_agent_server
