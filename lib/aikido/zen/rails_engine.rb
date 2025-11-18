@@ -17,6 +17,7 @@ module Aikido::Zen
       # Request Tracker stats do not consider failed request or 40x, so the middleware
       # must be the last one wrapping the request.
       app.middleware.use Aikido::Zen::Middleware::RequestTracker
+      app.middleware.use Aikido::Zen::Middleware::AttackWaveProtector
 
       ActiveSupport.on_load(:action_controller) do
         # Due to how Rails sets up its middleware chain, the routing is evaluated

@@ -13,6 +13,14 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     TrackRequest.from_json(data)
   end
 
+  def stub_track_attack_wave_event(being_blocked: false)
+    TrackAttackWave.new(being_blocked: being_blocked)
+  end
+
+  def stub_track_attack_wave_event_from_json(data)
+    TrackAttackWave.from_json(data)
+  end
+
   def stub_track_scan_event
     TrackScan.new("sink_name", 1.0, has_errors: false)
   end
@@ -124,6 +132,46 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
 
     collector = Minitest::Mock.new
     collector.expect :handle_track_request, nil, []
+
+    event.handle(collector)
+
+    assert_mock collector
+  end
+
+  test "create new track attack wave event" do
+    assert_silent { stub_track_attack_wave_event }
+  end
+
+  test "serialize track attack wave event as JSON" do
+    event = stub_track_attack_wave_event
+
+    assert_hash_subset_of event.as_json, {
+      type: "track_attack_wave"
+    }
+  end
+
+  test "deserialize track attack wave event from JSON" do
+    event = stub_track_attack_wave_event
+    event_hash = event.as_json
+
+    other = stub_track_attack_wave_event_from_json(event_hash)
+
+    assert_equal event_hash, other.as_json
+  end
+
+  test "deserialize event for track attack wave from JSON" do
+    event = stub_track_attack_wave_event
+
+    other = stub_event_from_json(event.as_json)
+
+    assert_equal TrackAttackWave, other.class
+  end
+
+  test "track attack wave handle calls handle_track_attack_wave" do
+    event = stub_track_attack_wave_event
+
+    collector = Minitest::Mock.new
+    collector.expect(:handle_track_attack_wave, nil, being_blocked: false)
 
     event.handle(collector)
 

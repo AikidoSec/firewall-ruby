@@ -158,6 +158,25 @@ module Aikido::Zen
     attr_accessor :harden
     alias_method :harden?, :harden
 
+    # @return [Integer] how many suspicious requests are allowed before an
+    #   attack wave detected event is reported.
+    #   Defaults to 15 minutes in seconds.
+    attr_accessor :attack_wave_threshold
+
+    # @return [Integer] the minimum time in milliseconds between requests for
+    #   requests to be part of an attack wave.
+    #   Defaults to 1 minute in milliseconds.
+    attr_accessor :attack_wave_min_time_between_requests
+
+    # @return [Integer] the minimum time in milliseconds between reporting
+    #   attack wave events.
+    #   Defaults to 20 minutes in milliseconds.
+    attr_accessor :attack_wave_min_time_between_events
+
+    # @return [Integer] the maximum number of entries in the LRU cache.
+    #   Defaults to 10,000 entries.
+    attr_accessor :attack_wave_max_cache_entries
+
     def initialize
       self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
       self.blocking_mode = read_boolean_from_env(ENV.fetch("AIKIDO_BLOCK", false))
@@ -191,6 +210,10 @@ module Aikido::Zen
       self.stored_ssrf = read_boolean_from_env(ENV.fetch("AIKIDO_FEATURE_STORED_SSRF", true))
       self.imds_allowed_hosts = ["metadata.google.internal", "metadata.goog"]
       self.harden = read_boolean_from_env(ENV.fetch("AIKIDO_HARDEN", true))
+      self.attack_wave_threshold = 15 # 15 min
+      self.attack_wave_min_time_between_requests = 60 * 1000 # 1 min (ms)
+      self.attack_wave_min_time_between_events = 20 * 60 * 1000 # 20 min (ms)
+      self.attack_wave_max_cache_entries = 10_000
     end
 
     # Set the base URL for API requests.

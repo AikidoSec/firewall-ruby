@@ -23,6 +23,7 @@ Zen will autonomously protect your Ruby applications against:
 * 🛡️ [Command injection attacks](https://www.aikido.dev/blog/command-injection-in-2024-unpacked)
 * 🛡️ [Path traversal attacks](https://www.aikido.dev/blog/path-traversal-in-2024-the-year-unpacked)
 * 🛡️ [NoSQL injection attacks](https://www.aikido.dev/blog/web-application-security-vulnerabilities) (coming soon)
+* 🛡️ [Attack waves](https://help.aikido.dev/zen-firewall/zen-features/attack-wave-protection)
 
 Zen operates autonomously on the same server as your Ruby app to:
 

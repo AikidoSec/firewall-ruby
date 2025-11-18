@@ -69,5 +69,48 @@ module Aikido::Zen
         )
       end
     end
+
+    class AttackWave < Event
+      # @param [Aikido::Zen::Context] a context
+      # @return [Aikido::Zen::Events::AttackWave] an attack wave event
+      def self.from_context(context)
+        request = Aikido::Zen::AttackWave::Request.new(
+          ip_address: context.request.ip,
+          user_agent: context.request.user_agent,
+          source: context.request.framework
+        )
+
+        attack = Aikido::Zen::AttackWave::Attack.new(
+          metadata: {}, # not used yet
+          user: context.request.actor
+        )
+
+        new(request: request, attack: attack)
+      end
+
+      # @return [Aikido::Zen::AttackWave::Request]
+      attr_reader :request
+
+      # @return [Aikido::Zen::AttackWave::Attack]
+      attr_reader :attack
+
+      # @param [Aikido::Zen::AttackWave::Request] the attack wave request
+      # @param [Aikido::Zen::AttackWave::Attack] the attack wave attack
+      # @param opts [Hash<Symbol, Object>] any other options to pass to
+      #   the superclass initializer.
+      # @return [Aikido::Zen::Events::AttackWave] an attack wave event
+      def initialize(request:, attack:, **opts)
+        super(type: "detected_attack_wave", **opts)
+        @request = request
+        @attack = attack
+      end
+
+      def as_json
+        super.update(
+          request: @attack.as_json,
+          attack: @attack.as_json
+        )
+      end
+    end
   end
 end

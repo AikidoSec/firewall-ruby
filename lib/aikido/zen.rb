@@ -16,10 +16,12 @@ require_relative "zen/middleware/fork_detector"
 require_relative "zen/middleware/set_context"
 require_relative "zen/middleware/check_allowed_addresses"
 require_relative "zen/middleware/request_tracker"
+require_relative "zen/middleware/attack_wave_protector"
 require_relative "zen/outbound_connection"
 require_relative "zen/outbound_connection_monitor"
 require_relative "zen/runtime_settings"
 require_relative "zen/rate_limiter"
+require_relative "zen/attack_wave"
 require_relative "zen/scanners"
 
 module Aikido
@@ -112,6 +114,14 @@ module Aikido
     # @return [void]
     def self.track_request(request)
       collector.track_request
+    end
+
+    # Track statistics about an attack wave the app is handling.
+    #
+    # @param attack_wave [Aikido::Zen::Events::AttackWave]
+    # @return [void]
+    def self.track_attack_wave(attack_wave)
+      collector.track_attack_wave
     end
 
     # Track statistics about a route that the app has discovered.

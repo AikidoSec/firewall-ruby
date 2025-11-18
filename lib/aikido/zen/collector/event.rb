@@ -52,6 +52,35 @@ module Aikido::Zen
         end
       end
 
+      class TrackAttackWave < Event
+        register "track_attack_wave"
+
+        def self.from_json(data)
+          new(
+            being_blocked: data[:being_blocked]
+          )
+        end
+
+        def initialize(being_blocked:)
+          super()
+          @being_blocked = being_blocked
+        end
+
+        def as_json
+          super.update({
+            being_blocked: @being_blocked
+          })
+        end
+
+        def handle(collector)
+          collector.handle_track_attack_wave(being_blocked: @being_blocked)
+        end
+
+        def inspect
+          "#<#{self.class.name} #{@being_blocked}>"
+        end
+      end
+
       class TrackScan < Event
         register "track_scan"
 
