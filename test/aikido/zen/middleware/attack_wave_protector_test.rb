@@ -30,7 +30,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
 
     zen.expect :current_context, context
     zen.expect :attack_wave_detector, Aikido::Zen.attack_wave_detector
-    app.expect :call, [200, {}, ["OK"]], [Hash]
+    app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
     assert_mock zen
@@ -38,7 +38,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
 
     zen.expect :current_context, context
     zen.expect :attack_wave_detector, Aikido::Zen.attack_wave_detector
-    app.expect :call, [200, {}, ["OK"]], [Hash]
+    app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
     assert_mock zen
@@ -49,7 +49,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     zen.expect :agent, agent
     zen.expect(:track_attack_wave, nil) { |arg| arg.is_a?(Aikido::Zen::Events::AttackWave) }
     agent.expect(:report, nil) { |arg| arg.is_a?(Aikido::Zen::Events::AttackWave) }
-    app.expect :call, [200, {}, ["OK"]], [Hash]
+    app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
     assert_mock zen

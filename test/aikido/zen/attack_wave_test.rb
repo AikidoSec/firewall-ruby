@@ -124,10 +124,10 @@ class Aikido::Zen::AttackWaveTest < ActiveSupport::TestCase
     end
 
     test "attack waves from web scanners are detected when the method is suspicious" do
-      refute_attack_wave_for("/", {method: "SAFE"})
-      assert_attack_wave_for("/", {method: "BADMETHOD"})
-      assert_attack_wave_for("/", {method: "BADHTTPMETHOD"})
-      assert_attack_wave_for("/", {method: "BADDATA"})
+      refute_attack_wave_for("/", {method: "SAFE"}, detector: nil)
+      assert_attack_wave_for("/", {method: "BADMETHOD"}, detector: nil)
+      assert_attack_wave_for("/", {method: "BADHTTPMETHOD"}, detector: nil)
+      assert_attack_wave_for("/", {method: "BADDATA"}, detector: nil)
     end
 
     test "attack waves from web scanners are detected when the query includes a suspicious SQL keyword" do
