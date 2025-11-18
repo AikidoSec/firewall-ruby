@@ -118,6 +118,10 @@ module Aikido
       collector.track_request
     end
 
+    # Track statistics about a route that the app has discovered.
+    #
+    # @param request [Aikido::Zen::Request]
+    # @return [void]
     def self.track_discovered_route(request)
       collector.track_route(request)
     end
@@ -171,6 +175,11 @@ module Aikido
     # @return void
     def self.middleware_installed!
       collector.middleware_installed!
+    end
+
+    # @return [Aikido::Zen::AttackWave::Detector] the attack wave detector.
+    def self.attack_wave_detector
+      @attack_wave_detector ||= AttackWave::Detector.new
     end
 
     # @!visibility private
