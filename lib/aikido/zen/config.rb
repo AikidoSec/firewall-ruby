@@ -165,8 +165,8 @@ module Aikido::Zen
       self.api_endpoint = ENV.fetch("AIKIDO_ENDPOINT", DEFAULT_AIKIDO_ENDPOINT)
       self.realtime_endpoint = ENV.fetch("AIKIDO_REALTIME_ENDPOINT", DEFAULT_RUNTIME_BASE_URL)
       self.api_token = ENV.fetch("AIKIDO_TOKEN", nil)
-      self.polling_interval = 60
-      self.initial_heartbeat_delays = [30, 60 * 2]
+      self.polling_interval = 60 # 1 min
+      self.initial_heartbeat_delays = [30, 60 * 2] # 30 sec, 2 min
       self.json_encoder = DEFAULT_JSON_ENCODER
       self.json_decoder = DEFAULT_JSON_DECODER
       self.debugging = read_boolean_from_env(ENV.fetch("AIKIDO_DEBUG", false))
@@ -181,8 +181,8 @@ module Aikido::Zen
       self.blocked_responder = DEFAULT_BLOCKED_RESPONDER
       self.rate_limited_responder = DEFAULT_RATE_LIMITED_RESPONDER
       self.rate_limiting_discriminator = DEFAULT_RATE_LIMITING_DISCRIMINATOR
-      self.server_rate_limit_deadline = 1800 # 30 min
-      self.client_rate_limit_period = 3600 # 1 hour
+      self.server_rate_limit_deadline = 30 * 60 # 30 min
+      self.client_rate_limit_period = 60 * 60 # 1 hour
       self.client_rate_limit_max_events = 100
       self.collect_api_schema = read_boolean_from_env(ENV.fetch("AIKIDO_FEATURE_COLLECT_API_SCHEMA", true))
       self.api_schema_max_samples = Integer(ENV.fetch("AIKIDO_MAX_API_DISCOVERY_SAMPLES", 10))
