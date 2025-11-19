@@ -21,7 +21,7 @@ jobs:
       - name: Checkout firewall-ruby
         uses: actions/checkout@v5
         with:
-          path: zen-demo-ruby/tmp/firewall-ruby
+          path: zen-demo-ruby/firewall-ruby
 
 
       # We need Ruby + Bundler on the runner to regenerate Gemfile.lock
@@ -39,7 +39,7 @@ jobs:
           grep -n "aikido-zen" Gemfile || true
       
           # Replace the aikido-zen dependency to use the local path
-          sed -i "s/^gem ['\"]aikido-zen['\"].*/gem 'aikido-zen', path: 'tmp\/firewall-ruby'/g" Gemfile
+          sed -i "s/^gem ['\"]aikido-zen['\"].*/gem 'aikido-zen', path: 'firewall-ruby'/g" Gemfile
 
           echo "Gemfile after patch:"
           grep -n "aikido-zen" Gemfile
@@ -51,7 +51,7 @@ jobs:
           bundle install
 
           # Update Dockerfile to copy the firewall-ruby directory
-          sed -i "s/^COPY Gemfile Gemfile.lock ./COPY Gemfile Gemfile.lock tmp\//g" Dockerfile
+          sed -i "s/^COPY Gemfile Gemfile.lock .*/COPY Gemfile Gemfile.lock .\/\nCOPY firewall-ruby\/ .\/firewall-ruby/g" Dockerfile
       
           # Print Dockerfile
           echo "Dockerfile:"
