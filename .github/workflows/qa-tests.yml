@@ -34,6 +34,7 @@ jobs:
       - name: Download libzen for current platform
         working-directory: zen-demo-ruby/firewall-ruby
         run: |
+          bundle config set --local without ''
           bundle install
           bundle exec rake libzen:download:current
 
