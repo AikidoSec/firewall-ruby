@@ -39,7 +39,7 @@ jobs:
           grep -n "aikido-zen" Gemfile || true
       
           # Replace the aikido-zen dependency to use the local path
-          sed -i "s/^gem ['\"]aikido-zen['\"].*/gem 'aikido-zen', path: 'firewall-ruby'/g" Gemfile
+          sed -i "s/^gem ['\"]aikido-zen['\"].*/gem 'aikido-zen', path: 'tmp\/firewall-ruby'/g" Gemfile
 
           echo "Gemfile after patch:"
           grep -n "aikido-zen" Gemfile
