@@ -12,9 +12,9 @@ module Aikido::Zen
       end
 
       def self.suspicious_request?(context)
-        route = context.request.route
+        request = context.request
 
-        suspicious_method?(route.verb) || suspicious_path?(route.path)
+        suspicious_method?(request.request_method) || suspicious_path?(request.path_info)
       end
 
       def self.suspicious_method?(method)
