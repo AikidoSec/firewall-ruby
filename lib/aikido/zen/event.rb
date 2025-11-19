@@ -75,7 +75,7 @@ module Aikido::Zen
       # @return [Aikido::Zen::Events::AttackWave] an attack wave event
       def self.from_context(context)
         request = Aikido::Zen::AttackWave::Request.new(
-          ip_address: context.request.ip,
+          ip_address: context.request.client_ip,
           user_agent: context.request.user_agent,
           source: context.request.framework
         )
