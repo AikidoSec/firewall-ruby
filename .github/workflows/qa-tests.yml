@@ -36,7 +36,7 @@ jobs:
         run: |
           bundle config set --local without ''
           bundle install
-          bundle exec rake libzen:download:current
+          bundle exec ruby -e "require 'bundler/setup'; load 'tasklib/libzen.rake'; Rake::Task['libzen:download:current'].invoke"
 
       - name: Patch Gemfile to use the local firewall-ruby directory
         working-directory: zen-demo-ruby
