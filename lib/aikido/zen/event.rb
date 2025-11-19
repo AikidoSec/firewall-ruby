@@ -107,7 +107,7 @@ module Aikido::Zen
 
       def as_json
         super.update(
-          request: @attack.as_json,
+          request: @request.as_json,
           attack: @attack.as_json
         )
       end
