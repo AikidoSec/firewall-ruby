@@ -173,7 +173,7 @@ module Aikido::Zen
       def metadata
         {
           hostname: @request.uri.hostname,
-          port: @request.uri.port
+          port: @request.uri.port.to_s
         }
       end
     end
