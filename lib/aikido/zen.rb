@@ -121,7 +121,7 @@ module Aikido
     # @param attack_wave [Aikido::Zen::Events::AttackWave]
     # @return [void]
     def self.track_attack_wave(attack_wave)
-      collector.track_attack_wave
+      collector.track_attack_wave(being_blocked: false)
     end
 
     # Track statistics about a route that the app has discovered.
