@@ -31,6 +31,12 @@ jobs:
           ruby-version: '3.3.8'
           bundler-cache: false
 
+      - name: Download libzen for current platform
+        working-directory: zen-demo-ruby/firewall-ruby
+        run: |
+          bundle install
+          bundle exec rake libzen:download:current
+
       - name: Patch Gemfile to use the local firewall-ruby directory
         working-directory: zen-demo-ruby
         run: |
