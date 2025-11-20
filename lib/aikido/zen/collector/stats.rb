@@ -102,11 +102,11 @@ module Aikido::Zen
           attacksDetected: {
             total: total_attacks,
             blocked: total_blocked
+          },
+          attackWaves: {
+            total: @attack_waves,
+            blocked: @blocked_attack_waves
           }
-        },
-        attackWaves: {
-          total: @attack_waves,
-          blocked: @blocked_attack_waves
         }
       }
     end
