@@ -10,10 +10,12 @@ module Aikido
         end
 
         def call(env)
+          response = @app.call(env)
+
           context = @zen.current_context
           protect(context)
 
-          @app.call(env)
+          response
         end
 
         # @api private
