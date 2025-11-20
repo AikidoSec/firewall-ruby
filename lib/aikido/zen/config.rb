@@ -160,7 +160,7 @@ module Aikido::Zen
 
     # @return [Integer] how many suspicious requests are allowed before an
     #   attack wave detected event is reported.
-    #   Defaults to 15 minutes in seconds.
+    #   Defaults to 15 requests.
     attr_accessor :attack_wave_threshold
 
     # @return [Integer] the minimum time in milliseconds between requests for
