@@ -201,11 +201,11 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           attacksDetected: {
             total: 0,
             blocked: 0
+          },
+          attackWaves: {
+            total: 0,
+            blocked: 0
           }
-        },
-        attackWaves: {
-          total: 0,
-          blocked: 0
         }
       },
       users: [],
@@ -240,11 +240,11 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           attacksDetected: {
             total: 0,
             blocked: 0
+          },
+          attackWaves: {
+            total: 5,
+            blocked: 2
           }
-        },
-        attackWaves: {
-          total: 5,
-          blocked: 2
         }
       },
       users: [],
@@ -280,11 +280,11 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           attacksDetected: {
             total: 0,
             blocked: 0
+          },
+          attackWaves: {
+            total: 0,
+            blocked: 0
           }
-        },
-        attackWaves: {
-          total: 0,
-          blocked: 0
         },
         sinks: {
           "test" => {
@@ -392,11 +392,11 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           attacksDetected: {
             total: 2,
             blocked: 2
+          },
+          attackWaves: {
+            total: 0,
+            blocked: 0
           }
-        },
-        attackWaves: {
-          total: 0,
-          blocked: 0
         }
       },
       users: [],
@@ -471,11 +471,11 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           attacksDetected: {
             total: 1,
             blocked: 1
+          },
+          attackWaves: {
+            total: 3,
+            blocked: 1
           }
-        },
-        attackWaves: {
-          total: 3,
-          blocked: 1
         }
       },
       middlewareInstalled: false,

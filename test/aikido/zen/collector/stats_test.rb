@@ -176,6 +176,10 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
         attacksDetected: {
           total: 0,
           blocked: 0
+        },
+        attackWaves: {
+          total: 0,
+          blocked: 0
         }
       }
     }
