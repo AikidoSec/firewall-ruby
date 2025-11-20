@@ -24,6 +24,13 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     end
   end
 
+  test "#track_request increments the number of attack waves" do
+    assert_difference "@collector.stats.attack_waves", +2 do
+      @collector.track_attack_wave(being_blocked: false)
+      @collector.track_attack_wave(being_blocked: false)
+    end
+  end
+
   test "#middleware_installed! marks as installed" do
     refute @collector.middleware_installed?
     @collector.middleware_installed!
@@ -194,6 +201,10 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           attacksDetected: {
             total: 0,
             blocked: 0
+          },
+          attackWaves: {
+            total: 0,
+            blocked: 0
           }
         }
       },
@@ -206,10 +217,16 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
   test "#flush includes the request stats in the event" do
     @collector.start(at: Time.at(1234567890))
-    3.times {
+
+    3.times do
       @collector.track_request
       @collector.track_route(stub_request)
-    }
+    end
+
+    5.times do |i|
+      @collector.track_attack_wave(being_blocked: i >= 3)
+    end
+
     event = @collector.flush(at: Time.at(1234577890))
 
     assert_hash_subset_of event.as_json, {
@@ -223,6 +240,10 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           attacksDetected: {
             total: 0,
             blocked: 0
+          },
+          attackWaves: {
+            total: 5,
+            blocked: 2
           }
         }
       },
@@ -257,6 +278,10 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           total: 2,
           aborted: 0,
           attacksDetected: {
+            total: 0,
+            blocked: 0
+          },
+          attackWaves: {
             total: 0,
             blocked: 0
           }
@@ -367,6 +392,10 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           attacksDetected: {
             total: 2,
             blocked: 2
+          },
+          attackWaves: {
+            total: 0,
+            blocked: 0
           }
         }
       },
@@ -404,6 +433,10 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     @collector.track_scan(stub_scan(sink: @sink, duration: 1))
     @collector.track_attack(stub_attack(sink: @sink, blocked: true))
 
+    @collector.track_attack_wave(being_blocked: false)
+    @collector.track_attack_wave(being_blocked: false)
+    @collector.track_attack_wave(being_blocked: true)
+
     event = @collector.flush(at: Time.at(1234577890))
 
     assert_hash_subset_of event.as_json, {
@@ -437,6 +470,10 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           aborted: 0,
           attacksDetected: {
             total: 1,
+            blocked: 1
+          },
+          attackWaves: {
+            total: 3,
             blocked: 1
           }
         }

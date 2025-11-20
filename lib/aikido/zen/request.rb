@@ -39,8 +39,6 @@ module Aikido::Zen
       @schema ||= Aikido::Zen::Request::Schema.build
     end
 
-    # @api private
-    #
     # @return [String] the IP address of the client making the request.
     def client_ip
       return @client_ip if @client_ip

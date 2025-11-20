@@ -8,7 +8,7 @@ module Aikido::Zen
   # Tracks information about how the Aikido Agent is used in the app.
   class Collector::Stats
     # @!visibility private
-    attr_reader :started_at, :ended_at, :requests, :aborted_requests, :sinks
+    attr_reader :started_at, :ended_at, :requests, :aborted_requests, :attack_waves, :blocked_attack_waves, :sinks
 
     # @!visibility private
     attr_writer :ended_at
@@ -16,10 +16,13 @@ module Aikido::Zen
     def initialize(config = Aikido::Zen.config)
       super()
       @config = config
-      @sinks = Hash.new { |h, k| h[k] = Collector::SinkStats.new(k, @config) }
+
       @started_at = @ended_at = nil
       @requests = 0
       @aborted_requests = 0
+      @attack_waves = 0
+      @blocked_attack_waves = 0
+      @sinks = Hash.new { |h, k| h[k] = Collector::SinkStats.new(k, @config) }
     end
 
     # @return [Boolean]
@@ -60,6 +63,13 @@ module Aikido::Zen
       @requests += 1
     end
 
+    # @param being_blocked [Boolean] whether the Agent blocked the request
+    # @return [void]
+    def add_attack_wave(being_blocked:)
+      @attack_waves += 1
+      @blocked_attack_waves += 1 if being_blocked
+    end
+
     # @param sink_name [String] the name of the sink
     # @param duration [Float] the length the scan in seconds
     # @param has_errors [Boolean] whether errors occurred during the scan
@@ -92,6 +102,10 @@ module Aikido::Zen
           attacksDetected: {
             total: total_attacks,
             blocked: total_blocked
+          },
+          attackWaves: {
+            total: @attack_waves,
+            blocked: @blocked_attack_waves
           }
         }
       }

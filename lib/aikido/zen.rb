@@ -15,11 +15,13 @@ require_relative "zen/middleware/middleware"
 require_relative "zen/middleware/fork_detector"
 require_relative "zen/middleware/set_context"
 require_relative "zen/middleware/check_allowed_addresses"
+require_relative "zen/middleware/attack_wave_protector"
 require_relative "zen/middleware/request_tracker"
 require_relative "zen/outbound_connection"
 require_relative "zen/outbound_connection_monitor"
 require_relative "zen/runtime_settings"
 require_relative "zen/rate_limiter"
+require_relative "zen/attack_wave"
 require_relative "zen/scanners"
 
 module Aikido
@@ -89,10 +91,6 @@ module Aikido
       @collector ||= Collector.new
     end
 
-    def self.detached_agent
-      @detached_agent ||= DetachedAgent::Agent.new
-    end
-
     # Gets the current context object that holds all information about the
     # current request.
     #
@@ -118,6 +116,18 @@ module Aikido
       collector.track_request
     end
 
+    # Track statistics about an attack wave the app is handling.
+    #
+    # @param attack_wave [Aikido::Zen::Events::AttackWave]
+    # @return [void]
+    def self.track_attack_wave(attack_wave)
+      collector.track_attack_wave(being_blocked: false)
+    end
+
+    # Track statistics about a route that the app has discovered.
+    #
+    # @param request [Aikido::Zen::Request]
+    # @return [void]
     def self.track_discovered_route(request)
       collector.track_route(request)
     end
@@ -173,6 +183,11 @@ module Aikido
       collector.middleware_installed!
     end
 
+    # @return [Aikido::Zen::AttackWave::Detector] the attack wave detector.
+    def self.attack_wave_detector
+      @attack_wave_detector ||= AttackWave::Detector.new
+    end
+
     # @!visibility private
     # Load all sources.
     #
@@ -208,6 +223,10 @@ module Aikido
     # Starts the background agent if it has not been started yet.
     def self.agent
       @agent ||= Agent.start
+    end
+
+    def self.detached_agent
+      @detached_agent ||= DetachedAgent::Agent.new
     end
 
     def self.detached_agent_server

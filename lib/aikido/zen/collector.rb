@@ -88,6 +88,20 @@ module Aikido::Zen
       synchronize(@stats) { |stats| stats.add_request }
     end
 
+    # Track stats about an attack detected by our scanners.
+    #
+    # @param attack [Aikido::Zen::Events::AttackWave]
+    # @return [void]
+    def track_attack_wave(being_blocked:)
+      add_event(Events::TrackAttackWave.new(being_blocked: being_blocked))
+    end
+
+    def handle_track_attack_wave(being_blocked:)
+      synchronize(@stats) do |stats|
+        stats.add_attack_wave(being_blocked: being_blocked)
+      end
+    end
+
     # Track stats about a scan performed by one of our sinks.
     #
     # @param scan [Aikido::Zen::Scan]
