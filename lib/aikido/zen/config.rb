@@ -210,7 +210,7 @@ module Aikido::Zen
       self.stored_ssrf = read_boolean_from_env(ENV.fetch("AIKIDO_FEATURE_STORED_SSRF", true))
       self.imds_allowed_hosts = ["metadata.google.internal", "metadata.goog"]
       self.harden = read_boolean_from_env(ENV.fetch("AIKIDO_HARDEN", true))
-      self.attack_wave_threshold = 15 # 15 min
+      self.attack_wave_threshold = 15
       self.attack_wave_min_time_between_requests = 60 * 1000 # 1 min (ms)
       self.attack_wave_min_time_between_events = 20 * 60 * 1000 # 20 min (ms)
       self.attack_wave_max_cache_entries = 10_000
