@@ -196,7 +196,7 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
 
     assert_hash_subset_of @stats.as_json, {
-      sinks: {
+      operations: {
         "test" => {
           total: 2,
           interceptorThrewError: 0,
@@ -232,7 +232,7 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
 
     assert_hash_subset_of @stats.as_json, {
-      sinks: {
+      operations: {
         "test" => {
           total: 2,
           interceptorThrewError: 1,
@@ -271,7 +271,7 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     @stats.add_attack("another", being_blocked: true)
 
     assert_hash_subset_of @stats.as_json, {
-      sinks: {
+      operations: {
         "test" => {
           total: 2,
           interceptorThrewError: 0,
@@ -312,7 +312,7 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     @stats.sinks.each_value { |s| s.compress_timings(at: Time.at(1234577890)) }
 
     assert_hash_subset_of @stats.as_json, {
-      sinks: {
+      operations: {
         "test" => {
           total: 3,
           interceptorThrewError: 0,

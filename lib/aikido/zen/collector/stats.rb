@@ -95,7 +95,7 @@ module Aikido::Zen
       {
         startedAt: @started_at.to_i * 1000,
         endedAt: (@ended_at.to_i * 1000 if @ended_at),
-        sinks: @sinks.transform_values(&:as_json),
+        operations: @sinks.transform_values(&:as_json),
         requests: {
           total: @requests,
           aborted: @aborted_requests,
