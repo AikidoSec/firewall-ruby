@@ -140,7 +140,7 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
         stats: {
           startedAt: 1234567890000,
           endedAt: 1234577890000,
-          sinks: {},
+          operations: {},
           requests: {
             total: 0,
             aborted: 0,

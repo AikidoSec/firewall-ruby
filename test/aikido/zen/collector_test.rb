@@ -194,7 +194,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       stats: {
         startedAt: 1234567890000,
         endedAt: 1234577890000,
-        sinks: {},
+        operations: {},
         requests: {
           total: 0,
           aborted: 0,
@@ -233,7 +233,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       stats: {
         startedAt: 1234567890000,
         endedAt: 1234577890000,
-        sinks: {},
+        operations: {},
         requests: {
           total: 3,
           aborted: 0,
@@ -286,7 +286,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
             blocked: 0
           }
         },
-        sinks: {
+        operations: {
           "test" => {
             total: 2,
             interceptorThrewError: 0,
@@ -352,7 +352,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       stats: {
         startedAt: 1234567890000,
         endedAt: 1234577890000,
-        sinks: {
+        operations: {
           "test" => {
             total: 2,
             interceptorThrewError: 0,
@@ -443,7 +443,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       stats: {
         startedAt: 1234567890000,
         endedAt: 1234577890000,
-        sinks: {
+        operations: {
           "test" => {
             total: 3,
             interceptorThrewError: 0,
