@@ -72,4 +72,6 @@ jobs:
           sleep_before_test: 30
           extra_args: "-e RAILS_ENV=test -e AIKIDO_CLIENT_IP_HEADER=HTTP_X_FORWARDED_FOR"
           ignore_failures: true
+          max_parallel_tests: 15
+          
        
