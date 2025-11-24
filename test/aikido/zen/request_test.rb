@@ -50,7 +50,7 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       req = build_request(env)
 
       assert_equal(
-        {method: "post", url: "http://example.org/test"},
+        {method: "POST", url: "http://example.org/test"},
         req.as_json.slice(:method, :url)
       )
     end
