@@ -11,7 +11,7 @@ module Aikido::Zen
     # @return [Boolean] whether Aikido should be turned completely off (no
     #   intercepting calls to protect the app, no agent process running, no
     #   middleware installed). Defaults to false (so, enabled). Can be set
-    #   via the AIKIDO_DISABLED environment variable.
+    #   via the AIKIDO_DISABLE environment variable.
     attr_accessor :disabled
     alias_method :disabled?, :disabled
 
@@ -178,7 +178,7 @@ module Aikido::Zen
     attr_accessor :attack_wave_max_cache_entries
 
     def initialize
-      self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
+      self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLE", false))
       self.blocking_mode = read_boolean_from_env(ENV.fetch("AIKIDO_BLOCK", false))
       self.api_timeouts = 10
       self.api_endpoint = ENV.fetch("AIKIDO_ENDPOINT", DEFAULT_AIKIDO_ENDPOINT)

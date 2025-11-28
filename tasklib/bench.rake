@@ -87,7 +87,7 @@ Pathname.glob("sample_apps/*").select(&:directory?).each do |dir|
       end
 
       task :boot_unprotected_app do
-        boot_server(dir, port: PORT_UNPROTECTED, env: {"AIKIDO_DISABLED" => "true"})
+        boot_server(dir, port: PORT_UNPROTECTED, env: {"AIKIDO_DISABLE" => "true"})
       end
     end
   end

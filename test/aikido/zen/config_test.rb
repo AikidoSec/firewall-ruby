@@ -39,8 +39,8 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal ["metadata.google.internal", "metadata.goog"], @config.imds_allowed_hosts
   end
 
-  test "can set AIKIDO_DISABLED to configure if the agent should be turned off" do
-    assert_boolean_env_var "AIKIDO_DISABLED" do |config|
+  test "can set AIKIDO_DISABLE to configure if the agent should be turned off" do
+    assert_boolean_env_var "AIKIDO_DISABLE" do |config|
       config.disabled?
     end
   end
