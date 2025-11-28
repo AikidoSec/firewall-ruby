@@ -8,7 +8,7 @@ other Rack-based apps).
 ## Disable Zen
 
 In order to fully turn off Zen and prevent it from intercepting any requests or
-reporting back to the Aikido servers, set `AIKIDO_DISABLED=true` in your
+reporting back to the Aikido servers, set `AIKIDO_DISABLE=true` in your
 environment, or set `Aikido::Zen.config.disabled = true`.
 
 (We recommend the ENV variable as you can normally change this easily without
