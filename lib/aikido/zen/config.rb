@@ -178,7 +178,7 @@ module Aikido::Zen
     attr_accessor :attack_wave_max_cache_entries
 
     def initialize
-      self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLE", false))
+      self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLE", false)) || read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
       self.blocking_mode = read_boolean_from_env(ENV.fetch("AIKIDO_BLOCK", false))
       self.api_timeouts = 10
       self.api_endpoint = ENV.fetch("AIKIDO_ENDPOINT", DEFAULT_AIKIDO_ENDPOINT)
