@@ -23,7 +23,7 @@ class Aikido::Zen::Middleware::CheckAllowedAddressesTest < ActiveSupport::TestCa
   end
 
   test "the request is allowed if IPs are not configured for this route" do
-    add_allowed_ips "GET", "/admin", ips: ["1.2.3.4", "2.3.4.5"]
+    add_allowed_ips "GET", "/admin/portal", ips: ["1.2.3.4", "2.3.4.5"]
 
     env = Rack::MockRequest.env_for("/", "REMOTE_ADDR" => "1.1.1.1")
     response = @middleware.call(env)
@@ -33,9 +33,39 @@ class Aikido::Zen::Middleware::CheckAllowedAddressesTest < ActiveSupport::TestCa
   end
 
   test "the request is allowed if the IP is explicitly set in the allow list" do
-    add_allowed_ips "GET", "/admin", ips: ["1.2.3.4", "2.3.4.5"]
+    add_allowed_ips "GET", "/admin/portal", ips: ["1.2.3.4", "2.3.4.5"]
 
-    env = Rack::MockRequest.env_for("/admin", "REMOTE_ADDR" => "1.2.3.4")
+    env = Rack::MockRequest.env_for("/admin/portal", "REMOTE_ADDR" => "1.2.3.4")
+    response = @middleware.call(env)
+
+    assert_equal [200, {}, ["OK"]], response
+    assert_passed_to_downstream
+  end
+
+  test "the request is allowed if the URL path includes repeated forward slashes and the IP is explicitly set in the allow list" do
+    add_allowed_ips "GET", "/admin/portal", ips: ["1.2.3.4", "2.3.4.5"]
+
+    env = Rack::MockRequest.env_for("/admin//portal", "REMOTE_ADDR" => "1.2.3.4")
+    response = @middleware.call(env)
+
+    assert_equal [200, {}, ["OK"]], response
+    assert_passed_to_downstream
+  end
+
+  test "the request is allowed if the URL path includes a trailing forward slash and the IP is explicitly set in the allow list" do
+    add_allowed_ips "GET", "/admin/portal", ips: ["1.2.3.4", "2.3.4.5"]
+
+    env = Rack::MockRequest.env_for("/admin/portal/", "REMOTE_ADDR" => "1.2.3.4")
+    response = @middleware.call(env)
+
+    assert_equal [200, {}, ["OK"]], response
+    assert_passed_to_downstream
+  end
+
+  test "the request is allowed if the URL path includes repeated forward slashes and a trailing forward slash and the IP is explicitly set in the allow list" do
+    add_allowed_ips "GET", "/admin/portal", ips: ["1.2.3.4", "2.3.4.5"]
+
+    env = Rack::MockRequest.env_for("/admin//portal/", "REMOTE_ADDR" => "1.2.3.4")
     response = @middleware.call(env)
 
     assert_equal [200, {}, ["OK"]], response
@@ -43,9 +73,9 @@ class Aikido::Zen::Middleware::CheckAllowedAddressesTest < ActiveSupport::TestCa
   end
 
   test "the request is allowed if the IP matches a CIDR block in the allow list" do
-    add_allowed_ips "GET", "/admin", ips: ["10.0.0.0/24"]
+    add_allowed_ips "GET", "/admin/portal", ips: ["10.0.0.0/24"]
 
-    env = Rack::MockRequest.env_for("/admin", "REMOTE_ADDR" => "10.0.0.32")
+    env = Rack::MockRequest.env_for("/admin/portal", "REMOTE_ADDR" => "10.0.0.32")
     response = @middleware.call(env)
 
     assert_equal [200, {}, ["OK"]], response
@@ -53,9 +83,39 @@ class Aikido::Zen::Middleware::CheckAllowedAddressesTest < ActiveSupport::TestCa
   end
 
   test "the request is rejected if the IP is not in the allow list" do
-    add_allowed_ips "GET", "/admin", ips: ["10.0.0.1", "192.168.0.0/24"]
+    add_allowed_ips "GET", "/admin/portal", ips: ["10.0.0.1", "192.168.0.0/24"]
 
-    env = Rack::MockRequest.env_for("/admin", "REMOTE_ADDR" => "10.0.0.2")
+    env = Rack::MockRequest.env_for("/admin/portal", "REMOTE_ADDR" => "10.0.0.2")
+    response = @middleware.call(env)
+
+    assert_equal @config.blocked_responder.call(Rack::Request.new(env), :ip), response
+    assert_stopped_request
+  end
+
+  test "the request is rejected if the URL path includes repeated forwared slashes and the IP is not in the allow list" do
+    add_allowed_ips "GET", "/admin/portal", ips: ["10.0.0.1", "192.168.0.0/24"]
+
+    env = Rack::MockRequest.env_for("/admin//portal", "REMOTE_ADDR" => "10.0.0.2")
+    response = @middleware.call(env)
+
+    assert_equal @config.blocked_responder.call(Rack::Request.new(env), :ip), response
+    assert_stopped_request
+  end
+
+  test "the request is rejected if the URL path includes a trailing forward slash and the IP is not in the allow list" do
+    add_allowed_ips "GET", "/admin/portal", ips: ["10.0.0.1", "192.168.0.0/24"]
+
+    env = Rack::MockRequest.env_for("/admin/portal/", "REMOTE_ADDR" => "10.0.0.2")
+    response = @middleware.call(env)
+
+    assert_equal @config.blocked_responder.call(Rack::Request.new(env), :ip), response
+    assert_stopped_request
+  end
+
+  test "the request is rejected if the URL path includes repeated forward slashes and a trailing forward slash and the IP is not in the allow list" do
+    add_allowed_ips "GET", "/admin/portal", ips: ["10.0.0.1", "192.168.0.0/24"]
+
+    env = Rack::MockRequest.env_for("/admin//portal/", "REMOTE_ADDR" => "10.0.0.2")
     response = @middleware.call(env)
 
     assert_equal @config.blocked_responder.call(Rack::Request.new(env), :ip), response
@@ -67,9 +127,9 @@ class Aikido::Zen::Middleware::CheckAllowedAddressesTest < ActiveSupport::TestCa
       [403, {"Content-Type" => "application/json"}, [%({"error":"ip_rejected","ip":"#{req.ip}"})]]
     }
 
-    add_allowed_ips "GET", "/admin", ips: ["10.0.0.0/24"]
+    add_allowed_ips "GET", "/admin/portal", ips: ["10.0.0.0/24"]
 
-    env = Rack::MockRequest.env_for("/admin", "REMOTE_ADDR" => "1.2.3.4")
+    env = Rack::MockRequest.env_for("/admin/portal", "REMOTE_ADDR" => "1.2.3.4")
     status, headers, body = @middleware.call(env)
 
     assert_equal 403, status
@@ -78,9 +138,9 @@ class Aikido::Zen::Middleware::CheckAllowedAddressesTest < ActiveSupport::TestCa
   end
 
   test "if current_context is already set, this reuses it" do
-    add_allowed_ips "GET", "/admin", ips: ["10.0.0.0/24"]
+    add_allowed_ips "GET", "/admin/portal", ips: ["10.0.0.0/24"]
 
-    env = Rack::MockRequest.env_for("/admin", "REMOTE_ADDR" => "10.0.0.1")
+    env = Rack::MockRequest.env_for("/admin/portal", "REMOTE_ADDR" => "10.0.0.1")
 
     context = Aikido::Zen::Context.from_rack_env(env)
     verifier = Minitest::Mock.new(context)
