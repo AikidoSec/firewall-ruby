@@ -12,6 +12,9 @@ module Aikido::Zen
 
   # @!visibility private
   Context::RAILS_REQUEST_BUILDER = ->(env) do
+    # Normalize PATH_INFO so routes are correctly recognized in middleware.
+    env["PATH_INFO"] = Helpers.normalize_path(env["PATH_INFO"])
+
     # Duplicate the Rack environment to prevent unexpected modifications from
     # breaking Rails routing.
     delegate = ActionDispatch::Request.new(env.dup)

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "zen/helpers"
 require_relative "zen/version"
 require_relative "zen/errors"
 require_relative "zen/actor"
