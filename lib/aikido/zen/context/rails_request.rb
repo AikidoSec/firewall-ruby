@@ -12,14 +12,12 @@ module Aikido::Zen
 
   # @!visibility private
   Context::RAILS_REQUEST_BUILDER = ->(env) do
+    # Normalize PATH_INFO so routes are correctly recognized in middleware.
+    env["PATH_INFO"] = Helpers.normalize_path(env["PATH_INFO"])
+
     # Duplicate the Rack environment to prevent unexpected modifications from
     # breaking Rails routing.
-    duplicate_env = env.dup
-
-    # Normalize PATH_INFO so routes are correctly recognized in middleware.
-    duplicate_env["PATH_INFO"] = normalize_path(duplicate_env["PATH_INFO"]) if duplicate_env["PATH_INFO"]
-
-    delegate = ActionDispatch::Request.new(duplicate_env)
+    delegate = ActionDispatch::Request.new(env.dup)
     request = Aikido::Zen::Request.new(
       delegate, framework: "rails", router: Rails.router
     )
@@ -45,21 +43,5 @@ module Aikido::Zen
         subdomain: req.subdomains
       }
     end
-  end
-
-  # @api private
-  #
-  # Normalizes a path by:
-  #
-  #   1. Collapsing consecutive forward slashes into a single forward slash.
-  #   2. Removing forward trailing slash, unless the normalized path is "/".
-  #
-  # @param path [String] the path to normalize
-  # @return [String] the normalized path
-  def self.normalize_path(path)
-    normalized_path = path.dup
-    normalized_path.squeeze!("/")
-    normalized_path.chomp!("/") unless normalized_path == "/"
-    normalized_path
   end
 end

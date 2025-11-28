@@ -6,6 +6,9 @@ require_relative "../request/heuristic_router"
 module Aikido::Zen
   # @!visibility private
   Context::RACK_REQUEST_BUILDER = ->(env) do
+    # Normalize PATH_INFO so routes are correctly recognized in middleware.
+    env["PATH_INFO"] = Helpers.normalize_path(env["PATH_INFO"])
+
     delegate = Rack::Request.new(env)
     router = Aikido::Zen::Request::HeuristicRouter.new
     request = Aikido::Zen::Request.new(delegate, framework: "rack", router: router)
