@@ -8,12 +8,8 @@ require_relative "package"
 module Aikido::Zen
   # Provides information about the currently running Agent.
   class SystemInfo
-    def initialize(config = Aikido::Zen.config)
-      @config = config
-    end
-
     def attacks_block_requests?
-      !!@config.blocking_mode
+      !!Aikido::Zen.blocking_mode?
     end
 
     def attacks_are_only_reported?
