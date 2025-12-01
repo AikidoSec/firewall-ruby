@@ -11,7 +11,7 @@ module Aikido::Zen
   #
   # You can subscribe to changes with +#add_observer(object, func_name)+, which
   # will call the function passing the settings as an argument.
-  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :received_any_stats, :endpoints, :blocked_user_ids, :skip_protection_for_ips, :blocking_mode) do
+  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :skip_protection_for_ips, :received_any_stats, :blocking_mode) do
     def initialize(*)
       super
       self.endpoints ||= RuntimeSettings::Endpoints.new
