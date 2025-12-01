@@ -80,6 +80,16 @@ module Aikido
       @runtime_settings = settings
     end
 
+    # @return [Boolean] whether the Aikido agent is currently blocking requests.
+    #   Blocking mode is configured at startup and can be controlled through the
+    #   Aikido dashboard at runtime.
+    def self.blocking_mode?
+      blocking_mode = runtime_settings.blocking_mode
+      return blocking_mode unless blocking_mode.nil?
+
+      config.blocking_mode
+    end
+
     # Gets information about the current system configuration, which is sent to
     # the server along with any events.
     def self.system_info

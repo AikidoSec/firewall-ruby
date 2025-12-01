@@ -16,6 +16,28 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
       "endpoints" => [],
       "blockedUserIds" => [],
       "allowedIPAddresses" => [],
+      "receivedAnyStats" => false,
+      "block" => true
+    })
+
+    assert_equal Time.utc(2024, 5, 31, 16, 8, 37), @settings.updated_at
+    assert_equal 60, @settings.heartbeat_interval
+    assert_equal Aikido::Zen::RuntimeSettings::Endpoints.new, @settings.endpoints
+    assert_equal [], @settings.blocked_user_ids
+    assert_equal Aikido::Zen::RuntimeSettings::IPSet.new, @settings.skip_protection_for_ips
+    assert_equal false, @settings.received_any_stats
+    assert_equal true, @settings.blocking_mode
+  end
+
+  test "building from a JSON response without the block key" do
+    assert @settings.update_from_json({
+      "success" => true,
+      "serviceId" => 1234,
+      "configUpdatedAt" => 1717171717000,
+      "heartbeatIntervalInMS" => 60000,
+      "endpoints" => [],
+      "blockedUserIds" => [],
+      "allowedIPAddresses" => [],
       "receivedAnyStats" => false
     })
 
@@ -25,6 +47,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_equal [], @settings.blocked_user_ids
     assert_equal Aikido::Zen::RuntimeSettings::IPSet.new, @settings.skip_protection_for_ips
     assert_equal false, @settings.received_any_stats
+    assert_nil @settings.blocking_mode
   end
 
   test "update_from_json should return true or false in case the settings were or no updated" do

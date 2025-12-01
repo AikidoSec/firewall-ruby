@@ -43,7 +43,7 @@ module Aikido::Zen
       @started_at = Time.now.utc
       @collector.start(at: @started_at)
 
-      if @config.blocking_mode?
+      if Aikido::Zen.blocking_mode?
         @config.logger.info("Requests identified as attacks will be blocked")
       else
         @config.logger.warn("Non-blocking mode enabled! No requests will be blocked.")
@@ -106,7 +106,7 @@ module Aikido::Zen
     # @raise [Aikido::Zen::UnderAttackError] if the firewall is configured
     #   to block requests.
     def handle_attack(attack)
-      attack.will_be_blocked! if @config.blocking_mode?
+      attack.will_be_blocked! if Aikido::Zen.blocking_mode?
 
       @config.logger.error(
         format("Zen has %s a %s: %s", attack.blocked? ? "blocked" : "detected", attack.humanized_name, attack.as_json.to_json)
