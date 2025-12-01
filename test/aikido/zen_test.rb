@@ -7,6 +7,16 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     refute_nil ::Aikido::Zen::VERSION
   end
 
+  test ".blocking_mode? returns the blocking mode configured at startup or set at runtime" do
+    Aikido::Zen.config.blocking_mode = false
+
+    assert_equal false, Aikido::Zen.blocking_mode?
+
+    Aikido::Zen.runtime_settings.blocking_mode = true
+
+    assert_equal true, Aikido::Zen.blocking_mode?
+  end
+
   test ".track_user tracks the actor object in the collector" do
     users = Aikido::Zen.collector.users
 
