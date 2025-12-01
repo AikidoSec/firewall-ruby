@@ -16,7 +16,8 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
       "endpoints" => [],
       "blockedUserIds" => [],
       "allowedIPAddresses" => [],
-      "receivedAnyStats" => false
+      "receivedAnyStats" => false,
+      "block" => true
     })
 
     assert_equal Time.utc(2024, 5, 31, 16, 8, 37), @settings.updated_at
@@ -25,6 +26,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_equal [], @settings.blocked_user_ids
     assert_equal Aikido::Zen::RuntimeSettings::IPSet.new, @settings.skip_protection_for_ips
     assert_equal false, @settings.received_any_stats
+    assert_equal true, @settings.blocking_mode
   end
 
   test "update_from_json should return true or false in case the settings were or no updated" do
