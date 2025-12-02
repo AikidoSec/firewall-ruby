@@ -74,7 +74,7 @@ module Aikido::Zen
 
     def as_json
       {
-        method: request_method,
+        method: request_method.upcase,
         url: url,
         ipAddress: client_ip,
         userAgent: user_agent,
