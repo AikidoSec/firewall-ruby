@@ -12,8 +12,8 @@ module Aikido::Zen
     initializer "aikido.add_middleware" do |app|
       app.middleware.insert_before 0, Aikido::Zen::Middleware::ForkDetector
 
-      app.middleware.use Aikido::Zen::Middleware::SetContext
-      app.middleware.use Aikido::Zen::Middleware::CheckAllowedAddresses
+      app.middleware.use Aikido::Zen::Middleware::ContextSetter
+      app.middleware.use Aikido::Zen::Middleware::AllowedAddressChecker
       app.middleware.use Aikido::Zen::Middleware::AttackWaveProtector
       # Request Tracker stats do not consider failed request or 40x, so the middleware
       # must be the last one wrapping the request.
