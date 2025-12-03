@@ -68,9 +68,10 @@ module Aikido::Zen
             # :nocov:
             Helpers.scan(remote_host, socket, "open")
             # :nocov:
-          rescue
-            # If the scan raises an exception (e.g., stored SSRF detected),
-            # we must close the socket to avoid resource leaks.
+          rescue Aikido::Zen::UnderAttackError, Aikido::Zen::Sinks::DSL::PresafeError
+            # If the scan raises an exception that will escape the safe block,
+            # the open socket must be closed because it will not be returned,
+            # so the user cannot close it.
             socket.close
 
             raise
