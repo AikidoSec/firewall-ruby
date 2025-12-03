@@ -67,16 +67,13 @@ module Aikido::Zen
             # intentionally do not call open.
             # :nocov:
             Helpers.scan(remote_host, socket, "open")
+            # :nocov:
           rescue
             # If the scan raises an exception (e.g., stored SSRF detected),
             # we must close the socket to avoid resource leaks.
-            begin
-              socket.close
-            rescue
-              nil
-            end
+            socket.close
+
             raise
-            # :nocov:
           end
         end
       end
