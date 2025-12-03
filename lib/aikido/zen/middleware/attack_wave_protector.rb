@@ -4,9 +4,10 @@ module Aikido
   module Zen
     module Middleware
       class AttackWaveProtector
-        def initialize(app, zen: Aikido::Zen)
+        def initialize(app, zen: Aikido::Zen, settings: Aikido::Zen.runtime_settings)
           @app = app
           @zen = zen
+          @settings = settings
         end
 
         def call(env)
@@ -21,6 +22,12 @@ module Aikido
         # @api private
         # Visible for testing.
         def attack_wave?(context)
+          request = context.request
+          return false if request.nil?
+
+          # Bypass attack wave protection for allowed IPs
+          return false if @settings.allowed_ips.include?(request.ip)
+
           @zen.attack_wave_detector.attack_wave?(context)
         end
 
