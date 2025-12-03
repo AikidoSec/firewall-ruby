@@ -68,6 +68,13 @@ module Aikido::Zen
             # :nocov:
             Helpers.scan(remote_host, socket, "open")
             # :nocov:
+          rescue Aikido::Zen::UnderAttackError, Aikido::Zen::Sinks::DSL::PresafeError
+            # If the scan raises an exception that will escape the safe block,
+            # the open socket must be closed because it will not be returned,
+            # so the user cannot close it.
+            socket.close
+
+            raise
           end
         end
       end
