@@ -45,6 +45,9 @@ module Aikido::Zen
 
       DANGEROUS_ADDRESSES = [
         IPAddr.new("169.254.169.254"),
+        IPAddr.new("100.100.100.200"),
+        IPAddr.new("::ffff:169.254.169.254"),
+        IPAddr.new("::ffff:100.100.100.200"),
         IPAddr.new("fd00:ec2::254")
       ]
     end
