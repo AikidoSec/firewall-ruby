@@ -36,6 +36,8 @@ module Aikido::Zen
         # Bypass rate limiting for allowed IPs
         return false if @settings.allowed_ips.include?(request.ip)
 
+        return false unless @settings.endpoints[request.route].rate_limiting.enabled?
+
         result = @detached_agent.calculate_rate_limits(request)
 
         return false unless result
