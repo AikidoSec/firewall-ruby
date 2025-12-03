@@ -44,6 +44,8 @@ module Aikido::Zen
 
         private def should_throttle?(request)
           return false unless @settings.endpoints[request.route].rate_limiting.enabled?
+
+          # Bypass rate limiting for allowed IPs
           return false if @settings.allowed_ips.include?(request.ip)
 
           result = @detached_agent.calculate_rate_limits(request)
