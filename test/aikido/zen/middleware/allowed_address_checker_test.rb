@@ -2,14 +2,14 @@
 
 require "test_helper"
 
-class Aikido::Zen::Middleware::CheckAllowedAddressesTest < ActiveSupport::TestCase
+class Aikido::Zen::Middleware::AllowedAddressCheckerTest < ActiveSupport::TestCase
   setup do
     @app = Minitest::Mock.new
     @app.expect :call, [200, {}, ["OK"]], [Hash]
 
     @config = Aikido::Zen.config
 
-    @middleware = Aikido::Zen::Middleware::CheckAllowedAddresses.new(@app)
+    @middleware = Aikido::Zen::Middleware::AllowedAddressChecker.new(@app)
   end
 
   test "the request is allowed if the list of IPs is empty for this endpoint" do

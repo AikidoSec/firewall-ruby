@@ -10,6 +10,8 @@ class Aikido::Zen::Middleware::RequestTrackerTest < ActiveSupport::TestCase
       status_code = env["PATH_INFO"].split("/").last.to_i
       [status_code, {}, ["OK"]]
     }
+
+    @settings = Aikido::Zen.runtime_settings
   end
 
   test "if api schema collection is disabled only requests but no routes get tracked in our stats funnel" do
@@ -35,12 +37,29 @@ class Aikido::Zen::Middleware::RequestTrackerTest < ActiveSupport::TestCase
     # we made 5 request, 3 of them failing. We expect to have tracked:
     #  * 3 request (as we don't track ignored requests)
     #  * 1 route with 3 hits
-    assert_equal Aikido::Zen.collector.stats.requests, 3
-    assert_equal Aikido::Zen.collector.routes.visits.size, 1
+    assert_equal 3, Aikido::Zen.collector.stats.requests
+    assert_equal 1, Aikido::Zen.collector.routes.visits.size
 
     key = Aikido::Zen::Route.new(verb: "GET", path: "/:number")
-    assert_equal Aikido::Zen.collector.routes.visits.keys, [key]
-    assert_equal Aikido::Zen.collector.routes[key].hits, 3
+    assert_equal [key], Aikido::Zen.collector.routes.visits.keys
+    assert_equal 3, Aikido::Zen.collector.routes[key].hits
+  end
+
+  test "requests & routes are tracked in our stats funnel, unless the request IP is an allowed IP" do
+    @settings.allowed_ips = Aikido::Zen::RuntimeSettings::IPSet.from_json(["1.2.3.4"])
+
+    @middleware.call(Rack::MockRequest.env_for("/200", "REMOTE_ADDR" => "1.2.3.4"))
+    @middleware.call(Rack::MockRequest.env_for("/200", "REMOTE_ADDR" => "1.2.3.4"))
+    @middleware.call(Rack::MockRequest.env_for("/100", "REMOTE_ADDR" => "1.2.3.4"))
+    @middleware.call(Rack::MockRequest.env_for("/200", "REMOTE_ADDR" => "1.2.3.4"))
+    @middleware.call(Rack::MockRequest.env_for("/400", "REMOTE_ADDR" => "1.2.3.4"))
+
+    assert_equal 0, Aikido::Zen.collector.stats.requests
+    assert_equal 0, Aikido::Zen.collector.routes.visits.size
+
+    key = Aikido::Zen::Route.new(verb: "GET", path: "/:number")
+    assert_equal [], Aikido::Zen.collector.routes.visits.keys
+    assert_equal 0, Aikido::Zen.collector.routes[key].hits
   end
 
   test "it rejects invalid status codes" do

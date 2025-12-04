@@ -9,7 +9,7 @@ module Aikido::Zen
   module Middleware
     # Rack middleware that keeps the current context in a Thread/Fiber-local
     # variable so that other parts of the agent/firewall can access it.
-    class SetContext
+    class ContextSetter
       def initialize(app)
         @app = app
       end

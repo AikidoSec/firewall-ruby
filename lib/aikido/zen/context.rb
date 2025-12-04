@@ -82,7 +82,7 @@ module Aikido::Zen
       return false if request.nil?
 
       !@settings.endpoints[request.route].protected? ||
-        @settings.skip_protection_for_ips.include?(request.ip)
+        @settings.allowed_ips.include?(request.ip)
     end
 
     # @!visibility private

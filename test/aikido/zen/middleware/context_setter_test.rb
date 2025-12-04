@@ -2,11 +2,11 @@
 
 require "test_helper"
 
-class Aikido::Zen::Middleware::SetContextText < ActiveSupport::TestCase
+class Aikido::Zen::Middleware::ContextSetterTest < ActiveSupport::TestCase
   setup do
     @contexts = []
     app = ->(env) { @downstream.call(env) }
-    @middleware = Aikido::Zen::Middleware::SetContext.new(app)
+    @middleware = Aikido::Zen::Middleware::ContextSetter.new(app)
     @downstream = ->(env) { @contexts << env }
   end
 
