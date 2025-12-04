@@ -11,11 +11,11 @@ module Aikido::Zen
   #
   # You can subscribe to changes with +#add_observer(object, func_name)+, which
   # will call the function passing the settings as an argument.
-  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :skip_protection_for_ips, :received_any_stats, :blocking_mode) do
+  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :allowed_ips, :received_any_stats, :blocking_mode) do
     def initialize(*)
       super
       self.endpoints ||= RuntimeSettings::Endpoints.new
-      self.skip_protection_for_ips ||= RuntimeSettings::IPSet.new
+      self.allowed_ips ||= RuntimeSettings::IPSet.new
     end
 
     # @!attribute [rw] updated_at
@@ -35,7 +35,7 @@ module Aikido::Zen
     # @!attribute [rw] blocked_user_ids
     #   @return [Array]
 
-    # @!attribute [rw] skip_protection_for_ips
+    # @!attribute [rw] allowed_ips
     #   @return [Aikido::Zen::RuntimeSettings::IPSet]
 
     # Parse and interpret the JSON response from the core API with updated
@@ -53,7 +53,7 @@ module Aikido::Zen
       self.heartbeat_interval = data["heartbeatIntervalInMS"].to_i / 1000
       self.endpoints = RuntimeSettings::Endpoints.from_json(data["endpoints"])
       self.blocked_user_ids = data["blockedUserIds"]
-      self.skip_protection_for_ips = RuntimeSettings::IPSet.from_json(data["allowedIPAddresses"])
+      self.allowed_ips = RuntimeSettings::IPSet.from_json(data["allowedIPAddresses"])
       self.received_any_stats = data["receivedAnyStats"]
       self.blocking_mode = data["block"]
 
