@@ -56,10 +56,6 @@ module Aikido::Zen
     def match(route)
       matches = []
 
-      matches << @endpoints[route] if @endpoints.key?(route)
-
-      # Wildcard endpoint matching
-
       @endpoints.each do |pattern, settings|
         matches << settings if pattern.match?(route)
       end
