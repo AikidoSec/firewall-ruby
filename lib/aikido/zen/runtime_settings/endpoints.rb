@@ -51,6 +51,24 @@ module Aikido::Zen
       @endpoints.default
     end
 
+    # @param route [Aikido::Zen::Route]
+    # @return [Array<Aikido::Zen::RuntimeSettings::ProtectionSettings>]
+    def match(route)
+      matches = []
+
+      matches << @endpoints[route] if @endpoints.key?(route)
+
+      # Wildcard endpoint matching
+
+      @endpoints.each do |pattern, settings|
+        matches << settings if pattern.match?(route)
+      end
+
+      matches << @endpoints.default if matches.empty?
+
+      matches
+    end
+
     # @!visibility private
     def ==(other)
       other.is_a?(RuntimeSettings::Endpoints) && to_h == other.to_h
