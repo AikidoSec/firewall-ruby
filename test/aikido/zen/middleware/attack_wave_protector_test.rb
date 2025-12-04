@@ -64,7 +64,6 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
 
     app = Minitest::Mock.new
     zen = Minitest::Mock.new
-    agent = Minitest::Mock.new
 
     middleware = Aikido::Zen::Middleware::AttackWaveProtector.new(app, zen: zen)
 
@@ -89,7 +88,6 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     middleware.call({})
 
     assert_mock zen
-    assert_mock agent
     assert_mock app
   end
 end
