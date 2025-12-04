@@ -17,6 +17,8 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
 
   setup do
     Aikido::Zen.config.attack_wave_threshold = 3
+
+    @settings = Aikido::Zen.runtime_settings
   end
 
   test "#call detects attack waves, collects statistics, and reports the event" do
@@ -49,6 +51,40 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     zen.expect :agent, agent
     zen.expect(:track_attack_wave, nil) { |arg| arg.is_a?(Aikido::Zen::Events::AttackWave) }
     agent.expect(:report, nil) { |arg| arg.is_a?(Aikido::Zen::Events::AttackWave) }
+    app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
+    middleware.call({})
+
+    assert_mock zen
+    assert_mock agent
+    assert_mock app
+  end
+
+  test "#call detects attack waves, collects statistics, and reports the event, unless the request IP is an allowed IP" do
+    @settings.allowed_ips = Aikido::Zen::RuntimeSettings::IPSet.from_json(["1.2.3.4"])
+
+    app = Minitest::Mock.new
+    zen = Minitest::Mock.new
+    agent = Minitest::Mock.new
+
+    middleware = Aikido::Zen::Middleware::AttackWaveProtector.new(app, zen: zen)
+
+    context = build_context_for("/.config", DEFAULT_ENV)
+
+    zen.expect :current_context, context
+    app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
+    middleware.call({})
+
+    assert_mock zen
+    assert_mock app
+
+    zen.expect :current_context, context
+    app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
+    middleware.call({})
+
+    assert_mock zen
+    assert_mock app
+
+    zen.expect :current_context, context
     app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
