@@ -93,25 +93,25 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     refute_includes @settings.allowed_ips, "10.0.0.2"
   end
 
-  test "#skip_protection_for_ips lets you use individual IPv6 addresses" do
+  test "#allowed_ips lets you use individual IPv6 addresses" do
     assert @settings.update_from_json({
       "allowedIPAddresses" => ["2001:db8::1", "2001:db8::2"]
     })
 
-    assert_includes @settings.skip_protection_for_ips, "2001:db8::1"
-    assert_includes @settings.skip_protection_for_ips, "2001:db8::2"
-    refute_includes @settings.skip_protection_for_ips, "2001:db8::3"
+    assert_includes @settings.allowed_ips, "2001:db8::1"
+    assert_includes @settings.allowed_ips, "2001:db8::2"
+    refute_includes @settings.allowed_ips, "2001:db8::3"
   end
 
-  test "#skip_protection_for_ips lets you pass IPv6 CIDR blocks" do
+  test "#allowed_ips lets you pass IPv6 CIDR blocks" do
     assert @settings.update_from_json({
       "allowedIPAddresses" => ["2001:db8::/127", "2001:db8::100"]
     })
 
-    assert_includes @settings.skip_protection_for_ips, "2001:db8::"
-    assert_includes @settings.skip_protection_for_ips, "2001:db8::1"
-    assert_includes @settings.skip_protection_for_ips, "2001:db8::100"
-    refute_includes @settings.skip_protection_for_ips, "2001:db8::2"
+    assert_includes @settings.allowed_ips, "2001:db8::"
+    assert_includes @settings.allowed_ips, "2001:db8::1"
+    assert_includes @settings.allowed_ips, "2001:db8::100"
+    refute_includes @settings.allowed_ips, "2001:db8::2"
   end
 
   test "parsing endpoint data" do
