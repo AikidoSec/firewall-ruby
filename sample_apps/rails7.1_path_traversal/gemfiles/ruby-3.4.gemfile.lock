@@ -1,7 +1,7 @@
 PATH
   remote: ../..
   specs:
-    aikido-zen (1.0.2.beta.10)
+    aikido-zen (1.0.2)
       concurrent-ruby (~> 1.0)
       ffi
       rack
