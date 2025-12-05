@@ -402,6 +402,76 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       refute default_ctx.protection_disabled?
     end
 
+    test "#protection_disabled? checks all the runtime settings endpoints" do
+      Rails.application.routes.draw do
+        get "/protected" => "example#protected"
+        get "/unprotected" => "example#unprotected"
+        get "/not_configured" => "example#not_configured"
+      end
+
+      Aikido::Zen.runtime_settings.update_from_json({
+        "endpoints" => [
+          {
+            "method" => "GET",
+            "route" => "/unprotected(.:format)",
+            "forceProtectionOff" => true,
+            "graphql" => nil,
+            "allowedIPAddresses" => [],
+            "rateLimiting" => {
+              "enabled" => false,
+              "maxRequests" => 100,
+              "windowSizeInMS" => 60000
+            }
+          },
+          {
+            "method" => "GET",
+            "route" => "/protected(.:format)",
+            "forceProtectionOff" => false,
+            "graphql" => nil,
+            "allowedIPAddresses" => [],
+            "rateLimiting" => {
+              "enabled" => false,
+              "maxRequests" => 100,
+              "windowSizeInMS" => 60000
+            }
+          },
+          {
+            "method" => "GET",
+            "route" => "/protect*(.:format)",
+            "forceProtectionOff" => false,
+            "graphql" => nil,
+            "allowedIPAddresses" => [],
+            "rateLimiting" => {
+              "enabled" => false,
+              "maxRequests" => 100,
+              "windowSizeInMS" => 60000
+            }
+          },
+          {
+            "method" => "GET",
+            "route" => "/*protected(.:format)",
+            "forceProtectionOff" => true,
+            "graphql" => nil,
+            "allowedIPAddresses" => [],
+            "rateLimiting" => {
+              "enabled" => false,
+              "maxRequests" => 100,
+              "windowSizeInMS" => 60000
+            }
+          }
+        ]
+      })
+
+      unprotected_ctx = build_context_for("/unprotected", method: "GET")
+      assert unprotected_ctx.protection_disabled?
+
+      protected_ctx = build_context_for("/protected", method: "GET")
+      assert protected_ctx.protection_disabled?
+
+      default_ctx = build_context_for("/not_configured", method: "GET")
+      refute default_ctx.protection_disabled?
+    end
+
     # Set the TLD length when parsing hostnames in order to determine subdomains
     # for the duration of the passed block.
     def with_tld_length(value)

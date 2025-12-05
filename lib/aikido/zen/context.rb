@@ -81,7 +81,7 @@ module Aikido::Zen
     def protection_disabled?
       return false if request.nil?
 
-      !@settings.endpoints[request.route].protected? ||
+      !@settings.endpoints.match(request.route).all?(&:protected?) ||
         @settings.allowed_ips.include?(request.ip)
     end
 
