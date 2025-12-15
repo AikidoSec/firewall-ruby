@@ -24,6 +24,12 @@ module Aikido::Zen
     attr_accessor :scanning
     alias_method :scanning?, :scanning
 
+    # @return [Boolean] whether attack protection for the currently requested
+    #   endpoint was disabled on the Aikido dashboard, or if the source IP for
+    #   this request is in the "Bypass List".
+    attr_accessor :protection_disabled
+    alias_method :protection_disabled?, :protection_disabled
+
     # @param request [Rack::Request] a Request object that implements the
     #   Rack::Request API, to which we will delegate behavior.
     # @param settings [Aikido::Zen::RuntimeSettings]
@@ -38,6 +44,7 @@ module Aikido::Zen
 
       @metadata = {}
       @scanning = false
+      @protection_disabled = false
     end
 
     # Fetch some metadata stored in the Context.
@@ -75,16 +82,6 @@ module Aikido::Zen
       @payloads ||= payload_sources.flat_map do |source, data|
         extract_payloads_from(data, source)
       end
-    end
-
-    # @return [Boolean] whether attack protection for the currently requested
-    #   endpoint was disabled on the Aikido dashboard, or if the source IP for
-    #   this request is in the "Bypass List".
-    def protection_disabled?
-      return false if request.nil?
-
-      !@settings.endpoints.match(request.route).all?(&:protected?) ||
-        @settings.allowed_ips.include?(request.ip)
     end
 
     # @!visibility private
