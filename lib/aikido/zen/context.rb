@@ -34,6 +34,7 @@ module Aikido::Zen
       @request = request
       @settings = settings
       @payload_sources = sources
+
       @metadata = {}
       @scanning = false
     end

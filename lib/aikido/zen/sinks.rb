@@ -28,6 +28,7 @@ require_relative "sinks/patron"
 require_relative "sinks/typhoeus" if defined?(::Typhoeus)
 require_relative "sinks/async_http"
 require_relative "sinks/em_http"
+
 require_relative "sinks/mysql2"
 require_relative "sinks/pg"
 require_relative "sinks/sqlite3"
