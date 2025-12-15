@@ -22,6 +22,7 @@ module Aikido::Zen
 
     # @return [Boolean]
     attr_accessor :scanning
+    alias_method :scanning?, :scanning
 
     # @param request [Rack::Request] a Request object that implements the
     #   Rack::Request API, to which we will delegate behavior.
