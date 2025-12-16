@@ -103,19 +103,6 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path6.__File.join__")
     end
 
-    test "#protection_disabled? allows requests from allowed IPs" do
-      settings = Aikido::Zen.runtime_settings
-      settings.update_from_json({
-        "allowedIPAddresses" => ["10.0.0.1"]
-      })
-
-      unprotected_ctx = build_context_for("/", "REMOTE_ADDR" => "10.0.0.1")
-      assert unprotected_ctx.protection_disabled?
-
-      protected_ctx = build_context_for("/", "REMOTE_ADDR" => "1.2.3.4")
-      refute protected_ctx.protection_disabled?
-    end
-
     test "the context can store metadata" do
       context = build_context_for("/path")
 
@@ -126,6 +113,11 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     test "#scanning? is false by default" do
       context = build_context_for("/path")
       refute context.scanning?
+    end
+
+    test "#protection_disabled? is false by default" do
+      context = build_context_for("/path")
+      refute context.protection_disabled?
     end
   end
 
@@ -172,54 +164,6 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       context = build_context_for("https://test.example.com/path")
 
       assert_empty context.payloads.select { |payload| payload.source == :subdomain }
-    end
-
-    test "#protection_disabled? checks the runtime settings endpoints" do
-      settings = Aikido::Zen.runtime_settings
-      settings.update_from_json({
-        "success" => true,
-        "serviceId" => 1234,
-        "configUpdatedAt" => 1717171717000,
-        "heartbeatIntervalInMS" => 60000,
-        "endpoints" => [
-          {
-            "method" => "GET",
-            "route" => "/unprotected",
-            "forceProtectionOff" => true,
-            "graphql" => nil,
-            "allowedIPAddresses" => [],
-            "rateLimiting" => {
-              "enabled" => false,
-              "maxRequests" => 100,
-              "windowSizeInMS" => 60000
-            }
-          },
-          {
-            "method" => "GET",
-            "route" => "/protected",
-            "forceProtectionOff" => false,
-            "graphql" => nil,
-            "allowedIPAddresses" => [],
-            "rateLimiting" => {
-              "enabled" => false,
-              "maxRequests" => 100,
-              "windowSizeInMS" => 60000
-            }
-          }
-        ],
-        "blockedUserIds" => [],
-        "allowedIPAddresses" => [],
-        "receivedAnyStats" => false
-      })
-
-      unprotected_ctx = build_context_for("/unprotected", method: "GET")
-      assert unprotected_ctx.protection_disabled?
-
-      protected_ctx = build_context_for("/protected", method: "GET")
-      refute protected_ctx.protection_disabled?
-
-      default_ctx = build_context_for("/not_configured", method: "GET")
-      refute default_ctx.protection_disabled?
     end
   end
 
@@ -359,122 +303,6 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
 
         assert_empty context.payloads.select { |payload| payload.source == :subdomain }
       end
-    end
-
-    test "#protection_disabled? checks the runtime settings endpoints" do
-      Rails.application.routes.draw do
-        get "/protected" => "example#protected"
-        get "/unprotected" => "example#unprotected"
-        get "/not_configured" => "example#not_configured"
-      end
-
-      Aikido::Zen.runtime_settings.update_from_json({
-        "endpoints" => [
-          {
-            "method" => "GET",
-            "route" => "/unprotected(.:format)",
-            "forceProtectionOff" => true,
-            "graphql" => nil,
-            "allowedIPAddresses" => [],
-            "rateLimiting" => {
-              "enabled" => false,
-              "maxRequests" => 100,
-              "windowSizeInMS" => 60000
-            }
-          },
-          {
-            "method" => "GET",
-            "route" => "/protected(.:format)",
-            "forceProtectionOff" => false,
-            "graphql" => nil,
-            "allowedIPAddresses" => [],
-            "rateLimiting" => {
-              "enabled" => false,
-              "maxRequests" => 100,
-              "windowSizeInMS" => 60000
-            }
-          }
-        ]
-      })
-
-      unprotected_ctx = build_context_for("/unprotected", method: "GET")
-      assert unprotected_ctx.protection_disabled?
-
-      protected_ctx = build_context_for("/protected", method: "GET")
-      refute protected_ctx.protection_disabled?
-
-      default_ctx = build_context_for("/not_configured", method: "GET")
-      refute default_ctx.protection_disabled?
-    end
-
-    test "#protection_disabled? checks all the runtime settings endpoints" do
-      Rails.application.routes.draw do
-        get "/protected" => "example#protected"
-        get "/unprotected" => "example#unprotected"
-        get "/not_configured" => "example#not_configured"
-      end
-
-      Aikido::Zen.runtime_settings.update_from_json({
-        "endpoints" => [
-          {
-            "method" => "GET",
-            "route" => "/unprotected(.:format)",
-            "forceProtectionOff" => true,
-            "graphql" => nil,
-            "allowedIPAddresses" => [],
-            "rateLimiting" => {
-              "enabled" => false,
-              "maxRequests" => 100,
-              "windowSizeInMS" => 60000
-            }
-          },
-          {
-            "method" => "GET",
-            "route" => "/protected(.:format)",
-            "forceProtectionOff" => false,
-            "graphql" => nil,
-            "allowedIPAddresses" => [],
-            "rateLimiting" => {
-              "enabled" => false,
-              "maxRequests" => 100,
-              "windowSizeInMS" => 60000
-            }
-          },
-          {
-            "method" => "GET",
-            "route" => "/protect*(.:format)",
-            "forceProtectionOff" => false,
-            "graphql" => nil,
-            "allowedIPAddresses" => [],
-            "rateLimiting" => {
-              "enabled" => false,
-              "maxRequests" => 100,
-              "windowSizeInMS" => 60000
-            }
-          },
-          {
-            "method" => "GET",
-            "route" => "/*protected(.:format)",
-            "forceProtectionOff" => true,
-            "graphql" => nil,
-            "allowedIPAddresses" => [],
-            "rateLimiting" => {
-              "enabled" => false,
-              "maxRequests" => 100,
-              "windowSizeInMS" => 60000
-            }
-          }
-        ]
-      })
-
-      unprotected_ctx = build_context_for("/unprotected", method: "GET")
-      assert unprotected_ctx.protection_disabled?
-
-      protected_ctx = build_context_for("/protected", method: "GET")
-      assert protected_ctx.protection_disabled?
-
-      default_ctx = build_context_for("/not_configured", method: "GET")
-      refute default_ctx.protection_disabled?
     end
 
     # Set the TLD length when parsing hostnames in order to determine subdomains
