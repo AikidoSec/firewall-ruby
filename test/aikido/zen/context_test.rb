@@ -122,6 +122,11 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       context["foo"] = "bar"
       assert_equal "bar", context["foo"]
     end
+
+    test "#scanning? is false by default" do
+      context = build_context_for("/path")
+      refute context.scanning?
+    end
   end
 
   class RackRequestTest < ActiveSupport::TestCase
