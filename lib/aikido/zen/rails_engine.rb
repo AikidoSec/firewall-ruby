@@ -9,16 +9,24 @@ module Aikido::Zen
       config.zen = Aikido::Zen.config
     end
 
-    initializer "aikido.add_middleware" do |app|
-      app.middleware.insert_before 0, Aikido::Zen::Middleware::ForkDetector
+    initializer "aikido.add_middleware", after: :load_config_initializers do |app|
+      # The midleware to be inserted in order. The first middleware is the existing
+      # middleware to use as an anchor point.
+      middleware = [
+        ::Rails::Rack::Logger,
+        Aikido::Zen::Middleware::ForkDetector,
+        Aikido::Zen::Middleware::ContextSetter,
+        Aikido::Zen::Middleware::AllowedAddressChecker,
+        Aikido::Zen::Middleware::AttackProtector,
+        Aikido::Zen::Middleware::AttackWaveProtector,
+        # Request Tracker stats do not consider failed requests, so the middleware
+        # must be the last one wrapping the request.
+        Aikido::Zen::Middleware::RequestTracker
+      ]
 
-      app.middleware.use Aikido::Zen::Middleware::ContextSetter
-      app.middleware.use Aikido::Zen::Middleware::AllowedAddressChecker
-      app.middleware.use Aikido::Zen::Middleware::AttackProtector
-      app.middleware.use Aikido::Zen::Middleware::AttackWaveProtector
-      # Request Tracker stats do not consider failed request or 40x, so the middleware
-      # must be the last one wrapping the request.
-      app.middleware.use Aikido::Zen::Middleware::RequestTracker
+      middleware.each_cons(2) do |existing_middleware, additional_middleware|
+        app.middleware.insert_after(existing_middleware, additional_middleware)
+      end
 
       ActiveSupport.on_load(:action_controller) do
         # Due to how Rails sets up its middleware chain, the routing is evaluated
