@@ -67,7 +67,7 @@ class LibZen
       abort "Checksum verification failed for #{path}: expected #{expected}, but got #{actual}"
     end
 
-    puts "Checksum verification completed successfully"
+    puts "Checksum verification completed successfully: #{actual}"
   end
 
   def namespace
