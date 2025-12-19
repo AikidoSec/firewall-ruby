@@ -37,7 +37,7 @@ jobs:
         if: runner.os == 'Linux'
         run: "sudo apt-get update && sudo apt-get install libmysqlclient-dev libpq-dev libcurl4-openssl-dev"
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
