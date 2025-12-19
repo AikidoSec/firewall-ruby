@@ -50,7 +50,7 @@ class LibZen
   end
 
   def download
-    puts "Downloading #{path}"
+    puts "Downloading #{url} as #{path}"
 
     File.open(path, "wb") { |file| FileUtils.copy_stream(URI(url).open("rb"), file) }
 
