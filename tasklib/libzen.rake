@@ -51,16 +51,23 @@ class LibZen
 
   def download
     puts "Downloading #{path}"
+
     File.open(path, "wb") { |file| FileUtils.copy_stream(URI(url).open("rb"), file) }
+
+    puts "Download completed successfully"
   end
 
   def verify
+    puts "Verifying #{path} checksum"
+
     expected = URI(url + ".sha256sum").read.split(/\s+/).first
     actual = Digest::SHA256.file(path).to_s
 
     if expected != actual
       abort "Checksum verification failed for #{path}: expected #{expected}, but got #{actual}"
     end
+
+    puts "Checksum verification completed successfully"
   end
 
   def namespace
