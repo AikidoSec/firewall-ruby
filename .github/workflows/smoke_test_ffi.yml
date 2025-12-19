@@ -24,8 +24,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Set up the correct Gemfile for Ruby ${{ matrix.ruby }}
         run: bin/link_gemfile "${{ matrix.ruby }}"
-      # Lock files are generated for a specific platform
-      - run: rm Gemfile.lock
       - name: Install system dependencies
         if: runner.os == 'macOS'
         run: |
