@@ -5,6 +5,11 @@ changing values on the `Aikido::Zen.config` object, which you can do from
 your app's startup file (like an initializer in Rails, or `config.ru` in
 other Rack-based apps).
 
+## Middleware insertion
+
+Unless `Aikido::Zen.config.insert_middleware_after` is set, Zen inserts its
+middleware before the first middleware in the then-current middleware stack.
+
 ## Disable Zen
 
 In order to fully turn off Zen and prevent it from intercepting any requests or

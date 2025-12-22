@@ -10,10 +10,10 @@ module Aikido::Zen
     end
 
     initializer "aikido.add_middleware", after: :load_config_initializers do |app|
-      # The midleware to be inserted in order. The first middleware is the existing
-      # middleware to use as an anchor point.
-      middleware = [
-        ::Rails::Rack::Logger,
+      # The Zen middleware is inserted in order as a block after the configured
+      # middleware anchor point.
+
+      middleware_block = [
         Aikido::Zen::Middleware::ForkDetector,
         Aikido::Zen::Middleware::ContextSetter,
         Aikido::Zen::Middleware::AllowedAddressChecker,
@@ -24,8 +24,16 @@ module Aikido::Zen
         Aikido::Zen::Middleware::RequestTracker
       ]
 
-      middleware.each_cons(2) do |existing_middleware, additional_middleware|
-        app.middleware.insert_after(existing_middleware, additional_middleware)
+      middleware_anchor = Aikido::Zen.config.insert_middleware_after
+
+      if middleware_anchor.nil?
+        app.middleware.insert_before 0, middleware_block.first
+      else
+        app.middleware.insert_after middleware_anchor, middleware_block.first
+      end
+
+      middleware_block.each_cons(2) do |existing_middleware, middleware|
+        app.middleware.insert_after(existing_middleware, middleware)
       end
 
       ActiveSupport.on_load(:action_controller) do
