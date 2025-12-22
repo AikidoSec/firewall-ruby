@@ -7,8 +7,12 @@ other Rack-based apps).
 
 ## Middleware insertion
 
-Unless `Aikido::Zen.config.insert_middleware_after` is set, Zen inserts its
-middleware before the first middleware in the then-current middleware stack.
+By default, the Zen middleware is inserted after `ActionDispatch::Executor`.
+You can change this by setting `Aikido::Zen.config.insert_middleware_after`
+to a Rack middleware class or index.
+
+When set to `nil`, the middleware is inserted before the first middleware in
+the then-current middleware stack.
 
 ## Disable Zen
 
