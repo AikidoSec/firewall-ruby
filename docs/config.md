@@ -9,10 +9,17 @@ other Rack-based apps).
 
 By default, the Zen middleware is inserted after `ActionDispatch::Executor`.
 You can change this by setting `Aikido::Zen.config.insert_middleware_after`
-to a Rack middleware class or index.
+to the desired middleware class or index.
 
-When set to `nil`, the middleware is inserted before the first middleware in
-the then-current middleware stack.
+```ruby
+Aikido::Zen.config.insert_middleware_after = Rails::Rack::Logger
+```
+
+If you set it to `nil`, the Zen middleware is inserted at the very beginning
+of the middleware stack.
+
+Only set this if other middleware is inserted in a way that conflicts with
+the Zen middleware; for most applications, you will not need to set this.
 
 ## Disable Zen
 
