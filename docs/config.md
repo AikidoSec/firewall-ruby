@@ -5,15 +5,6 @@ changing values on the `Aikido::Zen.config` object, which you can do from
 your app's startup file (like an initializer in Rails, or `config.ru` in
 other Rack-based apps).
 
-## Middleware insertion
-
-By default, the Zen middleware is inserted after `ActionDispatch::Executor`.
-You can change this by setting `Aikido::Zen.config.insert_middleware_after`
-to a Rack middleware class or index.
-
-When set to `nil`, the middleware is inserted before the first middleware in
-the then-current middleware stack.
-
 ## Disable Zen
 
 In order to fully turn off Zen and prevent it from intercepting any requests or
@@ -45,11 +36,23 @@ set it via `Aikido::Zen.config.token = <token>`.
 
 ## Hardened mode
 
-Zen hardens methods, restricting dangerous undocumented behavior to improve
-security and performance.
+Zen hardens certain methods by blocking dangerous, undocumented behavior.
+This helps improve security and performance.
 
-To disable method hardening, set `AIKIDO_HARDEN=false` in your environment,
-or set `Aikido::Zen.config.harden = false`.
+Hardened mode is enabled by default. To disable it, set `AIKIDO_HARDEN=false`
+in your environment, or set `Aikido::Zen.config.harden = false`.
+
+When Zen detects dangerous undocumented behavior, it prevents the operation
+and raises an error, including a backtrace. For example, if code relies on
+undocumented behavior in `File.join`, Zen will raise a descriptive error:
+
+```
+TypeError: Zen prevented implicit conversion of Array to String in hardened method. Visit https://github.com/AikidoSec/firewall-ruby for more information.
+...
+```
+
+Only disable hardened mode if you are using code that relies on dangerous
+undocumented behavior and that code cannot be changed.
 
 ## Logger
 
