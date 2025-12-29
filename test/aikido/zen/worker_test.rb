@@ -27,7 +27,7 @@ class Aikido::Zen::WorkerTest < ActiveSupport::TestCase
         @worker.perform { raise "nope" }
       end
 
-      assert_logged :error, "Error in background worker: #<RuntimeError: nope>"
+      assert_logged :error, "Error in background worker: RuntimeError: nope"
     end
   end
 
@@ -51,7 +51,7 @@ class Aikido::Zen::WorkerTest < ActiveSupport::TestCase
         @worker.delay(0) { raise "delayed nope" }
       end
 
-      assert_logged :error, "Error in background worker: #<RuntimeError: delayed nope>"
+      assert_logged :error, "Error in background worker: RuntimeError: delayed nope"
     end
   end
 
@@ -100,7 +100,7 @@ class Aikido::Zen::WorkerTest < ActiveSupport::TestCase
       end
     end
 
-    assert_logged :error, "Error in background worker: #<RuntimeError: recurring nope>"
+    assert_logged :error, "Error in background worker: RuntimeError: recurring nope"
   end
 
   test "#shutdown kills any pending deferred tasks" do
