@@ -28,7 +28,8 @@ module Aikido::Zen
       executor.post do
         yield
       rescue Exception => err # rubocop:disable Lint/RescueException
-        @config.logger.error "Error in background worker: #{err.inspect}"
+        @config.logger.error("Error in background worker: #{err.class}: #{err.message}")
+        @config.logger.debug(err.backtrace.join("\n"))
       end
     end
 
