@@ -46,13 +46,13 @@ module Aikido::Zen
       if Aikido::Zen.blocking_mode?
         @config.logger.info("Requests identified as attacks will be blocked")
       else
-        @config.logger.warn("Non-blocking mode enabled! No requests will be blocked.")
+        @config.logger.warn("Non-blocking mode enabled! No requests will be blocked")
       end
 
       if @api_client.can_make_requests?
-        @config.logger.info("API Token set! Reporting has been enabled.")
+        @config.logger.info("API Token set! Reporting has been enabled")
       else
-        @config.logger.warn("No API Token set! Reporting has been disabled.")
+        @config.logger.warn("No API Token set! Reporting has been disabled")
         return
       end
 
@@ -60,7 +60,7 @@ module Aikido::Zen
 
       report(Events::Started.new(time: @started_at)) do |response|
         updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
-        @config.logger.info("Updated runtime settings.")
+        @config.logger.info("Updated runtime settings")
       rescue => err
         @config.logger.error(err.message)
       end

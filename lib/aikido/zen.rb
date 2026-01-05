@@ -37,7 +37,7 @@ module Aikido
     # @return [void]
     def self.protect!
       if config.disabled?
-        config.logger.warn("Zen has been disabled and will not run.")
+        config.logger.warn("Zen has been disabled and will not run")
         return
       end
 
