@@ -25,10 +25,6 @@ module Aikido::Zen
     #   @return [Integer] duration in seconds between heartbeat requests to the
     #     Aikido server.
 
-    # @!attribute [rw] received_any_stats
-    #   @return [Boolean] whether the Aikido server has received any data from
-    #     this application.
-
     # @!attribute [rw] endpoints
     #   @return [Aikido::Zen::RuntimeSettings::Endpoints]
 
@@ -37,6 +33,13 @@ module Aikido::Zen
 
     # @!attribute [rw] allowed_ips
     #   @return [Aikido::Zen::RuntimeSettings::IPSet]
+
+    # @!attribute [rw] received_any_stats
+    #   @return [Boolean] whether the Aikido server has received any data from
+    #     this application.
+
+    # @!attribute [rw] blocking_mode
+    #   @return [Boolean]
 
     # Parse and interpret the JSON response from the core API with updated
     # settings, and apply the changes. This will also notify any subscriber
