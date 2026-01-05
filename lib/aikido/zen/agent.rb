@@ -167,7 +167,7 @@ module Aikido::Zen
     def poll_for_setting_updates
       @worker.every(@config.polling_interval) do
         if @api_client.should_fetch_settings?
-          if Aikido::Zen.runtime_settings.update_from_json(@api_client.fetch_settings)
+          if Aikido::Zen.runtime_settings.update_from_json(@api_client.fetch_runtime_config)
             updated_settings!
             @config.logger.info("Updated runtime settings after polling")
           end

@@ -165,9 +165,9 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
 
     test "makes a GET request to the specified endpoint" do
       stub_request(:get, "https://guard.aikido.dev/api/runtime/config")
-        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_runtime_config.success.json"))
 
-      response = @client.fetch_settings
+      response = @client.fetch_runtime_config
       assert response["success"]
 
       assert_requested :get, "https://guard.aikido.dev/api/runtime/config",
@@ -181,9 +181,9 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
       Aikido::Zen.config.api_endpoint = "https://test.aikido.dev"
 
       stub_request(:get, "https://test.aikido.dev/api/runtime/config")
-        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_runtime_config.success.json"))
 
-      response = @client.fetch_settings
+      response = @client.fetch_runtime_config
       assert response["success"]
 
       assert_requested :get, "https://test.aikido.dev/api/runtime/config",
@@ -195,9 +195,9 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
 
     test "sets the User-Agent on the request" do
       stub_request(:get, "https://guard.aikido.dev/api/runtime/config")
-        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_runtime_config.success.json"))
 
-      @client.fetch_settings
+      @client.fetch_runtime_config
 
       assert_requested :get, "https://guard.aikido.dev/api/runtime/config",
         headers: {"User-Agent" => "firewall-ruby v#{Aikido::Zen::VERSION}"}
@@ -208,7 +208,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
         .to_return(status: 401, body: "")
 
       err = assert_raises Aikido::Zen::APIError do
-        @client.fetch_settings
+        @client.fetch_runtime_config
       end
 
       assert 401, err.response.code
@@ -220,7 +220,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
         .to_return(status: 502, body: "")
 
       err = assert_raises Aikido::Zen::APIError do
-        @client.fetch_settings
+        @client.fetch_runtime_config
       end
 
       assert 502, err.response.code
@@ -232,7 +232,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
         .to_timeout
 
       err = assert_raises Aikido::Zen::NetworkError do
-        @client.fetch_settings
+        @client.fetch_runtime_config
       end
 
       assert_kind_of Timeout::Error, err.cause
@@ -240,11 +240,11 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
 
     test "logs a debug message" do
       stub_request(:get, "https://guard.aikido.dev/api/runtime/config")
-        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_runtime_config.success.json"))
 
-      @client.fetch_settings
+      @client.fetch_runtime_config
 
-      assert_logged :debug, /fetching new runtime settings/i
+      assert_logged :debug, /fetching new runtime config/i
     end
   end
 
@@ -259,7 +259,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     test "makes a POST request to the specified endpoint" do
       stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
         .with(body: hash_including(type: "started"))
-        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_runtime_config.success.json"))
 
       response = @client.report(Aikido::Zen::Events::Started.new)
       assert response["success"]
@@ -276,7 +276,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     test "it sends the timestamp of the event in milliseconds" do
       stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
         .with(body: hash_including(type: "started"))
-        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_runtime_config.success.json"))
 
       event = Aikido::Zen::Events::Started.new(time: Time.at(1234567890))
       @client.report(event)
@@ -291,7 +291,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     test "it sends the agent info" do
       stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
         .with(body: hash_including(type: "started"))
-        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_runtime_config.success.json"))
 
       @client.report(Aikido::Zen::Events::Started.new)
 
@@ -307,7 +307,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
 
       stub_request(:post, "https://app.local.aikido.io/api/runtime/events")
         .with(body: hash_including(type: "started"))
-        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_runtime_config.success.json"))
 
       @client.report(Aikido::Zen::Events::Started.new)
 
@@ -317,7 +317,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     test "sets the User-Agent on the request" do
       stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
         .with(body: hash_including(type: "started"))
-        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_runtime_config.success.json"))
 
       @client.report(Aikido::Zen::Events::Started.new)
 
@@ -391,7 +391,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     test "logs a debug message" do
       stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
         .with(body: hash_including(type: "started"))
-        .to_return(status: 200, body: file_fixture("api_responses/fetch_settings.success.json"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_runtime_config.success.json"))
 
       @client.report(Aikido::Zen::Events::Started.new)
 

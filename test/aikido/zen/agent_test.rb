@@ -10,7 +10,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
       false
     end
 
-    def fetch_settings
+    def fetch_runtime_config
       {}
     end
 
@@ -148,7 +148,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
 
   test "#start! updates the runtime settings after polling if needed" do
     @api_client.expect :should_fetch_settings?, true
-    @api_client.expect :fetch_settings, {"configUpdatedAt" => 1234567890000}
+    @api_client.expect :fetch_runtime_config, {"configUpdatedAt" => 1234567890000}
 
     assert_changes -> { Aikido::Zen.runtime_settings.updated_at }, to: Time.at(1234567890) do
       @agent.start!

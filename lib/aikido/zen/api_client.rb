@@ -43,15 +43,15 @@ module Aikido::Zen
       new_updated_at > last_updated_at
     end
 
-    # Fetches the runtime settings from the server. In case of a timeout or
+    # Fetches the runtime config from the server. In case of a timeout or
     # other low-lever error, the request will be automatically retried up to two
     # times, after which it will raise an error.
     #
     # @return [Hash] decoded JSON response from the server with the runtime
     #   settings.
     # @raise (see #request)
-    def fetch_settings
-      @config.logger.debug("Fetching new runtime settings")
+    def fetch_runtime_config
+      @config.logger.debug("Fetching new runtime config")
 
       request(Net::HTTP::Get.new("/api/runtime/config", default_headers))
     end
@@ -69,7 +69,7 @@ module Aikido::Zen
     #
     #   @param settings_updating_event [Aikido::Zen::Events::Started,
     #     Aikido::Zen::Events::Heartbeat]
-    #   @return (see #fetch_settings)
+    #   @return (see #fetch_runtime_config)
     #   @raise (see #request)
     def report(event)
       event_type = if event.respond_to?(:type)
