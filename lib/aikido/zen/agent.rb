@@ -59,8 +59,10 @@ module Aikido::Zen
       at_exit { stop! if started? }
 
       report(Events::Started.new(time: @started_at)) do |response|
-        updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
-        @config.logger.info("Updated runtime settings")
+        if Aikido::Zen.runtime_settings.update_from_json(response)
+          updated_settings!
+          @config.logger.info("Updated runtime settings")
+        end
       rescue => err
         @config.logger.error(err.message)
       end
@@ -148,8 +150,10 @@ module Aikido::Zen
 
       heartbeat = @collector.flush
       report(heartbeat) do |response|
-        updated_settings! if Aikido::Zen.runtime_settings.update_from_json(response)
-        @config.logger.info("Updated runtime settings after heartbeat")
+        if Aikido::Zen.runtime_settings.update_from_json(response)
+          updated_settings!
+          @config.logger.info("Updated runtime settings after heartbeat")
+        end
       end
     end
 
@@ -163,8 +167,10 @@ module Aikido::Zen
     def poll_for_setting_updates
       @worker.every(@config.polling_interval) do
         if @api_client.should_fetch_settings?
-          updated_settings! if Aikido::Zen.runtime_settings.update_from_json(@api_client.fetch_settings)
-          @config.logger.info("Updated runtime settings after polling")
+          if Aikido::Zen.runtime_settings.update_from_json(@api_client.fetch_settings)
+            updated_settings!
+            @config.logger.info("Updated runtime settings after polling")
+          end
         end
       end
     end
