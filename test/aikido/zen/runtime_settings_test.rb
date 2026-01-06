@@ -8,7 +8,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
   end
 
   test "building from a JSON response" do
-    assert @settings.update_from_json({
+    assert @settings.update_from_runtime_config_json({
       "success" => true,
       "serviceId" => 1234,
       "configUpdatedAt" => 1717171717000,
@@ -30,7 +30,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
   end
 
   test "building from a JSON response without the block key" do
-    assert @settings.update_from_json({
+    assert @settings.update_from_runtime_config_json({
       "success" => true,
       "serviceId" => 1234,
       "configUpdatedAt" => 1717171717000,
@@ -50,7 +50,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_nil @settings.blocking_mode
   end
 
-  test "update_from_json should return true or false in case the settings were or no updated" do
+  test "#update_from_runtime_config_json should return true or false in case the settings were or no updated" do
     payload = {
       "success" => true,
       "serviceId" => 1234,
@@ -62,18 +62,18 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
       "receivedAnyStats" => false
     }
 
-    assert @settings.update_from_json(payload)
-    refute @settings.update_from_json(payload)
-    refute @settings.update_from_json(payload)
+    assert @settings.update_from_runtime_config_json(payload)
+    refute @settings.update_from_runtime_config_json(payload)
+    refute @settings.update_from_runtime_config_json(payload)
 
     payload["configUpdatedAt"] = 1726354453000
 
-    assert @settings.update_from_json(payload)
-    refute @settings.update_from_json(payload)
+    assert @settings.update_from_runtime_config_json(payload)
+    refute @settings.update_from_runtime_config_json(payload)
   end
 
   test "#allowed_ips lets you use individual addresses" do
-    assert @settings.update_from_json({
+    assert @settings.update_from_runtime_config_json({
       "allowedIPAddresses" => ["1.2.3.4", "2.3.4.5"]
     })
 
@@ -83,7 +83,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
   end
 
   test "#allowed_ips lets you pass CIDR blocks" do
-    assert @settings.update_from_json({
+    assert @settings.update_from_runtime_config_json({
       "allowedIPAddresses" => ["10.0.0.0/31", "1.1.1.1"]
     })
 
@@ -94,7 +94,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
   end
 
   test "#allowed_ips lets you use individual IPv6 addresses" do
-    assert @settings.update_from_json({
+    assert @settings.update_from_runtime_config_json({
       "allowedIPAddresses" => ["2001:db8::1", "2001:db8::2"]
     })
 
@@ -104,7 +104,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
   end
 
   test "#allowed_ips lets you pass IPv6 CIDR blocks" do
-    assert @settings.update_from_json({
+    assert @settings.update_from_runtime_config_json({
       "allowedIPAddresses" => ["2001:db8::/127", "2001:db8::100"]
     })
 
@@ -115,7 +115,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
   end
 
   test "parsing endpoint data" do
-    assert @settings.update_from_json({
+    assert @settings.update_from_runtime_config_json({
       "success" => true,
       "serviceId" => 1234,
       "configUpdatedAt" => 1717171717000,
@@ -183,7 +183,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
   end
 
   test "endpoints without an explicit config get a reasonable default value" do
-    assert @settings.update_from_json({
+    assert @settings.update_from_runtime_config_json({
       "success" => true,
       "serviceId" => 1234,
       "configUpdatedAt" => 1717171717000,

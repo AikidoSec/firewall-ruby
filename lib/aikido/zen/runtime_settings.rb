@@ -6,8 +6,8 @@ module Aikido::Zen
   #
   # Because the RuntimeSettings object can be modified in runtime, it implements
   # the {Observable} API, allowing you to subscribe to updates. These are
-  # triggered whenever #update_from_json makes a change (i.e. if the settings
-  # don't change, no update is triggered).
+  # triggered whenever #update_from_runtime_settings_json makes a change
+  # (i.e. if the settings don't change, no update is triggered).
   #
   # You can subscribe to changes with +#add_observer(object, func_name)+, which
   # will call the function passing the settings as an argument.
@@ -49,7 +49,7 @@ module Aikido::Zen
     #   API endpoint.
     #
     # @return [bool]
-    def update_from_json(data)
+    def update_from_runtime_config_json(data)
       last_updated_at = updated_at
 
       self.updated_at = Time.at(data["configUpdatedAt"].to_i / 1000)
