@@ -20,6 +20,11 @@ module Aikido::Zen
         end
 
         def block?(controller)
+          # The abstract controller running the callback is typically an ActionController
+          # but it may also be an ActionMailer. ActionMailer does not respond to request.
+          # This feature requires a request object to perform checks and enforce blocking.
+          return false unless controller.respond_to?(:request)
+
           context = controller.request.env[Aikido::Zen::ENV_KEY]
           request = context.request
 
