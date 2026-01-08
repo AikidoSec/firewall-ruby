@@ -20,6 +20,8 @@ module Aikido::Zen
         end
 
         def block?(controller)
+          return false unless controller.respond_to?(:request)
+
           context = controller.request.env[Aikido::Zen::ENV_KEY]
           request = context.request
 
