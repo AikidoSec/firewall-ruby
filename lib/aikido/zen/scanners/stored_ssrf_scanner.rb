@@ -41,7 +41,7 @@ module Aikido::Zen
         @addresses.find do |address|
           DANGEROUS_ADDRESSES.any? do |dangerous_address|
             # Addresses are not considered stored IMDS addresses if the address
-            # is the same as the hostname.
+            # is the same as the hostname. (These are valid IMDS requests, not spoofed ones)
             next if address == @hostname
 
             # True if the dangerous address is address or includes the address.
