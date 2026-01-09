@@ -38,11 +38,19 @@ module Aikido::Zen
 
         return if @config.imds_allowed_hosts.include?(@hostname)
 
-        @addresses.find do |candidate|
-          DANGEROUS_ADDRESSES.any? { |address| address === candidate }
+        @addresses.find do |address|
+          DANGEROUS_ADDRESSES.any? do |dangerous_address|
+            # Addresses are not considered stored IMDS addresses if the address
+            # is the same as the hostname.
+            next if address == @hostname
+
+            # True if the dangerous address is address or includes the address.
+            dangerous_address === address
+          end
         end
       end
 
+      # A dangerous address may be an individual address or an address range.
       DANGEROUS_ADDRESSES = [
         IPAddr.new("169.254.169.254"),
         IPAddr.new("100.100.100.200"),
