@@ -24,6 +24,11 @@ class Aikido::Zen::Scanners::StoredSSRFScannerTest < ActiveSupport::TestCase
     assert_attack "trust-me-im-good.com", ["1.1.1.1", "169.254.169.254", "2.2.2.2"]
   end
 
+  test "allows hostnames that are dangerous addresses" do
+    refute_attack "169.254.169.254", ["169.254.169.254"]
+    refute_attack "fd00:ec2::254", ["fd00:ec2::254"]
+  end
+
   test "allows known hosts that resolve to dangerous addresses" do
     refute_attack "metadata.google.internal", ["169.254.169.254"]
     refute_attack "metadata.goog", ["169.254.169.254"]

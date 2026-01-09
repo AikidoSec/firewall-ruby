@@ -203,7 +203,9 @@ module Aikido::Zen
       end
 
       def input
-        Aikido::Zen::Payload::UNKNOWN_PAYLOAD
+        # When the payload is unknown the payload, source, and path properties
+        # should be undefined, not "unknown".
+        {}
       end
 
       def metadata
