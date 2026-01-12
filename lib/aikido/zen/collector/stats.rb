@@ -27,7 +27,9 @@ module Aikido::Zen
 
     # @return [Boolean]
     def empty?
-      @requests.zero? && @sinks.empty?
+      @requests.zero? &&
+        @attack_waves.zero? &&
+        @sinks.empty?
     end
 
     # @return [Boolean]

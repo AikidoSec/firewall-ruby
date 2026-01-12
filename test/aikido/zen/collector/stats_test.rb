@@ -58,6 +58,18 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     assert @stats.any?
   end
 
+  test "#empty? is false after an attack wave is tracked" do
+    @stats.add_attack_wave(being_blocked: false)
+    refute @stats.empty?
+    assert @stats.any?
+  end
+
+  test "#empty? is false after a blocked attack wave is tracked" do
+    @stats.add_attack_wave(being_blocked: true)
+    refute @stats.empty?
+    assert @stats.any?
+  end
+
   test "#empty? is false after a scan is tracked" do
     scan = stub_scan
     @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
