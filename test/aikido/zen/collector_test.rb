@@ -24,6 +24,13 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     end
   end
 
+  test "#track_user_agent increments the number of user agents" do
+    assert_difference -> { @collector.stats.user_agents["adsbot_google"] }, +2 do
+      @collector.track_user_agent(["adsbot_google"])
+      @collector.track_user_agent(["adsbot_google"])
+    end
+  end
+
   test "#track_request increments the number of attack waves" do
     assert_difference "@collector.stats.attack_waves", +2 do
       @collector.track_attack_wave(being_blocked: false)
@@ -206,6 +213,9 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
             total: 0,
             blocked: 0
           }
+        },
+        userAgents: {
+          breakdown: {}
         }
       },
       users: [],
@@ -245,6 +255,9 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
             total: 5,
             blocked: 2
           }
+        },
+        userAgents: {
+          breakdown: {}
         }
       },
       users: [],
@@ -285,6 +298,9 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
             total: 0,
             blocked: 0
           }
+        },
+        userAgents: {
+          breakdown: {}
         },
         operations: {
           "test" => {
@@ -397,6 +413,9 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
             total: 0,
             blocked: 0
           }
+        },
+        userAgents: {
+          breakdown: {}
         }
       },
       users: [],
@@ -437,6 +456,10 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     @collector.track_attack_wave(being_blocked: false)
     @collector.track_attack_wave(being_blocked: true)
 
+    2.times do
+      @collector.track_user_agent(["google_adwords"])
+    end
+
     event = @collector.flush(at: Time.at(1234577890))
 
     assert_hash_subset_of event.as_json, {
@@ -475,6 +498,11 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           attackWaves: {
             total: 3,
             blocked: 1
+          }
+        },
+        userAgents: {
+          breakdown: {
+            "google_adwords" => 2
           }
         }
       },

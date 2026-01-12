@@ -14,6 +14,10 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
       {}
     end
 
+    def fetch_runtime_firewall_lists
+      {}
+    end
+
     def report(event)
       {}
     end

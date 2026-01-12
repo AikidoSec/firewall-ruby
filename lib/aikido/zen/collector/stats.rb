@@ -8,7 +8,7 @@ module Aikido::Zen
   # Tracks information about how the Aikido Agent is used in the app.
   class Collector::Stats
     # @!visibility private
-    attr_reader :started_at, :ended_at, :requests, :aborted_requests, :attack_waves, :blocked_attack_waves, :sinks
+    attr_reader :started_at, :ended_at, :requests, :aborted_requests, :user_agents, :attack_waves, :blocked_attack_waves, :sinks
 
     # @!visibility private
     attr_writer :ended_at
@@ -20,6 +20,7 @@ module Aikido::Zen
       @started_at = @ended_at = nil
       @requests = 0
       @aborted_requests = 0
+      @user_agents = Hash.new { |h, k| h[k] = 0 }
       @attack_waves = 0
       @blocked_attack_waves = 0
       @sinks = Hash.new { |h, k| h[k] = Collector::SinkStats.new(k, @config) }
@@ -28,6 +29,7 @@ module Aikido::Zen
     # @return [Boolean]
     def empty?
       @requests.zero? &&
+        @user_agents.empty? &&
         @attack_waves.zero? &&
         @sinks.empty?
     end
@@ -63,6 +65,12 @@ module Aikido::Zen
     # @return [void]
     def add_request
       @requests += 1
+    end
+
+    # @param user_agent_keys [Array<String>] the user agent keys
+    # @return [void]
+    def add_user_agent(user_agent_keys)
+      user_agent_keys&.each { |user_agent_key| @user_agents[user_agent_key] += 1 }
     end
 
     # @param being_blocked [Boolean] whether the Agent blocked the request
@@ -109,6 +117,9 @@ module Aikido::Zen
             total: @attack_waves,
             blocked: @blocked_attack_waves
           }
+        },
+        userAgents: {
+          breakdown: @user_agents
         }
       }
     end

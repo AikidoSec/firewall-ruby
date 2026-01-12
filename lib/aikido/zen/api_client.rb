@@ -56,6 +56,12 @@ module Aikido::Zen
       request(Net::HTTP::Get.new("/api/runtime/config", default_headers))
     end
 
+    def fetch_runtime_firewall_lists
+      @config.logger.debug("Fetching new runtime firewall lists")
+
+      request(Net::HTTP::Get.new("/api/runtime/firewall/lists", default_headers))
+    end
+
     # @overload report(event)
     #   Reports an event to the server.
     #

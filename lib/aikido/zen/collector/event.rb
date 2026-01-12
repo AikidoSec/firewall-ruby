@@ -52,6 +52,33 @@ module Aikido::Zen
         end
       end
 
+      class TrackUserAgent < Event
+        register "track_user_agent"
+
+        def self.from_json(data)
+          new(data[:user_agent_keys])
+        end
+
+        def initialize(user_agent_keys)
+          super()
+          @user_agent_keys = user_agent_keys
+        end
+
+        def as_json
+          super.update({
+            user_agent_keys: @user_agent_keys
+          })
+        end
+
+        def handle(collector)
+          collector.handle_track_user_agent(@user_agent_keys)
+        end
+
+        def inspect
+          "#<#{self.class.name} #{@user_agent_keys.inspect}>"
+        end
+      end
+
       class TrackAttackWave < Event
         register "track_attack_wave"
 

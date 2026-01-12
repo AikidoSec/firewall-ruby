@@ -13,6 +13,14 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     TrackRequest.from_json(data)
   end
 
+  def stub_track_user_agent_event(user_agent_keys = ["google_adwords"])
+    TrackUserAgent.new(user_agent_keys)
+  end
+
+  def stub_track_user_agent_event_from_json(data)
+    TrackUserAgent.from_json(data)
+  end
+
   def stub_track_attack_wave_event(being_blocked: false)
     TrackAttackWave.new(being_blocked: being_blocked)
   end
@@ -132,6 +140,46 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
 
     collector = Minitest::Mock.new
     collector.expect :handle_track_request, nil, []
+
+    event.handle(collector)
+
+    assert_mock collector
+  end
+
+  test "create new track user agent event" do
+    assert_silent { stub_track_user_agent_event }
+  end
+
+  test "serialize track user agent event as JSON" do
+    event = stub_track_user_agent_event
+
+    assert_hash_subset_of event.as_json, {
+      type: "track_user_agent"
+    }
+  end
+
+  test "deserialize track user agent event from JSON" do
+    event = stub_track_user_agent_event
+    event_hash = event.as_json
+
+    other = stub_track_user_agent_event_from_json(event_hash)
+
+    assert_equal event_hash, other.as_json
+  end
+
+  test "deserialize event for track user agent from JSON" do
+    event = stub_track_user_agent_event
+
+    other = stub_event_from_json(event.as_json)
+
+    assert_equal TrackUserAgent, other.class
+  end
+
+  test "track user agent handle calls handle_track_user_agent" do
+    event = stub_track_user_agent_event
+
+    collector = Minitest::Mock.new
+    collector.expect :handle_track_user_agent, nil, [["google_adwords"]]
 
     event.handle(collector)
 

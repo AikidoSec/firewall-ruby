@@ -67,6 +67,8 @@ module Aikido::Zen
         @config.logger.error(err.message)
       end
 
+      Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(@api_client.fetch_runtime_firewall_lists)
+
       poll_for_setting_updates
 
       @config.initial_heartbeat_delays.each do |heartbeat_delay|
@@ -171,6 +173,8 @@ module Aikido::Zen
             updated_settings!
             @config.logger.info("Updated runtime settings after polling")
           end
+
+          Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(@api_client.fetch_runtime_firewall_lists)
         end
       end
     end

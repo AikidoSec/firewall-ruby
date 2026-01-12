@@ -10,8 +10,8 @@ module Aikido::Zen
   # (i.e. if the settings don't change, no update is triggered).
   #
   # You can subscribe to changes with +#add_observer(object, func_name)+, which
-  # will call the function passing the settings as an argument.
-  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :allowed_ips, :received_any_stats, :blocking_mode) do
+  # will call the function passing the settings as an argument
+  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :allowed_ips, :received_any_stats, :blocking_mode, :blocked_user_agent_regexp, :monitored_user_agent_regexp, :user_agent_details) do
     def initialize(*)
       super
       self.endpoints ||= RuntimeSettings::Endpoints.new
@@ -41,13 +41,22 @@ module Aikido::Zen
     # @!attribute [rw] blocking_mode
     #   @return [Boolean]
 
+    # @!attribute [rw] blocked_user_agent_regexp
+    #   @return [Regexp]
+
+    # @!attribute [rw] monitored_user_agent_regexp
+    #   @return [Regexp]
+
+    # @!attribute [rw] user_agent_details
+    #   @return [Regexp]
+
     # Parse and interpret the JSON response from the core API with updated
-    # settings, and apply the changes. This will also notify any subscriber
-    # to updates
+    # rutime settings, and apply the changes.
+    #
+    # This will also notify any subscriber to updates.
     #
     # @param data [Hash] the decoded JSON payload from the /api/runtime/config
     #   API endpoint.
-    #
     # @return [bool]
     def update_from_runtime_config_json(data)
       last_updated_at = updated_at
@@ -61,6 +70,57 @@ module Aikido::Zen
       self.blocking_mode = data["block"]
 
       updated_at != last_updated_at
+    end
+
+    # Parse and interpret the JSON response from the core API with updated
+    # runtime firewall lists, and apply the changes.
+    #
+    # @param data [Hash] the decoded JSON payload from the /api/runtime/firewall/lists
+    #   API endpoint.
+    # @return [void]
+    def update_from_runtime_firewall_lists_json(data)
+      self.blocked_user_agent_regexp = if data["blockedUserAgents"].nil?
+        nil
+      else
+        /#{data["blockedUserAgents"]}/i
+      end
+
+      self.monitored_user_agent_regexp = if data["monitoredUserAgents"].nil?
+        nil
+      else
+        /#{data["monitoredUserAgents"]}/i
+      end
+
+      self.user_agent_details = data["userAgentDetails"]&.map do |record|
+        {
+          key: record["key"],
+          pattern: /#{record["pattern"]}/i
+        }
+      end
+    end
+
+    # @param [String] the user agent
+    # @return [Boolean] whether the user agent should be blocked
+    def blocked_user_agent?(user_agent)
+      return false if blocked_user_agent_regexp.nil?
+
+      blocked_user_agent_regexp.match?(user_agent)
+    end
+
+    # @param [String] the user agent
+    # @return [Boolean] whether the user agent should be monitored
+    def monitored_user_agent?(user_agent)
+      return false if monitored_user_agent_regexp.nil?
+
+      monitored_user_agent_regexp.match?(user_agent)
+    end
+
+    # @param [String] the user agent
+    # @return [Array<String>] the matching user agent keys
+    def user_agent_keys(user_agent)
+      user_agent_details
+        .filter { |record| record[:pattern].match?(user_agent) }
+        .map { |record| record[:key] }
     end
   end
 end

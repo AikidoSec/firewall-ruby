@@ -300,6 +300,8 @@ module Aikido::Zen
       message = case blocking_type
       when :ip
         format("Your IP address is not allowed to access this resource. (Your IP: %s)", request.ip)
+      when :user_agent
+        format("Your user agent is not allowed to access this resource. (Your user agent: %s)", request.user_agent)
       else
         "You are blocked by Zen."
       end

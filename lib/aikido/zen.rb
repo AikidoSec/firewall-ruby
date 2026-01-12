@@ -16,6 +16,7 @@ require_relative "zen/middleware/middleware"
 require_relative "zen/middleware/fork_detector"
 require_relative "zen/middleware/context_setter"
 require_relative "zen/middleware/allowed_address_checker"
+require_relative "zen/middleware/user_agent_checker"
 require_relative "zen/middleware/attack_protector"
 require_relative "zen/middleware/attack_wave_protector"
 require_relative "zen/middleware/request_tracker"
@@ -126,6 +127,15 @@ module Aikido
     # @return [void]
     def self.track_request(request)
       collector.track_request
+    end
+
+    # Track monitored and blocked user agents.
+    #
+    # @param user_agent_keys [Array<String>, nil] the user agent keys
+    #   from matching runtime firewall list user agent details.
+    # @return [void]
+    def self.track_user_agent(user_agent_keys)
+      collector.track_user_agent(user_agent_keys)
     end
 
     # Track statistics about an attack wave the app is handling.
