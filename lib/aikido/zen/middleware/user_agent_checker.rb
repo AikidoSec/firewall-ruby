@@ -13,6 +13,8 @@ module Aikido::Zen
       def call(env)
         request = Aikido::Zen::Middleware.request_from(env)
 
+        return @app.call(env) if bypassed?(request)
+
         user_agent = request.user_agent
 
         if @settings.blocked_user_agent?(user_agent)
@@ -28,6 +30,11 @@ module Aikido::Zen
         end
 
         @app.call(env)
+      end
+
+      def bypassed?(request)
+        # Bypass bot protection and monitoring for allowed IPs
+        @settings.allowed_ips.include?(request.ip)
       end
     end
   end
