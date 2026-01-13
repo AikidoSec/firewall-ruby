@@ -51,7 +51,7 @@ module Aikido::Zen
     #   @return [Regexp]
 
     # Parse and interpret the JSON response from the core API with updated
-    # rutime settings, and apply the changes.
+    # runtime settings, and apply the changes.
     #
     # This will also notify any subscriber to updates.
     #
