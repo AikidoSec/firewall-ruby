@@ -127,6 +127,8 @@ module Aikido::Zen
     # @param user_agent [String] the user agent
     # @return [Array<String>] the matching user agent keys
     def user_agent_keys(user_agent)
+      return [] if user_agent_details.nil?
+
       user_agent_details
         .filter { |record| record[:pattern].match?(user_agent) }
         .map { |record| record[:key] }
