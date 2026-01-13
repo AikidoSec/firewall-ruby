@@ -108,7 +108,7 @@ module Aikido::Zen
       end
     end
 
-    # @param [String] the user agent
+    # @param user_agent [String] the user agent
     # @return [Boolean] whether the user agent should be blocked
     def blocked_user_agent?(user_agent)
       return false if blocked_user_agent_regexp.nil?
@@ -116,7 +116,7 @@ module Aikido::Zen
       blocked_user_agent_regexp.match?(user_agent)
     end
 
-    # @param [String] the user agent
+    # @param user_agent [String] the user agent
     # @return [Boolean] whether the user agent should be monitored
     def monitored_user_agent?(user_agent)
       return false if monitored_user_agent_regexp.nil?
@@ -124,7 +124,7 @@ module Aikido::Zen
       monitored_user_agent_regexp.match?(user_agent)
     end
 
-    # @param [String] the user agent
+    # @param user_agent [String] the user agent
     # @return [Array<String>] the matching user agent keys
     def user_agent_keys(user_agent)
       user_agent_details
