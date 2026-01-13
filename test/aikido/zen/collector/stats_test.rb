@@ -58,6 +58,24 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     assert @stats.any?
   end
 
+  test "#empty? is false after a user agent is tracked" do
+    @stats.add_user_agent(["adsbot_google"])
+    refute @stats.empty?
+    assert @stats.any?
+  end
+
+  test "#empty? is false after an attack wave is tracked" do
+    @stats.add_attack_wave(being_blocked: false)
+    refute @stats.empty?
+    assert @stats.any?
+  end
+
+  test "#empty? is false after a blocked attack wave is tracked" do
+    @stats.add_attack_wave(being_blocked: true)
+    refute @stats.empty?
+    assert @stats.any?
+  end
+
   test "#empty? is false after a scan is tracked" do
     scan = stub_scan
     @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
@@ -76,6 +94,32 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
       @stats.add_request
       @stats.add_request
     end
+  end
+
+  test "#add_user_agent increments the the total number of user agents" do
+    assert_difference "@stats.user_agents.length", +7 do
+      @stats.add_user_agent(["adsbot_google"])
+      @stats.add_user_agent(["adsbot_google"])
+
+      @stats.add_user_agent(["githubcopilotchat"])
+
+      # Multiple user agent keys are incremented if multiple user agent keys match
+      # (currently theoretical).
+
+      @stats.add_user_agent(["custom_a1", "custom_a2"])
+
+      @stats.add_user_agent(["custom_b1", "custom_b2", "custom_b3"])
+    end
+
+    assert_equal @stats.user_agents["adsbot_google"], 2
+
+    assert_equal @stats.user_agents["githubcopilotchat"], 1
+
+    assert_equal @stats.user_agents["custom_a1"], 1
+    assert_equal @stats.user_agents["custom_a2"], 1
+    assert_equal @stats.user_agents["custom_b1"], 1
+    assert_equal @stats.user_agents["custom_b2"], 1
+    assert_equal @stats.user_agents["custom_b3"], 1
   end
 
   test "#add_scan increments the total number of scans for the sink" do

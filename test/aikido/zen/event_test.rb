@@ -146,6 +146,9 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
             aborted: 0,
             attacksDetected: {total: 0, blocked: 0},
             attackWaves: {total: 0, blocked: 0}
+          },
+          userAgents: {
+            breakdown: {}
           }
         },
         users: [],

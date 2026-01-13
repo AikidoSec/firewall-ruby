@@ -54,6 +54,17 @@ module Aikido
     # Raised whenever a response to the API results in a 429 response.
     class RateLimitedError < APIError; end
 
+    # Raised whenever a request body cannot be decoded.
+    class DecodeError < StandardError
+      include Error
+
+      def initialize(request, cause = nil)
+        @request = request.dup
+
+        super("Error in #{request.method} #{request.path}: #{cause.message}")
+      end
+    end
+
     class UnderAttackError < StandardError
       include Error
 

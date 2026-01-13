@@ -88,6 +88,20 @@ module Aikido::Zen
       synchronize(@stats) { |stats| stats.add_request }
     end
 
+    # Track stats about monitored and blocked user agents
+    #
+    # @param [Array<String>, nil] the user agent keys
+    # @return [void]
+    def track_user_agent(user_agent_keys)
+      return if user_agent_keys.nil?
+
+      add_event(Events::TrackUserAgent.new(user_agent_keys))
+    end
+
+    def handle_track_user_agent(user_agent_keys)
+      synchronize(@stats) { |stats| stats.add_user_agent(user_agent_keys) }
+    end
+
     # Track stats about an attack detected by our scanners.
     #
     # @param attack [Aikido::Zen::Events::AttackWave]

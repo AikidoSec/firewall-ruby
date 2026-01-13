@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "net/http"
+require "zlib"
+require "stringio"
 require_relative "rate_limiter"
 
 module Aikido::Zen
@@ -43,17 +45,27 @@ module Aikido::Zen
       new_updated_at > last_updated_at
     end
 
-    # Fetches the runtime settings from the server. In case of a timeout or
+    # Fetches the runtime config from the server. In case of a timeout or
     # other low-lever error, the request will be automatically retried up to two
     # times, after which it will raise an error.
     #
     # @return [Hash] decoded JSON response from the server with the runtime
     #   settings.
     # @raise (see #request)
-    def fetch_settings
-      @config.logger.debug("Fetching new runtime settings")
+    def fetch_runtime_config
+      @config.logger.debug("Fetching new runtime config")
 
       request(Net::HTTP::Get.new("/api/runtime/config", default_headers))
+    end
+
+    def fetch_runtime_firewall_lists
+      @config.logger.debug("Fetching new runtime firewall lists")
+
+      headers = default_headers.merge({
+        "Accept-Encoding" => "gzip"
+      })
+
+      request(Net::HTTP::Get.new("/api/runtime/firewall/lists", headers))
     end
 
     # @overload report(event)
@@ -69,7 +81,7 @@ module Aikido::Zen
     #
     #   @param settings_updating_event [Aikido::Zen::Events::Started,
     #     Aikido::Zen::Events::Heartbeat]
-    #   @return (see #fetch_settings)
+    #   @return (see #fetch_runtime_config)
     #   @raise (see #request)
     def report(event)
       event_type = if event.respond_to?(:type)
@@ -116,7 +128,12 @@ module Aikido::Zen
 
         case response
         when Net::HTTPSuccess
-          @config.json_decoder.call(response.body)
+          begin
+            body = decode(response.body, response["Content-Encoding"])
+            @config.json_decoder.call(body)
+          rescue => err
+            raise DecodeError.new(request, err)
+          end
         when Net::HTTPTooManyRequests
           raise RateLimitedError.new(request, response)
         else
@@ -125,6 +142,22 @@ module Aikido::Zen
       end
     rescue Timeout::Error, IOError, SystemCallError, OpenSSL::OpenSSLError => err
       raise NetworkError.new(request, err)
+    end
+
+    # @param data [String, nil]
+    # @param encoding [String, nil]
+    # @return [String, nil]
+    private def decode(data, encoding)
+      return data unless data
+
+      case encoding&.downcase
+      when "gzip"
+        StringIO.open(data, "r") do |io|
+          Zlib::GzipReader.wrap(io) { |gz| gz.read }
+        end
+      else
+        data
+      end
     end
 
     private def http_settings(base_url)
