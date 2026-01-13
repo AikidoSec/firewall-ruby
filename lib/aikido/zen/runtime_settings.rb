@@ -79,17 +79,9 @@ module Aikido::Zen
     #   API endpoint.
     # @return [void]
     def update_from_runtime_firewall_lists_json(data)
-      self.blocked_user_agent_regexp = if data["blockedUserAgents"].nil?
-        nil
-      else
-        /#{data["blockedUserAgents"]}/i
-      end
+      self.blocked_user_agent_regexp = pattern(data["blockedUserAgents"])
 
-      self.monitored_user_agent_regexp = if data["monitoredUserAgents"].nil?
-        nil
-      else
-        /#{data["monitoredUserAgents"]}/i
-      end
+      self.monitored_user_agent_regexp = pattern(data["monitoredUserAgents"])
 
       self.user_agent_details = data["userAgentDetails"]&.map do |record|
         {
@@ -97,6 +89,19 @@ module Aikido::Zen
           pattern: /#{record["pattern"]}/i
         }
       end
+    end
+
+    # Construct a regular expression from the non-nil and non-empty string,
+    # otherwise return nil.
+    #
+    # The resulting regular expression is case insensitive.
+    #
+    # @param string [String, nil]
+    # @return [Regexp, nil]
+    private def pattern(string)
+      return nil if string.nil? || string.empty?
+
+      /#{string}/i
     end
 
     # @param [String] the user agent
