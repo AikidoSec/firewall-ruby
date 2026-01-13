@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "net/http"
+require "zlib"
+require "stringio"
 require_relative "rate_limiter"
 
 module Aikido::Zen
@@ -59,7 +61,11 @@ module Aikido::Zen
     def fetch_runtime_firewall_lists
       @config.logger.debug("Fetching new runtime firewall lists")
 
-      request(Net::HTTP::Get.new("/api/runtime/firewall/lists", default_headers))
+      headers = default_headers.merge({
+        "Accept-Encoding" => "gzip"
+      })
+
+      request(Net::HTTP::Get.new("/api/runtime/firewall/lists", headers))
     end
 
     # @overload report(event)
@@ -122,7 +128,8 @@ module Aikido::Zen
 
         case response
         when Net::HTTPSuccess
-          @config.json_decoder.call(response.body)
+          body = decode(response.body, response["Content-Encoding"])
+          @config.json_decoder.call(body)
         when Net::HTTPTooManyRequests
           raise RateLimitedError.new(request, response)
         else
@@ -131,6 +138,22 @@ module Aikido::Zen
       end
     rescue Timeout::Error, IOError, SystemCallError, OpenSSL::OpenSSLError => err
       raise NetworkError.new(request, err)
+    end
+
+    # @param data [String, nil]
+    # @param encoding [String, nil]
+    # @return [String, nil]
+    private def decode(data, encoding)
+      return data unless data
+
+      case encoding&.downcase
+      when "gzip"
+        StringIO.open(data, "r") do |io|
+          Zlib::GzipReader.wrap(io) { |gz| gz.read }
+        end
+      else
+        data
+      end
     end
 
     private def http_settings(base_url)
