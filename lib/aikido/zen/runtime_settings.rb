@@ -86,7 +86,7 @@ module Aikido::Zen
       self.user_agent_details = data["userAgentDetails"]&.map do |record|
         {
           key: record["key"],
-          pattern: /#{record["pattern"]}/i
+          pattern: pattern(record["pattern"])
         }
       end
     end
