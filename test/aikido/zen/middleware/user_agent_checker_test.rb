@@ -49,7 +49,7 @@ class Aikido::Zen::Middleware::UserAgentCheckerTest < ActiveSupport::TestCase
 
       env = env_for("/", {"HTTP_USER_AGENT" => user_agent})
 
-      message = "Your user agent is not allowed to access this resource. (Your user agent: #{user_agent})"
+      message = "You are not allowed to access this resource because you have been identified as a bot."
 
       3.times do
         assert_equal [403, {"Content-Type" => "text/plain"}, [message]], @middleware.call(env)

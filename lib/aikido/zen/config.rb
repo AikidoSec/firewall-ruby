@@ -301,7 +301,7 @@ module Aikido::Zen
       when :ip
         format("Your IP address is not allowed to access this resource. (Your IP: %s)", request.ip)
       when :user_agent
-        format("Your user agent is not allowed to access this resource. (Your user agent: %s)", request.user_agent)
+        "You are not allowed to access this resource because you have been identified as a bot."
       else
         "You are blocked by Zen."
       end
