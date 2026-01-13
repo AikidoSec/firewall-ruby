@@ -83,10 +83,17 @@ module Aikido::Zen
 
       self.monitored_user_agent_regexp = pattern(data["monitoredUserAgents"])
 
-      self.user_agent_details = data["userAgentDetails"]&.map do |record|
-        {
-          key: record["key"],
-          pattern: pattern(record["pattern"])
+      self.user_agent_details = []
+
+      data["userAgentDetails"]&.each do |record|
+        key = record["key"]
+        pattern = pattern(record["pattern"])
+
+        next if key.nil? || pattern.nil?
+
+        user_agent_details << {
+          key: key,
+          pattern: pattern
         }
       end
     end
