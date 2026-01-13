@@ -101,7 +101,11 @@ module Aikido::Zen
     private def pattern(string)
       return nil if string.nil? || string.empty?
 
-      /#{string}/i
+      begin
+        /#{string}/i
+      rescue RegexpError
+        nil
+      end
     end
 
     # @param [String] the user agent
