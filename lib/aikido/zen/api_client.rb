@@ -128,8 +128,12 @@ module Aikido::Zen
 
         case response
         when Net::HTTPSuccess
-          body = decode(response.body, response["Content-Encoding"])
-          @config.json_decoder.call(body)
+          begin
+            body = decode(response.body, response["Content-Encoding"])
+            @config.json_decoder.call(body)
+          rescue => err
+            raise DecodeError.new(request, err)
+          end
         when Net::HTTPTooManyRequests
           raise RateLimitedError.new(request, response)
         else

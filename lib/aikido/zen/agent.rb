@@ -67,7 +67,12 @@ module Aikido::Zen
         @config.logger.error(err.message)
       end
 
-      Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(@api_client.fetch_runtime_firewall_lists)
+      begin
+        Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(@api_client.fetch_runtime_firewall_lists)
+        @config.logger.info("Updated runtime firewall list")
+      rescue => err
+        @config.logger.error(err.message)
+      end
 
       poll_for_setting_updates
 
@@ -175,6 +180,7 @@ module Aikido::Zen
           end
 
           Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(@api_client.fetch_runtime_firewall_lists)
+          @config.logger.info("Updated runtime firewall list after polling")
         end
       end
     end
