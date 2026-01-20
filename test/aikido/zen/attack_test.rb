@@ -63,7 +63,7 @@ module Aikido::Zen
           dialect: @dialect.name
         },
         source: "routeParams",
-        path: "id"
+        path: ".id"
       }
 
       assert_equal expected, attack.as_json
@@ -86,7 +86,7 @@ module Aikido::Zen
           dialect: @dialect.name
         },
         source: "routeParams",
-        path: "id"
+        path: ".id"
       }
 
       assert_equal expected, attack.as_json
@@ -165,7 +165,7 @@ module Aikido::Zen
           port: "7000"
         },
         source: "body",
-        path: "url"
+        path: ".url"
       }
 
       assert_equal expected, attack.as_json
@@ -188,7 +188,7 @@ module Aikido::Zen
           port: "7000"
         },
         source: "body",
-        path: "url"
+        path: ".url"
       }
 
       assert_equal expected, attack.as_json
