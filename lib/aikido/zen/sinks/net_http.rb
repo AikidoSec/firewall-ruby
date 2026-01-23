@@ -27,12 +27,20 @@ module Aikido::Zen
 
           def self.wrap_request(req, session)
             uri = req.uri if req.uri.is_a?(URI)
-            uri ||= URI(format("%<scheme>s://%<hostname>s:%<port>s%<path>s", {
-              scheme: session.use_ssl? ? "https" : "http",
-              hostname: session.address,
-              port: session.port,
-              path: req.path
-            }))
+
+            if uri.nil?
+              request_uri = URI.parse(req.path)
+
+              uri = URI.parse(
+                URI::Generic.build(
+                  scheme: session.use_ssl? ? "https" : "http",
+                  host: session.address,
+                  port: session.port,
+                  path: request_uri.path,
+                  query: request_uri.query
+                ).to_s
+              )
+            end
 
             Scanners::SSRFScanner::Request.new(
               verb: req.method,
