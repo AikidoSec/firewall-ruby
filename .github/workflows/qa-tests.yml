@@ -70,5 +70,4 @@ jobs:
           sleep_before_test: 30
           extra_args: "-e RAILS_ENV=test -e AIKIDO_CLIENT_IP_HEADER=HTTP_X_FORWARDED_FOR"
           max_parallel_tests: 15
-          skip_tests: test_allowed_ip_for_wildcard_route,test_allowed_ip_most_restrictive,test_api_spec,test_bypassed_ip_for_geo_blocking,test_internet_not_available,test_rate_limiting_group_id_1_minute,test_ssrf,test_user_rate_limiting_1_minute_enable_disable,test_user_rate_limiting_1_minute_for_wildcard_route,test_block_traffic_by_countries,test_allow_traffic_by_countries,test_wave_attack,test_bypassed_ip,test_outbound_domain_blocking
-
+          skip_tests: test_allowed_ip_for_wildcard_route,test_allowed_ip_most_restrictive,test_allow_traffic_by_countries,test_api_spec,test_block_traffic_by_countries,test_bypassed_ip,test_bypassed_ip_for_geo_blocking,test_internet_not_available,test_outbound_domain_blocking,test_rate_limiting_group_id_1_minute,test_user_rate_limiting_1_minute_enable_disable,test_user_rate_limiting_1_minute_for_wildcard_route,test_wave_attack
