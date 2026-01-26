@@ -16,13 +16,11 @@ jobs:
           repository: Aikido-demo-apps/zen-demo-ruby
           path: zen-demo-ruby
           submodules: true
-          ref: dev-testing
       
       - name: Checkout firewall-ruby
         uses: actions/checkout@v5
         with:
           path: zen-demo-ruby/firewall-ruby
-
 
       # We need Ruby + Bundler on the runner to regenerate Gemfile.lock
       - name: Set up Ruby (same as zen-demo-ruby)
