@@ -65,7 +65,7 @@ jobs:
           cat Dockerfile
 
       - name: Run Firewall QA Tests
-        uses: AikidoSec/firewall-tester-action@releases/v1
+        uses: AikidoSec/firewall-tester-action@v1.0.6
         with:
           dockerfile_path: ./zen-demo-ruby/Dockerfile
           app_port: 3000
