@@ -13,13 +13,18 @@ module Aikido::Zen
       def call(env)
         request = Aikido::Zen::Middleware.request_from(env)
 
-        allowed_ips = @settings.endpoints[request.route].allowed_ips
-
-        if allowed_ips.empty? || allowed_ips.include?(request.ip)
+        if allowed?(request)
           @app.call(env)
         else
           @config.blocked_responder.call(request, :ip)
         end
+      end
+
+      private def allowed?(request)
+        matches = @settings.endpoints.match(request.route)
+
+        matches.all? { |settings| settings.allowed_ips.empty? } ||
+          matches.any? { |settings| settings.allowed_ips.include?(request.ip) }
       end
     end
   end
