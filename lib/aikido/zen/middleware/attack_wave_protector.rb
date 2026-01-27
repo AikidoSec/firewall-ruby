@@ -25,7 +25,7 @@ module Aikido
           request = context.request
           return false if request.nil?
 
-          # Bypass attack wave protection for allowed IPs
+          # Bypass for allowed IPs
           return false if @settings.allowed_ips.include?(request.ip)
 
           @zen.attack_wave_detector.attack_wave?(context)
