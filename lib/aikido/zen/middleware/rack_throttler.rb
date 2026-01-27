@@ -33,7 +33,7 @@ module Aikido::Zen
       private
 
       def should_throttle?(request)
-        # Bypass rate limiting for allowed IPs
+        # Bypass allowed IPs
         return false if @settings.allowed_ips.include?(request.ip)
 
         return false unless @settings.endpoints[request.route].rate_limiting.enabled?
