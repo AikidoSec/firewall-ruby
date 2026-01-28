@@ -16,8 +16,8 @@ module Aikido::Zen::DetachedAgent
 
       @config = config
 
-      @socket_path = config.detached_agent_socket_path
-      @socket_uri = config.detached_agent_socket_uri
+      @socket_path = config.expanded_detached_agent_socket_path
+      @socket_uri = config.expanded_detached_agent_socket_uri
     end
 
     def started?
