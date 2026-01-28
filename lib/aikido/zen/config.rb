@@ -3,6 +3,7 @@
 require "uri"
 require "json"
 require "logger"
+require "digest"
 
 require_relative "context"
 
@@ -62,8 +63,8 @@ module Aikido::Zen
     attr_reader :logger
 
     # @return [String] Path of the socket where the detached agent will listen.
-    # By default, is stored under the root application path with file name
-    # `aikido-detached-agent.sock`
+    # By default, the socket file is created in the current working directory.
+    # Defaults to `aikido-detached-agent.sock`.
     attr_accessor :detached_agent_socket_path
 
     # @return [Boolean] is the agent in debugging mode?
@@ -263,11 +264,31 @@ module Aikido::Zen
       @api_timeouts.update(value)
     end
 
+    def api_token_hash
+      return unless api_token
+
+      @api_token_hash ||= Digest::SHA1.hexdigest(api_token)[0, 7]
+    end
+
     def detached_agent_socket_uri
       "drbunix:" + @detached_agent_socket_path
     end
 
+    def expanded_detached_agent_socket_path
+      @exanded_detached_agent_path ||= expand_socket_path(detached_agent_socket_path)
+    end
+
+    def expanded_detached_agent_socket_uri
+      @exanded_detached_agent_uri ||= expand_socket_path(detached_agent_socket_uri)
+    end
+
     private
+
+    def expand_socket_path(socket_path)
+      socket_path = socket_path.dup
+      socket_path.gsub!("%h", api_token_hash) if api_token_hash
+      socket_path
+    end
 
     def read_boolean_from_env(value)
       return value unless value.respond_to?(:to_str)
@@ -293,7 +314,7 @@ module Aikido::Zen
     DEFAULT_JSON_DECODER = JSON.method(:parse)
 
     # @!visibility private
-    DEFAULT_DETACHED_AGENT_SOCKET_PATH = "aikido-detached-agent.sock"
+    DEFAULT_DETACHED_AGENT_SOCKET_PATH = "aikido-detached-agent.%h.sock"
 
     # @!visibility private
     DEFAULT_BLOCKED_RESPONDER = ->(request, blocking_type) do
