@@ -33,7 +33,7 @@ module Aikido::Zen
       end
 
       def bypassed?(request)
-        # Bypass bot blocking and monitoring for allowed IPs
+        # Bypass for allowed IPs
         @settings.allowed_ips.include?(request.ip)
       end
     end
