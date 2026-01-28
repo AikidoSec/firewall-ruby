@@ -314,7 +314,7 @@ module Aikido::Zen
     DEFAULT_JSON_DECODER = JSON.method(:parse)
 
     # @!visibility private
-    DEFAULT_DETACHED_AGENT_SOCKET_PATH = "aikido-detached-agent.sock"
+    DEFAULT_DETACHED_AGENT_SOCKET_PATH = "aikido-detached-agent.%h.sock"
 
     # @!visibility private
     DEFAULT_BLOCKED_RESPONDER = ->(request, blocking_type) do
