@@ -229,4 +229,16 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   ensure
     ENV.replace(env)
   end
+
+  test "#expanded_detached_agent_socket_path includes the API token hash when set" do
+    @config.api_token = "S3CR3T"
+
+    assert_equal "aikido-detached-agent.f3974fa.sock", @config.expanded_detached_agent_socket_path
+  end
+
+  test "#expanded_detached_agent_socket_uri includes the API token hash when set" do
+    @config.api_token = "S3CR3T"
+
+    assert_equal "drbunix:aikido-detached-agent.f3974fa.sock", @config.expanded_detached_agent_socket_uri
+  end
 end
