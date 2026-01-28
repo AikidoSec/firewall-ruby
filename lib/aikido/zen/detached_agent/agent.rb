@@ -34,7 +34,7 @@ module Aikido::Zen::DetachedAgent
 
       @collector = collector
 
-      @front_object = DRbObject.new_with_uri(config.detached_agent_socket_uri)
+      @front_object = DRbObject.new_with_uri(config.expanded_detached_agent_socket_uri)
 
       @has_forked = false
       schedule_tasks
