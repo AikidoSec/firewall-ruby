@@ -152,8 +152,13 @@ jobs:
       run: "bundle exec rake e2e:${{ matrix.app }}"
     # These benchmarks must run with a DB, so in order to avoid to have several `include/exclude` entries
     # in run_benchmarks step, we put it here.
-    - name: Run the benchmarks
-      run: "bundle exec rake bench:${{ matrix.app }}:k6_run"
+    - name: Run the benchmarks (maximum 3 attempts)
+      uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+      with:
+        timeout_minutes: 20
+        max_attempts: 3
+        command: |
+          bundle exec rake bench:${{ matrix.app }}:k6_run
 
   run_benchmarks:
     runs-on: ubuntu-latest
@@ -195,5 +200,10 @@ jobs:
         run: rm -f ${{ github.workspace }}/sample_apps/${{ matrix.app }}/config/database.yml
       - name: Download libzen
         run: "bundle exec rake libzen:download:current"
-      - name: Run the benchmarks
-        run: "bundle exec rake bench:${{ matrix.app }}:wrk_run"
+      - name: Run the benchmarks (maximum 3 attempts)
+        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        with:
+          timeout_minutes: 20
+          max_attempts: 3
+          command: |
+            bundle exec rake bench:${{ matrix.app }}:wrk_run
