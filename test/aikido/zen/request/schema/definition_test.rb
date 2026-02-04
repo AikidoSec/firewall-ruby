@@ -6,6 +6,11 @@ class Aikido::Zen::Request::Schema::DefinitionTest < ActiveSupport::TestCase
   def build_schema(data)
     Aikido::Zen::Request::Schema::Definition.new(data)
   end
+  alias_method :schema, :build_schema
+
+  def build_schema_from_json(data)
+    Aikido::Zen::Request::Schema::Definition.from_json(data)
+  end
 
   test "#merge with same object duplicates" do
     schema = build_schema(type: "string")
@@ -254,6 +259,102 @@ class Aikido::Zen::Request::Schema::DefinitionTest < ActiveSupport::TestCase
 
     assert_equal expected, object_1 | object_2
     assert_equal expected, object_2 | object_1
+  end
+
+  test "#merge handles schema with string keys from JSON" do
+    object_1 = build_schema(
+      type: "object",
+      properties: {
+        "userId" => build_schema(type: "string"),
+        "color" => build_schema(type: "string")
+      }
+    )
+
+    object_2 = build_schema_from_json({
+      "type" => "object",
+      "properties" => {}
+    })
+
+    expected = build_schema(
+      type: "object",
+      properties: {
+        "userId" => build_schema(type: "string", optional: true),
+        "color" => build_schema(type: "string", optional: true)
+      }
+    )
+
+    assert_equal expected, object_1 | object_2
+  end
+
+  test ".from_json creates definition with nested definitions" do
+    schema_1 = build_schema(
+      type: "object",
+      properties: {
+        "userId" => build_schema(type: "string"),
+        "color" => build_schema(type: "string")
+      }
+    )
+
+    data = schema_1.as_json
+
+    schema_2 = build_schema_from_json(data)
+
+    assert_equal schema_1, schema_2
+  end
+
+  test ".from_json with complete example" do
+    object_1 = schema(
+      type: "object",
+      properties: {
+        "name" => schema(type: "string"),
+        "orderid" => schema(type: "string"),
+        "items" => schema(
+          type: "array",
+          items: schema(
+            type: "object",
+            properties: {
+              "itemid" => schema(type: "string"),
+              "quantity" => schema(type: "number"),
+              "price" => schema(type: "number"),
+              "details" => schema(
+                type: "object",
+                properties: {
+                  "color" => schema(type: "string"),
+                  "size" => schema(type: "string")
+                }
+              )
+            }
+          )
+        ),
+        "shippingaddress" => schema(
+          type: "object",
+          properties: {
+            "name" => schema(type: "string"),
+            "street" => schema(type: "string"),
+            "city" => schema(type: "string"),
+            "state" => schema(type: "string"),
+            "zip" => schema(type: "string"),
+            "country" => schema(type: "string")
+          }
+        ),
+        "paymentmethod" => schema(
+          type: "object",
+          properties: {
+            "provider" => schema(type: "string"),
+            "cardnumber" => schema(type: "string"),
+            "expirydate" => schema(type: "string")
+          }
+        ),
+        "total" => schema(type: "number"),
+        "age" => schema(type: "number", optional: true)
+      }
+    )
+
+    data = object_1.as_json
+
+    object_2 = build_schema_from_json(data)
+
+    assert_equal object_1, object_2
   end
 
   class EmptySchemaTest < ActiveSupport::TestCase
