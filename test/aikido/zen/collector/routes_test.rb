@@ -76,7 +76,7 @@ class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
         "properties" => {"mode" => {"type" => "string"}}
       },
       auth: [
-        {type: "apiKey", in: :cookie, name: "user_id"}
+        {"type" => "apiKey", "in" => :cookie, "name" => "user_id"}
       ]
     }
 
@@ -90,7 +90,7 @@ class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
         }
       },
       auth: [
-        {type: "apiKey", in: :cookie, name: "user_id"}
+        {"type" => "apiKey", "in" => :cookie, "name" => "user_id"}
       ]
     }
   end

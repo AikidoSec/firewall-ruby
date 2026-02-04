@@ -34,36 +34,36 @@ class Aikido::Zen::Request::SchemaTest < ActiveSupport::TestCase
 
   test "correctly transformed" do
     assert_is_transformed build_schema(
-      body_schema: nil,
       content_type: nil,
+      body_schema: nil,
       query_schema: build_definition,
       auth_schema: auth_schemas([api_key_def, http_def])
     )
 
     assert_is_transformed build_schema(
-      body_schema: build_definition(data: {type: "json"}),
       content_type: "json",
+      body_schema: build_definition(data: {type: "number"}),
       query_schema: build_definition,
       auth_schema: auth_schemas([api_key_def, http_def])
     )
 
     assert_is_transformed build_schema(
-      body_schema: build_definition(data: {type: "json"}),
       content_type: "json",
+      body_schema: build_definition(data: {type: "number"}),
       query_schema: nil,
       auth_schema: auth_schemas([api_key_def, http_def])
     )
 
     assert_is_transformed build_schema(
-      body_schema: build_definition(data: {type: "json"}),
       content_type: "json",
+      body_schema: build_definition(data: {type: "number"}),
       query_schema: build_definition,
       auth_schema: nil
     )
 
     assert_is_transformed build_schema(
-      body_schema: build_definition(data: {type: "json"}),
       content_type: "json",
+      body_schema: build_definition(data: {type: "number"}),
       query_schema: build_definition,
       auth_schema: auth_schemas([api_key_def])
     )

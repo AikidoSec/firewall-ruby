@@ -11,9 +11,9 @@ class Aikido::Zen::Request::Schema::AuthSchemasTest < ActiveSupport::TestCase
     )
 
     expected = [
-      {type: "http", scheme: "basic"},
-      {type: "apiKey", in: :header, name: "X-Api-Key"},
-      {type: "apiKey", in: :cookie, name: "user_id"}
+      {"type" => "http", "scheme" => "basic"},
+      {"type" => "apiKey", "in" => :header, "name" => "X-Api-Key"},
+      {"type" => "apiKey", "in" => :cookie, "name" => "user_id"}
     ]
 
     assert_equal expected, schema.as_json

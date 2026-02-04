@@ -86,19 +86,19 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
     test "detects Authorization header with bearer token" do
       builder = builder_for_request({"HTTP_AUTHORIZATION" => "Bearer 12345"})
 
-      assert_includes_auth builder, {type: "http", scheme: "bearer"}
+      assert_includes_auth builder, {"type" => "http", "scheme" => "bearer"}
     end
 
     test "detects Basic Authentication" do
       builder = builder_for_request({"HTTP_AUTHORIZATION" => "Basic hexdigest"})
 
-      assert_includes_auth builder, {type: "http", scheme: "basic"}
+      assert_includes_auth builder, {"type" => "http", "scheme" => "basic"}
     end
 
     test "detects API keys in the Authorization header" do
       builder = builder_for_request({"HTTP_AUTHORIZATION" => "SomeKey"})
 
-      assert_includes_auth builder, {type: "apiKey", in: :header, name: "Authorization"}
+      assert_includes_auth builder, {"type" => "apiKey", "in" => :header, "name" => "Authorization"}
     end
 
     test "detects common API key headers" do
@@ -110,14 +110,14 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
         "HTTP_X_TOKEN" => "X-Token"
       }.each do |header, name|
         builder = builder_for_request({header => "SomeKey"})
-        assert_includes_auth builder, {type: "apiKey", in: :header, name: name}
+        assert_includes_auth builder, {"type" => "apiKey", "in" => :header, "name" => name}
       end
     end
 
     test "detects common cookie names" do
       %w[user_id auth_token refresh_token].each do |name|
         builder = builder_for_request({"HTTP_COOKIE" => "#{name}=SomeKey"})
-        assert_includes_auth builder, {type: "apiKey", in: :cookie, name: name}
+        assert_includes_auth builder, {"type" => "apiKey", "in" => :cookie, "name" => name}
       end
     end
   end
@@ -195,7 +195,7 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
         items: schema(
           type: "object",
           properties: {
-            id: schema(type: "number")
+            "id" => schema(type: "number")
           }
         )
       )
@@ -213,9 +213,9 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
             type: "array",
             items: schema(
               type: "object",
-              properties: schema(
-                id: schema(type: "number")
-              )
+              properties: {
+                "id" => schema(type: "number")
+              }
             )
           )
         }
@@ -232,9 +232,9 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
       assert_schema builder, schema(
         type: "object",
         properties: {
-          one: schema(type: "number"),
-          two: schema(type: "number"),
-          three: schema(type: "number")
+          "one" => schema(type: "number"),
+          "two" => schema(type: "number"),
+          "three" => schema(type: "number")
         }
       )
     end
@@ -249,13 +249,13 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
       assert_schema builder, schema(
         type: "object",
         properties: {
-          one: schema(
+          "one" => schema(
             type: "object",
             properties: {
-              two: schema(
+              "two" => schema(
                 type: "object",
                 properties: {
-                  three: schema(type: "object", properties: {})
+                  "three" => schema(type: "object", properties: {})
                 }
               )
             }
