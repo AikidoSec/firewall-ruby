@@ -67,7 +67,12 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
 
     schema = @collector.routes[stub_route("GET", "/get")].schema
     assert_equal schema.as_json, {
-      query: {"type" => "object", "properties" => {"q" => {"type" => "string"}}}
+      "query" => {
+        "type" => "object",
+        "properties" => {
+          "q" => {"type" => "string"}
+        }
+      }
     }
   end
 

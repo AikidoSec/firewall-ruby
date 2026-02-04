@@ -192,7 +192,7 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
           method: "GET",
           hits: 1,
           apispec: {
-            query: {
+            "query" => {
               "type" => "object",
               "properties" => {
                 "search" => {"type" => "string"},
@@ -207,9 +207,9 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
           method: "POST",
           hits: 2,
           apispec: {
-            body: {
-              type: :json,
-              schema: {
+            "body" => {
+              "type" => :json,
+              "schema" => {
                 "type" => "object",
                 "properties" => {
                   "user" => {
