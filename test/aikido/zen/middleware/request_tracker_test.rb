@@ -45,8 +45,8 @@ class Aikido::Zen::Middleware::RequestTrackerTest < ActiveSupport::TestCase
     assert_equal 3, Aikido::Zen.collector.routes[key].hits
   end
 
-  test "requests & routes are tracked in our stats funnel, unless the request IP is an allowed IP" do
-    @settings.allowed_ips = Aikido::Zen::RuntimeSettings::IPSet.from_json(["1.2.3.4"])
+  test "requests & routes are tracked in our stats funnel, unless the request IP is an bypassed IP" do
+    @settings.bypassed_ips = Aikido::Zen::RuntimeSettings::IPSet.from_json(["1.2.3.4"])
 
     @middleware.call(Rack::MockRequest.env_for("/200", "REMOTE_ADDR" => "1.2.3.4"))
     @middleware.call(Rack::MockRequest.env_for("/200", "REMOTE_ADDR" => "1.2.3.4"))

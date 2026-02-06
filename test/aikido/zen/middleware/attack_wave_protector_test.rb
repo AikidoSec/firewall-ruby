@@ -59,8 +59,8 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     assert_mock app
   end
 
-  test "#call detects attack waves, collects statistics, and reports the event, unless the request IP is an allowed IP" do
-    @settings.allowed_ips = Aikido::Zen::RuntimeSettings::IPSet.from_json(["1.2.3.4"])
+  test "#call detects attack waves, collects statistics, and reports the event, unless the request IP is an bypassed IP" do
+    @settings.bypassed_ips = Aikido::Zen::RuntimeSettings::IPSet.from_json(["1.2.3.4"])
 
     app = Minitest::Mock.new
     zen = Minitest::Mock.new

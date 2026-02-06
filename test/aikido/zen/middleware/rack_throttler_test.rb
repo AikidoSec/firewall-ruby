@@ -97,8 +97,8 @@ class Aikido::Zen::Middleware::RackThrottlerTest < ActiveSupport::TestCase
     assert_mock @app
   end
 
-  test "does not block requests or annotate the env for allowed IPs" do
-    @settings.allowed_ips = Aikido::Zen::RuntimeSettings::IPSet.from_json(["1.2.3.4"])
+  test "does not block requests or annotate the env for bypassed IPs" do
+    @settings.bypassed_ips = Aikido::Zen::RuntimeSettings::IPSet.from_json(["1.2.3.4"])
 
     configure "GET", "/", max_requests: 3, period: 5
 
