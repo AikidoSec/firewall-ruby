@@ -154,9 +154,9 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       req = build_request(env)
 
       assert_equal req.schema.as_json, {
-        body: {
-          type: :json,
-          schema: {
+        "body" => {
+          "type" => :json,
+          "schema" => {
             "type" => "object",
             "properties" => {
               "user" => {
@@ -175,7 +175,7 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
             }
           }
         },
-        query: {
+        "query" => {
           "type" => "object",
           "properties" => {
             "test" => {"type" => "string"}

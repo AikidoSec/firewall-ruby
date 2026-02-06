@@ -22,12 +22,13 @@ module Aikido::Zen
         return NONE if !schemas_array || schemas_array.empty?
 
         AuthSchemas.new(schemas_array.map do |schema|
-          if schema[:type] == "http"
-            Authorization.new(schema[:scheme])
-          elsif schema[:type] == "apiKey"
-            ApiKey.new(schema[:in], schema[:name])
+          case schema["type"]
+          when "http"
+            Authorization.new(schema["scheme"])
+          when "apiKey"
+            ApiKey.new(schema["in"], schema["name"])
           else
-            raise "Invalid schema type: #{schema[:type]}"
+            raise "Invalid schema type: #{schema["type"]}"
           end
         end)
       end
@@ -40,13 +41,13 @@ module Aikido::Zen
 
       Authorization = Struct.new(:scheme) do
         def as_json
-          {type: "http", scheme: scheme.downcase}
+          {"type" => "http", "scheme" => scheme.downcase}
         end
       end
 
       ApiKey = Struct.new(:location, :name) do
         def as_json
-          {type: "apiKey", in: location, name: name}.compact
+          {"type" => "apiKey", "in" => location, "name" => name}.compact
         end
       end
     end

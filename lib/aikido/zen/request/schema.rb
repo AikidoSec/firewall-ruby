@@ -42,10 +42,14 @@ module Aikido::Zen
 
     # @return [Hash]
     def as_json
-      body = {type: content_type, schema: body_schema.as_json}.compact
+      body = {"type" => content_type, "schema" => body_schema.as_json}.compact
       body = nil if body.empty?
 
-      {body: body, query: query_schema.as_json, auth: auth_schema.as_json}.compact
+      {
+        "body" => body,
+        "query" => query_schema.as_json,
+        "auth" => auth_schema.as_json
+      }.compact
     end
 
     def self.from_json(data)
@@ -58,16 +62,20 @@ module Aikido::Zen
         )
       end
 
+      content_type = data["body"].nil? ? nil : data["body"]["type"]
+      body_schema = data["body"].nil? ? EMPTY_SCHEMA : Aikido::Zen::Request::Schema::Definition.from_json(data["body"]["schema"])
+      query_schema = data["query"].nil? ? EMPTY_SCHEMA : Aikido::Zen::Request::Schema::Definition.from_json(data["query"])
+      auth_schema = Aikido::Zen::Request::Schema::AuthSchemas.from_json(data["auth"])
+
       Request::Schema.new(
-        content_type: data[:body].nil? ? nil : data[:body][:type],
-        body_schema: data[:body].nil? ? EMPTY_SCHEMA : Aikido::Zen::Request::Schema::Definition.new(data[:body][:schema]),
-        query_schema: data[:query].nil? ? EMPTY_SCHEMA : Aikido::Zen::Request::Schema::Definition.new(data[:query]),
-        auth_schema: Aikido::Zen::Request::Schema::AuthSchemas.from_json(data[:auth])
+        content_type: content_type,
+        body_schema: body_schema,
+        query_schema: query_schema,
+        auth_schema: auth_schema
       )
     end
 
     # Merges the request specification with another request's specification.
-    #
     # @param other [Aikido::Zen::Request::Schema, nil]
     # @return [Aikido::Zen::Request::Schema]
     def merge(other)
@@ -81,6 +89,14 @@ module Aikido::Zen
       )
     end
     alias_method :|, :merge
+
+    def ==(other)
+      other.is_a?(self.class) &&
+        @content_type == other.content_type &&
+        @query_schema == other.query_schema &&
+        @body_schema == other.body_schema &&
+        @auth_schema == other.auth_schema
+    end
   end
 end
 

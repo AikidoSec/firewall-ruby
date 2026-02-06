@@ -70,13 +70,13 @@ module Aikido::Zen
           left_type, right_type = definition[:type], other.definition[:type]
           types = [left_type, right_type].flatten.uniq.sort
           new(definition.merge(other.definition).merge(type: types))
-
         end
       end
       alias_method :|, :merge
 
       def ==(other)
-        as_json == other.as_json
+        other.is_a?(self.class) &&
+          @definition == other.definition
       end
 
       def as_json
@@ -85,6 +85,36 @@ module Aikido::Zen
           .transform_values do |val|
             val.respond_to?(:as_json) ? val.as_json : val
           end
+      end
+
+      def self.from_json(data)
+        return if data.nil?
+
+        new(data["type"].then do |type|
+          case type
+          when "null", "boolean", "string", "number", Array
+            {
+              type: type,
+              optional: data["optional"]
+            }.compact
+          when "array"
+            {
+              type: type,
+              # For efficiency, arrays are assumed to be homogeneous; only the first
+              # item's schema definition is included.
+              items: from_json(data["items"]),
+              optional: data["optional"]
+            }.compact
+          when "object"
+            {
+              type: type,
+              properties: data["properties"].transform_values { |value| from_json(value) },
+              optional: data["optional"]
+            }.compact
+          else
+            raise "Invalid schema type: #{data["type"]}"
+          end
+        end)
       end
 
       def inspect

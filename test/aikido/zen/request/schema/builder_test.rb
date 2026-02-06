@@ -86,19 +86,19 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
     test "detects Authorization header with bearer token" do
       builder = builder_for_request({"HTTP_AUTHORIZATION" => "Bearer 12345"})
 
-      assert_includes_auth builder, {type: "http", scheme: "bearer"}
+      assert_includes_auth builder, {"type" => "http", "scheme" => "bearer"}
     end
 
     test "detects Basic Authentication" do
       builder = builder_for_request({"HTTP_AUTHORIZATION" => "Basic hexdigest"})
 
-      assert_includes_auth builder, {type: "http", scheme: "basic"}
+      assert_includes_auth builder, {"type" => "http", "scheme" => "basic"}
     end
 
     test "detects API keys in the Authorization header" do
       builder = builder_for_request({"HTTP_AUTHORIZATION" => "SomeKey"})
 
-      assert_includes_auth builder, {type: "apiKey", in: :header, name: "Authorization"}
+      assert_includes_auth builder, {"type" => "apiKey", "in" => :header, "name" => "Authorization"}
     end
 
     test "detects common API key headers" do
@@ -110,14 +110,14 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
         "HTTP_X_TOKEN" => "X-Token"
       }.each do |header, name|
         builder = builder_for_request({header => "SomeKey"})
-        assert_includes_auth builder, {type: "apiKey", in: :header, name: name}
+        assert_includes_auth builder, {"type" => "apiKey", "in" => :header, "name" => name}
       end
     end
 
     test "detects common cookie names" do
       %w[user_id auth_token refresh_token].each do |name|
         builder = builder_for_request({"HTTP_COOKIE" => "#{name}=SomeKey"})
-        assert_includes_auth builder, {type: "apiKey", in: :cookie, name: name}
+        assert_includes_auth builder, {"type" => "apiKey", "in" => :cookie, "name" => name}
       end
     end
   end
@@ -195,7 +195,7 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
         items: schema(
           type: "object",
           properties: {
-            id: schema(type: "number")
+            "id" => schema(type: "number")
           }
         )
       )
@@ -213,9 +213,9 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
             type: "array",
             items: schema(
               type: "object",
-              properties: schema(
-                id: schema(type: "number")
-              )
+              properties: {
+                "id" => schema(type: "number")
+              }
             )
           )
         }
@@ -232,9 +232,9 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
       assert_schema builder, schema(
         type: "object",
         properties: {
-          one: schema(type: "number"),
-          two: schema(type: "number"),
-          three: schema(type: "number")
+          "one" => schema(type: "number"),
+          "two" => schema(type: "number"),
+          "three" => schema(type: "number")
         }
       )
     end
@@ -249,13 +249,13 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
       assert_schema builder, schema(
         type: "object",
         properties: {
-          one: schema(
+          "one" => schema(
             type: "object",
             properties: {
-              two: schema(
+              "two" => schema(
                 type: "object",
                 properties: {
-                  three: schema(type: "object", properties: {})
+                  "three" => schema(type: "object", properties: {})
                 }
               )
             }
@@ -372,6 +372,155 @@ class Aikido::Zen::Request::Schema::BuilderTest < ActiveSupport::TestCase
             items: schema(type: "string")
           )
         }
+      )
+    end
+  end
+
+  class SchemaTests < self
+    def builder_for_request(uri, serialized_body, type: :json)
+      content_type = Aikido::Zen::Request::Schema::Builder::DATA_TYPES.invert.fetch(type)
+      super(uri, "CONTENT_TYPE" => content_type, :input => serialized_body)
+    end
+
+    def build_schema(**args)
+      Aikido::Zen::Request::Schema.new(**args)
+    end
+
+    def assert_schema(schema, expected)
+      assert_equal expected, schema
+    end
+
+    test "#merge with complete example" do
+      builder_1 = builder_for_request("/api/create?userId=12345&color=red", <<~JSON, type: :json)
+        {
+          "name": "test3",
+          "orderId": "98765",
+          "items": [
+            {
+              "itemId": "abc123",
+              "quantity": 2,
+              "price": 29.99,
+              "details": {
+                "color": "blue",
+                "size": "M"
+              }
+            },
+            {
+              "itemId": "def456",
+              "quantity": 1,
+              "price": 19.99,
+              "details": {
+                "color": "red",
+                "size": "L"
+              }
+            }
+          ],
+          "shippingAddress": {
+            "name": "John Doe",
+            "street": "1234 Elm St",
+            "city": "Some City",
+            "state": "CA",
+            "zip": "90210",
+            "country": "USA"
+          },
+          "paymentMethod": {
+            "provider": "Visa",
+            "cardNumber": "4111111111111111",
+            "expiryDate": "12/25"
+          },
+          "total": 79.97
+        }
+      JSON
+
+      builder_2 = builder_for_request("/api/create", <<~JSON, type: :json)
+        {
+          "name": "John Doe",
+          "age": 34,
+          "orderId": "98765",
+          "items": [
+            {
+              "itemId": "abc123",
+              "quantity": 2,
+              "price": 29.99,
+              "details": {
+                "color": "blue",
+                "size": "M"
+              }
+            }
+          ],
+          "shippingAddress": {
+            "name": "John Doe",
+            "street": "1234 Elm St",
+            "city": "Some City",
+            "state": "CA",
+            "zip": "90210",
+            "country": "USA"
+          },
+          "paymentMethod": {
+            "provider": "Visa",
+            "cardNumber": "4111111111111111",
+            "expiryDate": "12/25"
+          },
+          "total": 79.97
+        }
+      JSON
+
+      assert_schema Aikido::Zen::Request::Schema::EMPTY_SCHEMA | builder_1.schema | builder_2.schema, build_schema(
+        content_type: :json,
+        query_schema: schema(
+          type: "object",
+          properties: {
+            "userId" => schema(type: "string"),
+            "color" => schema(type: "string")
+          }
+        ),
+        body_schema: schema(
+          type: "object",
+          properties: {
+            "name" => schema(type: "string"),
+            "orderId" => schema(type: "string"),
+            "items" => schema(
+              type: "array",
+              items: schema(
+                type: "object",
+                properties: {
+                  "itemId" => schema(type: "string"),
+                  "quantity" => schema(type: "number"),
+                  "price" => schema(type: "number"),
+                  "details" => schema(
+                    type: "object",
+                    properties: {
+                      "color" => schema(type: "string"),
+                      "size" => schema(type: "string")
+                    }
+                  )
+                }
+              )
+            ),
+            "shippingAddress" => schema(
+              type: "object",
+              properties: {
+                "name" => schema(type: "string"),
+                "street" => schema(type: "string"),
+                "city" => schema(type: "string"),
+                "state" => schema(type: "string"),
+                "zip" => schema(type: "string"),
+                "country" => schema(type: "string")
+              }
+            ),
+            "paymentMethod" => schema(
+              type: "object",
+              properties: {
+                "provider" => schema(type: "string"),
+                "cardNumber" => schema(type: "string"),
+                "expiryDate" => schema(type: "string")
+              }
+            ),
+            "total" => schema(type: "number"),
+            "age" => schema(type: "number", optional: true)
+          }
+        ),
+        auth_schema: Aikido::Zen::Request::Schema::AuthSchemas.new([])
       )
     end
   end

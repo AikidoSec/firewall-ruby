@@ -71,26 +71,26 @@ class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
     assert_equal 2, @routes[get_root].hits
     assert_equal @routes[get_root].schema.as_json, {
       # body gets removed because neither request had a body
-      query: {
+      "query" => {
         "type" => "object",
         "properties" => {"mode" => {"type" => "string"}}
       },
-      auth: [
-        {type: "apiKey", in: :cookie, name: "user_id"}
+      "auth" => [
+        {"type" => "apiKey", "in" => :cookie, "name" => "user_id"}
       ]
     }
 
     assert_equal 1, @routes[post_users].hits
     assert_equal @routes[post_users].schema.as_json, {
-      body: {
-        type: :json,
-        schema: {
+      "body" => {
+        "type" => :json,
+        "schema" => {
           "type" => "object",
           "properties" => {"name" => {"type" => "string"}}
         }
       },
-      auth: [
-        {type: "apiKey", in: :cookie, name: "user_id"}
+      "auth" => [
+        {"type" => "apiKey", "in" => :cookie, "name" => "user_id"}
       ]
     }
   end
@@ -139,7 +139,7 @@ class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
         path: "/",
         hits: 2,
         apispec: {
-          query: {
+          "query" => {
             "type" => "object",
             "properties" => {"mode" => {"type" => "string"}}
           }
@@ -150,9 +150,9 @@ class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
         path: "/users",
         hits: 1,
         apispec: {
-          body: {
-            type: :json,
-            schema: {
+          "body" => {
+            "type" => :json,
+            "schema" => {
               "type" => "object",
               "properties" => {"name" => {"type" => "string"}}
             }
