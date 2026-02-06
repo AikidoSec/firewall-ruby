@@ -2,7 +2,8 @@
 
 module Aikido::Zen
   module Middleware
-    # Middleware that rejects requests from IPs blocked in the Aikido dashboard.
+    # Middleware that only allows allowed IPs when allowed IPs are configured for
+    # any matching route in the Aikido dashboard.
     class AllowedAddressChecker
       def initialize(app, config: Aikido::Zen.config, settings: Aikido::Zen.runtime_settings)
         @app = app
@@ -13,13 +14,20 @@ module Aikido::Zen
       def call(env)
         request = Aikido::Zen::Middleware.request_from(env)
 
-        allowed_ips = @settings.endpoints[request.route].allowed_ips
-
-        if allowed_ips.empty? || allowed_ips.include?(request.ip)
+        if allowed?(request)
           @app.call(env)
         else
           @config.blocked_responder.call(request, :ip)
         end
+      end
+
+      private def allowed?(request)
+        return true if @settings.bypassed_ips.include?(request.ip)
+
+        matches = @settings.endpoints.match(request.route)
+
+        matches.all? { |settings| settings.allowed_ips.empty? } ||
+          matches.any? { |settings| settings.allowed_ips.include?(request.ip) }
       end
     end
   end

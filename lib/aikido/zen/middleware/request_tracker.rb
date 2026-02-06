@@ -129,8 +129,7 @@ module Aikido::Zen
       # @param route [String]
       # @param http_method [String]
       def track?(status_code:, route:, http_method:, ip: nil)
-        # Bypass request and route tracking for allowed IPs
-        return false if @settings.allowed_ips.include?(ip)
+        return false if @settings.bypassed_ips.include?(ip)
 
         # In the UI we want to show only successful (2xx) or redirect (3xx) responses
         # anything else is discarded.

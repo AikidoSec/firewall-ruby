@@ -32,6 +32,18 @@ class Aikido::Zen::Middleware::AllowedAddressCheckerTest < ActiveSupport::TestCa
     assert_passed_to_downstream
   end
 
+  test "the request is allowed if the request IP is in the list of bypassed IPs" do
+    add_bypassed_ips(ips: ["3.4.5.6"])
+
+    add_allowed_ips "GET", "/admin/portal", ips: ["1.2.3.4", "2.3.4.5"]
+
+    env = Rack::MockRequest.env_for("/admin/portal", "REMOTE_ADDR" => "3.4.5.6")
+    response = @middleware.call(env)
+
+    assert_equal [200, {}, ["OK"]], response
+    assert_passed_to_downstream
+  end
+
   test "the request is allowed if the IP is explicitly set in the allow list" do
     add_allowed_ips "GET", "/admin/portal", ips: ["1.2.3.4", "2.3.4.5"]
 
@@ -162,6 +174,13 @@ class Aikido::Zen::Middleware::AllowedAddressCheckerTest < ActiveSupport::TestCa
 
   def assert_stopped_request
     assert_raises { @app.verify }
+  end
+
+  def add_bypassed_ips(ips:)
+    settings = Aikido::Zen.runtime_settings
+    assert settings.update_from_runtime_config_json({
+      "allowedIPAddresses" => ips
+    })
   end
 
   def add_allowed_ips(verb, path, ips:)
