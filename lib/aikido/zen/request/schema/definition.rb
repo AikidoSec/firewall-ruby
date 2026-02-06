@@ -92,7 +92,7 @@ module Aikido::Zen
 
         new(data["type"].then do |type|
           case type
-          when "null", "boolean", "string", "number"
+          when "null", "boolean", "string", "number", Array
             {
               type: type,
               optional: data["optional"]

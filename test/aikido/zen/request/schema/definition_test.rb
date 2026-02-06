@@ -306,6 +306,18 @@ class Aikido::Zen::Request::Schema::DefinitionTest < ActiveSupport::TestCase
     assert_nil build_schema_from_json(nil)
   end
 
+  test ".from_json handles array types produced by merging different types" do
+    string_schema = build_schema(type: "string")
+    number_schema = build_schema(type: "number")
+
+    merged = string_schema | number_schema
+
+    data = merged.as_json
+
+    restored = build_schema_from_json(data)
+    assert_equal merged, restored
+  end
+
   test ".from_json raises when the schema type is invalid" do
     schema_1 = build_schema(
       type: "apple",
