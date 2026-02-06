@@ -54,6 +54,23 @@ class Aikido::Zen::Middleware::AllowedAddressCheckerTest < ActiveSupport::TestCa
     assert_passed_to_downstream
   end
 
+  test "the request is allowed if the IP is in the allow list for any wildcard matching route" do
+    add_allowed_ips "GET", "/admin/*", ips: ["1.2.3.4", "2.3.4.5"]
+
+    env = Rack::MockRequest.env_for("/admin/portal", "REMOTE_ADDR" => "1.2.3.4")
+    response = @middleware.call(env)
+
+    assert_equal [200, {}, ["OK"]], response
+    assert_passed_to_downstream
+  end
+
+  test "the request is not allowed if the IP is not in the allow list for any wildcard matching route" do
+    add_allowed_ips "GET", "/admin/*", ips: ["1.2.3.4", "2.3.4.5"]
+
+    env = Rack::MockRequest.env_for("/admin/portal", "REMOTE_ADDR" => "3.4.5.6")
+    assert_middleware_response([403, {"Content-Type"=>"text/plain"}, ["Your IP address is not allowed to access this resource. (Your IP: 3.4.5.6)"]], env)
+  end
+
   test "the request is allowed if the URL path includes repeated forward slashes and the IP is explicitly set in the allow list" do
     add_allowed_ips "GET", "/admin/portal", ips: ["1.2.3.4", "2.3.4.5"]
 
@@ -174,6 +191,16 @@ class Aikido::Zen::Middleware::AllowedAddressCheckerTest < ActiveSupport::TestCa
 
   def assert_stopped_request
     assert_raises { @app.verify }
+  end
+
+  def assert_middleware_response(expected, env)
+    app = ->(env) { [200, {}, ["OK"]] }
+
+    middleware = Aikido::Zen::Middleware::AllowedAddressChecker.new(app)
+
+    response = middleware.call(env)
+
+    assert_equal expected, response
   end
 
   def add_bypassed_ips(ips:)
