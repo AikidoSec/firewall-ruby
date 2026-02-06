@@ -62,8 +62,38 @@ class Aikido::Zen::Request::Schema::AuthSchemasTest < ActiveSupport::TestCase
     assert_equal expected, schema_1 | schema_2
   end
 
+  test ".from_json raises when the schema type is invalid" do
+    schema_1 = auth_schema(
+      Fruit.new("apple", "red"),
+      Fruit.new("apple", "green"),
+      Fruit.new(nil, "blue")
+    )
+
+    schema_1_data = schema_1.as_json
+
+    assert_raises do
+      auth_schema_from_json(schema_1_data)
+    end
+
+    schema_2 = auth_schema(
+      build_auth(:http, "bearer"),
+      Fruit.new(nil, "blue"),
+      build_auth(:cookie, "user_id")
+    )
+
+    schema_2_data = schema_2.as_json
+
+    assert_raises do
+      auth_schema_from_json(schema_2_data)
+    end
+  end
+
   def auth_schema(*atoms)
     Aikido::Zen::Request::Schema::AuthSchemas.new(atoms)
+  end
+
+  def auth_schema_from_json(data)
+    Aikido::Zen::Request::Schema::AuthSchemas.from_json(data)
   end
 
   def build_auth(type, name)
@@ -76,4 +106,10 @@ class Aikido::Zen::Request::Schema::AuthSchemasTest < ActiveSupport::TestCase
   end
 
   NONE = Aikido::Zen::Request::Schema::AuthSchemas::NONE
+
+  Fruit = Struct.new(:type, :color) do
+    def as_json
+      {"type" => type, "color" => color.downcase}
+    end
+  end
 end

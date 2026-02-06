@@ -287,7 +287,7 @@ class Aikido::Zen::Request::Schema::DefinitionTest < ActiveSupport::TestCase
   end
 
   test ".from_json creates definition with nested definitions" do
-    schema_1 = build_schema(
+    object_1 = build_schema(
       type: "object",
       properties: {
         "userId" => build_schema(type: "string"),
@@ -295,11 +295,41 @@ class Aikido::Zen::Request::Schema::DefinitionTest < ActiveSupport::TestCase
       }
     )
 
-    data = schema_1.as_json
+    data = object_1.as_json
 
-    schema_2 = build_schema_from_json(data)
+    object_2 = build_schema_from_json(data)
 
-    assert_equal schema_1, schema_2
+    assert_equal object_1, object_2
+  end
+
+  test ".from_json raises when the schema type is invalid" do
+    schema_1 = build_schema(
+      type: "apple",
+      properties: {
+        "type" => build_schema(type: "string"),
+        "color" => build_schema(type: "string")
+      }
+    )
+
+    schema_1_data = schema_1.as_json
+
+    assert_raises do
+      build_schema_from_json(schema_1_data)
+    end
+
+    schema_2 = build_schema(
+      type: nil,
+      properties: {
+        "type" => build_schema(type: "string"),
+        "color" => build_schema(type: "string")
+      }
+    )
+
+    schema_2_data = schema_2.as_json
+
+    assert_raises do
+      build_schema_from_json(schema_2_data)
+    end
   end
 
   test ".from_json with complete example" do
