@@ -68,7 +68,7 @@ class Aikido::Zen::Middleware::AllowedAddressCheckerTest < ActiveSupport::TestCa
     add_allowed_ips "GET", "/admin/*", ips: ["1.2.3.4", "2.3.4.5"]
 
     env = Rack::MockRequest.env_for("/admin/portal", "REMOTE_ADDR" => "3.4.5.6")
-    assert_middleware_response([403, {"Content-Type"=>"text/plain"}, ["Your IP address is not allowed to access this resource. (Your IP: 3.4.5.6)"]], env)
+    assert_middleware_response([403, {"Content-Type" => "text/plain"}, ["Your IP address is not allowed to access this resource. (Your IP: 3.4.5.6)"]], env)
   end
 
   test "the request is allowed if the URL path includes repeated forward slashes and the IP is explicitly set in the allow list" do
