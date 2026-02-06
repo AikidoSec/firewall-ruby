@@ -302,6 +302,10 @@ class Aikido::Zen::Request::Schema::DefinitionTest < ActiveSupport::TestCase
     assert_equal object_1, object_2
   end
 
+  test ".from_json returns nil when data is nil" do
+    assert_nil build_schema_from_json(nil)
+  end
+
   test ".from_json raises when the schema type is invalid" do
     schema_1 = build_schema(
       type: "apple",
