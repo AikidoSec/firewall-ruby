@@ -100,7 +100,7 @@ module Aikido::Zen
       def as_json
         {
           metadata: {
-            samples: @samples.as_json.to_json
+            samples: @samples.as_json.to_json # The API only accepts string values in metadata
           },
           user: @user.as_json
         }.compact
