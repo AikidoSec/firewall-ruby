@@ -80,7 +80,7 @@ module Aikido::Zen
         ".dbus",
         ".docker",
         ".drush",
-        ".TODO: gem",
+        ".gem",
         ".git",
         ".github",
         ".gnupg",
