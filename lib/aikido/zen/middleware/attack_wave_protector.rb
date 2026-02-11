@@ -34,7 +34,26 @@ module Aikido
         # Visible for testing.
         def protect(context)
           if attack_wave?(context)
-            attack_wave = Aikido::Zen::Events::AttackWave.from_context(context)
+            client_ip = context.request.client_ip
+
+            request = Aikido::Zen::AttackWave::Request.new(
+              ip_address: client_ip,
+              user_agent: context.request.user_agent,
+              source: context.request.framework
+            )
+
+            samples = @zen.attack_wave_detector.samples[client_ip].to_a
+
+            attack = Aikido::Zen::AttackWave::Attack.new(
+              samples: samples,
+              user: context.request.actor
+            )
+
+            attack_wave = Aikido::Zen::Events::AttackWave.new(
+              request: request,
+              attack: attack
+            )
+
             @zen.track_attack_wave(attack_wave)
             @zen.agent.report(attack_wave)
           end

@@ -251,4 +251,71 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
 
     StubRequest = Struct.new(:route, :schema)
   end
+
+  class AttackWaveTest < ActiveSupport::TestCase
+    def env_for(path, env = {})
+      env = Rack::MockRequest.env_for(path, env)
+      Rails.application.env_config.merge(env)
+    end
+
+    def build_context_for(path, env = {})
+      env = env_for(path, env)
+      Aikido::Zen::Context.from_rack_env(env)
+    end
+
+    DEFAULT_ENV = {"REMOTE_ADDR" => "1.2.3.4"}
+
+    def build_attack_wave(context, time:)
+      client_ip = context.request.client_ip
+
+      request = Aikido::Zen::AttackWave::Request.new(
+        ip_address: client_ip,
+        user_agent: context.request.user_agent,
+        source: context.request.framework
+      )
+
+      samples = []
+
+      context.request.then do |request|
+        samples << Aikido::Zen::AttackWave::Sample.new(
+          verb: request.request_method,
+          path: request.fullpath
+        )
+      end
+
+      attack = Aikido::Zen::AttackWave::Attack.new(
+        samples: samples,
+        user: context.request.actor
+      )
+
+      Aikido::Zen::Events::AttackWave.new(
+        request: request,
+        attack: attack,
+        time: time
+      )
+    end
+
+    test "the event includes a request and a attack with samples" do
+      context = build_context_for("/.config", DEFAULT_ENV)
+
+      attack_wave = build_attack_wave(context, time: Time.at(1234567890))
+
+      attack_wave_data = attack_wave.as_json
+
+      request = {
+        ipAddress: "1.2.3.4",
+        source: "rack"
+      }
+
+      attack = {
+        metadata: {
+          samples: '[{"method":"GET","url":"/.config"}]'
+        }
+      }
+
+      assert_equal "detected_attack_wave", attack_wave_data[:type]
+      assert_equal request, attack_wave_data[:request]
+      assert_equal attack, attack_wave_data[:attack]
+    end
+  end
 end

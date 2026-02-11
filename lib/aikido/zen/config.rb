@@ -184,6 +184,10 @@ module Aikido::Zen
     #   Defaults to 10,000 entries.
     attr_accessor :attack_wave_max_cache_entries
 
+    # @return [Integer] the maximum number of samples in the LRU cache.
+    #   Defaults to 15 entries.
+    attr_accessor :attack_wave_max_cache_samples
+
     def initialize
       self.insert_middleware_after = ::ActionDispatch::Executor
       self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLE", false)) || read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
@@ -222,6 +226,7 @@ module Aikido::Zen
       self.attack_wave_min_time_between_requests = 60 * 1000 # 1 min (ms)
       self.attack_wave_min_time_between_events = 20 * 60 * 1000 # 20 min (ms)
       self.attack_wave_max_cache_entries = 10_000
+      self.attack_wave_max_cache_samples = 15
     end
 
     # Set the base URL for API requests.
