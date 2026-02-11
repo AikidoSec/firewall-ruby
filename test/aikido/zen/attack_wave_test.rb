@@ -165,5 +165,30 @@ class Aikido::Zen::AttackWaveTest < ActiveSupport::TestCase
       }))
       assert_attack_wave_in(context)
     end
+
+    test "collects multiple samples" do
+      detector ||= build_detector
+
+      context = build_context_for("/.config", DEFAULT_ENV)
+      refute detector.attack_wave?(context)
+
+      context = build_context_for("/.git/config", DEFAULT_ENV)
+      refute detector.attack_wave?(context)
+
+      context = build_context_for("/.ssh/known_hosts", DEFAULT_ENV)
+      assert detector.attack_wave?(context)
+
+      samples = detector.samples[context.request.client_ip]
+
+      assert 3, samples.size
+
+      expected = [
+        {method: "GET", url: "/.config"},
+        {method: "GET", url: "/.git/config"},
+        {method: "GET", url: "/.ssh/known_hosts"}
+      ]
+
+      assert_equal expected, samples.as_json
+    end
   end
 end

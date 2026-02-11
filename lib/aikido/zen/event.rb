@@ -71,23 +71,6 @@ module Aikido::Zen
     end
 
     class AttackWave < Event
-      # @param [Aikido::Zen::Context] a context
-      # @return [Aikido::Zen::Events::AttackWave] an attack wave event
-      def self.from_context(context)
-        request = Aikido::Zen::AttackWave::Request.new(
-          ip_address: context.request.client_ip,
-          user_agent: context.request.user_agent,
-          source: context.request.framework
-        )
-
-        attack = Aikido::Zen::AttackWave::Attack.new(
-          metadata: {}, # not used yet
-          user: context.request.actor
-        )
-
-        new(request: request, attack: attack)
-      end
-
       # @return [Aikido::Zen::AttackWave::Request]
       attr_reader :request
 
@@ -111,6 +94,13 @@ module Aikido::Zen
           attack: @attack.as_json
         )
       end
+
+      def ==(other)
+        other.is_a?(self.class) &&
+          other.request == @request &&
+          other.attack == @attack
+      end
+      alias_method :eql?, :==
     end
   end
 end
