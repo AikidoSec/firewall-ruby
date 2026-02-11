@@ -54,7 +54,7 @@ module Aikido::Zen
     # @return [Integer]
     attr_reader :capacity
 
-    def initialize(capacity, default_value = nil, mode: :fifo, &block)
+    def initialize(capacity, mode: :fifo)
       raise ArgumentError, "cannot set capacity lower than 1: #{capacity}" if capacity < 1
 
       unless [:fifo, :lru].include?(mode)
@@ -64,7 +64,7 @@ module Aikido::Zen
       @capacity = capacity
       @mode = mode
 
-      @data = default_value ? Hash.new(default_value) : Hash.new(&block)
+      @data = {}
     end
 
     def []=(key, value)

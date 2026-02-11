@@ -248,38 +248,5 @@ class Aikido::Zen::CappedCollectionsTest < ActiveSupport::TestCase
       assert_equal [[2, :b], [3, :C], [1, :a]], map.to_a
       assert_equal({2 => :b, 3 => :C, 1 => :a}, map.to_h)
     end
-
-    test "default value from parameter" do
-      map = Aikido::Zen::CappedMap.new(3, 123, mode: :lru)
-
-      assert_equal 123, map[1]
-      assert_equal 123, map[2]
-      assert_equal 123, map[3]
-      assert_equal 123, map[4]
-
-      assert_equal [], map.to_a
-    end
-
-    test "default value returned from block" do
-      map = Aikido::Zen::CappedMap.new(3, mode: :lru) { |m, k| 123 }
-
-      assert_equal 123, map[1]
-      assert_equal 123, map[2]
-      assert_equal 123, map[3]
-      assert_equal 123, map[4]
-
-      assert_equal [], map.to_a
-    end
-
-    test "default value assigned in block" do
-      map = Aikido::Zen::CappedMap.new(3, mode: :lru) { |m, k| m[k] = 123 }
-
-      assert_equal 123, map[1]
-      assert_equal 123, map[2]
-      assert_equal 123, map[3]
-      assert_equal 123, map[4]
-
-      assert_equal [[1, 123], [2, 123], [3, 123], [4, 123]], map.to_a
-    end
   end
 end
