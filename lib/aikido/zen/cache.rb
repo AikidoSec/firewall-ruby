@@ -9,10 +9,12 @@ module Aikido::Zen
     def_delegators :@data,
       :size, :empty?
 
-    def initialize(capacity, default_value = nil, ttl:, clock: nil)
+    def initialize(capacity, default_value = nil, ttl:, clock: nil, &block)
       @default_value = default_value
       @ttl = ttl
       @clock = clock
+
+      @initialize_block = block
 
       @data = CappedMap.new(capacity, mode: :lru)
     end
@@ -38,7 +40,7 @@ module Aikido::Zen
       if key?(key)
         @data[key].value
       else
-        @default_value
+        default_value
       end
     end
 
@@ -61,6 +63,10 @@ module Aikido::Zen
     # Visible for testing.
     def to_h
       to_a.to_h
+    end
+
+    private def default_value
+      @default_value || @initialize_block&.call
     end
   end
 

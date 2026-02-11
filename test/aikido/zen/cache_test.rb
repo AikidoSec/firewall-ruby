@@ -18,8 +18,8 @@ class Aikido::Zen::CacheTest < ActiveSupport::TestCase
   end
 
   class CacheTest < ActiveSupport::TestCase
-    def build_cache(capacity = 3, ttl: 1000)
-      Aikido::Zen::Cache.new(capacity, ttl: ttl, clock: @clock)
+    def build_cache(capacity = 3, ttl: 1000, &blk)
+      Aikido::Zen::Cache.new(capacity, ttl: ttl, clock: @clock, &blk)
     end
 
     setup do
@@ -138,6 +138,28 @@ class Aikido::Zen::CacheTest < ActiveSupport::TestCase
       @clock.advance(2000)
       refute cache.key?("c")
       assert_nil cache["c"]
+    end
+
+    test "default value returned from block" do
+      cache = build_cache(7, ttl: 5000) { Aikido::Zen::CappedSet.new(5) }
+
+      value = cache["a"]
+
+      assert_kind_of Aikido::Zen::CappedSet, value
+      assert_empty value
+
+      cache["a"] <<= 1
+      cache["a"] <<= 1
+      cache["b"] <<= 2
+      cache["b"] <<= 3
+      cache["c"] <<= 3
+      cache["c"] <<= 4
+      cache["c"] <<= 5
+
+      assert_equal 1, cache["a"].size
+      assert_equal 2, cache["b"].size
+      assert_equal 3, cache["c"].size
+      assert_empty cache["d"]
     end
   end
 
