@@ -80,9 +80,17 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
 
     attack_wave = build_attack_wave(context)
 
-    zen.expect(:track_attack_wave, nil, [attack_wave])
+    zen.expect(:track_attack_wave, nil) do |arg|
+      arg.is_a?(Aikido::Zen::Events::AttackWave) &&
+        arg.request == attack_wave.request &&
+        arg.attack == attack_wave.attack
+    end
     zen.expect :agent, agent
-    agent.expect(:report, nil, [attack_wave])
+    agent.expect(:report, nil) do |arg|
+      arg.is_a?(Aikido::Zen::Events::AttackWave) &&
+        arg.request == attack_wave.request &&
+        arg.attack == attack_wave.attack
+    end
     app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 

@@ -94,13 +94,6 @@ module Aikido::Zen
           attack: @attack.as_json
         )
       end
-
-      def ==(other)
-        other.is_a?(self.class) &&
-          other.request == @request &&
-          other.attack == @attack
-      end
-      alias_method :eql?, :==
     end
   end
 end
