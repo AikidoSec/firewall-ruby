@@ -100,7 +100,7 @@ module Aikido::Zen
       def as_json
         {
           metadata: {
-            samples: @samples.to_json
+            samples: @samples.as_json.to_json
           },
           user: @user.as_json
         }.compact

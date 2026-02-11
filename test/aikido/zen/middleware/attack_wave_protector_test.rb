@@ -50,7 +50,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     @settings = Aikido::Zen.runtime_settings
   end
 
-  test "#call detects attack waves, collects statistics, and reports the event" do
+  test "#call detects attack waves and collects statistics then reports the event" do
     app = Minitest::Mock.new
     zen = Minitest::Mock.new
     agent = Minitest::Mock.new
@@ -61,7 +61,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
 
     zen.expect :current_context, context
     zen.expect :attack_wave_detector, Aikido::Zen.attack_wave_detector
-    app.expect(:call, [200, {}, ["OK"]], [Hash])
+    app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
     assert_mock zen
@@ -69,7 +69,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
 
     zen.expect :current_context, context
     zen.expect :attack_wave_detector, Aikido::Zen.attack_wave_detector
-    app.expect(:call, [200, {}, ["OK"]], [Hash])
+    app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
     assert_mock zen
@@ -83,7 +83,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     zen.expect(:track_attack_wave, nil, [attack_wave])
     zen.expect :agent, agent
     agent.expect(:report, nil, [attack_wave])
-    app.expect(:call, [200, {}, ["OK"]], [Hash])
+    app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
     assert_mock zen
@@ -102,21 +102,21 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     context = build_context_for("/.config", DEFAULT_ENV)
 
     zen.expect :current_context, context
-    app.expect(:call, [200, {}, ["OK"]], [Hash])
+    app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
     assert_mock zen
     assert_mock app
 
     zen.expect :current_context, context
-    app.expect(:call, [200, {}, ["OK"]], [Hash])
+    app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
     assert_mock zen
     assert_mock app
 
     zen.expect :current_context, context
-    app.expect(:call, [200, {}, ["OK"]], [Hash])
+    app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
     assert_mock zen

@@ -295,7 +295,7 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
       )
     end
 
-    test "the event includes a request and a attack, with samples" do
+    test "the event includes a request and a attack with samples" do
       context = build_context_for("/.config", DEFAULT_ENV)
 
       attack_wave = build_attack_wave(context, time: Time.at(1234567890))
