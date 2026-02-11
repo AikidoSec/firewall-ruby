@@ -24,12 +24,25 @@ module Aikido::Zen
         "/sys/",
         "/tmp/",
         "/usr/",
-        "/var/"
+        "/var/",
+        # Common container/cloud directories
+        "/app/",
+        "/code/"
+      ]
+
+      MACOS_PATH_STARTS = [
+        "/applications/",
+        "/cores/",
+        "/library/",
+        "/private/",
+        "/users/",
+        "/system/",
+        "/volumes/"
       ]
 
       WINDOWS_PATH_STARTS = ["c:/", "c:\\"]
 
-      DANGEROUS_PATH_STARTS = LINUX_PATH_STARTS + WINDOWS_PATH_STARTS
+      DANGEROUS_PATH_STARTS = LINUX_PATH_STARTS + MACOS_PATH_STARTS + WINDOWS_PATH_STARTS
 
       module Helpers
         def self.include_unsafe_path_parts?(filepath)
