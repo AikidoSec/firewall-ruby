@@ -16,7 +16,9 @@ module Aikido::Zen
 
         @request_counts = Cache.new(@config.attack_wave_max_cache_entries, 0, ttl: @config.attack_wave_min_time_between_requests, clock: clock)
 
-        @samples = Cache.new(@config.attack_wave_max_cache_samples, ttl: @config.attack_wave_min_time_between_requests, clock: clock) { CappedSet.new(15) }
+        @samples = Cache.new(@config.attack_wave_max_cache_entries, ttl: @config.attack_wave_min_time_between_requests, clock: clock) do
+          CappedSet.new(@config.attack_wave_max_cache_samples)
+        end
       end
 
       def attack_wave?(context)
