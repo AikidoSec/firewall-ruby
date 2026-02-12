@@ -89,6 +89,27 @@ class Aikido::Zen::Scanners::PathTraversalScannerTest < ActiveSupport::TestCase
     refute_attack "/var/a", "/var/b/test.txt"
   end
 
+  test "current directory references (/./) are normalized" do
+    assert_attack "/./etc/passwd", "/./etc"
+    assert_attack "/etc/./passwd", "/etc/./"
+    assert_attack "/etc/./passwd", "/etc/./passwd"
+    assert_attack "/./etc/./passwd", "/./etc/./passwd"
+    # Multiple /./ sequences
+    assert_attack "/././etc/passwd", "/././etc"
+    assert_attack "/etc/././passwd", "/etc/././passwd"
+  end
+
+  test "paths with multiple slashes are normalized" do
+    assert_attack "///.///etc/passwd", "///.///etc"
+    assert_attack "///.///etc/passwd", "///.///etc/passwd"
+  end
+
+  test "normalized paths still trigger false positive prevention for bare root dirs" do
+    # User input that resolves to just a root dir should still be safe
+    refute_attack "/etc/./passwd", "/etc"
+    refute_attack "//etc//passwd", "/etc"
+  end
+
   test "it does dected if user input path contains a filename or subfolder" do
     assert_attack "/etc/app/file.txt", "/etc/app"
     assert_attack "/etc/app/file.txt", "/etc/app/file.txt"
