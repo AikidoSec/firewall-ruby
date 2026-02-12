@@ -125,6 +125,30 @@ class Aikido::Zen::Scanners::ShellInjection::HelpersTest < ActiveSupport::TestCa
     refute_contains_shell_syntax "https://www.google.com", "https://www.google.com"
   end
 
+  test "newline as separator" do
+    assert_contains_shell_syntax "ls\nrm", "rm"
+    assert_contains_shell_syntax "echo test\nrm -rf /", "rm"
+    assert_contains_shell_syntax "rm\nls", "rm"
+  end
+
+  test "tab as separator" do
+    assert_contains_shell_syntax "ls\trm", "rm"
+    assert_contains_shell_syntax "echo test\trm -rf /", "rm"
+    assert_contains_shell_syntax "rm\tls", "rm"
+  end
+
+  test "carriage return as separator" do
+    assert_contains_shell_syntax "ls\rrm", "rm"
+    assert_contains_shell_syntax "echo test\rrm -rf /", "rm"
+    assert_contains_shell_syntax "rm\rls", "rm"
+  end
+
+  test "form feed as separator" do
+    assert_contains_shell_syntax "ls\frm", "rm"
+    assert_contains_shell_syntax "echo test\frm -rf /", "rm"
+    assert_contains_shell_syntax "rm\fls", "rm"
+  end
+
   test "it flags input as shell injection" do
     assert_contains_shell_syntax "command -disable-update-check -target https://examplx.com|curl+https://cde-123.abc.domain.com+%23 -json-export /tmp/5891/8526757.json -tags microsoft,windows,exchange,iis,gitlab,oracle,cisco,joomla -stats -stats-interval 3 -retries 3 -no-stdin",
       "https://examplx.com|curl+https://cde-123.abc.domain.com+%23"

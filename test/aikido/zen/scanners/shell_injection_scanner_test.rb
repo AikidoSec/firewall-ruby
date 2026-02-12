@@ -240,6 +240,38 @@ class Aikido::Zen::Scanners::ShellInjectionScannerTest < ActiveSupport::TestCase
     refute_attack "ls\n\n", "\n\n"
   end
 
+  test "carriage return in user input is flagged" do
+    assert_attack "ls \rrm", "\rrm"
+    assert_attack "ls \rrm -rf", "\rrm -rf"
+  end
+
+  test "form feed in user input is flagged" do
+    assert_attack "ls \frm", "\frm"
+    assert_attack "ls \frm -rf", "\frm -rf"
+  end
+
+  test "carriage return in user input is flagged when user input is command" do
+    assert_attack "sleep\r10", "sleep\r10"
+    assert_attack "shutdown\r-h\rnow", "shutdown\r-h\rnow"
+  end
+
+  test "form feed in user input is flagged when user input is command" do
+    assert_attack "sleep\f10", "sleep\f10"
+    assert_attack "shutdown\f-h\fnow", "shutdown\f-h\fnow"
+  end
+
+  test "carriage return as separator between commands" do
+    assert_attack "ls\rrm", "rm"
+    assert_attack "echo test\rrm -rf /", "rm"
+    assert_attack "rm\rls", "rm"
+  end
+
+  test "form feed as separator between commands" do
+    assert_attack "ls\frm", "rm"
+    assert_attack "echo test\frm -rf /", "rm"
+    assert_attack "rm\fls", "rm"
+  end
+
   test "certain commands are always flagged as dangerous" do
     assert_attack "/bin/rm -rf", "/bin/rm -rf"
     assert_attack "rm -rf", "rm -rf"

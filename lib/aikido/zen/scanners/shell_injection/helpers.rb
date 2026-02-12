@@ -6,7 +6,7 @@ module Aikido::Zen::Scanners::ShellInjection
     DANGEROUS_CHARS_INSIDE_DOUBLE_QUOTES = %W[$ ` \\ !]
     DANGEROUS_CHARS = [
       "#", "!", '"', "$", "&", "'", "(", ")", "*", ";", "<", "=", ">", "?",
-      "[", "\\", "]", "^", "`", "{", "|", "}", " ", "\n", "\t", "~"
+      "[", "\\", "]", "^", "`", "{", "|", "}", " ", "\n", "\t", "~", "\r", "\f"
     ]
 
     COMMANDS = %w[sleep shutdown reboot poweroff halt ifconfig chmod chown ping
@@ -17,7 +17,7 @@ module Aikido::Zen::Scanners::ShellInjection
 
     PATH_PREFIXES = %w[/bin/ /sbin/ /usr/bin/ /usr/sbin/ /usr/local/bin/ /usr/local/sbin/]
 
-    SEPARATORS = [" ", "\t", "\n", ";", "&", "|", "(", ")", "<", ">"]
+    SEPARATORS = [" ", "\t", "\n", ";", "&", "|", "(", ")", "<", ">", "\r", "\f"]
 
     # @param command [string]
     # @param user_input [string]
