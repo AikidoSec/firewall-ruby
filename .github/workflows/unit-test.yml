@@ -1,7 +1,8 @@
 name: 🧪 Unit tests
 
 on:
-  workflow_call: {}
+  - push
+  - workflow_call
 
 permissions:
   contents: read

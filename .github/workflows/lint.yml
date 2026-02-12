@@ -1,7 +1,8 @@
 name: 🧹 Lint code
 
 on:
-  workflow_call: {}
+  - push
+  - workflow_call
 
 permissions:
   contents: read
