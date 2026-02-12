@@ -1,0 +1,49 @@
+name: Setup Database Services
+description: Start MySQL and PostgreSQL containers for testing
+
+runs:
+  using: composite
+  steps:
+    - name: Start MySQL
+      shell: bash
+      run: |
+        docker run -d \
+          --name mysql \
+          -p 3306:3306 \
+          -e MYSQL_ALLOW_EMPTY_PASSWORD=yes \
+          -e MYSQL_DATABASE=cats_test \
+          --health-cmd="mysqladmin ping" \
+          --health-interval=10s \
+          --health-timeout=5s \
+          --health-retries=3 \
+          mysql:8
+
+    - name: Start PostgreSQL
+      shell: bash
+      run: |
+        docker run -d \
+          --name postgres \
+          -p 5432:5432 \
+          -e POSTGRES_USER=postgres \
+          -e POSTGRES_PASSWORD=password \
+          --tmpfs /var/lib/postgresql/data \
+          --health-cmd="pg_isready" \
+          --health-interval=10s \
+          --health-timeout=5s \
+          --health-retries=3 \
+          postgres:16
+
+    - name: Wait for databases to be ready
+      shell: bash
+      run: |
+        echo "Waiting for MySQL..."
+        until docker inspect --format='{{.State.Health.Status}}' mysql 2>/dev/null | grep -q healthy; do
+          sleep 2
+        done
+        echo "MySQL is ready!"
+
+        echo "Waiting for PostgreSQL..."
+        until docker inspect --format='{{.State.Health.Status}}' postgres 2>/dev/null | grep -q healthy; do
+          sleep 2
+        done
+        echo "PostgreSQL is ready!"
