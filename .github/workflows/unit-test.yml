@@ -1,0 +1,51 @@
+name: 🧪 Unit tests
+
+on:
+  - push
+  - workflow_call
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    name: Ruby ${{ matrix.ruby }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby:
+          - "3.3"
+          - "3.2"
+          - "3.1"
+          - "3.0"
+          - "2.7"
+    env:
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: password
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup databases
+      uses: ./.github/actions/setup-databases
+    - name: Install system dependencies
+      run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
+    - name: Set up the correct Gemfile for Ruby ${{ matrix.ruby }}
+      run: bin/link_gemfile "${{ matrix.ruby }}"
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+    - name: Run the unit tests
+      run: bundle exec rake test
+      env:
+        COVERAGE_OUTPUT_LCOV: true
+    - name: Upload coverage
+      uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574 # v5
+      with:
+        files: ./coverage/lcov/firewall-ruby.lcov
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        slug: AikidoSec/firewall-ruby

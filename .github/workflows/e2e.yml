@@ -1,0 +1,86 @@
+name: 🕵️ End to end tests
+
+on:
+  - push
+  - workflow_call
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    name: Ruby ${{ matrix.ruby }}, ${{ matrix.db }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby:
+          - "3.3"
+          - "3.2"
+          - "3.1"
+          - "3.0"
+          - "2.7"
+        app:
+          - "rails7.1_sql_injection"
+        db:
+          - "mysql2"
+          - "trilogy"
+          - "postgresql"
+          - "sqlite3"
+        include:
+          - app: "rails7.1_sql_injection"
+            db: "mysql2"
+            env: "DATABASE_URL=mysql2://root:@127.0.0.1:3306/cats_test"
+          - app: "rails7.1_sql_injection"
+            db: "trilogy"
+            env: "DATABASE_URL=trilogy://root:@127.0.0.1:3306/cats_test"
+          - app: "rails7.1_sql_injection"
+            db: "postgresql"
+            env: "DATABASE_URL=postgresql://postgres:password@127.0.0.1:5432/cats_test"
+          - app: "rails7.1_sql_injection"
+            db: "sqlite3"
+            env: "DATABASE_URL=sqlite3:storage/test.salite3"
+        exclude:
+          - ruby: "2.7"
+            db: "trilogy"
+    env:
+      BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app }}/Gemfile
+      WEB_CONCURRENCY: 3
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup databases
+      uses: ./.github/actions/setup-databases
+    - name: Set up the correct Gemfile for Ruby ${{ matrix.ruby }}
+      run: bin/link_gemfile "${{ matrix.ruby }}"
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+    - name: Set any matrix-defined ENV
+      run: echo "${{ matrix.env }}" >> "$GITHUB_ENV"
+      if: ${{ matrix.env }}
+    - name: Install system dependencies
+      run: |
+        sudo gpg -k
+        sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+        echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+        sudo apt-get update
+        sudo apt-get install -y k6
+    - name: Remove the in-repo database config
+      run: rm -f ${{ github.workspace }}/sample_apps/${{ matrix.app }}/config/database.yml
+    - name: Download libzen
+      run: "bundle exec rake libzen:download:current"
+    - name: Run the e2e tests
+      run: "bundle exec rake e2e:${{ matrix.app }}"
+    # These benchmarks must run with a DB, so in order to avoid to have several `include/exclude` entries
+    # in run_benchmarks step, we put it here.
+    - name: Run the benchmarks (maximum 3 attempts)
+      uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+      with:
+        timeout_minutes: 20
+        max_attempts: 3
+        command: |
+          bundle exec rake bench:${{ matrix.app }}:k6_run

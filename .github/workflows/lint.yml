@@ -1,0 +1,27 @@
+name: 🧹 Lint code
+
+on:
+  - push
+  - workflow_call
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install system dependencies
+      run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
+    - name: Set up the correct Gemfile
+      run: bin/link_gemfile "3.3"
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1
+      with:
+        ruby-version: "3.3"
+        bundler-cache: true
+    - name: Lint the code
+      run: bundle exec rake standard
