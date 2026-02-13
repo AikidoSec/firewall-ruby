@@ -25,5 +25,4 @@ jobs:
         bundler-cache: true
     - name: Lint the code
       run: bundle exec rake standard
-    - name: Build the gem
       run: bundle exec rake build
