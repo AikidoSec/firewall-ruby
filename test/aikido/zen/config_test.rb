@@ -184,7 +184,7 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   end
 
   test "the default rate limiting discriminator returns the request IP" do
-    request = OpenStruct.new(ip: "1.2.3.4", actor: nil)
+    request = OpenStruct.new(client_ip: "1.2.3.4", actor: nil)
     value = @config.rate_limiting_discriminator.call(request)
 
     assert_equal "1.2.3.4", value

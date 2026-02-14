@@ -165,7 +165,7 @@ class Aikido::Zen::RateLimiterTest < ActiveSupport::TestCase
 
   test "discriminator can be configured" do
     @config.rate_limiting_discriminator = ->(request) {
-      request.normalized_headers["X-Client-Id"] || request.ip
+      request.normalized_headers["X-Client-Id"] || request.client_ip
     }
 
     configure "GET", "/", max_requests: 3, period: 5

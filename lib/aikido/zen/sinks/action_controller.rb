@@ -28,6 +28,8 @@ module Aikido::Zen
           context = controller.request.env[Aikido::Zen::ENV_KEY]
           request = context.request
 
+          return false if @settings.bypassed_ips.include?(request.client_ip)
+
           if should_block_user?(request)
             status, headers, body = @config.blocked_responder.call(request, :user)
             controller.headers.update(headers)
@@ -48,8 +50,6 @@ module Aikido::Zen
         end
 
         private def should_throttle?(request)
-          return false if @settings.bypassed_ips.include?(request.ip)
-
           return false unless @settings.endpoints[request.route].rate_limiting.enabled?
 
           result = @detached_agent.calculate_rate_limits(request)
