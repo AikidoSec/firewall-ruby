@@ -341,7 +341,7 @@ module Aikido::Zen
 
     # @!visibility private
     DEFAULT_RATE_LIMITING_DISCRIMINATOR = ->(request) {
-      request.actor ? "actor:#{request.actor.id}" : request.ip
+      request.actor ? "actor:#{request.actor.id}" : request.client_ip
     }
   end
 end

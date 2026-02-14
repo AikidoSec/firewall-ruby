@@ -14,6 +14,7 @@ module Aikido::Zen
       # middleware anchor point.
 
       middleware_block = [
+        ::ActionDispatch::RemoteIp, # TODO: Avoid duplicate ActionDispatch::RemoteIp
         Aikido::Zen::Middleware::ForkDetector,
         Aikido::Zen::Middleware::ContextSetter,
         Aikido::Zen::Middleware::AllowedAddressChecker,

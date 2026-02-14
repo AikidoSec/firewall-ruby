@@ -11,7 +11,7 @@ module Aikido::Zen
   #
   # @example
   #   endpoint = runtime_settings.endpoints[request.route]
-  #   block_request unless endpoint.allows?(request.ip)
+  #   block_request unless endpoint.allows?(request.client_ip)
   class RuntimeSettings::Endpoints
     # @param data [Array<Hash>]
     # @return [Aikido::Zen::RuntimeSettings::Endpoints]

@@ -22,7 +22,7 @@ module Aikido::Zen
       end
 
       private def allowed?(request)
-        return true if @settings.bypassed_ips.include?(request.ip)
+        return true if @settings.bypassed_ips.include?(request.client_ip)
 
         matches = @settings.endpoints.match(request.route)
 
