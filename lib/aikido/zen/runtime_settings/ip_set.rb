@@ -19,7 +19,8 @@ module Aikido::Zen
     end
 
     def include?(ip)
-      @ips.any? { |pattern| pattern === ip }
+      native_ip = nativize_ip(ip)
+      @ips.any? { |pattern| pattern === native_ip }
     end
     alias_method :===, :include?
 
@@ -32,5 +33,25 @@ module Aikido::Zen
     def to_set
       @ips
     end
+
+    private
+
+    def nativize_ip(ip)
+      case ip
+      when IPAddr
+        ip.native
+      when String
+        begin
+          IPAddr.new(ip).native
+        rescue IPAddr::InvalidAddressError
+          nil
+        end
+      when nil
+        nil
+      else
+        raise ArgumentError, "no explicit conversion of #{ip.class} to IPAddr"
+      end
+    end
   end
 end
+

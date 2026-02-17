@@ -80,6 +80,10 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_includes @settings.bypassed_ips, "1.2.3.4"
     assert_includes @settings.bypassed_ips, "2.3.4.5"
     refute_includes @settings.bypassed_ips, "3.4.5.6"
+
+    assert_includes @settings.bypassed_ips, "::ffff:1.2.3.4"
+    assert_includes @settings.bypassed_ips, "::ffff:2.3.4.5"
+    refute_includes @settings.bypassed_ips, "::ffff:3.4.5.6"
   end
 
   test "#bypassed_ips lets you pass CIDR blocks" do
@@ -91,6 +95,12 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_includes @settings.bypassed_ips, "10.0.0.0"
     assert_includes @settings.bypassed_ips, "10.0.0.1"
     refute_includes @settings.bypassed_ips, "10.0.0.2"
+
+    assert_includes @settings.bypassed_ips, "::ffff:1.1.1.1"
+    assert_includes @settings.bypassed_ips, "::ffff:10.0.0.0"
+    assert_includes @settings.bypassed_ips, "::ffff:10.0.0.1"
+    refute_includes @settings.bypassed_ips, "::ffff:10.0.0.2"
+    assert_includes @settings.bypassed_ips, "::ffff:10.0.0.1"
   end
 
   test "#bypassed_ips lets you use individual IPv6 addresses" do
