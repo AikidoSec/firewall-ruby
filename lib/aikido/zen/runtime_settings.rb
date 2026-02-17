@@ -65,7 +65,7 @@ module Aikido::Zen
       self.heartbeat_interval = data["heartbeatIntervalInMS"].to_i / 1000
       self.endpoints = RuntimeSettings::Endpoints.from_json(data["endpoints"])
       self.blocked_user_ids = data["blockedUserIds"]
-      #debugger
+      # debugger
       self.bypassed_ips = RuntimeSettings::IPSet.from_json(data["allowedIPAddresses"])
       self.received_any_stats = data["receivedAnyStats"]
       self.blocking_mode = data["block"]

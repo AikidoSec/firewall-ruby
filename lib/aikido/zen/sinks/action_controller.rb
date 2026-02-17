@@ -28,7 +28,7 @@ module Aikido::Zen
           context = controller.request.env[Aikido::Zen::ENV_KEY]
           request = context.request
 
-          #debugger if request.client_ip == "::ffff:23.45.67.89"
+          # debugger if request.client_ip == "::ffff:23.45.67.89"
           return false if @settings.bypassed_ips.include?(request.client_ip)
 
           if should_block_user?(request)
