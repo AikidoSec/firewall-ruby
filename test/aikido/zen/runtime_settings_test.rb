@@ -91,6 +91,8 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_includes @settings.bypassed_ips, "10.0.0.0"
     assert_includes @settings.bypassed_ips, "10.0.0.1"
     refute_includes @settings.bypassed_ips, "10.0.0.2"
+    assert_includes @settings.bypassed_ips, "::ffff:10.0.0.1"
+    refute_includes @settings.bypassed_ips, "::ffff:10.0.0.2"
   end
 
   test "#bypassed_ips lets you use individual IPv6 addresses" do
