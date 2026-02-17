@@ -210,6 +210,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         requests: {
           total: 0,
           aborted: 0,
+          rateLimited: 0,
           attacksDetected: {
             total: 0,
             blocked: 0
@@ -252,6 +253,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         requests: {
           total: 3,
           aborted: 0,
+          rateLimited: 0,
           attacksDetected: {
             total: 0,
             blocked: 0
@@ -295,6 +297,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         requests: {
           total: 2,
           aborted: 0,
+          rateLimited: 0,
           attacksDetected: {
             total: 0,
             blocked: 0
@@ -410,6 +413,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         requests: {
           total: 2,
           aborted: 0,
+          rateLimited: 0,
           attacksDetected: {
             total: 2,
             blocked: 2
@@ -496,6 +500,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         requests: {
           total: 2,
           aborted: 0,
+          rateLimited: 0,
           attacksDetected: {
             total: 1,
             blocked: 1

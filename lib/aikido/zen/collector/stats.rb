@@ -8,7 +8,7 @@ module Aikido::Zen
   # Tracks information about how the Aikido Agent is used in the app.
   class Collector::Stats
     # @!visibility private
-    attr_reader :started_at, :ended_at, :requests, :aborted_requests, :user_agents, :attack_waves, :blocked_attack_waves, :sinks
+    attr_reader :started_at, :ended_at, :requests, :aborted_requests, :rate_limited_requests, :user_agents, :attack_waves, :blocked_attack_waves, :sinks
 
     # @!visibility private
     attr_writer :ended_at
@@ -20,6 +20,7 @@ module Aikido::Zen
       @started_at = @ended_at = nil
       @requests = 0
       @aborted_requests = 0
+      @rate_limited_requests = 0
       @user_agents = Hash.new { |h, k| h[k] = 0 }
       @attack_waves = 0
       @blocked_attack_waves = 0
@@ -109,6 +110,7 @@ module Aikido::Zen
         requests: {
           total: @requests,
           aborted: @aborted_requests,
+          rateLimited: @rate_limited_requests,
           attacksDetected: {
             total: total_attacks,
             blocked: total_blocked
