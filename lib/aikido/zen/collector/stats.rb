@@ -109,6 +109,7 @@ module Aikido::Zen
         requests: {
           total: @requests,
           aborted: @aborted_requests,
+          rateLimited: 0,
           attacksDetected: {
             total: total_attacks,
             blocked: total_blocked
