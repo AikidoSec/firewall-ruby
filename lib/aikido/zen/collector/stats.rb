@@ -68,6 +68,11 @@ module Aikido::Zen
       @requests += 1
     end
 
+    # @return [void]
+    def add_rate_limited_request
+      @rate_limited_requests += 1
+    end
+
     # @param user_agent_keys [Array<String>] the user agent keys
     # @return [void]
     def add_user_agent(user_agent_keys)

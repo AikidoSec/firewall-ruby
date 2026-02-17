@@ -125,8 +125,12 @@ module Aikido
     #
     # @param request [Aikido::Zen::Request]
     # @return [void]
-    def self.track_request(request)
+    def self.track_request(_request)
       collector.track_request
+    end
+
+    def self.track_rate_limited_request(_request)
+      collector.track_rate_limited_request
     end
 
     # Track monitored and blocked user agents.
@@ -142,7 +146,7 @@ module Aikido
     #
     # @param attack_wave [Aikido::Zen::Events::AttackWave]
     # @return [void]
-    def self.track_attack_wave(attack_wave)
+    def self.track_attack_wave(_attack_wave)
       collector.track_attack_wave(being_blocked: false)
     end
 

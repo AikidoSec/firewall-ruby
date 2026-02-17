@@ -10,10 +10,12 @@ module Aikido::Zen
     class RackThrottler
       def initialize(
         app,
+        zen: Aikido::Zen,
         config: Aikido::Zen.config,
         settings: Aikido::Zen.runtime_settings,
         detached_agent: Aikido::Zen.detached_agent
       )
+        @zen = zen
         @app = app
         @config = config
         @settings = settings
@@ -24,6 +26,7 @@ module Aikido::Zen
         request = Aikido::Zen::Middleware.request_from(env)
 
         if should_throttle?(request)
+          @zen.track_rate_limited_request(request)
           @config.rate_limited_responder.call(request)
         else
           @app.call(env)

@@ -10,10 +10,12 @@ module Aikido::Zen
       # block/rate-limit by user ID rather than solely by IP.
       class BlockRequestChecker
         def initialize(
+          zen: Aikido::Zen,
           config: Aikido::Zen.config,
           settings: Aikido::Zen.runtime_settings,
           detached_agent: Aikido::Zen.detached_agent
         )
+          @zen = zen
           @config = config
           @settings = settings
           @detached_agent = detached_agent
@@ -39,6 +41,7 @@ module Aikido::Zen
           end
 
           if should_throttle?(request)
+            @zen.track_rate_limited_request(request)
             status, headers, body = @config.rate_limited_responder.call(request)
             controller.headers.update(headers)
             controller.render plain: Array(body).join, status: status
