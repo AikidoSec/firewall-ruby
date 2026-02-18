@@ -12,7 +12,7 @@ module Aikido::Zen
     # @return [Class, Integer, nil] The Rack middleware class or index after which
     #   the Zen middleware should be inserted. When set to nil, the middleware is
     #   inserted before the first middleware in the then-current middleware stack.
-    #   Defaults to ::ActionDispatch::Executor.
+    #   Defaults to ::ActionDispatch::RemoteIp.
     attr_accessor :insert_middleware_after
 
     # @return [Boolean] whether Aikido should be turned completely off (no
@@ -189,7 +189,7 @@ module Aikido::Zen
     attr_accessor :attack_wave_max_cache_samples
 
     def initialize
-      self.insert_middleware_after = ::ActionDispatch::Executor
+      self.insert_middleware_after = ::ActionDispatch::RemoteIp
       self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLE", false)) || read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
       self.blocking_mode = read_boolean_from_env(ENV.fetch("AIKIDO_BLOCK", false))
       self.api_timeouts = 10
