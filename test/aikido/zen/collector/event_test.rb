@@ -13,6 +13,14 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     TrackRequest.from_json(data)
   end
 
+  def stub_track_rate_limited_request_event
+    TrackRateLimitedRequest.new
+  end
+
+  def stub_track_rate_limited_request_event_from_json(data)
+    TrackRateLimitedRequest.from_json(data)
+  end
+
   def stub_track_user_agent_event(user_agent_keys = ["google_adwords"])
     TrackUserAgent.new(user_agent_keys)
   end
@@ -140,6 +148,46 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
 
     collector = Minitest::Mock.new
     collector.expect :handle_track_request, nil, []
+
+    event.handle(collector)
+
+    assert_mock collector
+  end
+
+  test "create new track rate limited request event" do
+    assert_silent { stub_track_rate_limited_request_event }
+  end
+
+  test "serialize track rate limited request event as JSON" do
+    event = stub_track_rate_limited_request_event
+
+    assert_hash_subset_of event.as_json, {
+      type: "track_rate_limited_request"
+    }
+  end
+
+  test "deserialize track rate limited request event from JSON" do
+    event = stub_track_rate_limited_request_event
+    event_hash = event.as_json
+
+    other = stub_track_rate_limited_request_event_from_json(event_hash)
+
+    assert_equal event_hash, other.as_json
+  end
+
+  test "deserialize event for track rate limited request from JSON" do
+    event = stub_track_rate_limited_request_event
+
+    other = stub_event_from_json(event.as_json)
+
+    assert_equal TrackRateLimitedRequest, other.class
+  end
+
+  test "track rate limited request handle calls handle_track_rate_limited_request" do
+    event = stub_track_rate_limited_request_event
+
+    collector = Minitest::Mock.new
+    collector.expect :handle_track_rate_limited_request, nil, []
 
     event.handle(collector)
 
