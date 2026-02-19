@@ -30,7 +30,7 @@ module Aikido::Zen
     # @param request [Aikido::Zen::Request]
     # @return [Aikido::Zen::RateLimiter::Result, nil]
     def calculate_rate_limits(request)
-      route, enabled = route_for(request)
+      route, enabled = resolve_route_enabled(request)
       return nil unless enabled
 
       bucket = @buckets[route]
@@ -40,7 +40,7 @@ module Aikido::Zen
 
     private
 
-    def route_for(request)
+    def resolve_route_enabled(request)
       @settings.endpoints.match(request.route) do |route, settings|
         [route, settings.rate_limiting.enabled?]
       end
