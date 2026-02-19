@@ -24,7 +24,7 @@ module Aikido::Zen
       private def allowed?(request)
         return true if @settings.bypassed_ips.include?(request.client_ip)
 
-        matches = @settings.endpoints.match(request.route)
+        matches = @settings.endpoints.matched_settings(request.route)
 
         matches.all? { |settings| settings.allowed_ips.empty? } ||
           matches.any? { |settings| settings.allowed_ips.include?(request.ip) }

@@ -21,7 +21,7 @@ module Aikido::Zen
       private def protection_disabled?(request)
         return true if @settings.bypassed_ips.include?(request.client_ip)
 
-        !@settings.endpoints.match(request.route).all?(&:protected?)
+        !@settings.endpoints.matched_settings(request.route).all?(&:protected?)
       end
     end
   end
