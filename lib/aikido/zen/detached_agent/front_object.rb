@@ -17,7 +17,7 @@ module Aikido::Zen::DetachedAgent
       @rate_limiter = rate_limiter
     end
 
-    RequestKind = Struct.new(:route, :schema, :ip, :actor)
+    RequestKind = Struct.new(:route, :schema, :client_ip, :actor)
 
     def send_collector_events(events_data)
       events_data.each do |event_data|

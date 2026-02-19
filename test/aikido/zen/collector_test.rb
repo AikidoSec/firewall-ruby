@@ -210,6 +210,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         requests: {
           total: 0,
           aborted: 0,
+          rateLimited: 0,
           attacksDetected: {
             total: 0,
             blocked: 0
@@ -252,6 +253,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         requests: {
           total: 3,
           aborted: 0,
+          rateLimited: 0,
           attacksDetected: {
             total: 0,
             blocked: 0
@@ -295,6 +297,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         requests: {
           total: 2,
           aborted: 0,
+          rateLimited: 0,
           attacksDetected: {
             total: 0,
             blocked: 0
@@ -410,6 +413,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         requests: {
           total: 2,
           aborted: 0,
+          rateLimited: 0,
           attacksDetected: {
             total: 2,
             blocked: 2
@@ -439,6 +443,10 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       stubbed_request = stub_request("/")
       @collector.track_request
       @collector.track_route(stubbed_request)
+    end
+
+    5.times do
+      @collector.track_rate_limited_request
     end
 
     3.times do |i|
@@ -496,6 +504,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         requests: {
           total: 2,
           aborted: 0,
+          rateLimited: 5,
           attacksDetected: {
             total: 1,
             blocked: 1

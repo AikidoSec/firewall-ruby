@@ -33,7 +33,7 @@ module Aikido::Zen
       end
 
       def bypassed?(request)
-        @settings.bypassed_ips.include?(request.ip)
+        @settings.bypassed_ips.include?(request.client_ip)
       end
     end
   end

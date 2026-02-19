@@ -88,6 +88,17 @@ module Aikido::Zen
       synchronize(@stats) { |stats| stats.add_request }
     end
 
+    # Track stats about the rate_limited_requests
+    #
+    # @return [void]
+    def track_rate_limited_request
+      add_event(Events::TrackRateLimitedRequest.new)
+    end
+
+    def handle_track_rate_limited_request
+      synchronize(@stats) { |stats| stats.add_rate_limited_request }
+    end
+
     # Track stats about monitored and blocked user agents
     #
     # @param [Array<String>, nil] the user agent keys

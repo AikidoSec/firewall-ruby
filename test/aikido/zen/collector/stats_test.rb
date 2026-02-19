@@ -217,6 +217,7 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
       requests: {
         total: 3,
         aborted: 0,
+        rateLimited: 0,
         attacksDetected: {
           total: 0,
           blocked: 0

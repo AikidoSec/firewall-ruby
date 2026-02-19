@@ -18,7 +18,7 @@ module Aikido::Zen
           status_code: response[0],
           route: request.route.path,
           http_method: request.request_method,
-          ip: request.ip
+          ip: request.client_ip
         )
           Aikido::Zen.track_request(request)
 

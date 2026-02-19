@@ -39,12 +39,28 @@ module Aikido::Zen
       class TrackRequest < Event
         register "track_request"
 
-        def self.from_json(data)
+        def self.from_json(_data)
           new
         end
 
         def handle(collector)
           collector.handle_track_request
+        end
+
+        def inspect
+          "#<#{self.class.name}>"
+        end
+      end
+
+      class TrackRateLimitedRequest < Event
+        register "track_rate_limited_request"
+
+        def self.from_json(_data)
+          new
+        end
+
+        def handle(collector)
+          collector.handle_track_rate_limited_request
         end
 
         def inspect

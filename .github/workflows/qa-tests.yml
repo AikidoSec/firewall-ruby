@@ -63,11 +63,11 @@ jobs:
           cat Dockerfile
 
       - name: Run Firewall QA Tests
-        uses: AikidoSec/firewall-tester-action@v1.0.7
+        uses: AikidoSec/firewall-tester-action@v1.0.9
         with:
           dockerfile_path: ./zen-demo-ruby/Dockerfile
           app_port: 3000
           sleep_before_test: 30
           extra_args: "-e RAILS_ENV=test -e AIKIDO_CLIENT_IP_HEADER=HTTP_X_FORWARDED_FOR"
           max_parallel_tests: 15
-          skip_tests: test_allow_traffic_by_countries,test_block_traffic_by_countries,test_bypassed_ip,test_bypassed_ip_for_geo_blocking,test_outbound_domain_blocking,test_rate_limiting_group_id_1_minute,test_user_rate_limiting_1_minute_enable_disable,test_user_rate_limiting_1_minute_for_wildcard_route
+          skip_tests: test_allow_traffic_by_countries,test_block_traffic_by_countries,test_bypassed_ip_for_geo_blocking,test_outbound_domain_blocking,test_rate_limiting_group_id_1_minute,test_user_rate_limiting_1_minute_enable_disable,test_user_rate_limiting_1_minute_for_wildcard_route
