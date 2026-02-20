@@ -160,6 +160,9 @@ module Aikido::Zen
         if Aikido::Zen.runtime_settings.update_from_runtime_config_json(response)
           updated_settings!
           @config.logger.info("Updated runtime settings after heartbeat")
+
+          Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(@api_client.fetch_runtime_firewall_lists)
+          @config.logger.info("Updated runtime firewall list after heartbeat")
         end
       end
     end
