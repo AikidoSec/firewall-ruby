@@ -17,8 +17,6 @@ module Aikido::Zen
 
         return @app.call(env) if bypassed_ip?(client_ip)
 
-        #debugger
-
         if !allowed_ip?(client_ip) && blocked_ip?(client_ip)
           return @config.blocked_responder.call(request, :ip_list, reason: "geo restrictions")
         end

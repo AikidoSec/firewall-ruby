@@ -41,4 +41,3 @@ module Aikido::Zen
     end
   end
 end
-

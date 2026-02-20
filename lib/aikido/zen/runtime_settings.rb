@@ -99,8 +99,6 @@ module Aikido::Zen
         allowed_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
       end
 
-      #debugger
-
       self.blocked_user_agent_regexp = pattern(data["blockedUserAgents"])
 
       self.monitored_user_agent_regexp = pattern(data["monitoredUserAgents"])
