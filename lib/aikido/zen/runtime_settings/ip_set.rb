@@ -18,6 +18,11 @@ module Aikido::Zen
       @ips.empty?
     end
 
+    # TODO: Remove?
+    def size
+      @ips.size
+    end
+
     def include?(ip)
       native_ip = nativize_ip(ip)
       @ips.any? { |pattern| pattern === native_ip }

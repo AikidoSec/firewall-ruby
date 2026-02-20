@@ -11,11 +11,13 @@ module Aikido::Zen
   #
   # You can subscribe to changes with +#add_observer(object, func_name)+, which
   # will call the function passing the settings as an argument
-  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :bypassed_ips, :received_any_stats, :blocking_mode, :blocked_user_agent_regexp, :monitored_user_agent_regexp, :user_agent_details) do
+  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :bypassed_ips, :received_any_stats, :blocking_mode, :blocked_ip_lists, :allowed_ip_lists, :blocked_user_agent_regexp, :monitored_user_agent_regexp, :user_agent_details) do
     def initialize(*)
       super
       self.endpoints ||= RuntimeSettings::Endpoints.new
       self.bypassed_ips ||= RuntimeSettings::IPSet.new
+      self.blocked_ip_lists ||= []
+      self.allowed_ip_lists ||= []
     end
 
     # @!attribute [rw] updated_at
@@ -40,6 +42,12 @@ module Aikido::Zen
 
     # @!attribute [rw] blocking_mode
     #   @return [Boolean]
+
+    # @!attribute [rw] blocked_ip_lists
+    #   @return [Aikido::Zen::RuntimeSettings::IPSet]
+
+    # @!attribute [rw] allowed_ip_lists
+    #   @return [Aikido::Zen::RuntimeSettings::IPSet]
 
     # @!attribute [rw] blocked_user_agent_regexp
     #   @return [Regexp]
@@ -79,6 +87,20 @@ module Aikido::Zen
     #   API endpoint.
     # @return [void]
     def update_from_runtime_firewall_lists_json(data)
+      self.blocked_ip_lists = []
+
+      data["blockedIPAddresses"]&.each do |ip_list|
+        blocked_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
+      end
+
+      self.allowed_ip_lists = []
+
+      data["allowedIPAddresses"]&.each do |ip_list|
+        allowed_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
+      end
+
+      #debugger
+
       self.blocked_user_agent_regexp = pattern(data["blockedUserAgents"])
 
       self.monitored_user_agent_regexp = pattern(data["monitoredUserAgents"])
@@ -144,4 +166,5 @@ module Aikido::Zen
 end
 
 require_relative "runtime_settings/ip_set"
+require_relative "runtime_settings/ip_list"
 require_relative "runtime_settings/endpoints"
