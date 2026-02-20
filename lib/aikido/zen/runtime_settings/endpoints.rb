@@ -37,32 +37,83 @@ module Aikido::Zen
       @endpoints.default = RuntimeSettings::ProtectionSettings.none
     end
 
-    # @param route [Aikido::Zen::Route]
-    # @return [Aikido::Zen::RuntimeSettings::ProtectionSettings]
-    def [](route)
-      return @endpoints[route] if @endpoints.key?(route)
+    # Match the route against the endpoints, and return the first match.
+    #
+    # @param route [Aikido::Zen::Route] the route to match
+    #
+    # @yield [pattern, settings] the optional block to call when a match is found
+    # @yieldparam pattern [Aikido::Zen::Route] the matched route
+    # @yieldparam settings [Aikido::Zen::RuntimeSettings::ProtectionSettings] the associated protection settings
+    # @yieldreturn Object
+    #
+    # @return [Array<Aikido::Zen::Route, Aikido::Zen::RuntimeSettings::ProtectionSettings>] the value if no block is given
+    # @return [Object] the block return value if a block is given
+    # @return [nil] if no match is found
+    def match(route)
+      if @endpoints.key?(route)
+        if block_given?
+          return yield(route, @endpoints[route])
+        else
+          return [route, @endpoints[route]]
+        end
+      end
 
       # Wildcard endpoint matching
 
       @endpoints.each do |pattern, settings|
-        return settings if pattern.match?(route)
+        if pattern.match?(route)
+          if block_given?
+            return yield(pattern, settings)
+          else
+            return [pattern, settings]
+          end
+        end
       end
 
-      @endpoints.default
+      nil
+    end
+
+    # Match the route against the endpoints, and return all matches.
+    #
+    # @param route [Aikido::Zen::Route] the route to match
+    #
+    # @yield [pattern, settings] the optional block to call when a match is found
+    # @yieldparam pattern [Aikido::Zen::Route] the matched route
+    # @yieldparam settings [Aikido::Zen::RuntimeSettings::ProtectionSettings] the associated protection settings
+    # @yieldreturn Object
+    #
+    # @return [Array<Aikido::Zen::Route, Aikido::Zen::RuntimeSettings::ProtectionSettings>] the values if no block is given
+    # @return [Array<Object>] the block return values if a block is given
+    def matches(route)
+      results = []
+
+      @endpoints.each do |pattern, settings|
+        if pattern.match?(route)
+          results <<
+            if block_given?
+              yield(pattern, settings)
+            else
+              [pattern, settings]
+            end
+        end
+      end
+
+      results
+    end
+
+    # @param route [Aikido::Zen::Route]
+    # @return [Aikido::Zen::RuntimeSettings::ProtectionSettings]
+    def [](route)
+      result = match(route) { |_pattern, settings| settings }
+      result || @endpoints.default
     end
 
     # @param route [Aikido::Zen::Route]
     # @return [Array<Aikido::Zen::RuntimeSettings::ProtectionSettings>]
-    def match(route)
-      matches = []
-
-      @endpoints.each do |pattern, settings|
-        matches << settings if pattern.match?(route)
-      end
-
-      matches << @endpoints.default if matches.empty?
-
-      matches
+    def matched_settings(route)
+      results = matches(route) { |_pattern, settings| settings }
+      results << @endpoints.default if results.empty?
+      results
     end
 
     # @!visibility private

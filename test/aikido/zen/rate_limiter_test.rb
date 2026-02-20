@@ -180,6 +180,25 @@ class Aikido::Zen::RateLimiterTest < ActiveSupport::TestCase
       discriminator: "12345"
   end
 
+  test "requests to wildcard matching endpoints are throttled" do
+    configure "GET", "/foo", max_requests: 3, period: 1
+    configure "GET", "/ba*", max_requests: 3, period: 1
+
+    refute_throttled build_request("GET", "/bar", ip: "1.2.3.4"), current: 1
+    refute_throttled build_request("GET", "/bar", ip: "1.2.3.4"), current: 2
+    refute_throttled build_request("GET", "/bar", ip: "1.2.3.4"), current: 3
+    assert_throttled build_request("GET", "/bar", ip: "1.2.3.4"), current: 3
+
+    assert_throttled build_request("GET", "/baz", ip: "1.2.3.4"), current: 3
+    assert_throttled build_request("GET", "/baz", ip: "1.2.3.4"), current: 3
+    assert_throttled build_request("GET", "/baz", ip: "1.2.3.4"), current: 3
+
+    refute_throttled build_request("GET", "/foo", ip: "1.2.3.4"), current: 1
+    refute_throttled build_request("GET", "/foo", ip: "1.2.3.4"), current: 2
+    refute_throttled build_request("GET", "/foo", ip: "1.2.3.4"), current: 3
+    assert_throttled build_request("GET", "/foo", ip: "1.2.3.4"), current: 3
+  end
+
   def build_request(method, path, extra_env = {}, ip: nil, user: nil)
     env = Rack::MockRequest.env_for(path, {"REMOTE_ADDR" => ip, :method => method}.merge(extra_env))
     ctx = Aikido::Zen::Context.from_rack_env(env)
