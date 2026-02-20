@@ -16,6 +16,7 @@ module Aikido::Zen
       @config = config
       @system_info = system_info
       @rate_limiter = rate_limiter
+      @last_config_updated_at = nil
     end
 
     # @return [Boolean] whether we have a configured token.
@@ -24,17 +25,14 @@ module Aikido::Zen
     end
 
     # Checks with the Aikido Runtime API the timestamp of the last settings
-    # update, and compares against the given value.
-    #
-    # @param last_updated_at [Time]
+    # update, and compares against the last value seen by polling.
     #
     # @return [Boolean]
     # @raise (see #request)
-    def should_fetch_settings?(last_updated_at = Aikido::Zen.runtime_settings.updated_at)
-      @config.logger.debug("Polling for new runtime settings to fetch")
+    def should_fetch_settings?
+      @config.logger.info("Polling for new runtime settings to fetch")
 
       return false unless can_make_requests?
-      return true if last_updated_at.nil?
 
       response = request(
         Net::HTTP::Get.new("/config", default_headers),
@@ -42,7 +40,13 @@ module Aikido::Zen
       )
 
       new_updated_at = Time.at(response["configUpdatedAt"].to_i / 1000)
-      new_updated_at > last_updated_at
+
+      if @last_config_updated_at.nil? || new_updated_at > @last_config_updated_at
+        @last_config_updated_at = new_updated_at
+        true
+      else
+        false
+      end
     end
 
     # Fetches the runtime config from the server. In case of a timeout or

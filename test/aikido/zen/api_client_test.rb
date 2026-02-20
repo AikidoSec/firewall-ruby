@@ -72,31 +72,53 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
       assert_not_requested :get, "https://runtime.aikido.dev/config"
     end
 
-    test "returns true without making a request if we don't know the last update time" do
-      assert @client.should_fetch_settings?(nil)
-      assert_not_requested :get, "https://runtime.aikido.dev/config"
+    test "returns true on first poll to establish baseline" do
+      stub_request(:get, "https://runtime.aikido.dev/config")
+        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890000))
 
-      Aikido::Zen.runtime_settings.updated_at = nil
       assert @client.should_fetch_settings?
-      assert_not_requested :get, "https://runtime.aikido.dev/config"
     end
 
-    test "returns false if the updated_at from the server is the same or older than the one we have" do
+    test "returns false if the updated_at from the server has not changed since last poll" do
       stub_request(:get, "https://runtime.aikido.dev/config")
         .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890000))
 
+      # First call sets the baseline
+      assert @client.should_fetch_settings?
+
+      # Same configUpdatedAt, should return false
+      assert_not @client.should_fetch_settings?
+    end
+
+    test "returns true if the updated_at from the server is newer than last poll" do
+      stub_request(:get, "https://runtime.aikido.dev/config")
+        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890000))
+
+      # First call sets the baseline
+      @client.should_fetch_settings?
+
+      # Server now returns a newer configUpdatedAt
+      stub_request(:get, "https://runtime.aikido.dev/config")
+        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567891000))
+
+      assert @client.should_fetch_settings?
+    end
+
+    test "is not affected by heartbeat updating runtime_settings.updated_at" do
+      stub_request(:get, "https://runtime.aikido.dev/config")
+        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890000))
+
+      # First call sets the baseline
+      @client.should_fetch_settings?
+
+      # Simulate heartbeat updating runtime_settings.updated_at
       Aikido::Zen.runtime_settings.updated_at = Time.at(1234567890)
-      assert_not @client.should_fetch_settings?
 
-      Aikido::Zen.runtime_settings.updated_at = Time.at(1234567890 + 1)
-      assert_not @client.should_fetch_settings?
-    end
-
-    test "returns true if the updated_at from the server is newer than the one we have" do
+      # Server returns a newer configUpdatedAt
       stub_request(:get, "https://runtime.aikido.dev/config")
-        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890000))
+        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567891000))
 
-      Aikido::Zen.runtime_settings.updated_at = Time.at(1234567890 - 1)
+      # Should still detect the change, regardless of heartbeat
       assert @client.should_fetch_settings?
     end
 
