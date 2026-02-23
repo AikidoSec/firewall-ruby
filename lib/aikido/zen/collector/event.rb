@@ -95,6 +95,33 @@ module Aikido::Zen
         end
       end
 
+      class TrackIPList < Event
+        register "track_ip_list"
+
+        def self.from_json(data)
+          new(data[:ip_list_keys])
+        end
+
+        def initialize(ip_list_keys)
+          super()
+          @ip_list_keys = ip_list_keys
+        end
+
+        def as_json
+          super.update({
+            ip_list_keys: @ip_list_keys
+          })
+        end
+
+        def handle(collector)
+          collector.handle_track_ip_list(@ip_list_keys)
+        end
+
+        def inspect
+          "#<#{self.class.name} #{@ip_list_keys.inspect}>"
+        end
+      end
+
       class TrackAttackWave < Event
         register "track_attack_wave"
 

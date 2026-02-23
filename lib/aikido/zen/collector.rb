@@ -101,16 +101,30 @@ module Aikido::Zen
 
     # Track stats about monitored and blocked user agents
     #
-    # @param [Array<String>, nil] the user agent keys
+    # @param user_agent_keys [Array<String>, nil] the user agent keys
     # @return [void]
     def track_user_agent(user_agent_keys)
-      return if user_agent_keys.nil?
+      return if user_agent_keys.nil? || user_agent_keys.empty?
 
       add_event(Events::TrackUserAgent.new(user_agent_keys))
     end
 
     def handle_track_user_agent(user_agent_keys)
       synchronize(@stats) { |stats| stats.add_user_agent(user_agent_keys) }
+    end
+
+    # Track stats about blocked and monitored IP lists
+    #
+    # @param ip_list_keys [Array<String>, nil]
+    # @return [void]
+    def track_ip_list(ip_list_keys)
+      return if ip_list_keys.nil? || ip_list_keys.empty?
+
+      add_event(Events::TrackIPList.new(ip_list_keys))
+    end
+
+    def handle_track_ip_list(ip_list_keys)
+      synchronize(@stats) { |stats| stats.add_ip_list(ip_list_keys) }
     end
 
     # Track stats about an attack detected by our scanners.
