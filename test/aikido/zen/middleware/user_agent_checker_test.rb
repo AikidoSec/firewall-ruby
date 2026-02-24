@@ -31,8 +31,22 @@ class Aikido::Zen::Middleware::UserAgentCheckerTest < ActiveSupport::TestCase
       })
     end
 
-    test "requests from non-blocked and non-monitored user agents are not blocked or tracked" do
+    test "requests without user agent are not tracked" do
+      update_runtime_firewall_lists
+
       env = env_for("/")
+
+      3.times do
+        assert_equal [200, {}, ["OK"]], @middleware.call(env)
+      end
+
+      assert_equal 0, Aikido::Zen.collector.stats.user_agents.length
+    end
+
+    test "requests from non-blocked and non-monitored user agents are not blocked or tracked" do
+      user_agent = "AdsBot-Google"
+
+      env = env_for("/", {"HTTP_USER_AGENT" => user_agent})
 
       3.times do
         assert_equal [200, {}, ["OK"]], @middleware.call(env)
