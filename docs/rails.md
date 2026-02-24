@@ -6,7 +6,7 @@ To install Zen, add the gem:
 bundle add aikido-zen
 ```
 
-And require it before `Bundler.require` in `config/application.rb`:
+And be sure to **require it before** `Bundler.require` in `config/application.rb`:
 
 ```ruby
 # config/application.rb
