@@ -181,12 +181,6 @@ module Aikido::Zen
       monitored_ip_lists.any? { |ip_list| ip_list.include?(ip) }
     end
 
-    def blocked_ip_list_keys(ip)
-      return [] if ip.nil?
-
-      blocked_ip_lists.filter_map { |ip_list| ip_list.key if ip_list.include?(ip) }
-    end
-
     def monitored_ip_list_keys(ip)
       return [] if ip.nil?
 
