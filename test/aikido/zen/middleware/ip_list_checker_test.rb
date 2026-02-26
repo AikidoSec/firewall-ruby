@@ -15,7 +15,7 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
             {
               "key" => key,
               "source" => source,
-              "desciption" => description,
+              "description" => description,
               "ips" => ips
             }
           ]
@@ -273,37 +273,37 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
         {
           "key" => "key1",
           "source" => "source",
-          "desciption" => "description",
+          "description" => "description",
           "ips" => DEFAULT_BLOCKED_IPS.filter { |ip| ip.start_with?("1") }
         },
         {
           "key" => "key2",
           "source" => "source",
-          "desciption" => "description",
+          "description" => "description",
           "ips" => DEFAULT_BLOCKED_IPS.filter { |ip| ip.start_with?("2.16.") }
         },
         {
           "key" => "key3",
           "source" => "source",
-          "desciption" => "description",
+          "description" => "description",
           "ips" => DEFAULT_BLOCKED_IPS.filter { |ip| ip.start_with?("2.17.") }
         },
         {
           "key" => "key4",
           "source" => "source",
-          "desciption" => "description",
+          "description" => "description",
           "ips" => DEFAULT_BLOCKED_IPS.filter { |ip| ip.start_with?("2.19.") }
         },
         {
           "key" => "key5",
           "source" => "source",
-          "desciption" => "description",
+          "description" => "description",
           "ips" => DEFAULT_BLOCKED_IPS.filter { |ip| ip.start_with?("5.1") }
         },
         {
           "key" => "key6",
           "source" => "source",
-          "desciption" => "description",
+          "description" => "description",
           "ips" => DEFAULT_BLOCKED_IPS.filter { |ip| ip.start_with?("5.2") }
         }
       ]
@@ -312,13 +312,13 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
         {
           "key" => "key7",
           "source" => "source",
-          "desciption" => "description",
+          "description" => "description",
           "ips" => DEFAULT_MONITORED_IPS.filter { |ip| ip.start_with?("5.8") }
         },
         {
           "key" => "key8",
           "source" => "source",
-          "desciption" => "description",
+          "description" => "description",
           "ips" => DEFAULT_MONITORED_IPS.filter { |ip| ip.start_with?("5.3") }
         }
       ]
