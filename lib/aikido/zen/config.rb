@@ -322,10 +322,18 @@ module Aikido::Zen
     DEFAULT_DETACHED_AGENT_SOCKET_PATH = "aikido-detached-agent.%h.sock"
 
     # @!visibility private
-    DEFAULT_BLOCKED_RESPONDER = ->(request, blocking_type) do
+    DEFAULT_BLOCKED_RESPONDER = ->(request, blocking_type, reason = nil) do
       message = case blocking_type
       when :ip
-        format("Your IP address is not allowed to access this resource. (Your IP: %s)", request.ip)
+        "Your IP address is not allowed to access this resource. (Your IP: #{request.ip})"
+      when :ip_allowed_list
+        "Your IP address is not allowed to access this resource. (Your IP: #{request.client_ip})"
+      when :ip_blocked_list
+        if reason.nil?
+          "Your IP is blocked."
+        else
+          "Your IP is blocked due to #{reason}."
+        end
       when :user_agent
         "You are not allowed to access this resource because you have been identified as a bot."
       else

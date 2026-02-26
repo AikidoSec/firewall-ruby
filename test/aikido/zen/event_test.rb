@@ -150,6 +150,9 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
           },
           userAgents: {
             breakdown: {}
+          },
+          ipAddresses: {
+            breakdown: {}
           }
         },
         users: [],
