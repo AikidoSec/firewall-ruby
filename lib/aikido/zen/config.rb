@@ -95,7 +95,7 @@ module Aikido::Zen
     #   the oldest seen users.
     attr_accessor :max_users_tracked
 
-    # @return [Proc{(Aikido::Zen::Request, Symbol) => Array(Integer, Hash, #each)}]
+    # @return [Proc{(Aikido::Zen::Request, Symbol, reason: String=nil) => Array(Integer, Hash, #each)}]
     #   Rack handler used to respond to requests from IPs, users or others blocked in the Aikido
     #   dashboard.
     attr_accessor :blocked_responder

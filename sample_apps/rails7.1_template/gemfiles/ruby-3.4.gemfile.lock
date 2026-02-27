@@ -1,10 +1,11 @@
 PATH
   remote: ../..
   specs:
-    aikido-zen (1.0.1.beta.5)
+    aikido-zen (1.1.1)
       concurrent-ruby (~> 1.0)
       ffi
       rack
+      simpleidn
 
 GEM
   remote: https://rubygems.org/
@@ -101,6 +102,7 @@ GEM
     drb (2.2.3)
     erb (5.0.2)
     erubi (1.13.1)
+    ffi (1.17.2)
     ffi (1.17.2-aarch64-linux-gnu)
     ffi (1.17.2-aarch64-linux-musl)
     ffi (1.17.2-arm-linux-gnu)
@@ -132,6 +134,7 @@ GEM
       net-smtp
     marcel (1.0.4)
     mini_mime (1.1.5)
+    mini_portile2 (2.8.9)
     minitest (5.25.5)
     mutex_m (0.3.0)
     net-imap (0.5.9)
@@ -144,6 +147,9 @@ GEM
     net-smtp (0.5.1)
       net-protocol
     nio4r (2.7.4)
+    nokogiri (1.18.8)
+      mini_portile2 (~> 2.8.2)
+      racc (~> 1.4)
     nokogiri (1.18.8-aarch64-linux-gnu)
       racc (~> 1.4)
     nokogiri (1.18.8-aarch64-linux-musl)
@@ -239,6 +245,7 @@ GEM
       rubocop-ast (>= 1.38.0, < 2.0)
     ruby-progressbar (1.13.0)
     securerandom (0.4.1)
+    simpleidn (0.2.3)
     sprockets (4.2.2)
       concurrent-ruby (~> 1.0)
       logger
@@ -264,6 +271,8 @@ GEM
     timeout (0.4.3)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
+    tzinfo-data (1.2026.1)
+      tzinfo (>= 1.0.0)
     unicode-display_width (3.1.4)
       unicode-emoji (~> 4.0, >= 4.0.4)
     unicode-emoji (4.0.4)
@@ -274,14 +283,18 @@ GEM
     zeitwerk (2.7.3)
 
 PLATFORMS
+  aarch64-linux
   aarch64-linux-gnu
   aarch64-linux-musl
   arm-linux-gnu
   arm-linux-musl
   arm64-darwin
   x86_64-darwin
+  x86_64-linux
   x86_64-linux-gnu
   x86_64-linux-musl
+  x86_64-mingw-ucrt
+  x86_64-mingw32
 
 DEPENDENCIES
   aikido-zen!

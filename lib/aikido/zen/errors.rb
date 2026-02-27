@@ -114,5 +114,11 @@ module Aikido
         super
       end
     end
+
+    class OutboundConnectionBlockedError < StandardError
+      def initialize(connection)
+        super("Zen blocked an outbound connection to #{connection.host}.")
+      end
+    end
   end
 end

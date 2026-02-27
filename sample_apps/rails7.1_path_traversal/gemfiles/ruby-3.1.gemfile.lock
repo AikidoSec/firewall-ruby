@@ -5,6 +5,7 @@ PATH
       concurrent-ruby (~> 1.0)
       ffi
       rack
+      simpleidn
 
 GEM
   remote: https://rubygems.org/
@@ -96,7 +97,13 @@ GEM
       reline (>= 0.3.8)
     drb (2.2.1)
     erubi (1.13.0)
+    ffi (1.17.0)
+    ffi (1.17.0-aarch64-linux-gnu)
+    ffi (1.17.0-aarch64-linux-musl)
+    ffi (1.17.0-arm64-darwin)
+    ffi (1.17.0-x86_64-darwin)
     ffi (1.17.0-x86_64-linux-gnu)
+    ffi (1.17.0-x86_64-linux-musl)
     globalid (1.2.1)
       activesupport (>= 6.1)
     i18n (1.14.5)
@@ -118,6 +125,7 @@ GEM
       net-smtp
     marcel (1.0.4)
     mini_mime (1.1.5)
+    mini_portile2 (2.8.9)
     minitest (5.25.1)
     mutex_m (0.2.0)
     net-imap (0.4.14)
@@ -130,6 +138,15 @@ GEM
     net-smtp (0.5.0)
       net-protocol
     nio4r (2.7.3)
+    nokogiri (1.16.7)
+      mini_portile2 (~> 2.8.2)
+      racc (~> 1.4)
+    nokogiri (1.16.7-aarch64-linux)
+      racc (~> 1.4)
+    nokogiri (1.16.7-arm64-darwin)
+      racc (~> 1.4)
+    nokogiri (1.16.7-x86_64-darwin)
+      racc (~> 1.4)
     nokogiri (1.16.7-x86_64-linux)
       racc (~> 1.4)
     parallel (1.26.3)
@@ -204,6 +221,7 @@ GEM
       rubocop (>= 1.48.1, < 2.0)
       rubocop-ast (>= 1.31.1, < 2.0)
     ruby-progressbar (1.13.0)
+    simpleidn (0.2.3)
     sprockets (4.2.1)
       concurrent-ruby (~> 1.0)
       rack (>= 2.2.4, < 4)
@@ -229,6 +247,8 @@ GEM
     timeout (0.4.1)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
+    tzinfo-data (1.2026.1)
+      tzinfo (>= 1.0.0)
     unicode-display_width (2.5.0)
     webrick (1.8.1)
     websocket-driver (0.7.6)
@@ -237,7 +257,14 @@ GEM
     zeitwerk (2.6.17)
 
 PLATFORMS
+  aarch64-linux
+  aarch64-linux-musl
+  arm64-darwin
+  x86_64-darwin
   x86_64-linux
+  x86_64-linux-musl
+  x86_64-mingw-ucrt
+  x86_64-mingw32
 
 DEPENDENCIES
   aikido-zen!
