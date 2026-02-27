@@ -1,14 +1,12 @@
 # frozen_string_literal: true
 
 require_relative "../sink"
-require_relative "../outbound_connection_monitor"
 
 module Aikido::Zen
   module Sinks
     module Typhoeus
       SINK = Sinks.add("typhoeus", scanners: [
-        Aikido::Zen::Scanners::SSRFScanner,
-        Aikido::Zen::OutboundConnectionMonitor
+        Aikido::Zen::Scanners::SSRFScanner
       ])
 
       before_callback = ->(request) {
@@ -56,15 +54,19 @@ module Aikido::Zen
           )
           context["ssrf.request"] = last_effective_request if context
 
+          connection = Aikido::Zen::OutboundConnection.from_uri(URI(response.effective_url))
+
           # In this case, we can't actually stop the request from happening, but
           # we can scan again (now that we know another request happened), to
           # stop the response from being exposed to the user. This downgrades
           # the SSRF into a blind SSRF, which is better than doing nothing.
           SINK.scan(
-            connection: Aikido::Zen::OutboundConnection.from_uri(URI(response.effective_url)),
+            connection: connection,
             request: last_effective_request,
             operation: "request"
           )
+
+          Aikido::Zen.track_outbound(connection)
         ensure
           context["ssrf.request"] = nil if context
         end

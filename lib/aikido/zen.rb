@@ -22,7 +22,6 @@ require_relative "zen/middleware/attack_protector"
 require_relative "zen/middleware/attack_wave_protector"
 require_relative "zen/middleware/request_tracker"
 require_relative "zen/outbound_connection"
-require_relative "zen/outbound_connection_monitor"
 require_relative "zen/runtime_settings"
 require_relative "zen/rate_limiter"
 require_relative "zen/attack_wave"
@@ -211,6 +210,19 @@ module Aikido
     # Align with other Zen implementations, while keeping internal consistency.
     class << self
       alias_method :set_user, :track_user
+    end
+
+    def self.block_outbound?(connection)
+      context = current_context
+      settings = runtime_settings
+
+      unless context.nil?
+        request = context.request
+
+        return false if settings.bypassed_ips.include?(request.client_ip)
+      end
+
+      settings.block_outbound?(connection)
     end
 
     # Marks that the Zen middleware was installed properly

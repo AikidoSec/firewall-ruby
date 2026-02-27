@@ -10,6 +10,8 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
     setup do
       stub_request(:get, "https://localhost/safe")
         .to_return(status: 200, body: "OK")
+
+      @settings = Aikido::Zen.runtime_settings
     end
 
     test "allows normal requests" do
@@ -460,6 +462,62 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
           response = http.trace(@custom_port_uri.path)
           assert_equal "OK (8080)", response.body
         end
+      end
+    end
+  end
+
+  class ConnectionBlockingTest < ActiveSupport::TestCase
+    include StubsCurrentContext
+    include HTTPConnectionTrackingAssertions
+
+    setup do
+      @settings = Aikido::Zen.runtime_settings
+
+      @safe_uri = URI("http://safe.example.com/")
+      @evil_uri = URI("http://evil.example.com/")
+      @new_uri = URI("http://new.example.com/")
+
+      stub_request(:any, @safe_uri).to_return(status: 200, body: "OK (80)")
+      stub_request(:any, @evil_uri).to_return(status: 200, body: "OK (80)")
+      stub_request(:any, @new_uri).to_return(status: 200, body: "OK (80)")
+    end
+
+    # TODO: Remove
+    test "requests trigger debugger when blockNewOutgoingRequests is true" do
+      # Are these settings from runtime_settings_test reasonable here?
+      @settings.update_from_runtime_config_json({
+        "success" => true,
+        "serviceId" => 1234,
+        "configUpdatedAt" => 1717171717000,
+        "heartbeatIntervalInMS" => 60000,
+        "endpoints" => [],
+        "blockedUserIds" => [],
+        "allowedIPAddresses" => [],
+        "receivedAnyStats" => false,
+        "block" => true,
+        "blockNewOutgoingRequests" => true,
+        "domains" => [
+          {
+            "hostname" => "safe.example.com",
+            "mode" => "allow"
+          },
+          {
+            "hostname" => "evil.example.com",
+            "mode" => "block"
+          }
+        ]
+      })
+
+      assert_equal "OK (80)", Net::HTTP.get(@safe_uri)
+
+      assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+        response = Net::HTTP.get(@evil_uri)
+        # debugger
+        assert_equal "OK (80)", response
+      end
+
+      assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+        assert_equal "OK (80)", Net::HTTP.get(@new_uri)
       end
     end
   end

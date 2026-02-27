@@ -14,6 +14,9 @@ require_relative "sinks/kernel"
 require_relative "sinks/file"
 require_relative "sinks/socket"
 require_relative "sinks/resolv"
+
+# HTTP clients
+
 require_relative "sinks/net_http"
 
 # http.rb aims to support and is tested against Ruby 3.0+:
@@ -28,6 +31,8 @@ require_relative "sinks/patron"
 require_relative "sinks/typhoeus" if defined?(::Typhoeus)
 require_relative "sinks/async_http"
 require_relative "sinks/em_http"
+
+# Database drivers
 
 require_relative "sinks/mysql2"
 require_relative "sinks/pg"
