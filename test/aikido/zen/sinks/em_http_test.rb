@@ -10,6 +10,7 @@ class Aikido::Zen::Sinks::EmHttpRequestTest < ActiveSupport::TestCase
   class SSRFDetectionTest < ActiveSupport::TestCase
     include StubsCurrentContext
     include SinkAttackHelpers
+    include HTTPConnectionTrackingAssertions
 
     setup do
       stub_request(:get, "https://localhost/safe")
@@ -58,10 +59,10 @@ class Aikido::Zen::Sinks::EmHttpRequestTest < ActiveSupport::TestCase
       assert_requested :get, "http://localhost"
     end
 
-    test "does not log an outbound connection if the request was blocked" do
+    test "logs an outbound connection even if the request was blocked" do
       set_context_from_request_to "/?host=localhost"
 
-      assert_no_difference "Aikido::Zen.collector.hosts.size" do
+      assert_tracks_outbound_to("localhost", 443) do
         assert_attack Aikido::Zen::Attacks::SSRFAttack do
           make_request(:get, "https://localhost/safe")
         end
@@ -253,6 +254,182 @@ class Aikido::Zen::Sinks::EmHttpRequestTest < ActiveSupport::TestCase
         http = within_reactor { EventMachine::HttpRequest.new(@custom_port_uri).options }
         assert_equal "OK (8080)", http.response
       end
+    end
+  end
+
+  class ConnectionBlockingTest < ActiveSupport::TestCase
+    include StubsCurrentContext
+    include HTTPConnectionTrackingAssertions
+
+    # Override StubCurrentContext#current_context to provide a request with an IP
+    # necessary for testing bypassed IPs.
+    def current_context
+      @current_context ||= Aikido::Zen::Context.from_rack_env({
+        "REMOTE_ADDR" => "1.2.3.4"
+      })
+    end
+
+    setup do
+      @settings = Aikido::Zen.runtime_settings
+
+      @safe_uri = URI("http://safe.example.com/")
+      @evil_uri = URI("http://evil.example.com/")
+      @new_uri = URI("http://new.example.com/")
+
+      stub_request(:any, @safe_uri).to_return(status: 200, body: "OK (80)")
+      stub_request(:any, @evil_uri).to_return(status: 200, body: "OK (80)")
+      stub_request(:any, @new_uri).to_return(status: 200, body: "OK (80)")
+    end
+
+    DEFAULT_RUNTIME_CONFIG = {
+      "success" => true,
+      "serviceId" => 1234,
+      "configUpdatedAt" => 1717171717000,
+      "heartbeatIntervalInMS" => 60000,
+      "endpoints" => [],
+      "blockedUserIds" => [],
+      "allowedIPAddresses" => [],
+      "receivedAnyStats" => false,
+      "block" => true
+    }
+
+    DEFAULT_DOMAINS = [
+      {
+        "hostname" => "safe.example.com",
+        "mode" => "allow"
+      },
+      {
+        "hostname" => "evil.example.com",
+        "mode" => "block"
+      }
+    ]
+
+    def configure_domains(block_new: nil, domains: nil, bypassed_ips: [])
+      data = DEFAULT_RUNTIME_CONFIG.merge(
+        {
+          "allowedIPAddresses" => bypassed_ips,
+          "blockNewOutgoingRequests" => block_new,
+          "domains" => domains
+        }.compact
+      )
+
+      @settings.update_from_runtime_config_json(data)
+    end
+
+    test "all requests are allowed by default" do
+      http = make_request(:get, @safe_uri)
+      assert_equal "OK (80)", http.response
+
+      http = make_request(:get, @evil_uri)
+      assert_equal "OK (80)", http.response
+
+      http = make_request(:get, @new_uri)
+      assert_equal "OK (80)", http.response
+    end
+
+    test "all requests are allowed when blockNewOutgoingRequests is false and the domain list is empty" do
+      configure_domains(block_new: false, domains: [])
+
+      http = make_request(:get, @safe_uri)
+      assert_equal "OK (80)", http.response
+
+      http = make_request(:get, @evil_uri)
+      assert_equal "OK (80)", http.response
+
+      http = make_request(:get, @new_uri)
+      assert_equal "OK (80)", http.response
+    end
+
+    test "all requests are blocked when blockNewOutgoingRequests is true and the domain list is empty" do
+      configure_domains(block_new: true, domains: [])
+
+      assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+        http = make_request(:get, @safe_uri)
+        assert_equal "OK (80)", http.response
+      end
+
+      assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+        http = make_request(:get, @evil_uri)
+        assert_equal "OK (80)", http.response
+      end
+
+      assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+        http = make_request(:get, @new_uri)
+        assert_equal "OK (80)", http.response
+      end
+    end
+
+    test "requests to allowed domains are allowed when blockNewOutgoingRequests is true" do
+      configure_domains(block_new: true, domains: DEFAULT_DOMAINS)
+
+      http = make_request(:get, @safe_uri)
+      assert_equal "OK (80)", http.response
+    end
+
+    test "requests to blocked domains are blocked when blockNewOutgoingRequests is true" do
+      configure_domains(block_new: true, domains: DEFAULT_DOMAINS)
+
+      assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+        http = make_request(:get, @evil_uri)
+        assert_equal "OK (80)", http.response
+      end
+    end
+
+    test "requests to unknown domains are blocked when blockNewOutgoingRequests is true" do
+      configure_domains(block_new: true, domains: DEFAULT_DOMAINS)
+
+      assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+        http = make_request(:get, @new_uri)
+        assert_equal "OK (80)", http.response
+      end
+    end
+
+    test "requests to allowed domains are allowed when blockNewOutgoingRequests is false" do
+      configure_domains(block_new: false, domains: DEFAULT_DOMAINS)
+
+      http = make_request(:get, @safe_uri)
+      assert_equal "OK (80)", http.response
+    end
+
+    test "requests to blocked domains are blocked when blockNewOutgoingRequests is false" do
+      configure_domains(block_new: false, domains: DEFAULT_DOMAINS)
+
+      assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+        http = make_request(:get, @evil_uri)
+        assert_equal "OK (80)", http.response
+      end
+    end
+
+    test "requests to unknown domains are allowed when blockNewOutgoingRequests is false" do
+      configure_domains(block_new: false, domains: DEFAULT_DOMAINS)
+
+      http = make_request(:get, @new_uri)
+      assert_equal "OK (80)", http.response
+    end
+
+    test "all requests are allowed when the client IP is in the bypassed IPs list" do
+      configure_domains(block_new: true, domains: DEFAULT_DOMAINS, bypassed_ips: ["1.2.3.4"])
+
+      http = make_request(:get, @safe_uri)
+      assert_equal "OK (80)", http.response
+
+      http = make_request(:get, @evil_uri)
+      assert_equal "OK (80)", http.response
+
+      http = make_request(:get, @new_uri)
+      assert_equal "OK (80)", http.response
+    end
+
+    private
+
+    # Makes a request within the EM reactor loop and returns the EM::HTTP object
+    def make_request(verb, uri, **options)
+      http = nil
+      EventMachine.run do
+        http = EventMachine::HttpRequest.new(uri).public_send(verb, **options)
+        http.callback { EventMachine.stop }
+      end
+      http
     end
   end
 end

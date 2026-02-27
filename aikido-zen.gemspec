@@ -34,4 +34,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "concurrent-ruby", "~> 1.0"
   spec.add_dependency "rack"
   spec.add_dependency "ffi"
+  spec.add_dependency "simpleidn"
 end

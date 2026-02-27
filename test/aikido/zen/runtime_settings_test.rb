@@ -17,7 +17,18 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
       "blockedUserIds" => [],
       "allowedIPAddresses" => [],
       "receivedAnyStats" => false,
-      "block" => true
+      "block" => true,
+      "blockNewOutgoingRequests" => true,
+      "domains" => [
+        {
+          "hostname" => "safe.example.com",
+          "mode" => "allow"
+        },
+        {
+          "hostname" => "evil.example.com",
+          "mode" => "block"
+        }
+      ]
     })
 
     assert_equal Time.utc(2024, 5, 31, 16, 8, 37), @settings.updated_at
@@ -27,6 +38,23 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_equal Aikido::Zen::RuntimeSettings::IPSet.new, @settings.bypassed_ips
     assert_equal false, @settings.received_any_stats
     assert_equal true, @settings.blocking_mode
+    assert_equal true, @settings.block_new
+
+    assert_equal 2, @settings.domains.size
+    assert_includes @settings.domains, "safe.example.com"
+    assert_includes @settings.domains, "evil.example.com"
+
+    safe_domain = @settings.domains["safe.example.com"]
+    assert_kind_of Aikido::Zen::RuntimeSettings::DomainSettings, safe_domain
+    assert_equal :allow, safe_domain.mode
+
+    evil_domain = @settings.domains["evil.example.com"]
+    assert_kind_of Aikido::Zen::RuntimeSettings::DomainSettings, evil_domain
+    assert_equal :block, evil_domain.mode
+
+    new_domain = @settings.domains["new.example.com"]
+    assert_kind_of Aikido::Zen::RuntimeSettings::DomainSettings, new_domain
+    assert_equal :block, new_domain.mode
   end
 
   test "#update_from_runtime_config_json from a JSON response without the block key" do

@@ -1,14 +1,12 @@
 # frozen_string_literal: true
 
 require_relative "../scanners/ssrf_scanner"
-require_relative "../outbound_connection_monitor"
 
 module Aikido::Zen
   module Sinks
     module Patron
       SINK = Sinks.add("patron", scanners: [
-        Scanners::SSRFScanner,
-        OutboundConnectionMonitor
+        Scanners::SSRFScanner
       ])
 
       module Helpers
@@ -58,6 +56,20 @@ module Aikido::Zen
               end
 
               connection = OutboundConnection.from_uri(URI(request.url))
+
+              settings = Aikido::Zen.runtime_settings
+
+              client_ip = context&.request&.client_ip
+
+              unless settings.bypassed_ip?(client_ip)
+                Aikido::Zen.track_outbound(connection)
+
+                if settings.block_outbound?(connection)
+                  Sinks::DSL.presafe do
+                    raise OutboundConnectionBlockedError.new(connection)
+                  end
+                end
+              end
 
               Helpers.scan(wrapped_request, connection, "request")
 
