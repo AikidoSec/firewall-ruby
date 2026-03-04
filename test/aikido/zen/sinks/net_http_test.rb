@@ -470,6 +470,14 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
     include StubsCurrentContext
     include HTTPConnectionTrackingAssertions
 
+    # Override StubCurrentContext#current_context to provide a request with an IP
+    # necessary for testing bypassed IPs.
+    def current_context
+      @current_context ||= Aikido::Zen::Context.from_rack_env({
+        "REMOTE_ADDR" => "1.2.3.4"
+      })
+    end
+
     setup do
       @settings = Aikido::Zen.runtime_settings
 
@@ -482,43 +490,127 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
       stub_request(:any, @new_uri).to_return(status: 200, body: "OK (80)")
     end
 
-    # TODO: Remove
-    test "requests trigger debugger when blockNewOutgoingRequests is true" do
-      # Are these settings from runtime_settings_test reasonable here?
-      @settings.update_from_runtime_config_json({
-        "success" => true,
-        "serviceId" => 1234,
-        "configUpdatedAt" => 1717171717000,
-        "heartbeatIntervalInMS" => 60000,
-        "endpoints" => [],
-        "blockedUserIds" => [],
-        "allowedIPAddresses" => [],
-        "receivedAnyStats" => false,
-        "block" => true,
-        "blockNewOutgoingRequests" => true,
-        "domains" => [
-          {
-            "hostname" => "safe.example.com",
-            "mode" => "allow"
-          },
-          {
-            "hostname" => "evil.example.com",
-            "mode" => "block"
-          }
-        ]
-      })
+    DEFAULT_RUNTIME_CONFIG = {
+      "success" => true,
+      "serviceId" => 1234,
+      "configUpdatedAt" => 1717171717000,
+      "heartbeatIntervalInMS" => 60000,
+      "endpoints" => [],
+      "blockedUserIds" => [],
+      "allowedIPAddresses" => [],
+      "receivedAnyStats" => false,
+      "block" => true
+    }
+
+    DEFAULT_DOMAINS = [
+      {
+        "hostname" => "safe.example.com",
+        "mode" => "allow"
+      },
+      {
+        "hostname" => "evil.example.com",
+        "mode" => "block"
+      }
+    ]
+
+    def configure_domains(block_new: nil, domains: nil, bypassed_ips: [])
+      data = DEFAULT_RUNTIME_CONFIG.merge(
+        {
+          "allowedIPAddresses" => bypassed_ips,
+          "blockNewOutgoingRequests" => block_new,
+          "domains" => domains
+        }.compact
+      )
+
+      @settings.update_from_runtime_config_json(data)
+    end
+
+    test "all requests are allowed by default" do
+      assert_equal "OK (80)", Net::HTTP.get(@safe_uri)
+
+      assert_equal "OK (80)", Net::HTTP.get(@evil_uri)
+
+      assert_equal "OK (80)", Net::HTTP.get(@new_uri)
+    end
+
+    test "all requests are allowed when blockNewOutgoingRequests is false and the domain list is empty" do
+      configure_domains(block_new: false, domains: [])
 
       assert_equal "OK (80)", Net::HTTP.get(@safe_uri)
 
+      assert_equal "OK (80)", Net::HTTP.get(@evil_uri)
+
+      assert_equal "OK (80)", Net::HTTP.get(@new_uri)
+    end
+
+    test "all requests are blocked when blockNewOutgoingRequests is true and the domain list is empty" do
+      configure_domains(block_new: true, domains: [])
+
       assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
-        response = Net::HTTP.get(@evil_uri)
-        # debugger
-        assert_equal "OK (80)", response
+        assert_equal "OK (80)", Net::HTTP.get(@safe_uri)
+      end
+
+      assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+        assert_equal "OK (80)", Net::HTTP.get(@evil_uri)
       end
 
       assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
         assert_equal "OK (80)", Net::HTTP.get(@new_uri)
       end
+    end
+
+    test "requests to allowed domains are allowed when blockNewOutgoingRequests is true" do
+      configure_domains(block_new: true, domains: DEFAULT_DOMAINS)
+
+      assert_equal "OK (80)", Net::HTTP.get(@safe_uri)
+    end
+
+    test "requests to blocked domains are blocked when blockNewOutgoingRequests is true" do
+      configure_domains(block_new: true, domains: DEFAULT_DOMAINS)
+
+      assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+        response = Net::HTTP.get(@evil_uri)
+        assert_equal "OK (80)", response
+      end
+    end
+
+    test "requests to unknown domains are blocked when blockNewOutgoingRequests is true" do
+      configure_domains(block_new: true, domains: DEFAULT_DOMAINS)
+
+      assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+        assert_equal "OK (80)", Net::HTTP.get(@new_uri)
+      end
+    end
+
+    test "requests to allowed domains are allowed when blockNewOutgoingRequests is false" do
+      configure_domains(block_new: false, domains: DEFAULT_DOMAINS)
+
+      assert_equal "OK (80)", Net::HTTP.get(@safe_uri)
+    end
+
+    test "requests to blocked domains are blocked when blockNewOutgoingRequests is false" do
+      configure_domains(block_new: false, domains: DEFAULT_DOMAINS)
+
+      assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+        response = Net::HTTP.get(@evil_uri)
+        assert_equal "OK (80)", response
+      end
+    end
+
+    test "requests to unknown domains are allowed when blockNewOutgoingRequests is false" do
+      configure_domains(block_new: false, domains: DEFAULT_DOMAINS)
+
+      assert_equal "OK (80)", Net::HTTP.get(@new_uri)
+    end
+
+    test "all requests are allowed when the client IP is in the bypassed IPs list" do
+      configure_domains(block_new: true, domains: DEFAULT_DOMAINS, bypassed_ips: ["1.2.3.4"])
+
+      assert_equal "OK (80)", Net::HTTP.get(@safe_uri)
+
+      assert_equal "OK (80)", Net::HTTP.get(@evil_uri)
+
+      assert_equal "OK (80)", Net::HTTP.get(@new_uri)
     end
   end
 end
