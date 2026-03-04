@@ -38,7 +38,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_equal Aikido::Zen::RuntimeSettings::IPSet.new, @settings.bypassed_ips
     assert_equal false, @settings.received_any_stats
     assert_equal true, @settings.blocking_mode
-    assert_equal true, @settings.block_new_outgoing_requests
+    assert_equal true, @settings.block_new
 
     assert_equal 2, @settings.domains.size
     assert_includes @settings.domains, "safe.example.com"
