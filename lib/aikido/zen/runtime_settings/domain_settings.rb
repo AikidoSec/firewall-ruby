@@ -23,5 +23,9 @@ module Aikido::Zen
     def block?
       @mode == :block
     end
+
+    def allow?
+      @mode == :allow
+    end
   end
 end

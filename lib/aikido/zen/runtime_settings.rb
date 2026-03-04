@@ -11,7 +11,7 @@ module Aikido::Zen
   #
   # You can subscribe to changes with +#add_observer(object, func_name)+, which
   # will call the function passing the settings as an argument
-  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :bypassed_ips, :received_any_stats, :blocking_mode, :blocked_user_agent_regexp, :monitored_user_agent_regexp, :user_agent_details, :blocked_ip_lists, :allowed_ip_lists, :monitored_ip_lists, :block_new_outgoing_requests, :domains) do
+  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :bypassed_ips, :received_any_stats, :blocking_mode, :blocked_user_agent_regexp, :monitored_user_agent_regexp, :user_agent_details, :blocked_ip_lists, :allowed_ip_lists, :monitored_ip_lists, :block_new, :domains) do
     def initialize(*)
       super
       self.endpoints ||= RuntimeSettings::Endpoints.new
@@ -63,7 +63,7 @@ module Aikido::Zen
     # @!attribute [rw] user_agent_details
     #   @return [Regexp]
 
-    # @!attribute [rw] block_new_outgoing_requests
+    # @!attribute [rw] block_new
     #   @return [Boolean]
 
     # @!attribute [rw] domains
@@ -88,7 +88,7 @@ module Aikido::Zen
       self.received_any_stats = data["receivedAnyStats"]
       self.blocking_mode = data["block"]
 
-      self.block_new_outgoing_requests = data["blockNewOutgoingRequests"]
+      self.block_new = data["blockNewOutgoingRequests"]
       self.domains = RuntimeSettings::Domains.from_json(data["domains"])
 
       updated_at != last_updated_at
@@ -198,7 +198,9 @@ module Aikido::Zen
     end
 
     def block_outbound?(connection)
-      block_new_outgoing_requests && domains[connection.host].block?
+      return true if domains.include?(connection.host) && domains[connection.host].block?
+
+      block_new && domains[connection.host].block?
     end
   end
 end
