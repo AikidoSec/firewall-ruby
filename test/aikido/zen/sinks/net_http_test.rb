@@ -533,6 +533,16 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
       assert_equal "OK (80)", Net::HTTP.get(@new_uri)
     end
 
+    test "does not fail if a context is not set" do
+      Aikido::Zen.current_context = nil
+
+      assert_equal "OK (80)", Net::HTTP.get(@safe_uri)
+
+      assert_equal "OK (80)", Net::HTTP.get(@evil_uri)
+
+      assert_equal "OK (80)", Net::HTTP.get(@new_uri)
+    end
+
     test "all requests are allowed when blockNewOutgoingRequests is false and the domain list is empty" do
       configure_domains(block_new: false, domains: [])
 
@@ -569,8 +579,7 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
       configure_domains(block_new: true, domains: DEFAULT_DOMAINS)
 
       assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
-        response = Net::HTTP.get(@evil_uri)
-        assert_equal "OK (80)", response
+        assert_equal "OK (80)", Net::HTTP.get(@evil_uri)
       end
     end
 
@@ -592,8 +601,7 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
       configure_domains(block_new: false, domains: DEFAULT_DOMAINS)
 
       assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
-        response = Net::HTTP.get(@evil_uri)
-        assert_equal "OK (80)", response
+        assert_equal "OK (80)", Net::HTTP.get(@evil_uri)
       end
     end
 
