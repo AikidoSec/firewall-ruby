@@ -22,11 +22,19 @@ module Aikido::Zen
           context["ssrf.request"] = wrapped_request
         end
 
+        connection = Aikido::Zen::OutboundConnection.from_uri(URI(request.base_url))
+
+        if Aikido::Zen.block_outbound?(connection)
+          raise OutboundConnectionBlockedError.new(connection)
+        end
+
         SINK.scan(
-          connection: Aikido::Zen::OutboundConnection.from_uri(URI(request.base_url)),
+          connection: connection,
           request: wrapped_request,
           operation: "request"
         )
+
+        Aikido::Zen.track_outbound(connection)
 
         request.on_headers do |response|
           context["ssrf.request"] = prev_request if context
@@ -65,8 +73,6 @@ module Aikido::Zen
             request: last_effective_request,
             operation: "request"
           )
-
-          Aikido::Zen.track_outbound(connection)
         ensure
           context["ssrf.request"] = nil if context
         end
