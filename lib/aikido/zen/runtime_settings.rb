@@ -19,7 +19,7 @@ module Aikido::Zen
       self.blocked_ip_lists ||= []
       self.allowed_ip_lists ||= []
       self.monitored_ip_lists ||= []
-      self.domains ||= []
+      self.domains ||= RuntimeSettings::Domains.new
     end
 
     # @!attribute [rw] updated_at
@@ -204,9 +204,11 @@ module Aikido::Zen
     end
 
     def block_outbound?(connection)
-      return true if domains.include?(connection.host) && domains[connection.host].block?
+      domain = domains[connection.host]
 
-      block_new_outbound && domains[connection.host].block?
+      return true if !domain.equal?(RuntimeSettings::DomainSettings.none) && domain.block?
+
+      block_new_outbound && domain.block?
     end
   end
 end
