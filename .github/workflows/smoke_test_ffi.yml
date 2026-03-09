@@ -29,6 +29,7 @@ jobs:
         run: |
           brew install mysql postgresql
           bundle config set build.mysql2 --with-opt-dir=$(brew --prefix zstd)
+          bundle config set build.pg --with-pg-config=$(brew --prefix postgresql)/bin/pg_config
       - name: Install system dependencies
         if: runner.os == 'Linux'
         run: "sudo apt-get update && sudo apt-get install libmysqlclient-dev libpq-dev libcurl4-openssl-dev"
