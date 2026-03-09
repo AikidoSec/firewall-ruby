@@ -287,11 +287,11 @@ class Aikido::Zen::Sinks::CurbTest < ActiveSupport::TestCase
       }
     ]
 
-    def configure_domains(block_new: nil, domains: nil, bypassed_ips: [])
+    def configure_domains(block_new_outbound: nil, domains: nil, bypassed_ips: [])
       data = DEFAULT_RUNTIME_CONFIG.merge(
         {
           "allowedIPAddresses" => bypassed_ips,
-          "blockNewOutgoingRequests" => block_new,
+          "blockNewOutgoingRequests" => block_new_outbound,
           "domains" => domains
         }.compact
       )
@@ -311,7 +311,7 @@ class Aikido::Zen::Sinks::CurbTest < ActiveSupport::TestCase
     end
 
     test "all requests are allowed when blockNewOutgoingRequests is false and the domain list is empty" do
-      configure_domains(block_new: false, domains: [])
+      configure_domains(block_new_outbound: false, domains: [])
 
       response = Curl.get(@safe_uri)
       assert_equal "OK (80)", response.body.to_s
@@ -324,7 +324,7 @@ class Aikido::Zen::Sinks::CurbTest < ActiveSupport::TestCase
     end
 
     test "all requests are blocked when blockNewOutgoingRequests is true and the domain list is empty" do
-      configure_domains(block_new: true, domains: [])
+      configure_domains(block_new_outbound: true, domains: [])
 
       assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
         response = Curl.get(@safe_uri)
@@ -343,14 +343,14 @@ class Aikido::Zen::Sinks::CurbTest < ActiveSupport::TestCase
     end
 
     test "requests to allowed domains are allowed when blockNewOutgoingRequests is true" do
-      configure_domains(block_new: true, domains: DEFAULT_DOMAINS)
+      configure_domains(block_new_outbound: true, domains: DEFAULT_DOMAINS)
 
       response = Curl.get(@safe_uri)
       assert_equal "OK (80)", response.body.to_s
     end
 
     test "requests to blocked domains are blocked when blockNewOutgoingRequests is true" do
-      configure_domains(block_new: true, domains: DEFAULT_DOMAINS)
+      configure_domains(block_new_outbound: true, domains: DEFAULT_DOMAINS)
 
       assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
         response = Curl.get(@evil_uri)
@@ -359,7 +359,7 @@ class Aikido::Zen::Sinks::CurbTest < ActiveSupport::TestCase
     end
 
     test "requests to unknown domains are blocked when blockNewOutgoingRequests is true" do
-      configure_domains(block_new: true, domains: DEFAULT_DOMAINS)
+      configure_domains(block_new_outbound: true, domains: DEFAULT_DOMAINS)
 
       assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
         response = Curl.get(@new_uri)
@@ -368,14 +368,14 @@ class Aikido::Zen::Sinks::CurbTest < ActiveSupport::TestCase
     end
 
     test "requests to allowed domains are allowed when blockNewOutgoingRequests is false" do
-      configure_domains(block_new: false, domains: DEFAULT_DOMAINS)
+      configure_domains(block_new_outbound: false, domains: DEFAULT_DOMAINS)
 
       response = Curl.get(@safe_uri)
       assert_equal "OK (80)", response.body.to_s
     end
 
     test "requests to blocked domains are blocked when blockNewOutgoingRequests is false" do
-      configure_domains(block_new: false, domains: DEFAULT_DOMAINS)
+      configure_domains(block_new_outbound: false, domains: DEFAULT_DOMAINS)
 
       assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
         response = Curl.get(@evil_uri)
@@ -384,14 +384,14 @@ class Aikido::Zen::Sinks::CurbTest < ActiveSupport::TestCase
     end
 
     test "requests to unknown domains are allowed when blockNewOutgoingRequests is false" do
-      configure_domains(block_new: false, domains: DEFAULT_DOMAINS)
+      configure_domains(block_new_outbound: false, domains: DEFAULT_DOMAINS)
 
       response = Curl.get(@new_uri)
       assert_equal "OK (80)", response.body.to_s
     end
 
     test "all requests are allowed when the client IP is in the bypassed IPs list" do
-      configure_domains(block_new: true, domains: DEFAULT_DOMAINS, bypassed_ips: ["1.2.3.4"])
+      configure_domains(block_new_outbound: true, domains: DEFAULT_DOMAINS, bypassed_ips: ["1.2.3.4"])
 
       response = Curl.get(@safe_uri)
       assert_equal "OK (80)", response.body.to_s
