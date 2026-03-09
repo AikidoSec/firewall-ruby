@@ -213,19 +213,6 @@ module Aikido
       alias_method :set_user, :track_user
     end
 
-    def self.block_outbound?(connection)
-      context = current_context
-      settings = runtime_settings
-
-      unless context.nil?
-        request = context.request
-
-        return false if settings.bypassed_ips.include?(request.client_ip)
-      end
-
-      settings.block_outbound?(connection)
-    end
-
     # Marks that the Zen middleware was installed properly
     # @return void
     def self.middleware_installed!
