@@ -70,4 +70,3 @@ jobs:
           sleep_before_test: 30
           extra_args: "-e RAILS_ENV=test -e AIKIDO_CLIENT_IP_HEADER=HTTP_X_FORWARDED_FOR"
           max_parallel_tests: 15
-          skip_tests: test_rate_limiting_group_id_1_minute,test_user_rate_limiting_1_minute_enable_disable
