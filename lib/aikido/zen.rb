@@ -11,6 +11,7 @@ require_relative "zen/worker"
 require_relative "zen/agent"
 require_relative "zen/api_client"
 require_relative "zen/context"
+require_relative "zen/current_context"
 require_relative "zen/detached_agent"
 require_relative "zen/middleware/middleware"
 require_relative "zen/middleware/fork_detector"
@@ -22,7 +23,6 @@ require_relative "zen/middleware/attack_protector"
 require_relative "zen/middleware/attack_wave_protector"
 require_relative "zen/middleware/request_tracker"
 require_relative "zen/outbound_connection"
-require_relative "zen/outbound_connection_monitor"
 require_relative "zen/runtime_settings"
 require_relative "zen/rate_limiter"
 require_relative "zen/attack_wave"
@@ -110,7 +110,7 @@ module Aikido
     #
     # @return [Aikido::Zen::Context, nil]
     def self.current_context
-      Thread.current[:_aikido_current_context_]
+      Fiber.current.aikido_current_context
     end
 
     # Sets the current context object that holds all information about the
@@ -119,7 +119,7 @@ module Aikido
     # @param context [Aikido::Zen::Context, nil]
     # @return [Aikido::Zen::Context, nil]
     def self.current_context=(context)
-      Thread.current[:_aikido_current_context_] = context
+      Fiber.current.aikido_current_context = context
     end
 
     # Track statistics about an HTTP request the app is handling.

@@ -11,7 +11,7 @@ module Aikido::Zen
   #
   # You can subscribe to changes with +#add_observer(object, func_name)+, which
   # will call the function passing the settings as an argument
-  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :bypassed_ips, :received_any_stats, :blocking_mode, :blocked_user_agent_regexp, :monitored_user_agent_regexp, :user_agent_details, :blocked_ip_lists, :allowed_ip_lists, :monitored_ip_lists) do
+  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :bypassed_ips, :received_any_stats, :blocking_mode, :blocked_user_agent_regexp, :monitored_user_agent_regexp, :user_agent_details, :blocked_ip_lists, :allowed_ip_lists, :monitored_ip_lists, :block_new_outbound, :domains) do
     def initialize(*)
       super
       self.endpoints ||= RuntimeSettings::Endpoints.new
@@ -19,6 +19,7 @@ module Aikido::Zen
       self.blocked_ip_lists ||= []
       self.allowed_ip_lists ||= []
       self.monitored_ip_lists ||= []
+      self.domains ||= RuntimeSettings::Domains.new
     end
 
     # @!attribute [rw] updated_at
@@ -62,6 +63,12 @@ module Aikido::Zen
     # @!attribute [rw] user_agent_details
     #   @return [Regexp]
 
+    # @!attribute [rw] block_new_outbound
+    #   @return [Boolean]
+
+    # @!attribute [rw] domains
+    #   @return [Array<Aikido::Zen::RuntimeSettings::DomainSettings>]
+
     # Parse and interpret the JSON response from the core API with updated
     # runtime settings, and apply the changes.
     #
@@ -80,6 +87,9 @@ module Aikido::Zen
       self.bypassed_ips = RuntimeSettings::IPSet.from_json(data["allowedIPAddresses"])
       self.received_any_stats = data["receivedAnyStats"]
       self.blocking_mode = data["block"]
+
+      self.block_new_outbound = data["blockNewOutgoingRequests"]
+      self.domains = RuntimeSettings::Domains.from_json(data["domains"])
 
       updated_at != last_updated_at
     end
@@ -145,6 +155,12 @@ module Aikido::Zen
       end
     end
 
+    # @param ip [String]
+    # @return [Boolean] Whether the IP is included in the bypassed IPs set.
+    def bypassed_ip?(ip)
+      bypassed_ips.include?(ip)
+    end
+
     # @param user_agent [String] the user agent
     # @return [Boolean] whether the user agent should be blocked
     def blocked_user_agent?(user_agent)
@@ -186,9 +202,18 @@ module Aikido::Zen
 
       monitored_ip_lists.filter_map { |ip_list| ip_list.key if ip_list.include?(ip) }
     end
+
+    def block_outbound?(connection)
+      domain = domains[connection.host]
+
+      return true if !domain.equal?(RuntimeSettings::DomainSettings.none) && domain.block?
+
+      block_new_outbound && domain.block?
+    end
   end
 end
 
 require_relative "runtime_settings/ip_set"
 require_relative "runtime_settings/ip_list"
 require_relative "runtime_settings/endpoints"
+require_relative "runtime_settings/domains"

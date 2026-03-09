@@ -10,6 +10,7 @@ class Aikido::Zen::Sinks::AsyncHTTPTest < ActiveSupport::TestCase
   class SSRFDetectionTest < ActiveSupport::TestCase
     include StubsCurrentContext
     include SinkAttackHelpers
+    include HTTPConnectionTrackingAssertions
 
     setup do
       stub_request(:get, "https://localhost/safe")
@@ -58,11 +59,11 @@ class Aikido::Zen::Sinks::AsyncHTTPTest < ActiveSupport::TestCase
       end
     end
 
-    test "does not log an outbound connection if the request was blocked" do
+    test "logs an outbound connection even if the request was blocked" do
       Sync do
         set_context_from_request_to "/?host=localhost"
 
-        assert_no_difference "Aikido::Zen.collector.hosts.size" do
+        assert_tracks_outbound_to("localhost", 443) do
           assert_attack Aikido::Zen::Attacks::SSRFAttack do
             client = Async::HTTP::Internet.new
             client.get(URI("https://localhost/safe"))
@@ -283,6 +284,210 @@ class Aikido::Zen::Sinks::AsyncHTTPTest < ActiveSupport::TestCase
           @client.trace(@custom_port_uri) do |response|
             assert_equal "OK (8080)", response.body.read
           end
+        end
+      end
+    end
+  end
+
+  class ConnectionBlockingTest < ActiveSupport::TestCase
+    include StubsCurrentContext
+    include HTTPConnectionTrackingAssertions
+
+    # Override StubCurrentContext#current_context to provide a request with an IP
+    # necessary for testing bypassed IPs.
+    def current_context
+      @current_context ||= Aikido::Zen::Context.from_rack_env({
+        "REMOTE_ADDR" => "1.2.3.4"
+      })
+    end
+
+    setup do
+      @settings = Aikido::Zen.runtime_settings
+
+      @safe_uri = URI("http://safe.example.com/")
+      @evil_uri = URI("http://evil.example.com/")
+      @new_uri = URI("http://new.example.com/")
+
+      stub_request(:any, @safe_uri).to_return(status: 200, body: "OK (80)")
+      stub_request(:any, @evil_uri).to_return(status: 200, body: "OK (80)")
+      stub_request(:any, @new_uri).to_return(status: 200, body: "OK (80)")
+
+      @client = Async::HTTP::Internet.new
+    end
+
+    DEFAULT_RUNTIME_CONFIG = {
+      "success" => true,
+      "serviceId" => 1234,
+      "configUpdatedAt" => 1717171717000,
+      "heartbeatIntervalInMS" => 60000,
+      "endpoints" => [],
+      "blockedUserIds" => [],
+      "allowedIPAddresses" => [],
+      "receivedAnyStats" => false,
+      "block" => true
+    }
+
+    DEFAULT_DOMAINS = [
+      {
+        "hostname" => "safe.example.com",
+        "mode" => "allow"
+      },
+      {
+        "hostname" => "evil.example.com",
+        "mode" => "block"
+      }
+    ]
+
+    def configure_domains(block_new_outbound: nil, domains: nil, bypassed_ips: [])
+      data = DEFAULT_RUNTIME_CONFIG.merge(
+        {
+          "allowedIPAddresses" => bypassed_ips,
+          "blockNewOutgoingRequests" => block_new_outbound,
+          "domains" => domains
+        }.compact
+      )
+
+      @settings.update_from_runtime_config_json(data)
+    end
+
+    test "all requests are allowed by default" do
+      Sync do
+        @client.get(@safe_uri) do |response|
+          assert_equal "OK (80)", response.body.read
+        end
+
+        @client.get(@evil_uri) do |response|
+          assert_equal "OK (80)", response.body.read
+        end
+
+        @client.get(@new_uri) do |response|
+          assert_equal "OK (80)", response.body.read
+        end
+      end
+    end
+
+    test "all requests are allowed when blockNewOutgoingRequests is false and the domain list is empty" do
+      configure_domains(block_new_outbound: false, domains: [])
+
+      Sync do
+        @client.get(@safe_uri) do |response|
+          assert_equal "OK (80)", response.body.read
+        end
+
+        @client.get(@evil_uri) do |response|
+          assert_equal "OK (80)", response.body.read
+        end
+
+        @client.get(@new_uri) do |response|
+          assert_equal "OK (80)", response.body.read
+        end
+      end
+    end
+
+    test "all requests are blocked when blockNewOutgoingRequests is true and the domain list is empty" do
+      configure_domains(block_new_outbound: true, domains: [])
+
+      Sync do
+        assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+          @client.get(@safe_uri) do |response|
+            assert_equal "OK (80)", response.body.read
+          end
+        end
+
+        assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+          @client.get(@evil_uri) do |response|
+            assert_equal "OK (80)", response.body.read
+          end
+        end
+
+        assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+          @client.get(@new_uri) do |response|
+            assert_equal "OK (80)", response.body.read
+          end
+        end
+      end
+    end
+
+    test "requests to allowed domains are allowed when blockNewOutgoingRequests is true" do
+      configure_domains(block_new_outbound: true, domains: DEFAULT_DOMAINS)
+
+      Sync do
+        @client.get(@safe_uri) do |response|
+          assert_equal "OK (80)", response.body.read
+        end
+      end
+    end
+
+    test "requests to blocked domains are blocked when blockNewOutgoingRequests is true" do
+      configure_domains(block_new_outbound: true, domains: DEFAULT_DOMAINS)
+
+      Sync do
+        assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+          @client.get(@evil_uri) do |response|
+            assert_equal "OK (80)", response.body.read
+          end
+        end
+      end
+    end
+
+    test "requests to unknown domains are blocked when blockNewOutgoingRequests is true" do
+      configure_domains(block_new_outbound: true, domains: DEFAULT_DOMAINS)
+
+      Sync do
+        assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+          @client.get(@new_uri) do |response|
+            assert_equal "OK (80)", response.body.read
+          end
+        end
+      end
+    end
+
+    test "requests to allowed domains are allowed when blockNewOutgoingRequests is false" do
+      configure_domains(block_new_outbound: false, domains: DEFAULT_DOMAINS)
+
+      Sync do
+        @client.get(@safe_uri) do |response|
+          assert_equal "OK (80)", response.body.read
+        end
+      end
+    end
+
+    test "requests to blocked domains are blocked when blockNewOutgoingRequests is false" do
+      configure_domains(block_new_outbound: false, domains: DEFAULT_DOMAINS)
+
+      Sync do
+        assert_raises(Aikido::Zen::OutboundConnectionBlockedError) do
+          @client.get(@evil_uri) do |response|
+            assert_equal "OK (80)", response.body.read
+          end
+        end
+      end
+    end
+
+    test "requests to unknown domains are allowed when blockNewOutgoingRequests is false" do
+      configure_domains(block_new_outbound: false, domains: DEFAULT_DOMAINS)
+
+      Sync do
+        @client.get(@new_uri) do |response|
+          assert_equal "OK (80)", response.body.read
+        end
+      end
+    end
+
+    test "all requests are allowed when the client IP is in the bypassed IPs list" do
+      configure_domains(block_new_outbound: true, domains: DEFAULT_DOMAINS, bypassed_ips: ["1.2.3.4"])
+
+      Sync do
+        @client.get(@safe_uri) do |response|
+          assert_equal "OK (80)", response.body.read
+        end
+
+        @client.get(@evil_uri) do |response|
+          assert_equal "OK (80)", response.body.read
+        end
+
+        @client.get(@new_uri) do |response|
+          assert_equal "OK (80)", response.body.read
         end
       end
     end
