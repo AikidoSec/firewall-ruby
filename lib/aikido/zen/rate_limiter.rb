@@ -16,12 +16,7 @@ module Aikido::Zen
     )
       @config = config
       @settings = settings
-      @buckets = Hash.new { |store, route|
-        synchronize {
-          settings = settings_for(route)
-          store[route] = Bucket.new(ttl: settings.period, max_size: settings.max_requests)
-        }
-      }
+      @buckets = {}
     end
 
     # Calculate based on the configuration whether a request will be
@@ -30,24 +25,30 @@ module Aikido::Zen
     # @param request [Aikido::Zen::Request]
     # @return [Aikido::Zen::RateLimiter::Result, nil]
     def calculate_rate_limits(request)
-      route, enabled = resolve_route_enabled(request)
-      return nil unless enabled
+      route, settings = @settings.endpoints.match(request.route)
 
-      bucket = @buckets[route]
+      rate_limiting_settings = settings&.rate_limiting
+
+      return nil unless rate_limiting_settings&.enabled?
+
+      bucket = synchronize do
+        bucket = @buckets[route]
+
+        if bucket.nil? || bucket.settings_changed?(rate_limiting_settings)
+          bucket = Bucket.new(
+            ttl: rate_limiting_settings.period,
+            max_size: rate_limiting_settings.max_requests,
+            settings: rate_limiting_settings
+          )
+
+          @buckets[route] = bucket
+        end
+
+        bucket
+      end
+
       key = @config.rate_limiting_discriminator.call(request)
       bucket.increment(key)
-    end
-
-    private
-
-    def resolve_route_enabled(request)
-      @settings.endpoints.match(request.route) do |route, settings|
-        [route, settings.rate_limiting.enabled?]
-      end
-    end
-
-    def settings_for(route)
-      @settings.endpoints[route].rate_limiting
     end
   end
 end

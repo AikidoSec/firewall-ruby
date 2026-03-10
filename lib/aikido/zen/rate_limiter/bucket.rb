@@ -32,11 +32,12 @@ module Aikido::Zen
     # and not affected by timezones.or daylight savings changes.
     DEFAULT_CLOCK = -> { Process.clock_gettime(Process::CLOCK_MONOTONIC).round }
 
-    def initialize(ttl:, max_size:, clock: DEFAULT_CLOCK)
+    def initialize(ttl:, max_size:, clock: DEFAULT_CLOCK, settings: nil)
       @ttl = ttl
       @max_size = max_size
       @data = Hash.new { |h, k| h[k] = [] }
       @clock = clock
+      @settings = settings
     end
 
     # Increments the key if the number of entries within the current TTL window
@@ -67,10 +68,18 @@ module Aikido::Zen
       end
     end
 
+    def settings_changed?(settings)
+      return false if @settings.nil?
+
+      !@settings.equal?(settings)
+    end
+
     private
 
     def evict(key, at: @clock.call)
-      synchronize { @data[key].delete_if { |time| time < (at - @ttl) } }
+      synchronize do
+        @data[key].delete_if { |time| time < (at - @ttl) }
+      end
     end
   end
 end
