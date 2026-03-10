@@ -65,7 +65,7 @@ module Aikido::Zen
     def initialize(
       id:,
       name: nil,
-      ip: Aikido::Zen.current_context&.request&.ip,
+      ip: Aikido::Zen.current_context&.request&.client_ip,
       first_seen_at: Time.now.utc,
       last_seen_at: first_seen_at
     )
@@ -96,7 +96,7 @@ module Aikido::Zen
     #   always keep the most recent time if this conflicts with the current
     #   value.
     # @return [void]
-    def update(seen_at: Time.now.utc, ip: Aikido::Zen.current_context&.request&.ip)
+    def update(seen_at: Time.now.utc, ip: Aikido::Zen.current_context&.request&.client_ip)
       @last_seen_at.try_update { |last_seen_at| [last_seen_at, seen_at].max }
       @ip.try_update { |last_ip| [ip, last_ip].compact.first }
     end
