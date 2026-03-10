@@ -28,6 +28,9 @@ module Aikido::Zen
       new(enabled: false)
     end
 
+    # @return [Boolean]
+    attr_reader :enabled
+
     # @return [Integer] the fixed window to bucket requests in, in seconds.
     attr_reader :period
 
@@ -43,5 +46,13 @@ module Aikido::Zen
     def enabled?
       @enabled
     end
+
+    def ==(other)
+      other.is_a?(self.class) &&
+        other.enabled == enabled &&
+        other.period == period &&
+        other.max_requests == max_requests
+    end
+    alias_method :eql?, :==
   end
 end
