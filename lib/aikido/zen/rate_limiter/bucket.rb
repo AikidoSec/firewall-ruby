@@ -69,9 +69,17 @@ module Aikido::Zen
     end
 
     def settings_changed?(settings)
+      # If we don't have previous settings stored, we can't tell if they've
+      # changed here — the caller will already create a new bucket when that
+      # happens (i.e. when +bucket+ is nil), so we treat this as "no change".
       return false if @settings.nil?
 
-      !@settings.equal?(settings)
+      # Compare by value instead of by object identity so that recreating
+      # settings objects (e.g. on heartbeat) with the same effective config
+      # does not reset the rate limiting buckets.
+      @settings.period != settings.period ||
+        @settings.max_requests != settings.max_requests ||
+        @settings.enabled? != settings.enabled?
     end
 
     private
