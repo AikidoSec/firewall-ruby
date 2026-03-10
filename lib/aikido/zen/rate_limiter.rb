@@ -25,7 +25,9 @@ module Aikido::Zen
     # @param request [Aikido::Zen::Request]
     # @return [Aikido::Zen::RateLimiter::Result, nil]
     def calculate_rate_limits(request)
+      @config.logger.info("Calculating rate limits for request: #{request.as_json}")
       route, settings = @settings.endpoints.match(request.route)
+      @config.logger.info("Route: #{route.as_json}, Settings: #{settings.as_json}")
 
       rate_limiting_settings = settings&.rate_limiting
 
@@ -43,6 +45,8 @@ module Aikido::Zen
 
           @buckets[route] = bucket
         end
+
+        @config.logger.info("Bucket created: #{bucket.as_json}")
 
         bucket
       end

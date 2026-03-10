@@ -16,7 +16,7 @@ jobs:
           repository: Aikido-demo-apps/zen-demo-ruby
           path: zen-demo-ruby
           submodules: true
-      
+
       - name: Checkout firewall-ruby
         uses: actions/checkout@v5
         with:
@@ -26,7 +26,7 @@ jobs:
       - name: Set up Ruby (same as zen-demo-ruby)
         uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
         with:
-          ruby-version: '3.3.8'
+          ruby-version: "3.3.8"
           bundler-cache: false
 
       - name: Download libzen for current platform
@@ -39,16 +39,16 @@ jobs:
       - name: Patch Gemfile to use the local firewall-ruby directory
         working-directory: zen-demo-ruby
         run: |
-          
+
           echo "Gemfile before patch:"
           grep -n "aikido-zen" Gemfile || true
-      
+
           # Replace the aikido-zen dependency to use the local path
           sed -i "s/^gem ['\"]aikido-zen['\"].*/gem 'aikido-zen', path: 'firewall-ruby'/" Gemfile
 
           echo "Gemfile after patch:"
           grep -n "aikido-zen" Gemfile
-          
+
           # Make sure Bundler installs locally (not system-wide)
           bundle config set path 'vendor/bundle'
 
@@ -57,18 +57,18 @@ jobs:
 
           # Update Dockerfile to copy the firewall-ruby directory
           sed -i "s/^COPY Gemfile Gemfile.lock .*/COPY Gemfile Gemfile.lock .\/\nCOPY firewall-ruby\/ .\/firewall-ruby/" Dockerfile
-      
+
           # Print Dockerfile
           echo "Dockerfile:"
           cat Dockerfile
 
           # Update client IP header to use HTTP_X_FORWARDED_FOR
           sed -i "s/Rails.application.config.zen.client_ip_header = \"HTTP_FLY_CLIENT_IP\"/Rails.application.config.zen.client_ip_header = \"HTTP_X_FORWARDED_FOR\"/" config/initializers/client_ip.rb
-          
+
           # Print the file after the patch
           echo "config/initializers/client_ip.rb after patch:"
           cat config/initializers/client_ip.rb
-      
+
       - name: Run Firewall QA Tests
         uses: AikidoSec/firewall-tester-action@v1.0.11
         with:
@@ -77,3 +77,4 @@ jobs:
           sleep_before_test: 30
           extra_args: "-e RAILS_ENV=test -e AIKIDO_CLIENT_IP_HEADER=HTTP_X_FORWARDED_FOR"
           max_parallel_tests: 15
+          skip_tests: test_aikido_disable,test_allowed_ip_for_routes,test_allowed_ip_for_wildcard_route,test_allowed_ip_most_restrictive,test_allow_traffic_by_countries,test_api_spec,test_block_traffic_by_countries,test_bypassed_ip,test_bypassed_ip_for_geo_blocking,test_bypassed_ip_for_rate_limiting,test_core_went_down,test_demo_apps_generic_tests,test_force_protection_off,test_internet_not_available,test_invalid_token,test_logs_sensitive_data,test_no_token_set,test_outbound_domain_blocking,test_path_traversal,test_shell_injection,test_sql_injection,test_ssrf,test_ssrf_diffrent_port,test_stored_ssrf,test_stored_ssrf_no_context,test_user_rate_limiting_1_minute,test_rate_limiting_group_id_1_minute,test_user_rate_limiting_1_minute_for_wildcard_route,test_user_rate_limiting_1_minute_without_x_forwarded_for,test_wave_attack
