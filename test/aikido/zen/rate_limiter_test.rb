@@ -185,13 +185,13 @@ class Aikido::Zen::RateLimiterTest < ActiveSupport::TestCase
     configure "GET", "/ba*", max_requests: 3, period: 1
 
     refute_throttled build_request("GET", "/bar", ip: "1.2.3.4"), current: 1
-    refute_throttled build_request("GET", "/bar", ip: "1.2.3.4"), current: 2
+    refute_throttled build_request("GET", "/baz", ip: "1.2.3.4"), current: 2
     refute_throttled build_request("GET", "/bar", ip: "1.2.3.4"), current: 3
-    assert_throttled build_request("GET", "/bar", ip: "1.2.3.4"), current: 3
+    assert_throttled build_request("GET", "/baz", ip: "1.2.3.4"), current: 3
 
+    assert_throttled build_request("GET", "/bar", ip: "1.2.3.4"), current: 3
     assert_throttled build_request("GET", "/baz", ip: "1.2.3.4"), current: 3
-    assert_throttled build_request("GET", "/baz", ip: "1.2.3.4"), current: 3
-    assert_throttled build_request("GET", "/baz", ip: "1.2.3.4"), current: 3
+    assert_throttled build_request("GET", "/bar", ip: "1.2.3.4"), current: 3
 
     refute_throttled build_request("GET", "/foo", ip: "1.2.3.4"), current: 1
     refute_throttled build_request("GET", "/foo", ip: "1.2.3.4"), current: 2
