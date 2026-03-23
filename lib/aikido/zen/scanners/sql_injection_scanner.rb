@@ -71,7 +71,7 @@ module Aikido::Zen
         return false if /\A[[:alnum:]_]+\z/i.match?(@input)
 
         # If the input is a comma-separated list of numbers, ignore it.
-        return false if /\A[\s,]*\d[\s,\d]*\z/.match?(@input)
+        return false if /\A[ ,]*\d[ ,\d]*\z/.match?(@input)
 
         Internals.detect_sql_injection(@query, @input, @dialect)
       rescue => err
