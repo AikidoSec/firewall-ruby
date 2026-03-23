@@ -249,6 +249,17 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     refute_attack "SELECT * FROM users_123", "users_123"
   end
 
+  test "ignores numbers" do
+    refute_attack "SELECT * WHERE id = 123", "123"
+    refute_attack "SELECT * WHERE id =   123  ", "  123  "
+  end
+
+  test "ignores comma-separated list of numbers" do
+    refute_attack "SELECT * WHERE id IN (1,2,3)", "1,2,3"
+    refute_attack "SELECT * WHERE id IN (1, 2, 3)", "1, 2, 3"
+    refute_attack "SELECT * WHERE id IN (,1,,)", ",1,,"
+  end
+
   test "ignores input that does not show up in the SQL query" do
     refute_attack "SELECT * FROM users WHERE id IN (1,2,3)", "1,2,3"
     refute_attack "SELECT * FROM users", "1,2,3"
