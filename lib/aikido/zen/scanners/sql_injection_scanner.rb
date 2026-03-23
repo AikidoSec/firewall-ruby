@@ -74,6 +74,10 @@ module Aikido::Zen
         return false if /\A(?:\d+(?:,\s*)?)+\z/i.match?(@input)
 
         Internals.detect_sql_injection(@query, @input, @dialect)
+      rescue => err
+        return true if defined?(Regexp::TimeoutError) && err.is_a?(Regexp::TimeoutError)
+
+        raise err
       end
 
       # @api private
