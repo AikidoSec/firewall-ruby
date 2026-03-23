@@ -254,6 +254,19 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     refute_attack "SELECT * FROM users", "1,2,3"
   end
 
+  test "it flags regular expression matching timeouts as attacks" do
+    timeout = Regexp.timeout
+    Regexp.timeout = 0.01
+
+    refute_attack "SELECT * FROM users WHERE id IN (123,)", "123,"
+
+    input = "1," * 1 * 1024 * 1024
+
+    assert_attack "SELECT * FROM users WHERE id IN (#{input})", input
+  ensure
+    Regexp.timeout = timeout
+  end
+
   test "attacks are not prevented if libzen can't be loaded" do
     assert_attack "SELECT * FROM users WHERE id = '' OR true; --'", "' OR true; --'"
 
