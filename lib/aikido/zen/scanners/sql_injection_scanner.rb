@@ -65,10 +65,10 @@ module Aikido::Zen
         return false unless @query.include?(@input)
 
         # If the input is solely alphanumeric, we can ignore it
-        return false if /\A[[:alnum:]_]+\z/i.match?(@input)
+        return false if Aikido::Zen::Helpers.regexp_with_timeout(/\A[[:alnum:]_]+\z/i).match?(@input)
 
         # If the input is a comma-separated list of numbers, ignore it.
-        return false if /\A[ ,]*\d[ ,\d]*\z/.match?(@input)
+        return false if Aikido::Zen::Helpers.regexp_with_timeout(/\A[ ,]*\d[ ,\d]*\z/).match?(@input)
 
         Internals.detect_sql_injection(@query, @input, @dialect)
       rescue => err
