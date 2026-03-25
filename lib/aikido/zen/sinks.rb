@@ -21,7 +21,7 @@ require_relative "sinks/net_http"
 
 # http.rb aims to support and is tested against Ruby 3.0+:
 # https://github.com/httprb/http?tab=readme-ov-file#supported-ruby-versions
-require_relative "sinks/http" if RUBY_VERSION >= "3.0"
+require_relative "sinks/http" if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.0")
 
 require_relative "sinks/httpx"
 require_relative "sinks/httpclient"
