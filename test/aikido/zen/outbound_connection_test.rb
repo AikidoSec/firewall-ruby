@@ -19,15 +19,27 @@ class Aikido::Zen::OutboundConnectionTest < ActiveSupport::TestCase
     assert_equal 443, https_conn.port
   end
 
-  test "two connections are equal if their host and port are equal" do
+  test "hostname is normalized to lowercase" do
     c1 = Aikido::Zen::OutboundConnection.new(host: "example.com", port: 80)
-    c2 = Aikido::Zen::OutboundConnection.new(host: "example.com", port: 80)
-    c3 = Aikido::Zen::OutboundConnection.new(host: "example.com", port: 443)
-    c4 = Aikido::Zen::OutboundConnection.new(host: "example.org", port: 80)
+    c2 = Aikido::Zen::OutboundConnection.new(host: "Example.com", port: 80)
+    c3 = Aikido::Zen::OutboundConnection.new(host: "EXAMPLE.COM", port: 80)
+
+    assert_equal "example.com", c1.host
+    assert_equal "example.com", c2.host
+    assert_equal "example.com", c3.host
+  end
+
+  test "two connections are equal if their host and port are equal independent of case" do
+    c1 = Aikido::Zen::OutboundConnection.new(host: "example.com", port: 80)
+    c2 = Aikido::Zen::OutboundConnection.new(host: "Example.com", port: 80)
+    c3 = Aikido::Zen::OutboundConnection.new(host: "EXAMPLE.COM", port: 80)
+    c4 = Aikido::Zen::OutboundConnection.new(host: "example.com", port: 443)
+    c5 = Aikido::Zen::OutboundConnection.new(host: "example.org", port: 80)
 
     assert_equal c1, c2
-    refute_equal c1, c3
+    assert_equal c1, c3
     refute_equal c1, c4
+    refute_equal c1, c5
   end
 
   test "connections can be used as hash keys" do

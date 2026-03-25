@@ -30,7 +30,7 @@ module Aikido::Zen
     attr_reader :hits
 
     def initialize(host:, port:)
-      @host = host
+      @host = host.downcase
       @port = port
     end
 
