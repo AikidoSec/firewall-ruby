@@ -276,16 +276,20 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
   end
 
   test "it flags regular expression matching timeouts as attacks" do
-    timeout = Regexp.timeout
-    Regexp.timeout = 0.01
+    skip if RUBY_VERSION < "3.2"
 
-    refute_attack "SELECT * FROM users WHERE id IN (123,)", "123,"
+    begin
+      timeout = Regexp.timeout
+      Regexp.timeout = 0.01
 
-    input = "1," * 1 * 1024 * 1024
+      refute_attack "SELECT * FROM users WHERE id IN (123,)", "123,"
 
-    assert_attack "SELECT * FROM users WHERE id IN (#{input})", input
-  ensure
-    Regexp.timeout = timeout
+      input = "1," * 1 * 1024 * 1024
+
+      assert_attack "SELECT * FROM users WHERE id IN (#{input})", input
+    ensure
+      Regexp.timeout = timeout
+    end
   end
 
   test "attacks are not prevented if libzen can't be loaded" do
