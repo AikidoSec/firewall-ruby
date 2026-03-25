@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Async::HTTP only supports ruby 3.1+
-return if RUBY_VERSION < "3.1"
+return if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.1")
 
 require "test_helper"
 require "async/http/middleware/location_redirector"

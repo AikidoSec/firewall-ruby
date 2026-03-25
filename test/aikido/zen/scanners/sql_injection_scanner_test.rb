@@ -276,7 +276,7 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
   end
 
   test "it flags regular expression matching timeouts as attacks" do
-    skip if RUBY_VERSION < "3.2"
+    skip_if_ruby_lower_than("3.2")
 
     begin
       timeout = Regexp.timeout
