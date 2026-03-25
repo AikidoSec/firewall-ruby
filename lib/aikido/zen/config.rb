@@ -188,6 +188,11 @@ module Aikido::Zen
     #   Defaults to 15 entries.
     attr_accessor :attack_wave_max_cache_samples
 
+    # @return [Float, nil] the timeout in seconds for regular expression matching.
+    #  Applied to selected internal regular expressions to mitigate ReDoS risks.
+    #  Defaults to 1.0 seconds.
+    attr_accessor :redos_regexp_timeout
+
     def initialize
       self.insert_middleware_after = ::ActionDispatch::RemoteIp
       self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLE", false)) || read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
@@ -227,6 +232,7 @@ module Aikido::Zen
       self.attack_wave_min_time_between_events = 20 * 60 * 1000 # 20 min (ms)
       self.attack_wave_max_cache_entries = 10_000
       self.attack_wave_max_cache_samples = 15
+      self.redos_regexp_timeout = 1.0
     end
 
     # Set the base URL for API requests.
