@@ -34,9 +34,15 @@ module Aikido::Zen
     end
 
     Context.new(request) do |req|
+      body = begin
+        req.request_parameters
+      rescue ActionDispatch::Http::Parameters::ParseError
+        {}
+      end
+
       {
         query: req.query_parameters,
-        body: req.request_parameters,
+        body: body,
         route: req.path_parameters,
         header: req.normalized_headers,
         cookie: decrypt_cookies.call(req),
