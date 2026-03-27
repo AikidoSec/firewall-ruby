@@ -14,7 +14,7 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
 
     def scan(query, input = query, dialect = :common)
       dialect = Aikido::Zen::Scanners::SQLInjectionScanner::DIALECTS.fetch(dialect)
-      Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, dialect).attack?
+      Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, dialect).detect == 1
     end
   end
 

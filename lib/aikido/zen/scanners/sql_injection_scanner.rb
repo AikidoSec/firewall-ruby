@@ -30,7 +30,10 @@ module Aikido::Zen
         end
 
         context.payloads.each do |payload|
-          next unless new(query, payload.value.to_s, dialect).attack?
+          result = new(query, payload.value.to_s, dialect).detect
+
+          next if result == 0
+          next if result == 3 && !Aikido::Zen.config.block_invalid_sql?
 
           return Attacks::SQLInjectionAttack.new(
             sink: sink,
@@ -39,7 +42,8 @@ module Aikido::Zen
             dialect: dialect,
             context: context,
             operation: "#{sink.operation}.#{operation}",
-            stack: Aikido::Zen.clean_stack_trace
+            stack: Aikido::Zen.clean_stack_trace,
+            failed_to_tokenize: result == 3
           )
         rescue Aikido::Zen::InternalsError => error
           Aikido::Zen.config.logger.warn(error.message)
@@ -57,27 +61,32 @@ module Aikido::Zen
         @dialect = dialect
       end
 
-      def attack?
+      def should_return_early?
         # Ignore single char inputs since they shouldn't be able to do much harm
-        return false if @input.length <= 1
+        return true if @input.length <= 1
 
         # If the input is longer than the query, then it is not part of it
-        return false if @input.length > @query.length
+        return true if @input.length > @query.length
 
         # If the input is not included in the query at all, then we are safe
-        return false unless @query.include?(@input)
+        return true unless @query.include?(@input)
 
         # If the input is solely alphanumeric, we can ignore it
-        return false if Aikido::Zen::Helpers.regexp_with_timeout(/\A[[:alnum:]_]+\z/i).match?(@input)
+        return true if Aikido::Zen::Helpers.regexp_with_timeout(/\A[[:alnum:]_]+\z/i).match?(@input)
 
         # If the input is a comma-separated list of numbers, ignore it.
-        return false if Aikido::Zen::Helpers.regexp_with_timeout(/\A[ ,]*\d[ ,\d]*\z/).match?(@input)
+        return true if Aikido::Zen::Helpers.regexp_with_timeout(/\A[ ,]*\d[ ,\d]*\z/).match?(@input)
 
-        Internals.detect_sql_injection(@query, @input, @dialect)
+        false
       rescue => err
-        return true if defined?(Regexp::TimeoutError) && err.is_a?(Regexp::TimeoutError)
+        return false if defined?(Regexp::TimeoutError) && err.is_a?(Regexp::TimeoutError)
 
         raise err
+      end
+
+      def detect
+        return 0 if should_return_early?
+        Internals.detect_sql_injection(@query, @input, @dialect)
       end
 
       # @api private
