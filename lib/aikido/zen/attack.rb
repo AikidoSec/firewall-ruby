@@ -121,11 +121,12 @@ module Aikido::Zen
       attr_reader :input
       attr_reader :dialect
 
-      def initialize(query:, input:, dialect:, **opts)
+      def initialize(query:, input:, dialect:, failed_to_tokenize:, **opts)
         super(**opts)
         @query = query
         @input = input
         @dialect = dialect
+        @failed_to_tokenize = failed_to_tokenize
       end
 
       def humanized_name
@@ -137,10 +138,9 @@ module Aikido::Zen
       end
 
       def metadata
-        {
-          sql: @query,
-          dialect: @dialect.name
-        }
+        meta = {sql: @query, dialect: @dialect.name}
+        meta[:failedToTokenize] = "true" if @failed_to_tokenize
+        meta
       end
 
       def exception(*)

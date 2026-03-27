@@ -99,16 +99,14 @@ module Aikido::Zen
         query_ptr.put_bytes(0, query_bytes)
         input_ptr.put_bytes(0, input_bytes)
 
-        case detect_sql_injection_native(query_ptr, query_bytes.bytesize, input_ptr, input_bytes.bytesize, dialect)
-        when 0 then false
-        when 1 then true
-        when 2
+        result = detect_sql_injection_native(query_ptr, query_bytes.bytesize, input_ptr, input_bytes.bytesize, dialect)
+
+        if result == 2
           attempt = format("%s query %p with input %p", dialect, query, input)
           raise InternalsError.new(attempt, "calling detect_sql_injection in", libzen_name)
-        when 3
-          # SQL tokenization failed - return false (no injection detected)
-          false
         end
+
+        result
       end
     end
 
