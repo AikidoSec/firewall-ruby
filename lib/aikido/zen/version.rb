@@ -5,6 +5,6 @@ module Aikido
     VERSION = "1.1.1"
 
     # The version of libzen_internals that we build against.
-    LIBZEN_VERSION = "0.1.60"
+    LIBZEN_VERSION = "0.1.61"
   end
 end
