@@ -13,11 +13,11 @@ module Aikido::Zen
         end
       end
 
-      COMMON_PLACEHOLDER_RESOLVER = ->(value, placeholder_number, params = []) do
+      def self.common_placeholder_resolver(value, placeholder_number, params = [])
         params[placeholder_number] unless placeholder_number.nil?
       end
 
-      POSTGRESQL_PLACEHOLDER_RESOLVER = ->(value, placeholder_number, params = []) do
+      def self.postgresql_placeholder_resolver(value, placeholder_number, params = [])
         match = value.match(/^\$(\d+)$/)
         if match && params
           index = match[1].to_i - 1
@@ -30,10 +30,26 @@ module Aikido::Zen
       #
       # @see https://github.com/AikidoSec/zen-internals/blob/main/src/sql_injection/helpers/select_dialect_based_on_enum.rs
       DIALECTS = {
-        common: Dialect.new(name: "SQL", internals_key: 0, placeholder_resolver: COMMON_PLACEHOLDER_RESOLVER),
-        mysql: Dialect.new(name: "MySQL", internals_key: 8, placeholder_resolver: COMMON_PLACEHOLDER_RESOLVER),
-        postgresql: Dialect.new(name: "PostgreSQL", internals_key: 9, placeholder_resolver: POSTGRESQL_PLACEHOLDER_RESOLVER),
-        sqlite: Dialect.new(name: "SQLite", internals_key: 12, placeholder_resolver: COMMON_PLACEHOLDER_RESOLVER)
+        common: Dialect.new(
+          name: "SQL",
+          internals_key: 0,
+          placeholder_resolver: method(:common_placeholder_resolver)
+        ),
+        mysql: Dialect.new(
+          name: "MySQL",
+          internals_key: 8,
+          placeholder_resolver: method(:common_placeholder_resolver)
+        ),
+        postgresql: Dialect.new(
+          name: "PostgreSQL",
+          internals_key: 9,
+          placeholder_resolver: method(:postgresql_placeholder_resolver)
+        ),
+        sqlite: Dialect.new(
+          name: "SQLite",
+          internals_key: 12,
+          placeholder_resolver: method(:common_placeholder_resolver)
+        )
       }.freeze
 
       # @param dialect [Symbol]
