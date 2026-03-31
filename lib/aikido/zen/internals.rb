@@ -26,10 +26,12 @@ module Aikido::Zen
 
       names << "#{lib_name}-#{platform}.#{lib_ext}"
 
+      # :nocov:
       unless platform.version.nil?
         platform.version = nil
         names << "#{lib_name}-#{platform}.#{lib_ext}"
       end
+      # :nocov:
 
       names
     end
@@ -51,7 +53,9 @@ module Aikido::Zen
           # empty
         end
       end
+      # :nocov:
       raise LoadError, "Zen could not load its native extension #{libzen_name}"
+      # :nocov:
     end
 
     begin
