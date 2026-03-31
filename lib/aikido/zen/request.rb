@@ -17,6 +17,12 @@ module Aikido::Zen
     # @see Aikido::Zen.track_user
     attr_accessor :actor
 
+    # The current tenant, if set by the host app.
+    #
+    # @return [Integer, String, nil]
+    # @see Aikido::Zen.set_tenant_id
+    attr_accessor :tenant_id
+
     def initialize(delegate, config = Aikido::Zen.config, framework:, router:)
       super(delegate)
       @config = config

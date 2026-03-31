@@ -18,8 +18,32 @@ module Aikido::Zen
           ::Mysql2::Client.class_eval do
             extend Sinks::DSL
 
-            sink_before :query do |sql|
-              Helpers.scan(sql, "query")
+            presafe_sink_before :query do |sql|
+              Sinks::DSL.safe do
+                Helpers.scan(sql, "query")
+              end
+
+              Aikido::Zen.idor_protect(sql, :mysql)
+            end
+
+            presafe_sink_after :prepare do |result, sql|
+              result.aikido_idor_sql = sql
+            end
+          end
+
+          ::Mysql2::Statement.class_eval do
+            extend Sinks::DSL
+
+            attr_accessor :aikido_idor_sql
+
+            presafe_sink_before :execute do |*args, **kwargs|
+              sql = aikido_idor_sql
+
+              Sinks::DSL.safe do
+                Helpers.scan(sql, "query")
+              end
+
+              Aikido::Zen.idor_protect(sql, :mysql, args)
             end
           end
         end

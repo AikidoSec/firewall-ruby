@@ -44,31 +44,63 @@ module Aikido::Zen
 
             [
               :send_query,
-              :exec,
-              :sync_exec,
+              :exec, # also known as: async_exec
               :async_exec,
-              :send_query_params,
-              :exec_params,
-              :sync_exec_params,
-              :async_exec_params
+              :sync_exec
             ].each do |method_name|
-              presafe_sink_before method_name do |query|
+              presafe_sink_before method_name do |sql|
                 Helpers.safe do
-                  Helpers.scan(query, method_name)
+                  Helpers.scan(sql, method_name)
                 end
+
+                Aikido::Zen.idor_protect(sql, :postgresql)
               end
             end
 
             [
+              :send_query_params,
+              :exec_params, # also known as: async_exec_params
+              :async_exec_params,
+              :sync_exec_params
+            ].each do |method_name|
+              presafe_sink_before method_name do |sql, params|
+                Helpers.safe do
+                  Helpers.scan(sql, method_name)
+                end
+
+                Aikido::Zen.idor_protect(sql, :postgresql, params)
+              end
+            end
+
+            def aikido_idor_prepared_statements
+              @aikido_idor_prepared_statements ||= {}
+            end
+
+            [
               :send_prepare,
-              :prepare,
+              :prepare, # also known as: async_prepare
               :async_prepare,
               :sync_prepare
             ].each do |method_name|
-              presafe_sink_before method_name do |_, query|
+              presafe_sink_before method_name do |statement_name, sql|
+                aikido_idor_prepared_statements[statement_name] = sql
+              end
+            end
+
+            [
+              :send_query_prepared,
+              :exec_prepared, # also known as: async_exec_prepared
+              :async_exec_prepared,
+              :sync_exec_prepared
+            ].each do |method_name|
+              presafe_sink_before method_name do |statement_name, params|
+                sql = aikido_idor_prepared_statements[statement_name]
+
                 Helpers.safe do
-                  Helpers.scan(query, method_name)
+                  Helpers.scan(sql, method_name)
                 end
+
+                Aikido::Zen.idor_protect(sql, :postgresql, params)
               end
             end
           end

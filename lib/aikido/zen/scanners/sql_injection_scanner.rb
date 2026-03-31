@@ -26,10 +26,7 @@ module Aikido::Zen
       # @raise [Aikido::Zen::InternalsError] if an error occurs when loading or
       #   calling zenlib. See Sink#scan.
       def self.call(query:, dialect:, sink:, context:, operation:)
-        dialect = DIALECTS.fetch(dialect) do
-          Aikido::Zen.config.logger.warn "Unknown SQL dialect #{dialect.inspect}"
-          DIALECTS[:common]
-        end
+        dialect = Aikido::Zen::SQL::Dialects.fetch(dialect)
 
         context.payloads.each do |payload|
           next unless new(query, payload.value.to_s, dialect).attack?
@@ -72,23 +69,6 @@ module Aikido::Zen
 
         Internals.detect_sql_injection(@query, @input, @dialect)
       end
-
-      # @api private
-      Dialect = Struct.new(:name, :internals_key, keyword_init: true) do
-        alias_method :to_s, :name
-        alias_method :to_int, :internals_key
-      end
-
-      # Maps easy-to-use Symbols to a struct that keeps both the name and the
-      # internal identifier used by libzen.
-      #
-      # @see https://github.com/AikidoSec/zen-internals/blob/main/src/sql_injection/helpers/select_dialect_based_on_enum.rs
-      DIALECTS = {
-        common: Dialect.new(name: "SQL", internals_key: 0),
-        mysql: Dialect.new(name: "MySQL", internals_key: 8),
-        postgresql: Dialect.new(name: "PostgreSQL", internals_key: 9),
-        sqlite: Dialect.new(name: "SQLite", internals_key: 12)
-      }
     end
   end
 end
