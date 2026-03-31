@@ -40,7 +40,7 @@ module Aikido::Zen
     attr_reader :api_timeouts
 
     # @return [String] the token obtained when configuring the Firewall in the
-    #   Aikido interface.
+    #   Aikido interface. Defaults to nil.
     attr_accessor :api_token
 
     # @return [Integer] the interval in seconds to poll the runtime API for
