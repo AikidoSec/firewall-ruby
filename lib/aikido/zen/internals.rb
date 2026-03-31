@@ -59,7 +59,7 @@ module Aikido::Zen
 
       # @!method self.detect_sql_injection_native(query, input, dialect)
       # @param (see .detect_sql_injection)
-      # @returns [Integer] 0 if no injection detected, 1 if an injection was
+      # @return [Integer] 0 if no injection detected, 1 if an injection was
       #   detected, 2 if there was an internal error, or 3 if SQL tokenization failed.
       # @raise [Aikido::Zen::InternalsError] if there's a problem loading or
       #   calling libzen.
@@ -86,7 +86,7 @@ module Aikido::Zen
       # @param dialect [Integer, #to_int] the SQL Dialect identifier in libzen.
       #   See {Aikido::Zen::Scanners::SQLInjectionScanner::DIALECTS}.
       #
-      # @returns [Boolean]
+      # @return [Boolean]
       # @raise [Aikido::Zen::InternalsError] if there's a problem loading or
       #   calling libzen.
       def self.detect_sql_injection(query, input, dialect)
