@@ -69,6 +69,10 @@ module Aikido::Zen
       #   calling libzen.
       attach_function :detect_sql_injection_native, :detect_sql_injection,
         [:pointer, :size_t, :pointer, :size_t, :int], :int
+
+      attach_function :idor_analyze_sql_native, :idor_analyze_sql_ffi, [:pointer, :size_t, :int], :pointer
+
+      attach_function :idor_free_string_native, :free_string, [:pointer], :void
     rescue LoadError, FFI::NotFoundError => err # rubocop:disable Lint/ShadowedException
       # :nocov:
 
@@ -77,6 +81,11 @@ module Aikido::Zen
 
       def self.detect_sql_injection(query, *)
         attempt = format("%p for SQL injection", query)
+        raise InternalsError.new(attempt, "loading", libzen_name)
+      end
+
+      def self.idor_analyze_sql(query, *)
+        attempt = format("%p for SQL analysis", query)
         raise InternalsError.new(attempt, "loading", libzen_name)
       end
 
@@ -111,6 +120,18 @@ module Aikido::Zen
         end
 
         result
+      end
+
+      def self.idor_analyze_sql(query, dialect)
+        query_bytes = query.encode("UTF-8").bytes
+        buffer = FFI::MemoryPointer.new(:uint8, query_bytes.size)
+        buffer.put_array_of_uint8(0, query_bytes)
+
+        result_ptr = idor_analyze_sql_native(buffer, query_bytes.size, dialect)
+        result_json = result_ptr.read_string
+        idor_free_string_native(result_ptr)
+
+        JSON.parse(result_json)
       end
     end
 

@@ -29,7 +29,7 @@ class Aikido::Zen::Sinks::SQLite3Test < ActiveSupport::TestCase
   end
 
   test "scans queries via #execute" do
-    with_mocked_scanner for_operation: "statement.execute" do |mock|
+    with_mocked_scanner for_operation: "database.execute" do |mock|
       @db.execute("SELECT 1")
 
       assert_mock mock
@@ -45,7 +45,7 @@ class Aikido::Zen::Sinks::SQLite3Test < ActiveSupport::TestCase
   end
 
   test "scans queries via #execute_batch" do
-    with_mocked_scanner for_operation: "statement.execute" do |mock|
+    with_mocked_scanner for_operation: "database.execute" do |mock|
       @db.execute_batch("SELECT 1")
 
       assert_mock mock
@@ -64,9 +64,9 @@ class Aikido::Zen::Sinks::SQLite3Test < ActiveSupport::TestCase
     with_mocked_scanner for_operation: "statement.execute" do |mock|
       @db.prepare("SELECT 1") do |statement|
         statement.execute
-
-        assert_mock mock
       end
+
+      assert_mock mock
     end
   end
 
@@ -83,6 +83,67 @@ class Aikido::Zen::Sinks::SQLite3Test < ActiveSupport::TestCase
 
     refute_attack do
       @db.execute "SELECT 1 WHERE 1 = '1'' OR ''''='''';--'"
+    end
+  end
+
+  class IDORTest < ActiveSupport::TestCase
+    def with_mocked_protector(params = [])
+      mock = Minitest::Mock.new
+      mock.expect(:protect, nil, [String, :sqlite, params, 1])
+
+      original_protector = Aikido::Zen.instance_variable_get(:@idor_protector)
+      Aikido::Zen.instance_variable_set(:@idor_protector, mock)
+
+      Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+        Rack::MockRequest.env_for("/")
+      )
+
+      Aikido::Zen.set_tenant_id(1)
+
+      yield
+
+      assert_mock mock
+    ensure
+      Aikido::Zen.instance_variable_set(:@idor_protector, original_protector)
+    end
+
+    setup do
+      @db = SQLite3::Database.new(":memory:")
+
+      Aikido::Zen.enable_idor_protection
+    end
+
+    test "#execute includes IDOR protection" do
+      with_mocked_protector do
+        @db.execute("SELECT 1")
+      end
+    end
+
+    test "#execute_batch includes IDOR protection" do
+      with_mocked_protector do
+        @db.execute_batch("SELECT 1")
+      end
+    end
+
+    test "#execute_batch2 includes IDOR protection" do
+      with_mocked_protector do
+        @db.execute_batch2("SELECT 1")
+      end
+    end
+
+    test "#prepare and #execute with block includes IDOR protection" do
+      with_mocked_protector([1]) do
+        @db.prepare("SELECT ?") do |statement|
+          statement.execute(1)
+        end
+      end
+    end
+
+    test "#prepare and #execute without block includes IDOR protection" do
+      with_mocked_protector([1]) do
+        statement = @db.prepare("SELECT ?")
+        statement.execute(1)
+      end
     end
   end
 end

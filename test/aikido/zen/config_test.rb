@@ -50,6 +50,10 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 10_000, @config.attack_wave_max_cache_entries
     assert_equal 15, @config.attack_wave_max_cache_samples
     assert_equal 1.0, @config.redos_regexp_timeout
+    assert_equal false, @config.idor_protection_enabled?
+    assert_nil @config.idor_tenant_column_name
+    assert_equal [], @config.idor_excluded_table_names
+    assert_equal 1000, @config.idor_max_cache_entries
   end
 
   test "can set AIKIDO_DISABLE to configure if the agent should be turned off" do
