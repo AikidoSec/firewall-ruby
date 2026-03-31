@@ -17,14 +17,16 @@ class Aikido::Zen::Sinks::PGTest < ActiveSupport::TestCase
     @sink = Aikido::Zen::Sinks::PG::SINK
   end
 
-  def with_mocked_scanner(for_operation:, &b)
+  def with_mocked_scanner(for_operation:, &blk)
     mock = Minitest::Mock.new
-    mock.expect :call, nil,
+    mock.expect(
+      :call, nil,
       query: String,
       dialect: :postgresql,
       sink: @sink,
       operation: for_operation,
       context: Aikido::Zen::Context
+    )
 
     mock.expect :skips_on_nil_context?, true
 
