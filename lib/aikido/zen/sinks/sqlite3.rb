@@ -22,19 +22,63 @@ module Aikido::Zen
           ::SQLite3::Database.class_eval do
             extend Sinks::DSL
 
-            private
+            [
+              :execute,
+              :execute_batch
+            ].each do |method_name|
+              presafe_sink_before method_name do |sql, bind_vars|
+                Sinks::DSL.safe do
+                  Helpers.scan(sql, "database.execute")
+                end
+
+                Aikido::Zen.idor_protect(sql, :sqlite)
+              end
+            end
 
             # SQLite3::Database#exec_batch is an internal native private method.
-            sink_before :exec_batch do |sql|
-              Helpers.scan(sql, "exec_batch")
+            presafe_sink_before :exec_batch do |sql, *args, **kwargs|
+              Sinks::DSL.safe do
+                Helpers.scan(sql, "exec_batch")
+              end
+
+              Aikido::Zen.idor_protect(sql, :sqlite)
+            end
+
+            alias_method :prepare__internal_for_aikido_zen, :prepare
+
+            def prepare(*args, **kwargs, &blk)
+              sql, = args
+
+              Sinks::DSL.safe do
+                Helpers.scan(sql, "statement.execute")
+              end
+
+              unless blk
+                result = prepare__internal_for_aikido_zen(*args, **kwargs)
+                result.aikido_idor_sql = sql
+                return result
+              end
+
+              prepare__internal_for_aikido_zen(*args, **kwargs) do |stmt|
+                stmt.aikido_idor_sql = sql
+                blk.call(stmt)
+              end
             end
           end
 
           ::SQLite3::Statement.class_eval do
             extend Sinks::DSL
 
-            sink_before :initialize do |_db, sql|
-              Helpers.scan(sql, "statement.execute")
+            attr_accessor :aikido_idor_sql
+
+            presafe_sink_before :execute do |*bind_vars|
+              sql = aikido_idor_sql
+
+              Sinks::DSL.safe do
+                Helpers.scan(sql, "statement.execute")
+              end
+
+              Aikido::Zen.idor_protect(sql, :sqlite, bind_vars)
             end
           end
         end

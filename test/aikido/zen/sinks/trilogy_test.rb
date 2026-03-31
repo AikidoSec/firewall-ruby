@@ -50,4 +50,40 @@ class Aikido::Zen::Sinks::TrilogyTest < ActiveSupport::TestCase
       @db.query "SELECT 1 WHERE 1 = '1'' OR ''''='''';--'"
     end
   end
+
+  class IDORTest < ActiveSupport::TestCase
+    def with_mocked_protector(params = [])
+      mock = Minitest::Mock.new
+      mock.expect(:protect, nil, [String, :mysql, params, 1])
+
+      original_protector = Aikido::Zen.instance_variable_get(:@idor_protector)
+      Aikido::Zen.instance_variable_set(:@idor_protector, mock)
+
+      Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+        Rack::MockRequest.env_for("/")
+      )
+
+      Aikido::Zen.set_tenant_id(1)
+
+      yield
+
+      assert_mock mock
+    ensure
+      Aikido::Zen.instance_variable_set(:@idor_protector, original_protector)
+    end
+
+    setup do
+      @db = Trilogy.new(
+        host: ENV.fetch("MYSQL_HOST", "127.0.0.1"),
+        username: ENV.fetch("MYSQL_USERNAME", "root"),
+        password: ENV.fetch("MYSQL_PASSWORD", "")
+      )
+    end
+
+    test "#query includes IDOR protection" do
+      with_mocked_protector do
+        @db.query("SELECT 1")
+      end
+    end
+  end
 end
