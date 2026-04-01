@@ -49,7 +49,9 @@ module Aikido::Zen
       # @return [Array<Aikido::Zen::IDOR::SQLQueryResult>]
       # @raise [Aikido::Zen::IDOR::Error]
       def analyze(sql, dialect)
-        analysis = @cache[sql]
+        cache_key = [dialect.internals_key, sql]
+
+        analysis = @cache[cache_key]
         return analysis if analysis
 
         analysis = Internals.idor_analyze_sql(sql, dialect)
@@ -68,7 +70,7 @@ module Aikido::Zen
           Aikido::Zen::IDOR::SQLQueryResult.from_json(value)
         end
 
-        @cache[sql] = result
+        @cache[cache_key] = result
 
         result
       end
