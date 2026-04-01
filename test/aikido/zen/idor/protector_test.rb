@@ -200,34 +200,6 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
 
       assert_equal "Zen IDOR protection: query on table 'users' has a placeholder for 'tenant_id' that could not be resolved", err.message
     end
-
-    test "IDOR analysis is cached upto Aikido::Zen.config.idor_max_cache_entries" do
-      Aikido::Zen.config.idor_max_cache_entries = 3
-
-      assert_equal 0, Aikido::Zen.idor_protector.cache.size
-
-      Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
-        Rack::MockRequest.env_for("/")
-      )
-
-      Aikido::Zen.enable_idor_protection
-
-      Aikido::Zen.set_tenant_id(1)
-      3.times { exec("SELECT * FROM users WHERE name = 'John' AND tenant_id = 1") }
-      assert_equal 1, Aikido::Zen.idor_protector.cache.size
-
-      Aikido::Zen.set_tenant_id(2)
-      5.times { exec("SELECT * FROM users WHERE name = 'Jane' AND tenant_id = 2") }
-      assert_equal 2, Aikido::Zen.idor_protector.cache.size
-
-      Aikido::Zen.set_tenant_id(3)
-      3.times { exec("SELECT * FROM users WHERE name = 'Alice' AND tenant_id = 3") }
-      assert_equal 3, Aikido::Zen.idor_protector.cache.size
-
-      Aikido::Zen.set_tenant_id(4)
-      5.times { exec("SELECT * FROM users WHERE name = 'Bob' AND tenant_id = 4") }
-      assert_equal 3, Aikido::Zen.idor_protector.cache.size
-    end
   end
 
   class MySQLSQLDialectTest < ActiveSupport::TestCase
@@ -275,6 +247,76 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
       Aikido::Zen.config.idor_protection_enabled = true
       Aikido::Zen.config.idor_tenant_column_name = "tenant_id"
       Aikido::Zen.config.idor_excluded_table_names = ["roles"]
+    end
+  end
+
+  class CacheTest < ActiveSupport::TestCase
+    def exec(sql, dialect_name)
+      Aikido::Zen.idor_protect(sql, dialect_name)
+    end
+
+    def assert_cached(sql, dialect_name)
+      dialect = Aikido::Zen::SQL::Dialects.fetch(dialect_name)
+
+      cache_key = [dialect.internals_key, sql]
+
+      exec(sql, dialect_name)
+
+      assert Aikido::Zen.idor_protector.cache.key?(cache_key)
+    end
+
+    setup do
+      Aikido::Zen.config.idor_protection_enabled = true
+      Aikido::Zen.config.idor_tenant_column_name = "tenant_id"
+      Aikido::Zen.config.idor_excluded_table_names = ["roles"]
+    end
+
+    test "IDOR analysis results are cached using the SQL and dialect as cache key upto Aikido::Zen.config.idor_max_cache_entries" do
+      Aikido::Zen.config.idor_max_cache_entries = 3
+
+      assert_equal 0, Aikido::Zen.idor_protector.cache.size
+
+      Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+        Rack::MockRequest.env_for("/")
+      )
+
+      Aikido::Zen.enable_idor_protection
+
+      assert_equal 0, Aikido::Zen.idor_protector.cache.size
+
+      Aikido::Zen.set_tenant_id(1)
+
+      assert_cached "SELECT * FROM users WHERE name = 'John' AND tenant_id = 1", :postgresql
+
+      Aikido::Zen.set_tenant_id(2)
+
+      assert_difference -> { Aikido::Zen.idor_protector.cache.size }, +1 do
+        5.times do
+          assert_cached "SELECT * FROM users WHERE name = 'Jane' AND tenant_id = 2", :postgresql
+        end
+      end
+
+      assert_difference -> { Aikido::Zen.idor_protector.cache.size }, +1 do
+        3.times do
+          assert_cached "SELECT * FROM users WHERE name = 'Jane' AND tenant_id = 2", :sqlite
+        end
+      end
+
+      Aikido::Zen.set_tenant_id(3)
+
+      assert_difference -> { Aikido::Zen.idor_protector.cache.size }, 0 do
+        3.times do
+          assert_cached "SELECT * FROM users WHERE name = 'Alice' AND tenant_id = 3", :sqlite
+        end
+      end
+
+      Aikido::Zen.set_tenant_id(4)
+
+      assert_difference -> { Aikido::Zen.idor_protector.cache.size }, 0 do
+        3.times do
+          assert_cached "SELECT * FROM users WHERE name = 'Bob' AND tenant_id = 4", :postgresql
+        end
+      end
     end
   end
 end
