@@ -144,5 +144,24 @@ class Aikido::Zen::Sinks::SQLite3Test < ActiveSupport::TestCase
         statement.execute(1)
       end
     end
+
+    test "IDOR protection is triggered by complete example" do
+      Aikido::Zen.config.idor_protection_enabled = true
+      Aikido::Zen.config.idor_tenant_column_name = "tenant_id"
+      Aikido::Zen.config.idor_excluded_table_names = ["roles"]
+
+      Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+        Rack::MockRequest.env_for("/")
+      )
+
+      Aikido::Zen.enable_idor_protection
+      Aikido::Zen.set_tenant_id(1)
+
+      err = assert_raises(Aikido::Zen::IDOR::Error) do
+        @db.execute("SELECT * FROM users WHERE name = 'John'")
+      end
+
+      assert_equal "Zen IDOR protection: query on table 'users' is missing column 'tenant_id'", err.message
+    end
   end
 end
