@@ -53,7 +53,7 @@ class Aikido::Zen::Sinks::Mysql2Test < ActiveSupport::TestCase
   class IDORTest < ActiveSupport::TestCase
     def with_mocked_protector(params = [])
       mock = Minitest::Mock.new
-      mock.expect(:protect, nil, [String, :mysql, params, 1])
+      mock.expect(:protect, nil, [String, :mysql, params, Aikido::Zen::Context])
 
       original_protector = Aikido::Zen.instance_variable_get(:@idor_protector)
       Aikido::Zen.instance_variable_set(:@idor_protector, mock)
@@ -78,7 +78,7 @@ class Aikido::Zen::Sinks::Mysql2Test < ActiveSupport::TestCase
         password: ENV.fetch("MYSQL_PASSWORD", "")
       )
 
-      Aikido::Zen.enable_idor_protection
+      Aikido::Zen.config.idor_protection_enabled = true
     end
 
     test "#query includes IDOR protection" do
