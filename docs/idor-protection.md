@@ -20,9 +20,9 @@ Zen catches these at runtime so they surface during development and testing, not
 ```ruby
 ...
 
+Aikido::Zen.config.idor_protection_enabled = true
 Aikido::Zen.config.idor_tenant_column_name = "tenant_id"
 Aikido::Zen.config.idor_excluded_table_names = ["users"]
-Aikido::Zen.enable_idor_protection
 
 ...
 ```
@@ -35,6 +35,7 @@ Aikido::Zen.enable_idor_protection
 Every request must have a tenant ID when IDOR protection is enabled. Call `Aikido::Zen.set_tenant_id` early in your request handler (e.g. in middleware after authentication):
 
 ```ruby
+Aikido::Zen.enable_idor_protection
 Aikido::Zen.set_tenant_id(1)
 ```
 
