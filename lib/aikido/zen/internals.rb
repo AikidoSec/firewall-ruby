@@ -125,11 +125,11 @@ module Aikido::Zen
       end
 
       def self.idor_analyze_sql(query, dialect)
-        query_bytes = query.encode("UTF-8").bytes
-        buffer = FFI::MemoryPointer.new(:uint8, query_bytes.size)
-        buffer.put_array_of_uint8(0, query_bytes)
+        query_bytes = encode_safely(query)
+        query_ptr = FFI::MemoryPointer.new(:uint8, query_bytes.bytesize)
+        query_ptr.put_bytes(0, query_bytes)
 
-        result_ptr = idor_analyze_sql_native(buffer, query_bytes.size, dialect)
+        result_ptr = idor_analyze_sql_native(query_ptr, query_bytes.bytesize, dialect)
         result_json = result_ptr.read_string
         idor_free_string_native(result_ptr)
 
