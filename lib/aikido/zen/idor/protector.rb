@@ -18,10 +18,12 @@ module Aikido::Zen
 
       # @param sql [String]
       # @param dialect_name [Symbol]
-      # @param tenant_id [Integer, String, nil]
+      # @param context [Aikido::Zen::Context]
       # @raise [Aikido::Zen::IDOR::Error]
-      def protect(sql, dialect_name, params, tenant_id, &blk)
-        return unless @config.idor_protection_enabled?
+      def protect(sql, dialect_name, params, context)
+        return unless @config.idor_protection_enabled? && context.idor_protection_enabled?
+
+        tenant_id = context.request.tenant_id
 
         if tenant_id.nil?
           raise Aikido::Zen::IDOR::Error.new("Zen IDOR protection: Aikido::Zen.set_tenant_id was not called for this request. Every request must have a tenant ID when IDOR protection is enabled.")

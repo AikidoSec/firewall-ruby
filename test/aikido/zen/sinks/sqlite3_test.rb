@@ -89,7 +89,7 @@ class Aikido::Zen::Sinks::SQLite3Test < ActiveSupport::TestCase
   class IDORTest < ActiveSupport::TestCase
     def with_mocked_protector(params = [])
       mock = Minitest::Mock.new
-      mock.expect(:protect, nil, [String, :sqlite, params, 1])
+      mock.expect(:protect, nil, [String, :sqlite, params, Aikido::Zen::Context])
 
       original_protector = Aikido::Zen.instance_variable_get(:@idor_protector)
       Aikido::Zen.instance_variable_set(:@idor_protector, mock)
@@ -110,7 +110,7 @@ class Aikido::Zen::Sinks::SQLite3Test < ActiveSupport::TestCase
     setup do
       @db = SQLite3::Database.new(":memory:")
 
-      Aikido::Zen.enable_idor_protection
+      Aikido::Zen.config.idor_protection_enabled = true
     end
 
     test "#execute includes IDOR protection" do

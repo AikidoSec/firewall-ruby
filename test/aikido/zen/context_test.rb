@@ -119,6 +119,11 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       context = build_context_for("/path")
       refute context.protection_disabled?
     end
+
+    test "#idor_protection_enabled? is false by default" do
+      context = build_context_for("/path")
+      refute context.idor_protection_enabled?
+    end
   end
 
   class RackRequestTest < ActiveSupport::TestCase

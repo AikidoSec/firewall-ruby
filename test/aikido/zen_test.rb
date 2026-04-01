@@ -63,37 +63,51 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     end
   end
 
-  test ".enable_idor_protection enables IDOR protection" do
-    Aikido::Zen.config.idor_protection_enabled = false
+  test ".idor_protect does not fail if context is not set" do
+    assert_nil Aikido::Zen.current_context
 
-    assert_equal false, Aikido::Zen.config.idor_protection_enabled
+    assert_silent do
+      Aikido::Zen.idor_protect("SELECT 1", :common)
+    end
+  end
+
+  test ".enable_idor_protection enables IDOR protection" do
+    context = Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+      Rack::MockRequest.env_for("/")
+    )
+
+    assert_equal false, context.idor_protection_enabled
 
     Aikido::Zen.enable_idor_protection
 
-    assert_equal true, Aikido::Zen.config.idor_protection_enabled
+    assert_equal true, context.idor_protection_enabled
   end
 
-  test ".disable_idor_protection enables IDOR protection" do
-    Aikido::Zen.config.idor_protection_enabled = true
+  test ".enable_idor_protection does not fail if context is not set" do
+    assert_nil Aikido::Zen.current_context
 
-    assert_equal true, Aikido::Zen.config.idor_protection_enabled
-
-    Aikido::Zen.disable_idor_protection
-
-    assert_equal false, Aikido::Zen.config.idor_protection_enabled
+    assert_silent do
+      Aikido::Zen.enable_idor_protection
+    end
   end
 
   test ".without_idor_protection executes a block with IDOR protection disabled" do
-    Aikido::Zen.config.idor_protection_enabled = true
+    context = Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+      Rack::MockRequest.env_for("/")
+    )
 
-    assert_equal true, Aikido::Zen.config.idor_protection_enabled
+    assert_equal false, context.idor_protection_enabled
+
+    Aikido::Zen.enable_idor_protection
+
+    assert_equal true, context.idor_protection_enabled
 
     result = Aikido::Zen.without_idor_protection do
-      assert_equal false, Aikido::Zen.config.idor_protection_enabled
+      assert_equal false, context.idor_protection_enabled
       :result
     end
 
-    assert_equal true, Aikido::Zen.config.idor_protection_enabled
+    assert_equal true, context.idor_protection_enabled
 
     assert_equal :result, result
   end

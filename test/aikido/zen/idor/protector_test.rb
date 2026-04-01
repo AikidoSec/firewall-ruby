@@ -11,6 +11,7 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
         Rack::MockRequest.env_for("/")
       )
 
+      Aikido::Zen.enable_idor_protection
       Aikido::Zen.set_tenant_id(1)
 
       assert_silent do
@@ -23,6 +24,7 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
         Rack::MockRequest.env_for("/")
       )
 
+      Aikido::Zen.enable_idor_protection
       Aikido::Zen.set_tenant_id(1)
 
       assert_raises(Aikido::Zen::IDOR::Error) do
@@ -30,18 +32,23 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
       end
     end
 
-    test "IDOR protection is triggered if a context is not set" do
-      err = assert_raises(Aikido::Zen::IDOR::Error) do
+    test "IDOR protection is not triggered if a context is not set" do
+      assert_nil Aikido::Zen.current_context
+
+      Aikido::Zen.enable_idor_protection
+      Aikido::Zen.set_tenant_id(1)
+
+      assert_silent do
         exec("SELECT * FROM users WHERE tenant_id = 1")
       end
-
-      assert_equal "Zen IDOR protection: Aikido::Zen.set_tenant_id was not called for this request. Every request must have a tenant ID when IDOR protection is enabled.", err.message
     end
 
     test "IDOR protection is triggered if the tenant ID is not set" do
       Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
         Rack::MockRequest.env_for("/")
       )
+
+      Aikido::Zen.enable_idor_protection
 
       err = assert_raises(Aikido::Zen::IDOR::Error) do
         exec("SELECT * FROM users WHERE tenant_id = 1")
@@ -203,6 +210,8 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
         Rack::MockRequest.env_for("/")
       )
 
+      Aikido::Zen.enable_idor_protection
+
       Aikido::Zen.set_tenant_id(1)
       3.times { exec("SELECT * FROM users WHERE name = 'John' AND tenant_id = 1") }
       assert_equal 1, Aikido::Zen.idor_protector.cache.size
@@ -232,7 +241,7 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
     end
 
     setup do
-      Aikido::Zen.enable_idor_protection
+      Aikido::Zen.config.idor_protection_enabled = true
       Aikido::Zen.config.idor_tenant_column_name = "tenant_id"
       Aikido::Zen.config.idor_excluded_table_names = ["roles"]
     end
@@ -246,7 +255,7 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
     end
 
     setup do
-      Aikido::Zen.enable_idor_protection
+      Aikido::Zen.config.idor_protection_enabled = true
       Aikido::Zen.config.idor_tenant_column_name = "tenant_id"
       Aikido::Zen.config.idor_excluded_table_names = ["roles"]
     end
@@ -263,7 +272,7 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
     end
 
     setup do
-      Aikido::Zen.enable_idor_protection
+      Aikido::Zen.config.idor_protection_enabled = true
       Aikido::Zen.config.idor_tenant_column_name = "tenant_id"
       Aikido::Zen.config.idor_excluded_table_names = ["roles"]
     end
