@@ -35,7 +35,6 @@ Aikido::Zen.config.idor_excluded_table_names = ["users"]
 Every request must have a tenant ID when IDOR protection is enabled. Call `Aikido::Zen.set_tenant_id` early in your request handler (e.g. in middleware after authentication):
 
 ```ruby
-Aikido::Zen.enable_idor_protection
 Aikido::Zen.set_tenant_id(1)
 ```
 
