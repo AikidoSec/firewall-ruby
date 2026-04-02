@@ -273,6 +273,30 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
       Aikido::Zen.config.idor_excluded_table_names = ["roles"]
     end
 
+    test "IDOR protection is not triggered for SELECT queries using ?NNN placeholder syntax because placeholders are resolved" do
+      refute_idor do
+        exec("SELECT * FROM users WHERE name = ?1 AND tenant_id = ?2", ["John", 1])
+      end
+    end
+
+    test "IDOR protection is not triggered for UPDATE queries using ?NNN placeholder syntax because placeholders are resolved" do
+      refute_idor do
+        exec("UPDATE users SET name = ?1 WHERE tenant_id = ?2", ["John", 1])
+      end
+    end
+
+    test "IDOR protection is not triggered for DELETE queries using ?NNN placeholder syntax because placeholders are resolved" do
+      refute_idor do
+        exec("DELETE FROM users WHERE name = ?1 AND tenant_id = ?2", ["John", 1])
+      end
+    end
+
+    test "IDOR protection is not triggered for INSERT queries using ?NNN placeholder syntax because placeholders are resolved" do
+      refute_idor do
+        exec("INSERT INTO users (name, tenant_id) VALUES (?1, ?2)", ["John", 1])
+      end
+    end
+
     [":", "@", "$"].each do |prefix|
       test "IDOR protection is not triggered for SELECT queries using #{prefix}AAA placeholder syntax because placeholders are resolved" do
         refute_idor do

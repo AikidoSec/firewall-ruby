@@ -28,8 +28,15 @@ module Aikido::Zen
       def self.sqlite_placeholder_resolver(value, placeholder_number, params = [])
         return params[placeholder_number] unless placeholder_number.nil?
 
-        match = value.match(/^[:@$]([A-Za-z_][A-Za-z0-9_]*)$/)
-        if match
+        case value
+        when /^\?(\d+)$/
+          match = Regexp.last_match
+
+          index = match[1].to_i - 1
+          params[index]
+        when /^[:@$]([A-Za-z_][A-Za-z0-9_]*)$/
+          match = Regexp.last_match
+
           key = match[1]
 
           params.flatten.each do |param|
