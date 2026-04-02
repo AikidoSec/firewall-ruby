@@ -145,7 +145,7 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
 
     test "IDOR protection is not triggered for INSERT queries if the tenant ID column is present" do
       refute_idor do
-        exec("INSERT INTO users (name, tenant_id) VALUES ('John', $1)", [1])
+        exec("INSERT INTO users (name, tenant_id) VALUES ($1, $2)", ["John", 1])
       end
     end
 
@@ -155,9 +155,17 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
       end
     end
 
+    test "IDOR protection is not triggered for INSERT queries without insert columns if the tenant ID column is not present" do
+      err = assert_idor do
+        exec("INSERT INTO other SELECT * FROM users WHERE name = $1", ["John"])
+      end
+
+      assert_equal "Zen IDOR protection: query on table 'users' is missing column 'tenant_id'", err.message
+    end
+
     test "IDOR protection is triggered for INSERT queries without insert columns if the tenant ID column is not present" do
       err = assert_idor do
-        exec("INSERT INTO other SELECT * FROM users WHERE tenant_id = $1", [1])
+        exec("INSERT INTO other SELECT * FROM users WHERE name = $1 AND tenant_id = $2", ["John", 1])
       end
 
       assert_equal "Zen IDOR protection: INSERT on table 'other' is missing column 'tenant_id'", err.message
@@ -199,7 +207,7 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
 
     test "IDOR protection is triggered for INSERT queries if the query has a placeholder that could not be resolved" do
       err = assert_idor do
-        exec("INSERT INTO users (name, tenant_id) VALUES ('John', $1)")
+        exec("INSERT INTO users (name, tenant_id) VALUES ($1, $2)")
       end
 
       assert_equal "Zen IDOR protection: INSERT on table 'users' has a placeholder for 'tenant_id' that could not be resolved", err.message
