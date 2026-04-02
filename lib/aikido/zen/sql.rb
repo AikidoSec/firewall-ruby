@@ -19,7 +19,7 @@ module Aikido::Zen
 
       def self.postgresql_placeholder_resolver(value, placeholder_number, params = [])
         match = value.match(/^\$(\d+)$/)
-        if match && params
+        if match
           index = match[1].to_i - 1
           params[index]
         end
