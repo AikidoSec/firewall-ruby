@@ -91,7 +91,7 @@ module Aikido::Zen
               raise IDOR::Error, "Zen IDOR protection: INSERT on table '#{table.name}' is missing column '#{@config.idor_tenant_column_name}'"
             end
 
-            resolved_tenant_id ||= tenant_column.value
+            resolved_tenant_id = tenant_column.value
 
             if tenant_column.is_placeholder
               resolved_tenant_id = dialect.resolve_placeholder(tenant_column.value, tenant_column.placeholder_number, params)
