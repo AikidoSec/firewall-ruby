@@ -25,6 +25,23 @@ module Aikido::Zen
         end
       end
 
+      def self.sqlite_placeholder_resolver(value, placeholder_number, params = [])
+        return params[placeholder_number] unless placeholder_number.nil?
+
+        match = value.match(/^[:@$]([A-Za-z_][A-Za-z0-9_]*)$/)
+        if match
+          key = match[1]
+
+          params.flatten.each do |param|
+            if Hash === param
+              param.each do |param_key, param_value|
+                return param_value if param_key.to_s == key
+              end
+            end
+          end
+        end
+      end
+
       # Maps easy-to-use Symbols to a struct that keeps both the name and the
       # internal identifier used by libzen.
       #
@@ -48,7 +65,7 @@ module Aikido::Zen
         sqlite: Dialect.new(
           name: "SQLite",
           internals_key: 12,
-          placeholder_resolver: method(:common_placeholder_resolver)
+          placeholder_resolver: method(:sqlite_placeholder_resolver)
         )
       }.freeze
 

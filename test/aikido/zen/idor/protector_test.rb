@@ -255,10 +255,40 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
       Aikido::Zen.idor_protect(sql, :sqlite, params)
     end
 
+    def exec_raw(sql, params = [])
+      Aikido::Zen.idor_protect(sql, :sqlite, params)
+    end
+
     setup do
       Aikido::Zen.config.idor_protection_enabled = true
       Aikido::Zen.config.idor_tenant_column_name = "tenant_id"
       Aikido::Zen.config.idor_excluded_table_names = ["roles"]
+    end
+
+    [":", "@", "$"].each do |prefix|
+      test "IDOR protection is not triggered for SELECT queries using #{prefix}AAA placeholder syntax because placeholders are resolved" do
+        refute_idor do
+          exec("SELECT * FROM users WHERE name = #{prefix}name AND tenant_id = #{prefix}tenant_id", [{name: "John", tenant_id: 1}])
+        end
+      end
+
+      test "IDOR protection is not triggered for UPDATE queries using #{prefix}AAA placeholder syntax because placeholders are resolved" do
+        refute_idor do
+          exec("UPDATE users SET name = #{prefix}name WHERE tenant_id = #{prefix}tenant_id", [{name: "John", tenant_id: 1}])
+        end
+      end
+
+      test "IDOR protection is not triggered for DELETE queries using #{prefix}AAA placeholder syntax because placeholders are resolved" do
+        refute_idor do
+          exec("DELETE FROM users WHERE name = #{prefix}name AND tenant_id = #{prefix}tenant_id", [{name: "John", tenant_id: 1}])
+        end
+      end
+
+      test "IDOR protection is not triggered for INSERT queries using #{prefix}AAA placeholder syntax because placeholders are resolved" do
+        refute_idor do
+          exec("INSERT INTO users (name, tenant_id) VALUES (#{prefix}name, #{prefix}tenant_id)", [{name: "John", tenant_id: 1}])
+        end
+      end
     end
   end
 
