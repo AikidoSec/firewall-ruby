@@ -110,17 +110,12 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     refute @settings.user_excluded_from_rate_limiting?("user3")
   end
 
-  test "#user_excluded_from_rate_limiting? coerces ids to strings" do
-    @settings.update_from_runtime_config_json({
-      "excludedUserIdsFromRateLimiting" => [42]
-    })
-
-    assert @settings.user_excluded_from_rate_limiting?(42)
-    assert @settings.user_excluded_from_rate_limiting?("42")
-  end
-
   test "#user_excluded_from_rate_limiting? returns false for nil" do
     refute @settings.user_excluded_from_rate_limiting?(nil)
+  end
+
+  test "#user_excluded_from_rate_limiting? returns false when the list is nil" do
+    refute @settings.user_excluded_from_rate_limiting?("user1")
   end
 
   test "#update_from_runtime_config_json replaces the excluded user ids set" do

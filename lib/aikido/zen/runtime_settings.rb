@@ -20,7 +20,6 @@ module Aikido::Zen
       self.allowed_ip_lists ||= []
       self.monitored_ip_lists ||= []
       self.domains ||= RuntimeSettings::Domains.new
-      self.excluded_user_ids_from_rate_limiting ||= Set.new
     end
 
     # @!attribute [rw] updated_at
@@ -71,7 +70,7 @@ module Aikido::Zen
     #   @return [Array<Aikido::Zen::RuntimeSettings::DomainSettings>]
 
     # @!attribute [rw] excluded_user_ids_from_rate_limiting
-    #   @return [Set<String>] the set of user IDs that should be skipped from
+    #   @return [Array<String>, nil] the user IDs that should be skipped from
     #     rate limiting entirely.
 
     # Parse and interpret the JSON response from the core API with updated
@@ -96,7 +95,7 @@ module Aikido::Zen
       self.block_new_outbound = data["blockNewOutgoingRequests"]
       self.domains = RuntimeSettings::Domains.from_json(data["domains"])
 
-      self.excluded_user_ids_from_rate_limiting = Array(data["excludedUserIdsFromRateLimiting"]).map(&:to_s).to_set
+      self.excluded_user_ids_from_rate_limiting = data["excludedUserIdsFromRateLimiting"]
 
       updated_at != last_updated_at
     end
@@ -172,7 +171,7 @@ module Aikido::Zen
     # @return [Boolean] Whether the user is excluded from rate limiting.
     def user_excluded_from_rate_limiting?(user_id)
       return false if user_id.nil?
-      excluded_user_ids_from_rate_limiting.include?(user_id.to_s)
+      excluded_user_ids_from_rate_limiting&.include?(user_id.to_s) || false
     end
 
     # @param user_agent [String] the user agent
