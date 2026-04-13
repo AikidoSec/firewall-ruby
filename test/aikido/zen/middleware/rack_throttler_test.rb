@@ -117,6 +117,51 @@ class Aikido::Zen::Middleware::RackThrottlerTest < ActiveSupport::TestCase
     assert_mock @app
   end
 
+  test "does not block requests or annotate the env for excluded users" do
+    @settings.excluded_user_ids_from_rate_limiting = Set["user-1"]
+
+    configure "GET", "/", max_requests: 3, period: 5
+
+    @app.expect :call, [200, {}, ["OK"]], [Hash]
+    @app.expect :call, [200, {}, ["OK"]], [Hash]
+    @app.expect :call, [200, {}, ["OK"]], [Hash]
+
+    env = Rack::MockRequest.env_for("/", "REMOTE_ADDR" => "1.2.3.4")
+
+    context = Aikido::Zen::Context.from_rack_env(env)
+    context.request.actor = Aikido::Zen::Actor.new(id: "user-1")
+    Aikido::Zen.current_context = context
+
+    4.times do
+      assert_equal [200, {}, ["OK"]], @middleware.call(env)
+    end
+
+    refute env.key?("aikido.rate_limiting")
+    assert_mock @app
+  ensure
+    Aikido::Zen.current_context = nil
+  end
+
+  test "rate limits requests for users not in the excluded set" do
+    @settings.excluded_user_ids_from_rate_limiting = Set["user-1"]
+
+    configure "GET", "/", max_requests: 1, period: 5
+
+    env = Rack::MockRequest.env_for("/", "REMOTE_ADDR" => "1.2.3.4")
+
+    context = Aikido::Zen::Context.from_rack_env(env)
+    context.request.actor = Aikido::Zen::Actor.new(id: "user-2")
+    Aikido::Zen.current_context = context
+
+    assert_equal [200, {}, ["OK"]], @middleware.call(env)
+
+    response = @middleware.call(env)
+    assert_equal 429, response[0]
+    assert_mock @app
+  ensure
+    Aikido::Zen.current_context = nil
+  end
+
   test "the throttled response can be configured" do
     @config.rate_limited_responder = ->(request) {
       [503, {}, ["Oh no you broke the server!"]]

@@ -100,6 +100,53 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     refute @settings.update_from_runtime_config_json(payload)
   end
 
+  test "#update_from_runtime_config_json populates excluded_user_ids_from_rate_limiting" do
+    @settings.update_from_runtime_config_json({
+      "excludedUserIdsFromRateLimiting" => ["user1", "user2"]
+    })
+
+    assert @settings.user_excluded_from_rate_limiting?("user1")
+    assert @settings.user_excluded_from_rate_limiting?("user2")
+    refute @settings.user_excluded_from_rate_limiting?("user3")
+  end
+
+  test "#user_excluded_from_rate_limiting? coerces ids to strings" do
+    @settings.update_from_runtime_config_json({
+      "excludedUserIdsFromRateLimiting" => [42]
+    })
+
+    assert @settings.user_excluded_from_rate_limiting?(42)
+    assert @settings.user_excluded_from_rate_limiting?("42")
+  end
+
+  test "#user_excluded_from_rate_limiting? returns false for nil" do
+    refute @settings.user_excluded_from_rate_limiting?(nil)
+  end
+
+  test "#update_from_runtime_config_json replaces the excluded user ids set" do
+    @settings.update_from_runtime_config_json({
+      "excludedUserIdsFromRateLimiting" => ["user1", "user2"]
+    })
+    @settings.update_from_runtime_config_json({
+      "excludedUserIdsFromRateLimiting" => ["user3"]
+    })
+
+    refute @settings.user_excluded_from_rate_limiting?("user1")
+    refute @settings.user_excluded_from_rate_limiting?("user2")
+    assert @settings.user_excluded_from_rate_limiting?("user3")
+  end
+
+  test "#update_from_runtime_config_json with an empty array clears the excluded user ids" do
+    @settings.update_from_runtime_config_json({
+      "excludedUserIdsFromRateLimiting" => ["user1"]
+    })
+    @settings.update_from_runtime_config_json({
+      "excludedUserIdsFromRateLimiting" => []
+    })
+
+    refute @settings.user_excluded_from_rate_limiting?("user1")
+  end
+
   test "#bypassed_ips lets you use individual addresses" do
     assert @settings.update_from_runtime_config_json({
       "allowedIPAddresses" => ["1.2.3.4", "2.3.4.5"]

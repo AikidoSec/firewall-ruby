@@ -11,7 +11,7 @@ module Aikido::Zen
   #
   # You can subscribe to changes with +#add_observer(object, func_name)+, which
   # will call the function passing the settings as an argument
-  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :bypassed_ips, :received_any_stats, :blocking_mode, :blocked_user_agent_regexp, :monitored_user_agent_regexp, :user_agent_details, :blocked_ip_lists, :allowed_ip_lists, :monitored_ip_lists, :block_new_outbound, :domains) do
+  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :bypassed_ips, :received_any_stats, :blocking_mode, :blocked_user_agent_regexp, :monitored_user_agent_regexp, :user_agent_details, :blocked_ip_lists, :allowed_ip_lists, :monitored_ip_lists, :block_new_outbound, :domains, :excluded_user_ids_from_rate_limiting) do
     def initialize(*)
       super
       self.endpoints ||= RuntimeSettings::Endpoints.new
@@ -20,6 +20,7 @@ module Aikido::Zen
       self.allowed_ip_lists ||= []
       self.monitored_ip_lists ||= []
       self.domains ||= RuntimeSettings::Domains.new
+      self.excluded_user_ids_from_rate_limiting ||= Set.new
     end
 
     # @!attribute [rw] updated_at
@@ -69,6 +70,10 @@ module Aikido::Zen
     # @!attribute [rw] domains
     #   @return [Array<Aikido::Zen::RuntimeSettings::DomainSettings>]
 
+    # @!attribute [rw] excluded_user_ids_from_rate_limiting
+    #   @return [Set<String>] the set of user IDs that should be skipped from
+    #     rate limiting entirely.
+
     # Parse and interpret the JSON response from the core API with updated
     # runtime settings, and apply the changes.
     #
@@ -90,6 +95,8 @@ module Aikido::Zen
 
       self.block_new_outbound = data["blockNewOutgoingRequests"]
       self.domains = RuntimeSettings::Domains.from_json(data["domains"])
+
+      self.excluded_user_ids_from_rate_limiting = Array(data["excludedUserIdsFromRateLimiting"]).map(&:to_s).to_set
 
       updated_at != last_updated_at
     end
@@ -159,6 +166,13 @@ module Aikido::Zen
     # @return [Boolean] Whether the IP is included in the bypassed IPs set.
     def bypassed_ip?(ip)
       bypassed_ips.include?(ip)
+    end
+
+    # @param user_id [String, nil]
+    # @return [Boolean] Whether the user is excluded from rate limiting.
+    def user_excluded_from_rate_limiting?(user_id)
+      return false if user_id.nil?
+      excluded_user_ids_from_rate_limiting.include?(user_id.to_s)
     end
 
     # @param user_agent [String] the user agent

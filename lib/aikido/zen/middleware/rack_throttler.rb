@@ -38,6 +38,8 @@ module Aikido::Zen
       def should_throttle?(request)
         return false if @settings.bypassed_ips.include?(request.client_ip)
 
+        return false if request.actor && @settings.user_excluded_from_rate_limiting?(request.actor.id)
+
         return false unless @settings.endpoints[request.route].rate_limiting.enabled?
 
         result = @detached_agent.calculate_rate_limits(request)
