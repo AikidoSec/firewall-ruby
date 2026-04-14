@@ -5,15 +5,34 @@ on:
     types: [published]
 
 jobs:
+  verify-version:
+    name: 🔖 Verify tag matches gem version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check tag against Aikido::Zen::VERSION
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gem_version=$(grep -E '^\s*VERSION\s*=' lib/aikido/zen/version.rb | sed -E 's/.*"([^"]+)".*/\1/')
+          expected="v${gem_version}"
+          if [ "$TAG" != "$expected" ]; then
+            echo "::error::Release tag '$TAG' does not match Aikido::Zen::VERSION ('$gem_version'). Expected tag '$expected'."
+            exit 1
+          fi
+          echo "Tag '$TAG' matches Aikido::Zen::VERSION ('$gem_version')."
   unit-tests:
     name: 🧪 Unit tests
+    needs: verify-version
     uses: ./.github/workflows/unit-test.yml
     secrets: inherit
   lint:
     name: 🧹 Lint code
+    needs: verify-version
     uses: ./.github/workflows/lint.yml
   e2e:
     name: 🕵️ End to end tests
+    needs: verify-version
     uses: ./.github/workflows/e2e.yml
   release:
     runs-on: ubuntu-latest
@@ -24,6 +43,7 @@ jobs:
       id-token: write
 
     needs:
+      - verify-version
       - unit-tests
       - lint
       - e2e
