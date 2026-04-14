@@ -215,6 +215,28 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       assert_includes context.payloads, stub_payload(:body, 3, "array.2")
     end
 
+    test "body payloads are not read from JSON-encoded bodies that cannot be parsed" do
+      context = build_context_for("/example", {
+        :method => "POST",
+        :input => %({"test":"value","nested":{"hash":"data"},"array":[1, 2, 3),
+        "CONTENT_TYPE" => "application/json"
+      })
+
+      payloads = nil
+
+      assert_silent do
+        # Suppress message from the ActionDispatch::Http::Parameters#log_parse_error_once private method
+        original_stderr = $stderr
+        $stderr = StringIO.new
+
+        payloads = context.payloads
+      ensure
+        $stderr = original_stderr
+      end
+
+      assert payloads.none? { |payload| payload.source == :body }
+    end
+
     test "relative path arrays in body payloads read from JSON-encoded bodies are joined for File.join" do
       context = build_context_for("/example", {
         :method => "POST",
