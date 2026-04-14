@@ -285,6 +285,31 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
     end
   end
 
+  test "excluded users are not rate limited" do
+    Aikido::Zen.runtime_settings.excluded_user_ids_from_rate_limiting = ["excluded-1"]
+    configure "GET", "/", max_requests: 2, period: 10
+
+    5.times do
+      Aikido::Zen.current_context = nil
+      excluded = build_request("GET", "/", ip: "1.2.3.4", user: {id: "excluded-1"})
+      refute_throttled_or_blocked make_request(excluded)
+    end
+
+    Aikido::Zen.current_context = nil
+    other_1 = build_request("GET", "/", ip: "1.2.3.4", user: {id: "other"})
+    refute_throttled_or_blocked make_request(other_1)
+
+    Aikido::Zen.current_context = nil
+    other_2 = build_request("GET", "/", ip: "1.2.3.4", user: {id: "other"})
+    refute_throttled_or_blocked make_request(other_2)
+
+    Aikido::Zen.current_context = nil
+    other_3 = build_request("GET", "/", ip: "1.2.3.4", user: {id: "other"})
+    assert_throttled make_request(other_3)
+  ensure
+    Aikido::Zen.runtime_settings.excluded_user_ids_from_rate_limiting = nil
+  end
+
   test "requests are blocked if the user is in the blocking list" do
     Aikido::Zen.runtime_settings.blocked_user_ids = ["1234"]
 
