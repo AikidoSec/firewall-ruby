@@ -275,7 +275,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
           "Accept" => "application/json",
           "Accept-Encoding" => "gzip",
           "Authorization" => "TOKEN",
-          "User-Agent" => "firewall-ruby v1.1.1"
+          "User-Agent" => "firewall-ruby v#{Aikido::Zen::VERSION}"
         }
     end
   end
