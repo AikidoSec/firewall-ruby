@@ -222,9 +222,6 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         },
         userAgents: {
           breakdown: {}
-        },
-        ipAddresses: {
-          breakdown: {}
         }
       },
       users: [],
@@ -267,9 +264,6 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           }
         },
         userAgents: {
-          breakdown: {}
-        },
-        ipAddresses: {
           breakdown: {}
         }
       },
@@ -314,9 +308,6 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           }
         },
         userAgents: {
-          breakdown: {}
-        },
-        ipAddresses: {
           breakdown: {}
         },
         operations: {
@@ -434,9 +425,6 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         },
         userAgents: {
           breakdown: {}
-        },
-        ipAddresses: {
-          breakdown: {}
         }
       },
       users: [],
@@ -530,9 +518,6 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
           breakdown: {
             "google_adwords" => 2
           }
-        },
-        ipAddresses: {
-          breakdown: {}
         }
       },
       middlewareInstalled: false,

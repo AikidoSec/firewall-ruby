@@ -155,7 +155,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     end
   end
 
-  class FetchingRuntimeConfigTest < ActiveSupport::TestCase
+  class FetchingConfigTest < ActiveSupport::TestCase
     include DisableAgentReporting
 
     setup do
@@ -245,38 +245,6 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
       @client.fetch_runtime_config
 
       assert_logged :debug, /fetching new runtime config/i
-    end
-  end
-
-  class FetchingRuntimeFirewallListsTest < ActiveSupport::TestCase
-    include DisableAgentReporting
-
-    setup do
-      Aikido::Zen.config.api_token = "TOKEN"
-      @client = Aikido::Zen::APIClient.new
-    end
-
-    test "makes a GET request to the specified endpoint with gzip compression" do
-      stub_request(:get, "https://guard.aikido.dev/api/runtime/firewall/lists")
-        .to_return(
-          status: 200,
-          body: file_fixture("api_responses/fetch_runtime_firewall_lists.success.json.gz").binread,
-          headers: {
-            "Content-Type" => "application/json",
-            "Content-Encoding" => "gzip"
-          }
-        )
-
-      response = @client.fetch_runtime_firewall_lists
-      assert response["success"]
-
-      assert_requested :get, "https://guard.aikido.dev/api/runtime/firewall/lists",
-        headers: {
-          "Accept" => "application/json",
-          "Accept-Encoding" => "gzip",
-          "Authorization" => "TOKEN",
-          "User-Agent" => "firewall-ruby v#{Aikido::Zen::VERSION}"
-        }
     end
   end
 
