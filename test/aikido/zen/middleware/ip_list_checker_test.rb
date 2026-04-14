@@ -4,35 +4,33 @@ require "test_helper"
 
 class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
   module Configuration
-    def configure_ips(ip_list_name, ips, key: "key", source: "source", description: "description")
-      if ips.empty?
-        @settings.update_from_runtime_firewall_lists_json({
-          ip_list_name => []
-        })
+    # Core-driven IP list loading is temporarily disabled, so we bypass
+    # update_from_runtime_firewall_lists_json and populate the runtime
+    # settings' lists directly to exercise the middleware.
+    def configure_list(setter, ips, key: "key", source: "source", description: "description")
+      list = if ips.empty?
+        []
       else
-        @settings.update_from_runtime_firewall_lists_json({
-          ip_list_name => [
-            {
-              "key" => key,
-              "source" => source,
-              "description" => description,
-              "ips" => ips
-            }
-          ]
-        })
+        [Aikido::Zen::RuntimeSettings::IPList.from_json({
+          "key" => key,
+          "source" => source,
+          "description" => description,
+          "ips" => ips
+        })]
       end
+      @settings.public_send(setter, list)
     end
 
     def configure_blocked_ips(*args, **kwargs)
-      configure_ips("blockedIPAddresses", *args, **kwargs)
+      configure_list(:blocked_ip_lists=, *args, **kwargs)
     end
 
     def configure_allowed_ips(*args, **kwargs)
-      configure_ips("allowedIPAddresses", *args, **kwargs)
+      configure_list(:allowed_ip_lists=, *args, **kwargs)
     end
 
     def configure_monitored_ips(*args, **kwargs)
-      configure_ips("monitoredIPAddresses", *args, **kwargs)
+      configure_list(:monitored_ip_lists=, *args, **kwargs)
     end
 
     DEFAULT_BLOCKED_IPS = [
@@ -323,10 +321,8 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
         }
       ]
 
-      @settings.update_from_runtime_firewall_lists_json({
-        "blockedIPAddresses" => blocked_ip_lists,
-        "monitoredIPAddresses" => monitored_ip_lists
-      })
+      @settings.blocked_ip_lists = blocked_ip_lists.map { |h| Aikido::Zen::RuntimeSettings::IPList.from_json(h) }
+      @settings.monitored_ip_lists = monitored_ip_lists.map { |h| Aikido::Zen::RuntimeSettings::IPList.from_json(h) }
 
       blocked_ips = [
         "1.4.9.3",

@@ -125,23 +125,12 @@ module Aikido::Zen
         }
       end
 
+      # Temporarily disabled: loading blocked/allowed/monitored IP lists from
+      # core is O(N) per request in IPListChecker and causes CPU spikes with
+      # large lists. Keep the lists empty so the middleware short-circuits.
       self.blocked_ip_lists = []
-
-      data["blockedIPAddresses"]&.each do |ip_list|
-        blocked_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
-      end
-
       self.allowed_ip_lists = []
-
-      data["allowedIPAddresses"]&.each do |ip_list|
-        allowed_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
-      end
-
       self.monitored_ip_lists = []
-
-      data["monitoredIPAddresses"]&.each do |ip_list|
-        monitored_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
-      end
     end
 
     # Construct a regular expression from the non-nil and non-empty string,

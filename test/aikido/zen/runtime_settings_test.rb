@@ -361,21 +361,10 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
       ]
     })
 
-    assert_kind_of Array, @settings.blocked_ip_lists
-    assert 1, @settings.blocked_ip_lists.size
-    @settings.blocked_ip_lists.each_index do |index|
-      assert_equal "key#{index + 1}", @settings.blocked_ip_lists[index].key
-      assert_equal "source#{index + 1}", @settings.blocked_ip_lists[index].source
-      assert_equal "description#{index + 1}", @settings.blocked_ip_lists[index].description
-    end
-
-    assert_kind_of Array, @settings.allowed_ip_lists
-    assert 2, @settings.allowed_ip_lists.size
-    @settings.allowed_ip_lists.each_index do |index|
-      assert_equal "key#{index + 2}", @settings.allowed_ip_lists[index].key
-      assert_equal "source#{index + 2}", @settings.allowed_ip_lists[index].source
-      assert_equal "description#{index + 2}", @settings.allowed_ip_lists[index].description
-    end
+    # IP list loading is temporarily disabled; all lists stay empty.
+    assert_equal [], @settings.blocked_ip_lists
+    assert_equal [], @settings.allowed_ip_lists
+    assert_equal [], @settings.monitored_ip_lists
 
     assert_kind_of Regexp, @settings.blocked_user_agent_regexp
     assert_kind_of Regexp, @settings.monitored_user_agent_regexp
