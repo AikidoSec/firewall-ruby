@@ -29,6 +29,14 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     TrackUserAgent.from_json(data)
   end
 
+  def stub_track_ip_list_event(ip_list_keys = ["key"])
+    TrackIPList.new(ip_list_keys)
+  end
+
+  def stub_track_ip_list_event_from_json(data)
+    TrackIPList.from_json(data)
+  end
+
   def stub_track_attack_wave_event(being_blocked: false)
     TrackAttackWave.new(being_blocked: being_blocked)
   end
@@ -228,6 +236,46 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
 
     collector = Minitest::Mock.new
     collector.expect :handle_track_user_agent, nil, [["google_adwords"]]
+
+    event.handle(collector)
+
+    assert_mock collector
+  end
+
+  test "create new track IP list event" do
+    assert_silent { stub_track_ip_list_event }
+  end
+
+  test "serialize track IP list event as JSON" do
+    event = stub_track_ip_list_event
+
+    assert_hash_subset_of event.as_json, {
+      type: "track_ip_list"
+    }
+  end
+
+  test "deserialize track IP list event from JSON" do
+    event = stub_track_ip_list_event
+    event_hash = event.as_json
+
+    other = stub_track_ip_list_event_from_json(event_hash)
+
+    assert_equal event_hash, other.as_json
+  end
+
+  test "deserialize event for track IP list from JSON" do
+    event = stub_track_ip_list_event
+
+    other = stub_event_from_json(event.as_json)
+
+    assert_equal TrackIPList, other.class
+  end
+
+  test "track IP list handle calls handle_track_ip_list" do
+    event = stub_track_ip_list_event
+
+    collector = Minitest::Mock.new
+    collector.expect :handle_track_ip_list, nil, [["key"]]
 
     event.handle(collector)
 
