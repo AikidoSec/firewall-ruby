@@ -20,6 +20,8 @@ module Aikido::Zen
 
     def include?(ip)
       native_ip = nativize_ip(ip)
+      return false if native_ip.nil?
+
       @ips.any? { |pattern| pattern === native_ip }
     end
     alias_method :===, :include?
