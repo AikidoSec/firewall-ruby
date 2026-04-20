@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Aikido::Zen::RuntimeSettings::DomainsTest < ActiveSupport::TestCase
+class Aikido::Zen::RuntimeSettings::IPListTest < ActiveSupport::TestCase
   DEFAULT_IP_LIST = {
     "key" => "key",
     "source" => "source",
