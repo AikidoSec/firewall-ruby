@@ -362,7 +362,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     })
 
     assert_kind_of Array, @settings.blocked_ip_lists
-    assert 1, @settings.blocked_ip_lists.size
+    assert_equal 1, @settings.blocked_ip_lists.size
     @settings.blocked_ip_lists.each_index do |index|
       assert_equal "key#{index + 1}", @settings.blocked_ip_lists[index].key
       assert_equal "source#{index + 1}", @settings.blocked_ip_lists[index].source
@@ -370,7 +370,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     end
 
     assert_kind_of Array, @settings.allowed_ip_lists
-    assert 2, @settings.allowed_ip_lists.size
+    assert_equal 2, @settings.allowed_ip_lists.size
     @settings.allowed_ip_lists.each_index do |index|
       assert_equal "key#{index + 2}", @settings.allowed_ip_lists[index].key
       assert_equal "source#{index + 2}", @settings.allowed_ip_lists[index].source
@@ -381,7 +381,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_kind_of Regexp, @settings.monitored_user_agent_regexp
 
     assert_kind_of Array, @settings.user_agent_details
-    assert 16, @settings.user_agent_details.size
+    assert_equal 16, @settings.user_agent_details.size
     @settings.user_agent_details.each do |record|
       assert_kind_of String, record[:key]
       assert_kind_of Regexp, record[:pattern]
