@@ -3,7 +3,7 @@
 # Due to dependency resolution, on Ruby 2.x we're stuck with a _very_ old
 # SimpleCov version, and it doesn't really give us any benefit to run coverage
 # in separate ruby versions since we don't branch on ruby version in the code.
-return if RUBY_VERSION < "3.0"
+return if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.0")
 return if ENV["DISABLE_COVERAGE"] == "true"
 
 # Output coverage as LCOV to support CodeCov

@@ -249,9 +249,42 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     refute_attack "SELECT * FROM users_123", "users_123"
   end
 
+  test "ignores numbers" do
+    refute_attack "SELECT * WHERE id = 123", "123"
+    refute_attack "SELECT * WHERE id =   123  ", "  123  "
+  end
+
+  test "flags invalid whitespace around numbers" do
+    assert_attack "SELECT * WHERE id = \n123\n", "\n123\n"
+    assert_attack "SELECT * WHERE id = \t123\t", "\t123\t"
+  end
+
+  test "ignores comma-separated list of numbers" do
+    refute_attack "SELECT * WHERE id IN (1,2,3)", "1,2,3"
+    refute_attack "SELECT * WHERE id IN (1, 2, 3)", "1, 2, 3"
+    refute_attack "SELECT * WHERE id IN (,1,,)", ",1,,"
+  end
+
+  test "flags invalid whitespace in comma-separated lists of numbers" do
+    assert_attack "SELECT * WHERE id IN (1,\n2,\n3,\n)", "1,\n2,\n3,\n"
+    assert_attack "SELECT * WHERE id IN (1,\t2,\t3,\t)", "1,\t2,\t3,\t"
+  end
+
   test "ignores input that does not show up in the SQL query" do
     refute_attack "SELECT * FROM users WHERE id IN (1,2,3)", "1,2,3"
     refute_attack "SELECT * FROM users", "1,2,3"
+  end
+
+  test "it flags regular expression matching timeouts as attacks" do
+    skip_if_ruby_lower_than("3.2")
+
+    input = "1," * 1 * 1024 * 1024
+
+    refute_attack "SELECT * FROM users WHERE id IN (#{input})", input
+
+    Aikido::Zen.config.redos_regexp_timeout = 0.001
+
+    assert_attack "SELECT * FROM users WHERE id IN (#{input})", input
   end
 
   test "attacks are not prevented if libzen can't be loaded" do

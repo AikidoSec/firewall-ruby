@@ -2,7 +2,7 @@
 
 # http.rb aims to support and is tested against Ruby 3.0+:
 # https://github.com/httprb/http?tab=readme-ov-file#supported-ruby-versions
-return if RUBY_VERSION < "3.0"
+return if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.0")
 
 require "test_helper"
 
