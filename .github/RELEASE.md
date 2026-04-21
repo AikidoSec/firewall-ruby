@@ -79,6 +79,45 @@ The gem version is read from `lib/aikido/zen/version.rb` (`Aikido::Zen::VERSION`
 
 4. Watch the workflow: <https://github.com/AikidoSec/firewall-ruby/actions/workflows/release.yml>. On success, the new gem versions appear at <https://rubygems.org/gems/aikido-zen>.
 
+## Beta releases
+
+Beta releases let you ship an in-progress change for staging or customer validation before cutting a stable version. They follow the same two-step flow (version-bump PR → GitHub release), with three differences: the version string, the branch/commit naming, and publishing the GitHub release as a **pre-release**.
+
+RubyGems treats any version string containing letters (e.g. `1.0.2.beta.1`) as a pre-release: it won't be resolved by `gem install aikido-zen` or by a plain `gem "aikido-zen"` Gemfile entry. Consumers opt in explicitly with `gem install aikido-zen --pre` or `gem "aikido-zen", ">= 0.a"`.
+
+### 1. Open the version-bump PR
+
+Same as the stable process, with these substitutions:
+
+- Version format: `X.Y.Z.beta.N` — reuse the `X.Y.Z` of the stable release you're iterating toward, incrementing `N` for each beta (see `v1.0.2.beta.1` … `v1.0.2.beta.10` for the existing pattern).
+- Branch name: `prepare-X.Y.Z.beta.N`.
+- Commit / PR title: `Bump version to X.Y.Z.beta.N` (matches prior betas).
+- Bump `VERSION` in `lib/aikido/zen/version.rb` to `"X.Y.Z.beta.N"`.
+- Run the same lockfile `sed` across all 24 lockfiles, replacing `aikido-zen (OLD)` with `aikido-zen (X.Y.Z.beta.N)`.
+
+Everything else (review, CI, merge to `main`) is unchanged.
+
+### 2. Publish the GitHub pre-release
+
+Identical to the stable flow, but pass `--prerelease` so the release is flagged `Pre-release` and does **not** replace the current "Latest" release on GitHub or RubyGems:
+
+```sh
+gh release create vX.Y.Z.beta.N \
+  --repo AikidoSec/firewall-ruby \
+  --target main \
+  --title vX.Y.Z.beta.N \
+  --prerelease \
+  --notes-file release-notes.md
+```
+
+Or, in the GitHub UI: **Releases → Draft a new release**, tag `vX.Y.Z.beta.N` against `main`, tick **Set as a pre-release**, **Publish**.
+
+The `verify-version` job in `.github/workflows/release.yml` compares the tag against `v${Aikido::Zen::VERSION}`, so beta tags pass through with no workflow changes. The same `release.yml` job builds and pushes the native gems to RubyGems.
+
+### 3. Promoting a beta to stable
+
+There is no automatic promotion. Once a beta is validated, cut a normal `X.Y.Z` release following the stable flow above — that publishes a separate gem version and becomes the new "Latest".
+
 ## Troubleshooting
 
 - **Release workflow failed before publishing any gem.** Safe to re-run from the Actions tab once the cause is fixed; the release/tag stay in place.
