@@ -97,7 +97,7 @@ GEM
       reline (>= 0.3.8)
     drb (2.2.1)
     erubi (1.13.0)
-    ffi (1.17.2)
+    ffi (1.17.4)
     globalid (1.2.1)
       activesupport (>= 6.1)
     i18n (1.14.5)
