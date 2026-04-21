@@ -17,6 +17,7 @@ module Aikido::Zen
         Aikido::Zen::Middleware::ForkDetector,
         Aikido::Zen::Middleware::ContextSetter,
         Aikido::Zen::Middleware::AllowedAddressChecker,
+        Aikido::Zen::Middleware::IPListChecker,
         Aikido::Zen::Middleware::UserAgentChecker,
         Aikido::Zen::Middleware::AttackProtector,
         Aikido::Zen::Middleware::AttackWaveProtector,
