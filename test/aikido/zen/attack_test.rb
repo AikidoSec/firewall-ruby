@@ -15,7 +15,7 @@ module Aikido::Zen
 
     test "keeps track of the query and triggering input" do
       attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
-        query: @query, input: @input, dialect: @dialect, sink: @sink, context: @context, operation: @op
+        query: @query, input: @input, dialect: @dialect, failed_to_tokenize: false, sink: @sink, context: @context, operation: @op
       )
 
       assert_equal @query, attack.query
@@ -28,7 +28,7 @@ module Aikido::Zen
 
     test "generates the proper exception" do
       attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
-        query: @query, input: @input, dialect: @dialect, sink: @sink, context: @context, operation: @op
+        query: @query, input: @input, dialect: @dialect, failed_to_tokenize: false, sink: @sink, context: @context, operation: @op
       )
 
       assert_kind_of Aikido::Zen::SQLInjectionError, attack.exception
@@ -39,7 +39,7 @@ module Aikido::Zen
 
     test "can track if the Agent will block it" do
       attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
-        query: @query, input: @input, dialect: @dialect, sink: @sink, context: @context, operation: @op
+        query: @query, input: @input, dialect: @dialect, failed_to_tokenize: false, sink: @sink, context: @context, operation: @op
       )
 
       refute attack.blocked?
@@ -50,7 +50,7 @@ module Aikido::Zen
 
     test "#as_json includes the expected fields" do
       attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
-        query: @query, input: @input, dialect: @dialect, sink: @sink, context: @context, operation: @op
+        query: @query, input: @input, dialect: @dialect, failed_to_tokenize: false, sink: @sink, context: @context, operation: @op
       )
 
       expected = {
@@ -71,7 +71,7 @@ module Aikido::Zen
 
     test "#as_json reflects if the attack was blocked" do
       attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
-        query: @query, input: @input, dialect: @dialect, sink: @sink, context: @context, operation: @op
+        query: @query, input: @input, dialect: @dialect, failed_to_tokenize: false, sink: @sink, context: @context, operation: @op
       )
 
       attack.will_be_blocked!

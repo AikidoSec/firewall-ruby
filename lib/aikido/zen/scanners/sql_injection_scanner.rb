@@ -32,7 +32,8 @@ module Aikido::Zen
         end
 
         context.payloads.each do |payload|
-          next unless new(query, payload.value.to_s, dialect).attack?
+          scanner = new(query, payload.value.to_s, dialect)
+          next unless scanner.attack?
 
           return Attacks::SQLInjectionAttack.new(
             sink: sink,
@@ -41,12 +42,15 @@ module Aikido::Zen
             dialect: dialect,
             context: context,
             operation: "#{sink.operation}.#{operation}",
-            stack: Aikido::Zen.clean_stack_trace
+            stack: Aikido::Zen.clean_stack_trace,
+            failed_to_tokenize: scanner.failed_to_tokenize
           )
         end
 
         nil
       end
+
+      attr_reader :failed_to_tokenize
 
       def initialize(query, input, dialect)
         @query = query.downcase
@@ -70,7 +74,17 @@ module Aikido::Zen
         # If the input is a comma-separated list of numbers, ignore it.
         return false if /\A(?:\d+(?:,\s*)?)+\z/i.match?(@input)
 
-        Internals.detect_sql_injection(@query, @input, @dialect)
+        result = Internals.detect_sql_injection(@query, @input, @dialect)
+
+        case result
+        when 0
+          false
+        when 1
+          true
+        when 3
+          @failed_to_tokenize = true
+          Aikido::Zen.config.block_invalid_sql?
+        end
       end
 
       # @api private
