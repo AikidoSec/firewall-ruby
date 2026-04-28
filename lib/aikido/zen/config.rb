@@ -40,7 +40,7 @@ module Aikido::Zen
     attr_reader :api_timeouts
 
     # @return [String] the token obtained when configuring the Firewall in the
-    #   Aikido interface.
+    #   Aikido interface. Defaults to nil.
     attr_accessor :api_token
 
     # @return [Integer] the interval in seconds to poll the runtime API for
@@ -188,6 +188,23 @@ module Aikido::Zen
     #   Defaults to 15 entries.
     attr_accessor :attack_wave_max_cache_samples
 
+    # @return [Boolean] whether the IDOR protection feature is enabled.
+    #   Defaults to false.
+    attr_accessor :idor_protection_enabled
+    alias_method :idor_protection_enabled?, :idor_protection_enabled
+
+    # @return [String] the tenant column name for IDOR protection.
+    #   Defaults to nil.
+    attr_accessor :idor_tenant_column_name
+
+    # @return [Array<String>] the table names to exclude for IDOR protection.
+    #   Defaults to [].
+    attr_accessor :idor_excluded_table_names
+
+    # @return [Integer] the maximum number of entries in the LRU cache.
+    #   Defaults to 1000 entries.
+    attr_accessor :idor_max_cache_entries
+
     def initialize
       self.insert_middleware_after = ::ActionDispatch::RemoteIp
       self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLE", false)) || read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
@@ -227,6 +244,10 @@ module Aikido::Zen
       self.attack_wave_min_time_between_events = 20 * 60 * 1000 # 20 min (ms)
       self.attack_wave_max_cache_entries = 10_000
       self.attack_wave_max_cache_samples = 15
+      self.idor_protection_enabled = false
+      self.idor_tenant_column_name = nil
+      self.idor_excluded_table_names = []
+      self.idor_max_cache_entries = 1000
     end
 
     # Set the base URL for API requests.

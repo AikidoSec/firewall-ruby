@@ -26,6 +26,8 @@ require_relative "zen/outbound_connection"
 require_relative "zen/runtime_settings"
 require_relative "zen/rate_limiter"
 require_relative "zen/attack_wave"
+require_relative "zen/sql"
+require_relative "zen/idor"
 require_relative "zen/scanners"
 
 module Aikido
@@ -213,15 +215,75 @@ module Aikido
       alias_method :set_user, :track_user
     end
 
+    # @return [Aikido::Zen::AttackWave::Detector] the attack wave detector.
+    def self.attack_wave_detector
+      @attack_wave_detector ||= AttackWave::Detector.new
+    end
+
+    # @return [Aikido::Zen::IDOR::Protector]
+    def self.idor_protector
+      @idor_protector ||= IDOR::Protector.new
+    end
+
+    # @param sql [String]
+    # @param dialect [Symbol]
+    # @return [void]
+    # @raise [Aikido::Zen::IDOR::Error]
+    def self.idor_protect(sql, dialect_name, params = [])
+      context = current_context
+      return unless context
+
+      idor_protector.protect(sql, dialect_name, params, context)
+    end
+
+    # Enable IDOR protection for the current context.
+    #
+    # @return [void]
+    def self.enable_idor_protection
+      context = current_context
+      return unless context
+
+      context.idor_protection_enabled = true
+    end
+
+    # Set the tenant ID for the current request.
+    #
+    # @param tenant_id [Integer, String, nil]
+    # @return [void]
+    def self.set_tenant_id(tenant_id)
+      context = current_context
+      return unless context
+
+      context.request.tenant_id = tenant_id
+    end
+
+    # Execute a block with the IDOR protection disabled.
+    #
+    # @yield the block to execute with the IDOR protection disabled.
+    # @return [Object] the result of the block
+    # @raise [ArgumentError] if no block is given
+    def self.without_idor_protection
+      raise ArgumentError, "block required" unless block_given?
+
+      context = current_context
+
+      if context
+        begin
+          original_idor_protection_enabled = context.idor_protection_enabled
+          context.idor_protection_enabled = false
+          yield
+        ensure
+          context.idor_protection_enabled = original_idor_protection_enabled
+        end
+      else
+        yield
+      end
+    end
+
     # Marks that the Zen middleware was installed properly
     # @return void
     def self.middleware_installed!
       collector.middleware_installed!
-    end
-
-    # @return [Aikido::Zen::AttackWave::Detector] the attack wave detector.
-    def self.attack_wave_detector
-      @attack_wave_detector ||= AttackWave::Detector.new
     end
 
     # @!visibility private

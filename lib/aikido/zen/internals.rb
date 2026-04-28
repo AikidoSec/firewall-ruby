@@ -26,10 +26,12 @@ module Aikido::Zen
 
       names << "#{lib_name}-#{platform}.#{lib_ext}"
 
+      # :nocov:
       unless platform.version.nil?
         platform.version = nil
         names << "#{lib_name}-#{platform}.#{lib_ext}"
       end
+      # :nocov:
 
       names
     end
@@ -51,7 +53,9 @@ module Aikido::Zen
           # empty
         end
       end
+      # :nocov:
       raise LoadError, "Zen could not load its native extension #{libzen_name}"
+      # :nocov:
     end
 
     begin
@@ -59,12 +63,16 @@ module Aikido::Zen
 
       # @!method self.detect_sql_injection_native(query, input, dialect)
       # @param (see .detect_sql_injection)
-      # @returns [Integer] 0 if no injection detected, 1 if an injection was
+      # @return [Integer] 0 if no injection detected, 1 if an injection was
       #   detected, 2 if there was an internal error, or 3 if SQL tokenization failed.
       # @raise [Aikido::Zen::InternalsError] if there's a problem loading or
       #   calling libzen.
       attach_function :detect_sql_injection_native, :detect_sql_injection,
         [:pointer, :size_t, :pointer, :size_t, :int], :int
+
+      attach_function :idor_analyze_sql_native, :idor_analyze_sql_ffi, [:pointer, :size_t, :int], :pointer
+
+      attach_function :idor_free_string_native, :free_string, [:pointer], :void
     rescue LoadError, FFI::NotFoundError => err # rubocop:disable Lint/ShadowedException
       # :nocov:
 
@@ -73,6 +81,11 @@ module Aikido::Zen
 
       def self.detect_sql_injection(query, *)
         attempt = format("%p for SQL injection", query)
+        raise InternalsError.new(attempt, "loading", libzen_name)
+      end
+
+      def self.idor_analyze_sql(query, *)
+        attempt = format("%p for SQL analysis", query)
         raise InternalsError.new(attempt, "loading", libzen_name)
       end
 
@@ -86,7 +99,7 @@ module Aikido::Zen
       # @param dialect [Integer, #to_int] the SQL Dialect identifier in libzen.
       #   See {Aikido::Zen::Scanners::SQLInjectionScanner::DIALECTS}.
       #
-      # @returns [Boolean]
+      # @return [Boolean]
       # @raise [Aikido::Zen::InternalsError] if there's a problem loading or
       #   calling libzen.
       def self.detect_sql_injection(query, input, dialect)
@@ -109,6 +122,18 @@ module Aikido::Zen
           # SQL tokenization failed - return false (no injection detected)
           false
         end
+      end
+
+      def self.idor_analyze_sql(query, dialect)
+        query_bytes = encode_safely(query)
+        query_ptr = FFI::MemoryPointer.new(:uint8, query_bytes.bytesize)
+        query_ptr.put_bytes(0, query_bytes)
+
+        result_ptr = idor_analyze_sql_native(query_ptr, query_bytes.bytesize, dialect)
+        result_json = result_ptr.read_string
+        idor_free_string_native(result_ptr)
+
+        JSON.parse(result_json)
       end
     end
 
