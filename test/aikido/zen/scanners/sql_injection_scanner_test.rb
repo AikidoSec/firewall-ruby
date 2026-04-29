@@ -435,9 +435,12 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
         "CONTENT_TYPE" => "application/json"
       })
 
+      scan = Aikido::Zen::Scan.new(sink: nil, context: context)
+
       attack = Aikido::Zen::Scanners::SQLInjectionScanner.call(
         query: "SELECT * FROM users WHERE id=1; DROP TABLE users;",
         dialect: :common,
+        scan: scan,
         sink: stub_sink(name: "test"),
         context: context,
         operation: "test"

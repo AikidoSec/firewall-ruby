@@ -369,8 +369,11 @@ class Aikido::Zen::Scanners::ShellInjectionScannerTest < ActiveSupport::TestCase
         "CONTENT_TYPE" => "application/json"
       })
 
+      scan = Aikido::Zen::Scan.new(sink: nil, context: context)
+
       attack = Aikido::Zen::Scanners::ShellInjectionScanner.call(
         command: "ls /app/users/user; rm -rf /app/users",
+        scan: scan,
         sink: stub_sink(name: "test"),
         context: context,
         operation: "test"

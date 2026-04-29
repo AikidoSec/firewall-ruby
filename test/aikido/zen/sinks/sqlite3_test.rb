@@ -16,6 +16,7 @@ class Aikido::Zen::Sinks::SQLite3Test < ActiveSupport::TestCase
     mock.expect :call, nil,
       query: String,
       dialect: :sqlite,
+      scan: Aikido::Zen::Scan,
       sink: @sink,
       operation: for_operation,
       context: Aikido::Zen::Context
