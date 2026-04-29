@@ -66,13 +66,16 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
 
   test "it allows inputs with a port that does not match the connection" do
     refute_attack "http://localhost/", "localhost:8080"
-    refute_attack "http://localhost:8080", "localhost"
   end
 
   test "it detects inputs with ports only if they match the connection's port" do
     assert_attack "http://localhost/", "localhost:80"
     assert_attack "https://localhost/", "localhost:443"
     assert_attack "https://localhost:8080/", "localhost:8080"
+  end
+
+  test "it detects inputs without ports irrespective of the connection's port" do
+    assert_attack "http://localhost:8080/", "localhost"
   end
 
   test "it allows connections if the input has a port but that's not used" do
