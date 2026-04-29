@@ -94,13 +94,10 @@ module Aikido::Zen
         scanners.each do |scanner|
           next if scanner.skips_on_nil_context? && context.nil?
 
-          result = scanner.call(sink: self, context: context, **scan_params)
+          result = scanner.call(scan: scan, sink: self, context: context, **scan_params)
           scans_performed += 1
 
           break result if result
-        rescue Aikido::Zen::InternalsError => error
-          Aikido::Zen.config.logger.warn(error.message)
-          scan.track_error(error, scanner)
         rescue => error
           scan.track_error(error, scanner)
         end

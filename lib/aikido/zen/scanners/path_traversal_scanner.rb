@@ -13,13 +13,14 @@ module Aikido::Zen
       # Path Traversal kind of attacks.
       #
       # @param filepath [String] the expanded path that is tried to be read
-      # @param context [Aikido::Zen::Context]
+      # @param scan [Aikido::Zen::Scan] the running scan.
       # @param sink [Aikido::Zen::Sink] the Sink that is running the scan.
+      # @param context [Aikido::Zen::Context]
       # @param operation [Symbol, String] name of the method being scanned.
       #
       # @return [Aikido::Zen::Attacks::PathTraversalAttack, nil] an Attack if any
       # user input is detected to be attempting a Path Traversal Attack, or +nil+ if not.
-      def self.call(filepath:, sink:, context:, operation:)
+      def self.call(scan:, sink:, context:, filepath:, operation:)
         context.payloads.each do |payload|
           next unless new(filepath, payload.value.to_s).attack?
 
@@ -31,6 +32,8 @@ module Aikido::Zen
             operation: "#{sink.operation}.#{operation}",
             stack: Aikido::Zen.clean_stack_trace
           )
+        rescue => error
+          scan.track_error(error, self)
         end
 
         nil
