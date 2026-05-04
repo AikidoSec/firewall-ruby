@@ -14,18 +14,16 @@ module Aikido::Zen
       # and returns an Attack if so, based on the current request.
       #
       # @param query [String]
-      # @param context [Aikido::Zen::Context]
-      # @param sink [Aikido::Zen::Sink] the Sink that is running the scan.
       # @param dialect [Symbol] one of +:mysql+, +:postgesql+, or +:sqlite+.
+      # @param scan [Aikido::Zen::Scan] the running scan.
+      # @param sink [Aikido::Zen::Sink] the Sink that is running the scan.
+      # @param context [Aikido::Zen::Context]
       # @param operation [Symbol, String] name of the method being scanned.
       #   Expects +sink.operation+ being set to get the full module/name combo.
       #
       # @return [Aikido::Zen::Attack, nil] an Attack if any user input is
       #   detected to be attempting a SQL injection, or nil if this is safe.
-      #
-      # @raise [Aikido::Zen::InternalsError] if an error occurs when loading or
-      #   calling zenlib. See Sink#scan.
-      def self.call(query:, dialect:, sink:, context:, operation:)
+      def self.call(query:, dialect:, scan:, sink:, context:, operation:)
         dialect = DIALECTS.fetch(dialect) do
           Aikido::Zen.config.logger.warn "Unknown SQL dialect #{dialect.inspect}"
           DIALECTS[:common]
@@ -43,6 +41,11 @@ module Aikido::Zen
             operation: "#{sink.operation}.#{operation}",
             stack: Aikido::Zen.clean_stack_trace
           )
+        rescue Aikido::Zen::InternalsError => error
+          Aikido::Zen.config.logger.warn(error.message)
+          scan.track_error(error, self)
+        rescue => error
+          scan.track_error(error, self)
         end
 
         nil

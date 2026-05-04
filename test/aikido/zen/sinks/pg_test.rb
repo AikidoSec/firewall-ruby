@@ -22,6 +22,7 @@ class Aikido::Zen::Sinks::PGTest < ActiveSupport::TestCase
     mock.expect :call, nil,
       query: String,
       dialect: :postgresql,
+      scan: Aikido::Zen::Scan,
       sink: @sink,
       operation: for_operation,
       context: Aikido::Zen::Context

@@ -11,7 +11,7 @@ module Aikido::Zen
         false
       end
 
-      def self.call(hostname:, addresses:, operation:, sink:, context:, **opts)
+      def self.call(hostname:, addresses:, operation:, scan:, sink:, context:, **opts)
         offending_address = new(hostname, addresses).attack?
         return if offending_address.nil?
 

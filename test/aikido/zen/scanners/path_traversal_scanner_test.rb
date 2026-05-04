@@ -153,8 +153,11 @@ class Aikido::Zen::Scanners::PathTraversalScannerTest < ActiveSupport::TestCase
         "CONTENT_TYPE" => "application/json"
       })
 
+      scan = Aikido::Zen::Scan.new(sink: nil, context: context)
+
       attack = Aikido::Zen::Scanners::PathTraversalScanner.call(
         filepath: "/app/users/user/../../../etc/passwd",
+        scan: scan,
         sink: stub_sink(name: "test"),
         context: context,
         operation: "test"

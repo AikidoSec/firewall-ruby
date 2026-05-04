@@ -10,11 +10,12 @@ module Aikido::Zen
       end
 
       # @param command [String]
+      # @param scan [Aikido::Zen::Scan]
       # @param sink [Aikido::Zen::Sink]
       # @param context [Aikido::Zen::Context]
       # @param operation [Symbol, String]
       #
-      def self.call(command:, sink:, context:, operation:)
+      def self.call(command:, scan:, sink:, context:, operation:)
         context.payloads.each do |payload|
           next unless new(command, payload.value.to_s).attack?
 
@@ -26,6 +27,8 @@ module Aikido::Zen
             operation: "#{sink.operation}.#{operation}",
             stack: Aikido::Zen.clean_stack_trace
           )
+        rescue => error
+          scan.track_error(error, self)
         end
 
         nil

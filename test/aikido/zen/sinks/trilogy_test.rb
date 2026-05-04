@@ -21,6 +21,7 @@ class Aikido::Zen::Sinks::TrilogyTest < ActiveSupport::TestCase
     mock.expect :call, nil,
       query: String,
       dialect: :mysql,
+      scan: Aikido::Zen::Scan,
       sink: @sink,
       operation: "query",
       context: Aikido::Zen::Context

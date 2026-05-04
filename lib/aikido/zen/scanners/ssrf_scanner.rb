@@ -30,14 +30,15 @@ module Aikido::Zen
       #
       # @param request [Aikido::Zen::Scanners::SSRFScanner::Request, nil]
       #   the ongoing outbound HTTP request.
-      # @param context [Aikido::Zen::Context]
+      # @param scan [Aikido::Zen::Scan] the running scan.
       # @param sink [Aikido::Zen::Sink] the Sink that is running the scan.
+      # @param context [Aikido::Zen::Context]
       # @param operation [Symbol, String] name of the method being scanned.
       #   Expects +sink.operation+ being set to get the full module/name combo.
       #
       # @return [Aikido::Zen::Attacks::SSRFAttack, nil] an Attack if any user
       #   input is detected to be attempting SSRF, or +nil+ if not.
-      def self.call(request:, sink:, context:, operation:, **)
+      def self.call(request:, scan:, sink:, context:, operation:, **)
         return if request.nil? # See NOTE above.
 
         context["ssrf.redirects"] ||= RedirectChains.new
@@ -46,7 +47,7 @@ module Aikido::Zen
           scanner = new(request.uri, payload.value, context["ssrf.redirects"])
           next unless scanner.attack?
 
-          attack = Attacks::SSRFAttack.new(
+          return Attacks::SSRFAttack.new(
             sink: sink,
             request: request,
             input: payload,
@@ -54,8 +55,8 @@ module Aikido::Zen
             operation: "#{sink.operation}.#{operation}",
             stack: Aikido::Zen.clean_stack_trace
           )
-
-          return attack
+        rescue => error
+          scan.track_error(error, self)
         end
 
         nil
