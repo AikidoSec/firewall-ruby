@@ -110,17 +110,21 @@ module Aikido::Zen
       private
 
       def match?(conn_uri, input_uri)
-        return false if conn_uri.hostname.nil? || conn_uri.hostname.empty?
+        # If a URI does not include a scheme then hostname and port are nil.
+        # No further comparison is necessary, because the conn_uri hostname
+        # and port are presumed to be non-nil.
         return false if input_uri.hostname.nil? || input_uri.hostname.empty?
 
-        # The URI library will automatically set the port to the default port
-        # for the current scheme if not provided, which means we can't just
-        # check if the port is present, as it always will be.
+        # If a URI does not include a port then port is the default port
+        # for the scheme, otherwise, port is nil. If the input_uri port is
+        # the default port for the scheme then port comparison is skipped,
+        # because the user input is presumed not to have included a port.
         is_port_relevant = input_uri.port != input_uri.default_port
-        return false if is_port_relevant && input_uri.port != conn_uri.port
+        return false if is_port_relevant && conn_uri.port != input_uri.port
 
-        conn_uri.hostname == input_uri.hostname &&
-          conn_uri.port == input_uri.port
+        # The port is either not relevant or is relevant and the conn_uri
+        # port and the input_uri port match. Do not force port comparison!
+        conn_uri.hostname == input_uri.hostname
       end
 
       def private_ip?(hostname)
