@@ -3,7 +3,7 @@
 require "bundler"
 Bundler.setup
 
-require "simplecov-lcov" if RUBY_VERSION >= "3"
+require "simplecov-lcov" if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.0")
 require "simplecov"
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
@@ -16,7 +16,7 @@ require "active_support/testing/setup_and_teardown"
 require "action_dispatch"
 require "action_dispatch/routing/inspector"
 require "pathname"
-require "debug" if RUBY_VERSION >= "3"
+require "debug" if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.0")
 require "support/capture_stream"
 
 class FakeDetachedAgent
@@ -167,7 +167,7 @@ class ActiveSupport::TestCase
   end
 
   def skip_if_ruby_lower_than(expected_ruby_version)
-    if expected_ruby_version > RUBY_VERSION
+    if Gem::Version.new(expected_ruby_version) > Gem::Version.new(RUBY_VERSION)
       skip "Skipping test #{__method__} because unexpected ruby version (#{RUBY_VERSION} < #{expected_ruby_version})"
     end
   end
