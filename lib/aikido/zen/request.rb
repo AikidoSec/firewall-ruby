@@ -64,10 +64,14 @@ module Aikido::Zen
     def normalized_headers
       @normalized_headers ||= env.slice(*BLESSED_CGI_HEADERS)
         .merge(env.select { |key, _| key.start_with?("HTTP_") })
-        .transform_keys { |header|
-          name = header.sub(/^HTTP_/, "").downcase
-          name.split("_").map { |part| part[0].upcase + part[1..] }.join("-")
-        }
+        .transform_keys do |header|
+          header
+            .delete_prefix("HTTP_")
+            .downcase
+            .split("_")
+            .map(&:capitalize)
+            .join("-")
+        end
     end
 
     def as_json
