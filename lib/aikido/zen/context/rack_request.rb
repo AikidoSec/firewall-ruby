@@ -14,12 +14,17 @@ module Aikido::Zen
     request = Aikido::Zen::Request.new(delegate, framework: "rack", router: router)
 
     Context.new(request) do |req|
+      query = req.GET rescue {}
+      body = req.POST rescue {}
+      header = req.normalized_headers rescue {}
+      cookie = req.cookies rescue {}
+
       {
-        query: req.GET,
-        body: req.POST,
+        query: query,
+        body: body,
         route: {},
-        header: req.normalized_headers,
-        cookie: req.cookies,
+        header: header,
+        cookie: cookie,
         subdomain: []
       }
     end

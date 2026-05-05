@@ -34,19 +34,20 @@ module Aikido::Zen
     end
 
     Context.new(request) do |req|
-      body = begin
-        req.request_parameters
-      rescue ActionDispatch::Http::Parameters::ParseError
-        {}
-      end
+      query = req.query_parameters rescue {}
+      body = req.request_parameters rescue {}
+      route = req.path_parameters rescue {}
+      header = req.normalized_headers rescue {}
+      cookie = decrypt_cookies.call(req) rescue {}
+      subdomain = req.subdomains rescue []
 
       {
-        query: req.query_parameters,
+        query: query,
         body: body,
-        route: req.path_parameters,
-        header: req.normalized_headers,
-        cookie: decrypt_cookies.call(req),
-        subdomain: req.subdomains
+        route: route,
+        header: header,
+        cookie: cookie,
+        subdomain: subdomain
       }
     end
   end
