@@ -38,10 +38,20 @@ class ProfilesTest < ActionDispatch::IntegrationTest
     assert_blocked_sql_injection
   end
 
-  test "detects SQL injection in cookie with poison header" do
+  test "detects SQL injection in cookie with poison header value triggering encoding compatibility error" do
     cookies[:token] = "caf%C3%A9' OR 1=1--"
 
     get "/api/v1/profile", headers: {"X-Poison" => "\xFF\xFF"}
+
+    assert_response :internal_server_error
+
+    assert_blocked_sql_injection
+  end
+
+  test "detects SQL injection in cookie with poison header name triggering header normalization error" do
+    cookies[:token] = "caf%C3%A9' OR 1=1--"
+
+    get "/api/v1/profile", headers: {"X--Attack" => "1"}
 
     assert_response :internal_server_error
 
