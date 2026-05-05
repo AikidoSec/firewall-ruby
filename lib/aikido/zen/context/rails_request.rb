@@ -34,13 +34,49 @@ module Aikido::Zen
     end
 
     Context.new(request) do |req|
+      query = begin
+        req.query_parameters
+      rescue
+        {}
+      end
+
+      body = begin
+        req.request_parameters
+      rescue
+        {}
+      end
+
+      route = begin
+        req.path_parameters
+      rescue
+        {}
+      end
+
+      header = begin
+        req.normalized_headers
+      rescue
+        {}
+      end
+
+      cookie = begin
+        decrypt_cookies.call(req)
+      rescue
+        {}
+      end
+
+      subdomain = begin
+        req.subdomains
+      rescue
+        []
+      end
+
       {
-        query: req.query_parameters,
-        body: req.request_parameters,
-        route: req.path_parameters,
-        header: req.normalized_headers,
-        cookie: decrypt_cookies.call(req),
-        subdomain: req.subdomains
+        query: query,
+        body: body,
+        route: route,
+        header: header,
+        cookie: cookie,
+        subdomain: subdomain
       }
     end
   end
