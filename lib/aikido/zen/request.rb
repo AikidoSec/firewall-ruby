@@ -26,7 +26,7 @@ module Aikido::Zen
 
     def __setobj__(delegate) # :nodoc:
       super
-      @route = @normalized_header = nil
+      @route = @normalized_headers = nil
     end
 
     # @return [Aikido::Zen::Route] the framework route being requested.
