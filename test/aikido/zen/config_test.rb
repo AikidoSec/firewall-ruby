@@ -8,36 +8,47 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   end
 
   test "default values" do
+    assert_equal ::ActionDispatch::RemoteIp, @config.insert_middleware_after
     assert_equal false, @config.disabled
     assert_equal false, @config.blocking_mode
+    assert_equal false, @config.debugging
     assert_nil @config.api_token
     assert_equal URI("https://guard.aikido.dev"), @config.api_endpoint
     assert_equal URI("https://runtime.aikido.dev"), @config.realtime_endpoint
     assert_equal 10, @config.api_timeouts[:open_timeout]
     assert_equal 10, @config.api_timeouts[:read_timeout]
     assert_equal 10, @config.api_timeouts[:write_timeout]
+    assert_equal 60, @config.polling_interval
+    assert_equal [30, 120], @config.initial_heartbeat_delays
+    assert_equal Aikido::Zen::Config::DEFAULT_JSON_ENCODER, @config.json_encoder
+    assert_equal Aikido::Zen::Config::DEFAULT_JSON_DECODER, @config.json_decoder
     assert_kind_of ::Logger, @config.logger
-    refute @config.debugging
-    assert_equal "aikido-detached-agent.%h.sock", @config.detached_agent_socket_path
+    assert_equal Aikido::Zen::Config::DEFAULT_DETACHED_AGENT_SOCKET_PATH, @config.detached_agent_socket_path
     assert_nil @config.client_ip_header
     assert_equal 5000, @config.max_performance_samples
     assert_equal 100, @config.max_compressed_stats
     assert_equal 200, @config.max_outbound_connections
     assert_equal 1000, @config.max_users_tracked
-    assert_equal [30, 60 * 2], @config.initial_heartbeat_delays
-    assert_equal 60, @config.polling_interval
-    assert_kind_of Proc, @config.blocked_responder
-    assert_kind_of Proc, @config.rate_limited_responder
-    assert_kind_of Proc, @config.rate_limiting_discriminator
+    assert_equal Aikido::Zen::Config::DEFAULT_BLOCKED_RESPONDER, @config.blocked_responder
+    assert_equal Aikido::Zen::Config::DEFAULT_RATE_LIMITED_RESPONDER, @config.rate_limited_responder
+    assert_equal Aikido::Zen::Config::DEFAULT_RATE_LIMITING_DISCRIMINATOR, @config.rate_limiting_discriminator
+    assert_equal true, @config.collect_api_schema?
+    assert_equal 10, @config.api_schema_max_samples
+    assert_equal 20, @config.api_schema_collection_max_depth
+    assert_equal 20, @config.api_schema_collection_max_properties
+    assert_equal Aikido::Zen::Context::RACK_REQUEST_BUILDER, @config.request_builder
     assert_equal 3600, @config.client_rate_limit_period
     assert_equal 100, @config.client_rate_limit_max_events
     assert_equal 1800, @config.server_rate_limit_deadline
-    assert_equal true, @config.collect_api_schema?
-    assert_equal 20, @config.api_schema_collection_max_depth
-    assert_equal 20, @config.api_schema_collection_max_properties
     assert_equal true, @config.stored_ssrf?
     assert_equal ["metadata.google.internal", "metadata.goog"], @config.imds_allowed_hosts
+    assert_equal true, @config.harden
     assert_equal false, @config.block_invalid_sql
+    assert_equal 15, @config.attack_wave_threshold
+    assert_equal 60_000, @config.attack_wave_min_time_between_requests
+    assert_equal 1_200_000, @config.attack_wave_min_time_between_events
+    assert_equal 10_000, @config.attack_wave_max_cache_entries
+    assert_equal 15, @config.attack_wave_max_cache_samples
     assert_equal 1.0, @config.redos_regexp_timeout
   end
 

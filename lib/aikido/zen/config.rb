@@ -28,6 +28,14 @@ module Aikido::Zen
     attr_accessor :blocking_mode
     alias_method :blocking_mode?, :blocking_mode
 
+    # @return [Boolean] is the agent in debugging mode?
+    attr_accessor :debugging
+    alias_method :debugging?, :debugging
+
+    # @return [String] the token obtained when configuring the Firewall in the
+    #   Aikido interface.
+    attr_accessor :api_token
+
     # @return [URI] The HTTP host for the Aikido API. Defaults to
     #   +https://guard.aikido.dev+.
     attr_reader :api_endpoint
@@ -38,10 +46,6 @@ module Aikido::Zen
 
     # @return [Hash] HTTP timeouts for communicating with the API.
     attr_reader :api_timeouts
-
-    # @return [String] the token obtained when configuring the Firewall in the
-    #   Aikido interface.
-    attr_accessor :api_token
 
     # @return [Integer] the interval in seconds to poll the runtime API for
     #   settings changes. Defaults to evey 60 seconds.
@@ -66,10 +70,6 @@ module Aikido::Zen
     # By default, the socket file is created in the current working directory.
     # Defaults to `aikido-detached-agent.sock`.
     attr_accessor :detached_agent_socket_path
-
-    # @return [Boolean] is the agent in debugging mode?
-    attr_accessor :debugging
-    alias_method :debugging?, :debugging
 
     # @return [String] environment specific HTTP header providing the client IP.
     attr_accessor :client_ip_header
@@ -203,15 +203,15 @@ module Aikido::Zen
       self.insert_middleware_after = ::ActionDispatch::RemoteIp
       self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLE", false)) || read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
       self.blocking_mode = read_boolean_from_env(ENV.fetch("AIKIDO_BLOCK", false))
-      self.api_timeouts = 10
+      self.debugging = read_boolean_from_env(ENV.fetch("AIKIDO_DEBUG", false))
+      self.api_token = ENV.fetch("AIKIDO_TOKEN", nil)
       self.api_endpoint = ENV.fetch("AIKIDO_ENDPOINT", DEFAULT_AIKIDO_ENDPOINT)
       self.realtime_endpoint = ENV.fetch("AIKIDO_REALTIME_ENDPOINT", DEFAULT_RUNTIME_BASE_URL)
-      self.api_token = ENV.fetch("AIKIDO_TOKEN", nil)
+      self.api_timeouts = 10
       self.polling_interval = 60 # 1 min
       self.initial_heartbeat_delays = [30, 60 * 2] # 30 sec, 2 min
       self.json_encoder = DEFAULT_JSON_ENCODER
       self.json_decoder = DEFAULT_JSON_DECODER
-      self.debugging = read_boolean_from_env(ENV.fetch("AIKIDO_DEBUG", false))
       self.logger = Logger.new($stdout, progname: "aikido", level: debugging ? Logger::DEBUG : Logger::INFO)
       self.detached_agent_socket_path = ENV.fetch("AIKIDO_DETACHED_AGENT_SOCKET_PATH", DEFAULT_DETACHED_AGENT_SOCKET_PATH)
       self.client_ip_header = ENV.fetch("AIKIDO_CLIENT_IP_HEADER", nil)
@@ -219,17 +219,17 @@ module Aikido::Zen
       self.max_compressed_stats = 100
       self.max_outbound_connections = 200
       self.max_users_tracked = 1000
-      self.request_builder = Aikido::Zen::Context::RACK_REQUEST_BUILDER
       self.blocked_responder = DEFAULT_BLOCKED_RESPONDER
       self.rate_limited_responder = DEFAULT_RATE_LIMITED_RESPONDER
       self.rate_limiting_discriminator = DEFAULT_RATE_LIMITING_DISCRIMINATOR
-      self.server_rate_limit_deadline = 30 * 60 # 30 min
-      self.client_rate_limit_period = 60 * 60 # 1 hour
-      self.client_rate_limit_max_events = 100
       self.collect_api_schema = read_boolean_from_env(ENV.fetch("AIKIDO_FEATURE_COLLECT_API_SCHEMA", true))
       self.api_schema_max_samples = Integer(ENV.fetch("AIKIDO_MAX_API_DISCOVERY_SAMPLES", 10))
       self.api_schema_collection_max_depth = 20
       self.api_schema_collection_max_properties = 20
+      self.request_builder = Aikido::Zen::Context::RACK_REQUEST_BUILDER
+      self.client_rate_limit_period = 60 * 60 # 1 hour
+      self.client_rate_limit_max_events = 100
+      self.server_rate_limit_deadline = 30 * 60 # 30 min
       self.stored_ssrf = read_boolean_from_env(ENV.fetch("AIKIDO_FEATURE_STORED_SSRF", true))
       self.imds_allowed_hosts = ["metadata.google.internal", "metadata.goog"]
       self.harden = read_boolean_from_env(ENV.fetch("AIKIDO_HARDEN", true))
