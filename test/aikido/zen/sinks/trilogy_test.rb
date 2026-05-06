@@ -50,4 +50,61 @@ class Aikido::Zen::Sinks::TrilogyTest < ActiveSupport::TestCase
       @db.query "SELECT 1 WHERE 1 = '1'' OR ''''='''';--'"
     end
   end
+
+  class IDORTest < ActiveSupport::TestCase
+    def with_mocked_protector(params = [])
+      mock = Minitest::Mock.new
+      mock.expect(:protect, nil, [String, :mysql, params, Aikido::Zen::Context])
+
+      original_protector = Aikido::Zen.instance_variable_get(:@idor_protector)
+      Aikido::Zen.instance_variable_set(:@idor_protector, mock)
+
+      Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+        Rack::MockRequest.env_for("/")
+      )
+
+      Aikido::Zen.set_tenant_id(1)
+
+      yield
+
+      assert_mock mock
+    ensure
+      Aikido::Zen.instance_variable_set(:@idor_protector, original_protector)
+    end
+
+    setup do
+      @db = Trilogy.new(
+        host: ENV.fetch("MYSQL_HOST", "127.0.0.1"),
+        username: ENV.fetch("MYSQL_USERNAME", "root"),
+        password: ENV.fetch("MYSQL_PASSWORD", "")
+      )
+
+      Aikido::Zen.config.idor_protection_enabled = true
+    end
+
+    test "#query includes IDOR protection" do
+      with_mocked_protector do
+        @db.query("SELECT 1")
+      end
+    end
+
+    test "IDOR protection is triggered by complete example" do
+      Aikido::Zen.config.idor_protection_enabled = true
+      Aikido::Zen.config.idor_tenant_column_name = "tenant_id"
+      Aikido::Zen.config.idor_excluded_table_names = ["roles"]
+
+      Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+        Rack::MockRequest.env_for("/")
+      )
+
+      Aikido::Zen.enable_idor_protection
+      Aikido::Zen.set_tenant_id(1)
+
+      err = assert_raises(Aikido::Zen::IDOR::Error) do
+        @db.query("SELECT * FROM users WHERE name = 'John'")
+      end
+
+      assert_equal "Zen IDOR protection: query on table 'users' is missing column 'tenant_id'", err.message
+    end
+  end
 end

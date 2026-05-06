@@ -18,8 +18,12 @@ module Aikido::Zen
           ::Trilogy.class_eval do
             extend Sinks::DSL
 
-            sink_before :query do |query|
-              Helpers.scan(query, "query")
+            presafe_sink_before :query do |sql|
+              Sinks::DSL.safe do
+                Helpers.scan(sql, "query")
+              end
+
+              Aikido::Zen.idor_protect(sql, :mysql)
             end
           end
         end

@@ -79,6 +79,9 @@ class ActiveSupport::TestCase
     Aikido::Zen.instance_variable_set(:@runtime_settings, nil)
     Aikido::Zen.detached_agent.instance_variable_set(:@rate_limiter, Aikido::Zen::RateLimiter.new)
 
+    Aikido::Zen.instance_variable_set(:@attack_wave_detector, nil)
+    Aikido::Zen.instance_variable_set(:@idor_protector, nil)
+
     Aikido::Zen.current_context = nil
 
     Aikido::Zen.singleton_class.remove_method(:track_scan)

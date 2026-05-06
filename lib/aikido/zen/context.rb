@@ -30,6 +30,10 @@ module Aikido::Zen
     attr_accessor :protection_disabled
     alias_method :protection_disabled?, :protection_disabled
 
+    # @return [Boolean]
+    attr_accessor :idor_protection_enabled
+    alias_method :idor_protection_enabled?, :idor_protection_enabled
+
     # @param request [Rack::Request] a Request object that implements the
     #   Rack::Request API, to which we will delegate behavior.
     # @param settings [Aikido::Zen::RuntimeSettings]
@@ -45,6 +49,7 @@ module Aikido::Zen
       @metadata = {}
       @scanning = false
       @protection_disabled = false
+      @idor_protection_enabled = false
     end
 
     # Fetch some metadata stored in the Context.
