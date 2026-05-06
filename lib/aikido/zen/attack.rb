@@ -138,9 +138,11 @@ module Aikido::Zen
       end
 
       def metadata
-        meta = {sql: @query, dialect: @dialect.name}
-        meta[:failedToTokenize] = "true" if @failed_to_tokenize
-        meta
+        {
+          sql: @query,
+          dialect: @dialect.name,
+          failedToTokenize: @failed_to_tokenize || nil
+        }.compact
       end
 
       def exception(*)
