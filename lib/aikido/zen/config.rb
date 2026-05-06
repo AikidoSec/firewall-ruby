@@ -165,6 +165,12 @@ module Aikido::Zen
     attr_accessor :harden
     alias_method :harden?, :harden
 
+    # @return [Boolean] whether Aikido Zen should block SQL queries that fail
+    #   tokenization when user input is present. Defaults to true. Can be set
+    #   through AIKIDO_BLOCK_INVALID_SQL environment variable.
+    attr_accessor :block_invalid_sql
+    alias_method :block_invalid_sql?, :block_invalid_sql
+
     # @return [Integer] how many suspicious requests are allowed before an
     #   attack wave detected event is reported.
     #   Defaults to 15 requests.
@@ -227,6 +233,7 @@ module Aikido::Zen
       self.stored_ssrf = read_boolean_from_env(ENV.fetch("AIKIDO_FEATURE_STORED_SSRF", true))
       self.imds_allowed_hosts = ["metadata.google.internal", "metadata.goog"]
       self.harden = read_boolean_from_env(ENV.fetch("AIKIDO_HARDEN", true))
+      self.block_invalid_sql = read_boolean_from_env(ENV.fetch("AIKIDO_BLOCK_INVALID_SQL", true))
       self.attack_wave_threshold = 15
       self.attack_wave_min_time_between_requests = 60 * 1000 # 1 min (ms)
       self.attack_wave_min_time_between_events = 20 * 60 * 1000 # 20 min (ms)
