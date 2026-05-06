@@ -314,6 +314,18 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     end
   end
 
+  test "it blocks failed tokenization when block_invalid_sql is true" do
+    Aikido::Zen.config.block_invalid_sql = true
+
+    assert_attack "SELECT * FROM comments WHERE comment = 'I'm writting you'"
+  end
+
+  test "it allows failed tokenization when block_invalid_sql is false" do
+    Aikido::Zen.config.block_invalid_sql = false
+
+    refute_attack "SELECT * FROM comments WHERE comment = 'I'm writting you'"
+  end
+
   class TestMySQLDialect < ActiveSupport::TestCase
     include Assertions
 
