@@ -37,6 +37,7 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 20, @config.api_schema_collection_max_properties
     assert_equal true, @config.stored_ssrf?
     assert_equal ["metadata.google.internal", "metadata.goog"], @config.imds_allowed_hosts
+    assert_equal false, @config.block_invalid_sql
     assert_equal 1.0, @config.redos_regexp_timeout
   end
 
