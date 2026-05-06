@@ -21,6 +21,8 @@ module Aikido::Zen
         match = value.match(/^\$(\d+)$/)
         if match
           index = match[1].to_i - 1
+          return if index < 0
+
           params[index]
         end
       end
@@ -33,6 +35,8 @@ module Aikido::Zen
           match = Regexp.last_match
 
           index = match[1].to_i - 1
+          return if index < 0
+
           params[index]
         when /^[:@$]([A-Za-z_][A-Za-z0-9_]*)$/
           match = Regexp.last_match
