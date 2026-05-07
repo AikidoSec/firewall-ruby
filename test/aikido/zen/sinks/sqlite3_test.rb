@@ -87,7 +87,7 @@ class Aikido::Zen::Sinks::SQLite3Test < ActiveSupport::TestCase
   end
 
   class IDORTest < ActiveSupport::TestCase
-    def with_mocked_protector(params = [])
+    def with_mocked_protector(params = nil)
       mock = Minitest::Mock.new
       mock.expect(:protect, nil, [String, :sqlite, params, Aikido::Zen::Context])
 
@@ -114,14 +114,14 @@ class Aikido::Zen::Sinks::SQLite3Test < ActiveSupport::TestCase
     end
 
     test "#execute includes IDOR protection" do
-      with_mocked_protector do
-        @db.execute("SELECT 1")
+      with_mocked_protector([1]) do
+        @db.execute("SELECT ?", [1])
       end
     end
 
     test "#execute_batch includes IDOR protection" do
-      with_mocked_protector do
-        @db.execute_batch("SELECT 1")
+      with_mocked_protector([1]) do
+        @db.execute_batch("SELECT 1", [1])
       end
     end
 

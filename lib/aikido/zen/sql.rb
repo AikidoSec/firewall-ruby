@@ -13,11 +13,23 @@ module Aikido::Zen
         end
       end
 
-      def self.common_placeholder_resolver(value, placeholder_number, params = [])
+      # @param value [String]
+      # @param placeholder_number [Integer, nil]
+      # @param params [Array<Object>, nil]
+      # @return [Object]
+      def self.common_placeholder_resolver(value, placeholder_number, params)
+        return nil unless params
+
         params[placeholder_number] unless placeholder_number.nil?
       end
 
-      def self.postgresql_placeholder_resolver(value, placeholder_number, params = [])
+      # @param value [String]
+      # @param placeholder_number [Integer, nil]
+      # @param params [Array<Object>, nil]
+      # @return [Object]
+      def self.postgresql_placeholder_resolver(value, placeholder_number, params)
+        return nil unless params
+
         match = value.match(/^\$(\d+)$/)
         if match
           index = match[1].to_i - 1
@@ -27,7 +39,13 @@ module Aikido::Zen
         end
       end
 
-      def self.sqlite_placeholder_resolver(value, placeholder_number, params = [])
+      # @param value [String]
+      # @param placeholder_number [Integer, nil]
+      # @param params [Array<Object>, nil]
+      # @return [Object]
+      def self.sqlite_placeholder_resolver(value, placeholder_number, params)
+        return nil unless params
+
         return params[placeholder_number] unless placeholder_number.nil?
 
         case value

@@ -227,9 +227,10 @@ module Aikido
 
     # @param sql [String]
     # @param dialect [Symbol]
+    # @param params [Array, nil]
     # @return [void]
     # @raise [Aikido::Zen::IDOR::Error]
-    def self.idor_protect(sql, dialect_name, params = [])
+    def self.idor_protect(sql, dialect_name, params = nil)
       context = current_context
       return unless context
 

@@ -18,8 +18,9 @@ module Aikido::Zen
 
       # @param sql [String]
       # @param dialect_name [Symbol]
+      # @param params [Array, nil]
       # @param context [Aikido::Zen::Context]
-      # @raise [Aikido::Zen::IDOR::Error]
+      # @raise [Aikido::Zen::IDOR::Error, Aikido::Zen::InternalsError]
       def protect(sql, dialect_name, params, context)
         return unless @config.idor_protection_enabled? && context.idor_protection_enabled?
 
@@ -47,7 +48,7 @@ module Aikido::Zen
       # @param sql [String]
       # @param dialect [Aikido::Zen::SQL::Dialects::Dialect]
       # @return [Array<Aikido::Zen::IDOR::SQLQueryResult>]
-      # @raise [Aikido::Zen::IDOR::Error]
+      # @raise [Aikido::Zen::IDOR::Error, Aikido::Zen::InternalsError]
       def analyze(sql, dialect)
         cache_key = [dialect.internals_key, sql]
 

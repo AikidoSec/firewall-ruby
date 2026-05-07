@@ -31,7 +31,7 @@ module Aikido::Zen
                   Helpers.scan(sql, "database.execute")
                 end
 
-                Aikido::Zen.idor_protect(sql, :sqlite)
+                Aikido::Zen.idor_protect(sql, :sqlite, bind_vars)
               end
             end
 

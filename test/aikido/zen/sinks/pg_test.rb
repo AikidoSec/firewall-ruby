@@ -214,7 +214,7 @@ class Aikido::Zen::Sinks::PGTest < ActiveSupport::TestCase
   end
 
   class IDORTest < ActiveSupport::TestCase
-    def with_mocked_protector(params = [])
+    def with_mocked_protector(params = nil)
       mock = Minitest::Mock.new
       mock.expect(:protect, nil, [String, :postgresql, params, Aikido::Zen::Context])
 
