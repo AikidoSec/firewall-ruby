@@ -13,3 +13,10 @@ module ActiveSupport
     # Add more helper methods to be used by all tests here...
   end
 end
+
+class Hash
+  def to_xml_root(options = {})
+    key = keys.first
+    self[key].to_xml(options.merge(root: key))
+  end
+end

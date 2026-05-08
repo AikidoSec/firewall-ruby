@@ -48,14 +48,84 @@ class ProfilesTest < ActionDispatch::IntegrationTest
     assert_blocked_sql_injection
   end
 
-  test "detects SQL injection in cookie with poison header name triggering header normalization error" do
-    cookies[:token] = "caf%C3%A9' OR 1=1--"
+  test "detects SQL injection in body with JSON content type" do
+    cookies[:token] = "supersecret"
 
-    get "/api/v1/profile", headers: {"X--Attack" => "1"}
+    params = {
+      user: {
+        secret: "NEW_SECRET', name='NEW_NAME"
+      }
+    }.to_json
+
+    patch "/api/v1/profile",
+      params: params,
+      headers: {
+        "Content-Type" => "application/json"
+      }
 
     assert_response :internal_server_error
 
     assert_blocked_sql_injection
+  end
+
+  test "detects SQL injection in body with XML content type" do
+    cookies[:token] = "supersecret"
+
+    params = {
+      user: {
+        secret: "NEW_SECRET', name='NEW_NAME"
+      }
+    }.to_xml_root
+
+    patch "/api/v1/profile",
+      params: params,
+      headers: {
+        "Content-Type" => "application/xml"
+      }
+
+    assert_response :internal_server_error
+
+    assert_blocked_sql_injection
+  end
+
+  test "detects SQL injection in body and unhandled content type" do
+    cookies[:token] = "supersecret"
+
+    params = {
+      user: {
+        secret: "NEW_SECRET', name='NEW_NAME"
+      }
+    }.to_yaml
+
+    patch "/api/v1/profile",
+      params: params,
+      headers: {
+        "Content-Type" => "application/yaml"
+      }
+
+    assert_response :success
+  end
+
+  test "detects SQL injection in body with incorrect content type" do
+    cookies[:token] = "supersecret"
+
+    params = {
+      user: {
+        secret: "NEW_SECRET', name='NEW_NAME"
+      }
+    }.to_json
+
+    patch "/api/v1/profile",
+      params: params,
+      headers: {
+        "Content-Type" => "application/xml"
+      }
+
+    assert_response :internal_server_error
+
+    json_body = JSON.parse(response.body)
+
+    assert_equal "ActionDispatch::Http::Parameters::ParseError", json_body["error"]
   end
 
   private
