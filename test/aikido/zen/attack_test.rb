@@ -7,7 +7,7 @@ module Aikido::Zen
     setup do
       @query = "SELECT * FROM users WHERE id = '' OR 1=1 --'"
       @input = Aikido::Zen::Payload.new("' OR 1=1 --", :route, "id")
-      @dialect = Aikido::Zen::Scanners::SQLInjectionScanner::DIALECTS[:common]
+      @dialect = Aikido::Zen::SQL::Dialects.fetch(:common)
       @context = Aikido::Zen::Context.from_rack_env({})
       @op = "test.op"
       @sink = Sink.new("test", scanners: [NOOP])

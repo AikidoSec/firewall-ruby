@@ -39,6 +39,10 @@ module Aikido::Zen
       end
 
       ActiveSupport.on_load(:action_controller) do
+        before_action do
+          Aikido::Zen.enable_idor_protection if Aikido::Zen.config.idor_protection_enabled?
+        end
+
         # Due to how Rails sets up its middleware chain, the routing is evaluated
         # (and the Request object constructed) in the app that terminates the
         # chain, so no amount of middleware will be able to access it.
