@@ -9,6 +9,7 @@ class Aikido::Zen::Sinks::Mysql2Test < ActiveSupport::TestCase
   setup do
     @db = Mysql2::Client.new(
       host: ENV.fetch("MYSQL_HOST", "127.0.0.1"),
+      port: ENV.fetch("MYSQL_PORT", "3306"),
       username: ENV.fetch("MYSQL_USERNAME", "root"),
       password: ENV.fetch("MYSQL_PASSWORD", "")
     )
@@ -75,6 +76,7 @@ class Aikido::Zen::Sinks::Mysql2Test < ActiveSupport::TestCase
     setup do
       @db = Mysql2::Client.new(
         host: ENV.fetch("MYSQL_HOST", "127.0.0.1"),
+        port: ENV.fetch("MYSQL_PORT", "3306"),
         username: ENV.fetch("MYSQL_USERNAME", "root"),
         password: ENV.fetch("MYSQL_PASSWORD", "")
       )
