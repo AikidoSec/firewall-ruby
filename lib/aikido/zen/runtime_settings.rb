@@ -11,67 +11,73 @@ module Aikido::Zen
   #
   # You can subscribe to changes with +#add_observer(object, func_name)+, which
   # will call the function passing the settings as an argument
-  RuntimeSettings = Struct.new(:updated_at, :heartbeat_interval, :endpoints, :blocked_user_ids, :bypassed_ips, :received_any_stats, :blocking_mode, :blocked_user_agent_regexp, :monitored_user_agent_regexp, :user_agent_details, :blocked_ip_lists, :allowed_ip_lists, :monitored_ip_lists, :block_new_outbound, :domains, :excluded_user_ids_from_rate_limiting) do
-    def initialize(*)
-      super
-      self.endpoints ||= RuntimeSettings::Endpoints.new
-      self.bypassed_ips ||= RuntimeSettings::IPSet.new
-      self.blocked_ip_lists ||= []
-      self.allowed_ip_lists ||= []
-      self.monitored_ip_lists ||= []
-      self.domains ||= RuntimeSettings::Domains.new
+  class RuntimeSettings
+    def initialize
+      @updated_at = nil
+      @heartbeat_interval = nil
+      @endpoints = RuntimeSettings::Endpoints.new
+      @blocked_user_ids = nil
+      @bypassed_ips = RuntimeSettings::IPSet.new
+      @received_any_stats = nil
+      @blocking_mode = nil
+      @blocked_user_agent_regexp = nil
+      @monitored_user_agent_regexp = nil
+      @user_agent_details = nil
+      @blocked_ip_lists = []
+      @allowed_ip_lists = []
+      @monitored_ip_lists = []
+      @block_new_outbound = nil
+      @domains = RuntimeSettings::Domains.new
+      @excluded_user_ids_from_rate_limiting = nil
     end
 
-    # @!attribute [rw] updated_at
-    #   @return [Time] when these settings were updated in the Aikido dashboard.
+    # @return [Time] when these settings were updated in the Aikido dashboard
+    attr_accessor :updated_at
 
-    # @!attribute [rw] heartbeat_interval
-    #   @return [Integer] duration in seconds between heartbeat requests to the
-    #     Aikido server.
+    # @return [Integer] duration in seconds between heartbeat requests to the Aikido server.
+    attr_accessor :heartbeat_interval
 
-    # @!attribute [rw] endpoints
-    #   @return [Aikido::Zen::RuntimeSettings::Endpoints]
+    # @return [Aikido::Zen::RuntimeSettings::Endpoints]
+    attr_accessor :endpoints
 
-    # @!attribute [rw] blocked_user_ids
-    #   @return [Array]
+    # @return [Array]
+    attr_accessor :blocked_user_ids
 
-    # @!attribute [rw] bypassed_ips
-    #   @return [Aikido::Zen::RuntimeSettings::IPSet]
+    # @return [Aikido::Zen::RuntimeSettings::IPSet]
+    attr_accessor :bypassed_ips
 
-    # @!attribute [rw] received_any_stats
-    #   @return [Boolean] whether the Aikido server has received any data from
-    #     this application.
+    # @return [Boolean] whether the Aikido server has received any data from this application.
+    attr_accessor :received_any_stats
 
-    # @!attribute [rw] blocking_mode
-    #   @return [Boolean]
+    # @return [Boolean]
+    attr_accessor :blocking_mode
 
-    # @!attribute [rw] blocked_ip_lists
-    #   @return [Array<Aikido::Zen::RuntimeSettings::IPList>]
+    # @return [Array<Aikido::Zen::RuntimeSettings::IPList>]
+    attr_accessor :blocked_ip_lists
 
-    # @!attribute [rw] allowed_ip_lists
-    #   @return [Array<Aikido::Zen::RuntimeSettings::IPList>]
+    # @return [Array<Aikido::Zen::RuntimeSettings::IPList>]
+    attr_accessor :allowed_ip_lists
 
-    # @!attribute [rw] monitored_ip_lists
-    #   @return [Array<Aikido::Zen::RuntimeSettings::IPList>]
+    # @return [Array<Aikido::Zen::RuntimeSettings::IPList>]
+    attr_accessor :monitored_ip_lists
 
-    # @!attribute [rw] blocked_user_agent_regexp
-    #   @return [Regexp]
+    # @return [Regexp]
+    attr_accessor :blocked_user_agent_regexp
 
-    # @!attribute [rw] monitored_user_agent_regexp
-    #   @return [Regexp]
+    # @return [Regexp]
+    attr_accessor :monitored_user_agent_regexp
 
-    # @!attribute [rw] user_agent_details
-    #   @return [Regexp]
+    # @return [Regexp]
+    attr_accessor :user_agent_details
 
-    # @!attribute [rw] block_new_outbound
-    #   @return [Boolean]
+    # @return [Boolean]
+    attr_accessor :block_new_outbound
 
-    # @!attribute [rw] domains
-    #   @return [Array<Aikido::Zen::RuntimeSettings::DomainSettings>]
+    # @return [Array<Aikido::Zen::RuntimeSettings::DomainSettings>]
+    attr_accessor :domains
 
-    # @!attribute [rw] excluded_user_ids_from_rate_limiting
-    #   @return [Array<String>, nil] the user IDs that should be skipped from
-    #     rate limiting entirely.
+    # @return [Array<String>, nil] the user IDs that should be skipped from rate limiting entirely
+    attr_accessor :excluded_user_ids_from_rate_limiting
 
     # Parse and interpret the JSON response from the core API with updated
     # runtime settings, and apply the changes.
@@ -84,20 +90,20 @@ module Aikido::Zen
     def update_from_runtime_config_json(data)
       last_updated_at = updated_at
 
-      self.updated_at = Time.at(data["configUpdatedAt"].to_i / 1000)
-      self.heartbeat_interval = data["heartbeatIntervalInMS"].to_i / 1000
-      self.endpoints = RuntimeSettings::Endpoints.from_json(data["endpoints"])
-      self.blocked_user_ids = data["blockedUserIds"]
-      self.bypassed_ips = RuntimeSettings::IPSet.from_json(data["allowedIPAddresses"])
-      self.received_any_stats = data["receivedAnyStats"]
-      self.blocking_mode = data["block"]
+      @updated_at = Time.at(data["configUpdatedAt"].to_i / 1000)
+      @heartbeat_interval = data["heartbeatIntervalInMS"].to_i / 1000
+      @endpoints = RuntimeSettings::Endpoints.from_json(data["endpoints"])
+      @blocked_user_ids = data["blockedUserIds"]
+      @bypassed_ips = RuntimeSettings::IPSet.from_json(data["allowedIPAddresses"])
+      @received_any_stats = data["receivedAnyStats"]
+      @blocking_mode = data["block"]
 
-      self.block_new_outbound = data["blockNewOutgoingRequests"]
-      self.domains = RuntimeSettings::Domains.from_json(data["domains"])
+      @block_new_outbound = data["blockNewOutgoingRequests"]
+      @domains = RuntimeSettings::Domains.from_json(data["domains"])
 
-      self.excluded_user_ids_from_rate_limiting = data["excludedUserIdsFromRateLimiting"]
+      @excluded_user_ids_from_rate_limiting = data["excludedUserIdsFromRateLimiting"]
 
-      updated_at != last_updated_at
+      @updated_at != last_updated_at
     end
 
     # Parse and interpret the JSON response from the core API with updated
@@ -107,11 +113,11 @@ module Aikido::Zen
     #   API endpoint.
     # @return [void]
     def update_from_runtime_firewall_lists_json(data)
-      self.blocked_user_agent_regexp = pattern(data["blockedUserAgents"])
+      @blocked_user_agent_regexp = pattern(data["blockedUserAgents"])
 
-      self.monitored_user_agent_regexp = pattern(data["monitoredUserAgents"])
+      @monitored_user_agent_regexp = pattern(data["monitoredUserAgents"])
 
-      self.user_agent_details = []
+      @user_agent_details = []
 
       data["userAgentDetails"]&.each do |record|
         key = record["key"]
@@ -119,28 +125,28 @@ module Aikido::Zen
 
         next if key.nil? || pattern.nil?
 
-        user_agent_details << {
+        @user_agent_details << {
           key: key,
           pattern: pattern
         }
       end
 
-      self.blocked_ip_lists = []
+      @blocked_ip_lists = []
 
       data["blockedIPAddresses"]&.each do |ip_list|
-        blocked_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
+        @blocked_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
       end
 
-      self.allowed_ip_lists = []
+      @allowed_ip_lists = []
 
       data["allowedIPAddresses"]&.each do |ip_list|
-        allowed_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
+        @allowed_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
       end
 
-      self.monitored_ip_lists = []
+      @monitored_ip_lists = []
 
       data["monitoredIPAddresses"]&.each do |ip_list|
-        monitored_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
+        @monitored_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
       end
     end
 
@@ -164,14 +170,15 @@ module Aikido::Zen
     # @param ip [String]
     # @return [Boolean] Whether the IP is included in the bypassed IPs set.
     def bypassed_ip?(ip)
-      bypassed_ips.include?(ip)
+      @bypassed_ips.include?(ip)
     end
 
     # @param user_id [String, nil]
     # @return [Boolean] Whether the user is excluded from rate limiting.
     def user_excluded_from_rate_limiting?(user_id)
       return false if user_id.nil?
-      excluded_user_ids_from_rate_limiting&.include?(user_id.to_s) || false
+
+      @excluded_user_ids_from_rate_limiting&.include?(user_id.to_s) || false
     end
 
     # @param user_agent [String] the user agent
@@ -179,49 +186,49 @@ module Aikido::Zen
     def blocked_user_agent?(user_agent)
       return false if blocked_user_agent_regexp.nil?
 
-      blocked_user_agent_regexp.match?(user_agent)
+      @blocked_user_agent_regexp.match?(user_agent)
     end
 
     # @param user_agent [String] the user agent
     # @return [Boolean] whether the user agent should be monitored
     def monitored_user_agent?(user_agent)
-      return false if monitored_user_agent_regexp.nil?
+      return false if @monitored_user_agent_regexp.nil?
 
-      monitored_user_agent_regexp.match?(user_agent)
+      @monitored_user_agent_regexp.match?(user_agent)
     end
 
     # @param user_agent [String] the user agent
     # @return [Array<String>] the matching user agent keys
     def user_agent_keys(user_agent)
-      return [] if user_agent_details.nil?
+      return [] if @user_agent_details.nil?
 
-      user_agent_details.filter_map { |record| record[:key] if record[:pattern].match?(user_agent) }
+      @user_agent_details.filter_map { |record| record[:key] if record[:pattern].match?(user_agent) }
     end
 
     def allowed_ip?(ip)
-      allowed_ip_lists.empty? || allowed_ip_lists.any? { |ip_list| ip_list.include?(ip) }
+      @allowed_ip_lists.empty? || @allowed_ip_lists.any? { |ip_list| ip_list.include?(ip) }
     end
 
     def blocked_ip?(ip)
-      blocked_ip_lists.any? { |ip_list| ip_list.include?(ip) }
+      @blocked_ip_lists.any? { |ip_list| ip_list.include?(ip) }
     end
 
     def monitored_ip?(ip)
-      monitored_ip_lists.any? { |ip_list| ip_list.include?(ip) }
+      @monitored_ip_lists.any? { |ip_list| ip_list.include?(ip) }
     end
 
     def monitored_ip_list_keys(ip)
       return [] if ip.nil?
 
-      monitored_ip_lists.filter_map { |ip_list| ip_list.key if ip_list.include?(ip) }
+      @monitored_ip_lists.filter_map { |ip_list| ip_list.key if ip_list.include?(ip) }
     end
 
     def block_outbound?(connection)
-      domain = domains[connection.host]
+      domain = @domains[connection.host]
 
       return true if !domain.equal?(RuntimeSettings::DomainSettings.none) && domain.block?
 
-      block_new_outbound && domain.block?
+      @block_new_outbound && domain.block?
     end
   end
 end
