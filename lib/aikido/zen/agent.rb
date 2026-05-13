@@ -23,13 +23,13 @@ module Aikido::Zen
       worker: Aikido::Zen::Worker.new(config: config),
       api_client: Aikido::Zen::APIClient.new(config: config)
     )
-      @started_at = nil
-
       @config = config
-      @worker = worker
-      @api_client = api_client
       @collector = collector
       @detached_agent = detached_agent
+      @worker = worker
+      @api_client = api_client
+
+      @started_at = nil
     end
 
     def started?
