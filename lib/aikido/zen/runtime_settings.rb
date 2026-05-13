@@ -84,7 +84,7 @@ module Aikido::Zen
     def update_from_runtime_config_json(data)
       last_updated_at = updated_at
 
-      self.updated_at = Time.at(data["configUpdatedAt"].to_i / 1000)
+      self.updated_at = Time.at(data["configUpdatedAt"].to_i)
       self.heartbeat_interval = data["heartbeatIntervalInMS"].to_i / 1000
       self.endpoints = RuntimeSettings::Endpoints.from_json(data["endpoints"])
       self.blocked_user_ids = data["blockedUserIds"]
