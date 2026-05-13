@@ -80,7 +80,7 @@ module Aikido::Zen
     #
     # @param data [Hash] the decoded JSON payload from the /api/runtime/config
     #   API endpoint.
-    # @return [bool]
+    # @return [Boolean]
     def update_from_runtime_config_json(data)
       last_updated_at = updated_at
 
@@ -105,7 +105,7 @@ module Aikido::Zen
     #
     # @param data [Hash] the decoded JSON payload from the /api/runtime/firewall/lists
     #   API endpoint.
-    # @return [void]
+    # @return [Boolean]
     def update_from_runtime_firewall_lists_json(data)
       self.blocked_user_agent_regexp = pattern(data["blockedUserAgents"])
 
@@ -142,6 +142,8 @@ module Aikido::Zen
       data["monitoredIPAddresses"]&.each do |ip_list|
         monitored_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
       end
+
+      true
     end
 
     # Construct a regular expression from the non-nil and non-empty string,
