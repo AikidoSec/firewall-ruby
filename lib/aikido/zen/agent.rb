@@ -59,7 +59,7 @@ module Aikido::Zen
       at_exit { stop! if started? }
 
       report(Events::Started.new(time: @started_at)) do |response|
-        if Aikido::Zen.runtime_settings.update_from_runtime_config_json(response)
+        if update_settings_from_runtime_config!(response)
           updated_settings!
           @config.logger.info("Updated runtime settings")
         end
@@ -68,7 +68,7 @@ module Aikido::Zen
       end
 
       begin
-        Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(@api_client.fetch_runtime_firewall_lists)
+        update_settings_from_runtime_firewall_lists!(@api_client.fetch_runtime_firewall_lists)
         @config.logger.info("Updated runtime firewall list")
       rescue => err
         @config.logger.error(err.message)
@@ -157,11 +157,11 @@ module Aikido::Zen
 
       heartbeat = @collector.flush
       report(heartbeat) do |response|
-        if Aikido::Zen.runtime_settings.update_from_runtime_config_json(response)
+        if update_settings_from_runtime_config!(response)
           updated_settings!
           @config.logger.info("Updated runtime settings after heartbeat")
 
-          Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(@api_client.fetch_runtime_firewall_lists)
+          update_settings_from_runtime_firewall_lists!(@api_client.fetch_runtime_firewall_lists)
           @config.logger.info("Updated runtime firewall list after heartbeat")
         end
       end
@@ -177,22 +177,66 @@ module Aikido::Zen
     def poll_for_setting_updates
       @worker.every(@config.polling_interval) do
         if @api_client.should_fetch_settings?
-          if Aikido::Zen.runtime_settings.update_from_runtime_config_json(@api_client.fetch_runtime_config)
+          if update_settings_from_runtime_config!(@api_client.fetch_runtime_config)
             updated_settings!
             @config.logger.info("Updated runtime settings after polling")
           end
 
-          Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(@api_client.fetch_runtime_firewall_lists)
+          update_settings_from_runtime_firewall_lists!(@api_client.fetch_runtime_firewall_lists)
           @config.logger.info("Updated runtime firewall list after polling")
         end
       end
     end
 
-    private def heartbeats
+    private
+
+    def heartbeats
       @heartbeats ||= Aikido::Zen::Agent::HeartbeatsManager.new(
         config: @config,
         worker: @worker
       )
+    end
+
+    module Updater
+      # Define a method `method_name` that returns early if the method is running.
+      #
+      # @param method_name [Symbol, String] the name of the method to define
+      # @yield the block to execute
+      # @yieldparam args [Array] the positional arguments passed to the method
+      # @yieldparam blk [Proc] the block passed to the method
+      # @yieldparam kwargs [Hash] the keyword arguments passed to the method
+      # @yieldreturn [Object] the return value of the method
+      # @return [void]
+      def updater(method_name, &block)
+        raise ArgumentError, "block required" unless block
+
+        instance_variable = :"@__updater_#{block.object_id}"
+
+        define_method(method_name) do |*args, **kwargs|
+          updating = instance_variable_get(instance_variable) ||
+            instance_variable_set(instance_variable, Concurrent::AtomicBoolean.new)
+
+          return unless updating.make_true
+          begin
+            instance_exec(*args, **kwargs, &block)
+          ensure
+            updating.make_false
+          end
+        end
+      end
+    end
+    extend Updater
+
+    # @param data [Hash]
+    # @return [Boolean, nil]
+    updater :update_settings_from_runtime_config! do |data|
+      Aikido::Zen.runtime_settings.update_from_runtime_config_json(data)
+    end
+
+    # @param data [Hash]
+    # @return [Boolean, nil]
+    updater :update_settings_from_runtime_firewall_lists! do |data|
+      Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(data)
     end
   end
 end
