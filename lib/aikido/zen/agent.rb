@@ -21,13 +21,15 @@ module Aikido::Zen
       collector: Aikido::Zen.collector,
       detached_agent: Aikido::Zen.detached_agent,
       worker: Aikido::Zen::Worker.new(config: config),
-      api_client: Aikido::Zen::APIClient.new(config: config)
+      api_client: Aikido::Zen::APIClient.new(config: config),
+      api_stream: Aikido::Zen::APIStream.new(config: config)
     )
       @config = config
       @collector = collector
       @detached_agent = detached_agent
       @worker = worker
       @api_client = api_client
+      @api_stream = api_stream
 
       @started_at = nil
     end
@@ -82,6 +84,9 @@ module Aikido::Zen
           @config.logger.info("Executed initial heartbeat after #{heartbeat_delay} seconds")
         end
       end
+
+      @api_stream.handle("config-updated", &:settings_updated)
+      @api_stream.start!
     end
 
     # Clean up any ongoing threads, and reset the state. Called automatically
@@ -92,6 +97,8 @@ module Aikido::Zen
       @config.logger.info("Stopping Aikido agent")
       @started_at = nil
       @worker.shutdown
+
+      @api_stream.stop!
     end
 
     # Respond to the runtime settings changing after being fetched from the
@@ -188,7 +195,28 @@ module Aikido::Zen
       end
     end
 
+    def settings_updated(event)
+      updated_at = Time.at(event[:data]["configUpdatedAt"].to_i)
+
+      if should_fetch_settings?(updated_at)
+        if update_settings_from_runtime_config!(@api_client.fetch_runtime_config)
+          updated_settings!
+          @config.logger.info("Updated runtime settings after server-side event")
+
+          update_settings_from_runtime_firewall_lists!(@api_client.fetch_runtime_firewall_lists)
+          @config.logger.info("Updated runtime firewall list after server-side event")
+        end
+      end
+    end
+
     private
+
+    def should_fetch_settings?(updated_at, last_updated_at = Aikido::Zen.runtime_settings.updated_at)
+      return false unless @api_client.can_make_requests?
+      return true if last_updated_at.nil?
+
+      updated_at > last_updated_at
+    end
 
     def heartbeats
       @heartbeats ||= Aikido::Zen::Agent::HeartbeatsManager.new(
