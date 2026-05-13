@@ -41,7 +41,7 @@ module Aikido::Zen
         base_url: @config.realtime_endpoint
       )
 
-      new_updated_at = Time.at(response["configUpdatedAt"].to_i / 1000)
+      new_updated_at = Time.at(response["configUpdatedAt"].to_i)
       new_updated_at > last_updated_at
     end
 
