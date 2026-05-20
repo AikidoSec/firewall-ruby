@@ -23,18 +23,27 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     end
   end
 
+  class MockAPIStream < Aikido::Zen::APIStream
+    def work
+      nil
+    end
+  end
+
   setup do
     @config = Aikido::Zen.config
     @config.api_token = "TOKEN"
 
-    @api_client = Minitest::Mock.new(MockAPIClient.new)
     @collector = Aikido::Zen.collector
     @worker = MockWorker.new
+    @api_client = Minitest::Mock.new(MockAPIClient.new)
+    @api_stream = Minitest::Mock.new(MockAPIStream.new)
 
     @agent = Aikido::Zen::Agent.new(
-      api_client: @api_client,
+      config: @config,
       collector: @collector,
-      worker: @worker
+      worker: @worker,
+      api_client: @api_client,
+      api_stream: @api_stream
     )
 
     @test_sink = Aikido::Zen::Sink.new("test", scanners: [NOOP])
