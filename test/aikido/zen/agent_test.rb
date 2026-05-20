@@ -432,13 +432,4 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
       Aikido::Zen::UnderAttackError.new(self)
     end
   end
-
-  def stub_context(path = "/", env = {})
-    env = Rack::MockRequest.env_for(path, {"REQUEST_METHOD" => "GET"}.merge(env))
-    Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(env)
-  end
-
-  def stub_request(path = "/", env = {})
-    stub_context(path, env).request
-  end
 end
