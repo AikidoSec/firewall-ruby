@@ -58,11 +58,13 @@ require_relative "support/http_connection_tracking_assertions"
 require_relative "support/rate_limiting_assertions"
 require_relative "support/sink_attack_helpers"
 require_relative "support/worker_helpers"
+require_relative "support/wait_helpers"
 
 # Utility proc that does nothing.
 NOOP = ->(*args, **opts) {}
 
 class ActiveSupport::TestCase
+  include WaitHelpers
   self.file_fixture_path = "test/fixtures"
 
   # Reset any global state before each test
