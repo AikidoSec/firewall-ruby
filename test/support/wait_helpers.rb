@@ -4,7 +4,7 @@ module WaitHelpers
   def wait_until(timeout:)
     start_time = Time.now
     until yield || (Time.now - start_time) > timeout
-      sleep 0.1
+      sleep 0.01
     end
   end
 end

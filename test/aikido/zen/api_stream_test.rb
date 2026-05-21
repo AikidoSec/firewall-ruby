@@ -10,9 +10,9 @@ class Aikido::Zen::StreamTest < ActiveSupport::TestCase
     Aikido::Zen.config.api_token = "TOKEN"
 
     @api_stream = Aikido::Zen::APIStream.new(
-      min_backoff: 0.2,
-      max_backoff: 0.8,
-      backoff_reset: 0.4,
+      min_backoff: 0.02,
+      max_backoff: 0.08,
+      backoff_reset: 0.04,
       open_timeout: 1,
       read_timeout: 1
     )
