@@ -53,8 +53,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_equal :block, evil_domain.mode
 
     new_domain = @settings.domains["new.example.com"]
-    assert_kind_of Aikido::Zen::RuntimeSettings::DomainSettings, new_domain
-    assert_equal :block, new_domain.mode
+    assert_nil new_domain
   end
 
   test "#update_from_runtime_config_json from a JSON response without the block key" do

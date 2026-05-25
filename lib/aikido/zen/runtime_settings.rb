@@ -219,9 +219,7 @@ module Aikido::Zen
     def block_outbound?(connection)
       domain = domains[connection.host]
 
-      return true if !domain.equal?(RuntimeSettings::DomainSettings.none) && domain.block?
-
-      block_new_outbound && domain.block?
+      (!domain.nil? && domain.block?) || (domain.nil? && block_new_outbound)
     end
   end
 end
