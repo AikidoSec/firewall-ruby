@@ -117,6 +117,30 @@ module Aikido::Zen
       raise
     end
 
+    def send_user_event(event)
+      event_type = "user_event"
+
+      if @rate_limiter.throttle?(event_type)
+        @config.logger.error("Not reporting #{event_type.upcase} event due to rate limiting")
+        return
+      end
+
+      @config.logger.debug("Reporting #{event_type.upcase} event")
+
+      req = Net::HTTP::Post.new("/api/runtime/events", default_headers)
+      req.content_type = "application/json"
+      req.body = if event.respond_to?(:as_json)
+        @config.json_encoder.call(event.as_json)
+      else
+        @config.json_encoder.call(event)
+      end
+
+      request(req, base_url: @config.realtime_endpoint)
+    rescue Aikido::Zen::RateLimitedError
+      @rate_limiter.open!
+      raise
+    end
+
     # Perform an HTTP request against one of our API endpoints, and process the
     # response.
     #
@@ -133,6 +157,8 @@ module Aikido::Zen
         response = http.request(request)
 
         case response
+        when Net::HTTPNoContent
+          # empty
         when Net::HTTPSuccess
           begin
             body = decode(response.body, response["Content-Encoding"])

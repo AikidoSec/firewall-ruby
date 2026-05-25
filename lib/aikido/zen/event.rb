@@ -96,4 +96,20 @@ module Aikido::Zen
       end
     end
   end
+
+  class UserEvent
+    def initialize(name:, user_id:, ip_address:)
+      @name = name
+      @user_id = user_id
+      @ip_address = ip_address
+    end
+
+    def as_json
+      {
+        name: @name,
+        userId: @user_id,
+        ipAddress: @ip_address
+      }
+    end
+  end
 end
