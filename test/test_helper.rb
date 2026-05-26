@@ -144,7 +144,7 @@ class ActiveSupport::TestCase
       "matches #{pattern.inspect}. ".squeeze("\s") +
       "Log messages:\n#{lines.map { |line| "\t* #{line}" }.join("\n")}"
 
-    assert lines.any? { |line| pattern === line && (match_level === line or true) }, reason
+    assert lines.any? { |line| pattern === line && (match_level.nil? || line.include?(match_level)) }, reason
   end
 
   def refute_logged(level = nil, pattern)
@@ -157,7 +157,7 @@ class ActiveSupport::TestCase
       "to match #{pattern.inspect}".squeeze("\s") +
       "Log messages:\n#{lines.map { |line| "\t* #{line}" }.join("\n")}"
 
-    refute lines.any? { |line| pattern === line && (match_level === line or true) }, reason
+    refute lines.any? { |line| pattern === line && (match_level.nil? || line.include?(match_level)) }, reason
   end
 
   # rubocop:enable Style/OptionalArguments

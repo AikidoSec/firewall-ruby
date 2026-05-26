@@ -115,7 +115,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     @config.api_token = "TOKEN"
     @agent.start!
 
-    assert_logged :debug, /api token set! reporting has been enabled/i
+    assert_logged :info, /api token set! reporting has been enabled/i
     refute_logged :warn, /no api token set! reporting has been disabled/i
   end
 
