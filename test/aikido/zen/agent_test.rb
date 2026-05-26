@@ -129,6 +129,76 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     refute_logged :debug, /api token set! reporting has been enabled/i
   end
 
+  test "#start! probes the realtime endpont" do
+    request = stub_probe_realtime_endpoint
+      .to_return(status: 200, body: "")
+
+    @config.api_token = "TOKEN"
+    @agent.start!
+
+    assert_requested request
+
+    refute_logged :debug, /error probing realtime endpoint/i
+    refute_logged :error, /error probing realtime endpoint/i
+    refute_logged :warn, /can't reach #{Aikido::Zen.config.realtime_endpoint}/i
+  end
+
+  test "#start! probes the realtime endpont and logs warning after open timeout" do
+    request = stub_probe_realtime_endpoint
+      .to_raise(Net::OpenTimeout)
+
+    @config.api_token = "TOKEN"
+    @agent.start!
+
+    assert_requested request
+
+    assert_logged :debug, /error probing realtime endpoint/i
+    refute_logged :error, /error probing realtime endpoint/i
+    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_endpoint}/i
+  end
+
+  test "#start! probes the realtime endpont and logs warning after write timeout" do
+    request = stub_probe_realtime_endpoint
+      .to_raise(Net::WriteTimeout)
+
+    @config.api_token = "TOKEN"
+    @agent.start!
+
+    assert_requested request
+
+    assert_logged :debug, /error probing realtime endpoint/i
+    refute_logged :error, /error probing realtime endpoint/i
+    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_endpoint}/i
+  end
+
+  test "#start! probes the realtime endpont and logs warning after read timeout" do
+    request = stub_probe_realtime_endpoint
+      .to_raise(Net::ReadTimeout)
+
+    @config.api_token = "TOKEN"
+    @agent.start!
+
+    assert_requested request
+
+    assert_logged :debug, /error probing realtime endpoint/i
+    refute_logged :error, /error probing realtime endpoint/i
+    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_endpoint}/i
+  end
+
+  test "#start! probes the realtime endpont and logs error after unexpected error" do
+    request = stub_probe_realtime_endpoint
+      .to_raise(RuntimeError)
+
+    @config.api_token = "TOKEN"
+    @agent.start!
+
+    assert_requested request
+
+    refute_logged :debug, /error probing realtime endpoint/i
+    assert_logged :error, /error probing realtime endpoint/i
+    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_endpoint}/i
+  end
+
   test "#start! reports a STARTED event" do
     stub_probe_realtime_endpoint
 
