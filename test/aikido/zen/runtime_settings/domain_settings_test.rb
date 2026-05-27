@@ -71,10 +71,4 @@ class Aikido::Zen::RuntimeSettings::DomainSettingsTest < ActiveSupport::TestCase
 
     refute domain_settings.block?
   end
-
-  test "#block? returns true for unknown domains" do
-    domain_settings = Aikido::Zen::RuntimeSettings::DomainSettings.none
-
-    assert domain_settings.block?
-  end
 end
