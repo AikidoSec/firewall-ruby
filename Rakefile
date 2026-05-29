@@ -46,6 +46,7 @@ end
 Minitest::TestTask.create do |test_task|
   test_task.test_globs = FileList["test/**/{test_*,*_test}.rb"]
     .exclude("test/e2e/**/*.rb")
+    .exclude("test/rails/**/*.rb")
 end
 task test: "libzen:download:current"
 

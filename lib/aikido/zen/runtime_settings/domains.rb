@@ -17,7 +17,6 @@ module Aikido::Zen
 
     def initialize(domains = {})
       @domains = domains
-      @domains.default = RuntimeSettings::DomainSettings.none
     end
 
     def [](hostname)

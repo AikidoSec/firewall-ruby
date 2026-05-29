@@ -2,10 +2,6 @@
 
 module Aikido::Zen
   class RuntimeSettings::DomainSettings
-    def self.none
-      @no_settings ||= new(mode: :block)
-    end
-
     def self.from_json(data)
       new(
         mode: data["mode"]&.to_sym

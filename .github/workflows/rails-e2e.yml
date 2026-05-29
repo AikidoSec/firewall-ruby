@@ -1,4 +1,4 @@
-name: 🚂️ Rails tests
+name: ️️🛤️ Rails end to end tests
 
 on:
   - push
@@ -41,7 +41,12 @@ jobs:
     - name: Download libzen
       run: "bundle exec rake libzen:download:current"
     - name: Run the Rails tests
-      working-directory: test/rails/${{ matrix.app }}
+      working-directory: test/rails/e2e/${{ matrix.app }}
       run: |
         bin/setup
+        bin/rails server -e test &
+        for i in $(seq 1 30); do
+          curl -s -o /dev/null http://127.0.0.1:3000/up && break
+          sleep 1
+        done
         bin/rails test

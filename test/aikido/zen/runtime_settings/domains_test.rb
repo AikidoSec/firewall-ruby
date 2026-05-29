@@ -64,16 +64,14 @@ class Aikido::Zen::RuntimeSettings::DomainsTest < ActiveSupport::TestCase
     end
   end
 
-  test "lookup returns default domain settings for unknown domains" do
+  test "lookup returns nil for unknown domains" do
     domains = Aikido::Zen::RuntimeSettings::Domains.from_json(DEFAULT_DOMAINS)
 
     refute_includes domains, "unknown"
 
     domain = domains["unknown"]
 
-    refute_nil domain
-    assert_kind_of Aikido::Zen::RuntimeSettings::DomainSettings, domain
-    assert_equal Aikido::Zen::RuntimeSettings::DomainSettings.none, domain
+    assert_nil domain
   end
 
   test "lookup returns the domain settings independent of case" do
