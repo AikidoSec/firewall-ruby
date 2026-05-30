@@ -24,3 +24,5 @@ group :development, :test do
 end
 
 gem "aikido-zen", path: "../../../../"
+
+gem 'nokogiri', '>= 1.19.3'
