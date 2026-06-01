@@ -3,6 +3,38 @@
 require "test_helper"
 
 class Aikido::Zen::AttackWaveTest < ActiveSupport::TestCase
+  class HelpersTest < ActiveSupport::TestCase
+    test "suspicious_path? returns true for foreign extension with 404 status" do
+      assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/admin.php", 404)
+      assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/app.jsp", 404)
+      assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/page.jspx", 404)
+      assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/index.php3", 404)
+      assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/index.php4", 404)
+      assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/index.php5", 404)
+      assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/index.phtml", 404)
+      assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/Hello.java", 404)
+    end
+
+    test "suspicious_path? returns false for foreign extension with non-404 status" do
+      refute Aikido::Zen::AttackWave::Helpers.suspicious_path?("/admin.php", 200)
+      refute Aikido::Zen::AttackWave::Helpers.suspicious_path?("/app.jsp", 200)
+      refute Aikido::Zen::AttackWave::Helpers.suspicious_path?("/admin.php", 301)
+      refute Aikido::Zen::AttackWave::Helpers.suspicious_path?("/admin.php", 500)
+      refute Aikido::Zen::AttackWave::Helpers.suspicious_path?("/admin.php", nil)
+    end
+
+    test "suspicious_path? still returns true for always-suspicious extensions regardless of status" do
+      assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/backup.sql", 200)
+      assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/data.db", 200)
+      assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/dump.bak", 200)
+    end
+
+    test "suspicious_path? still returns true for suspicious file names regardless of status" do
+      assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/.gitconfig", 200)
+      assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/wp-config.php", 200)
+    end
+  end
+
   class TestClock
     attr_reader :at
 
