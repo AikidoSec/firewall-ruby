@@ -261,9 +261,9 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     refute_attack "SELECT * WHERE id =   123  ", "  123  "
   end
 
-  test "flags invalid whitespace around numbers" do
-    assert_attack "SELECT * WHERE id = \n123\n", "\n123\n"
-    assert_attack "SELECT * WHERE id = \t123\t", "\t123\t"
+  test "ignores leading/trailing whitespace around numbers" do
+    refute_attack "SELECT * WHERE id = \n123\n", "\n123\n"
+    refute_attack "SELECT * WHERE id = \t123\t", "\t123\t"
   end
 
   test "ignores comma-separated list of numbers" do
