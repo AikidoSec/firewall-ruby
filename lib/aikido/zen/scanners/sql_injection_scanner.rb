@@ -54,7 +54,7 @@ module Aikido::Zen
 
       def initialize(query, input, dialect)
         @query = query.downcase
-        @input = input.downcase
+        @input = input.downcase.strip
         @dialect = dialect
       end
 

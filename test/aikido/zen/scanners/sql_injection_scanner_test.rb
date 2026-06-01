@@ -218,6 +218,13 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     assert_attack "SELECT id FROM users WHERE email = '' or 1=1 -- a'", "' OR 1=1 -- a"
   end
 
+  test "detects injection when user input has trailing spaces" do
+    assert_attack(
+      "INSERT INTO pets (name, owner) VALUES ('x', 'dummy'), ('injected', 'hacker'); --', 'owner')",
+      "x', 'dummy'), ('injected', 'hacker'); --    "
+    )
+  end
+
   test "it does not flag VIEW as an attack when it's a substring" do
     query = <<~SQL.chomp
       SELECT views.id AS view_id, view_settings.user_id, view_settings.settings
