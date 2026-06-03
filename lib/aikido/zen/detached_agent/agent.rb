@@ -36,7 +36,6 @@ module Aikido::Zen::DetachedAgent
 
       @front_object = DRbObject.new_with_uri(config.expanded_detached_agent_socket_uri)
 
-      @has_forked = false
       schedule_tasks
     end
 
@@ -53,26 +52,22 @@ module Aikido::Zen::DetachedAgent
     # a DRb service in a background thread within the child process. This service
     # will manage the connection and handle resource cleanup.
     def handle_fork
-      @has_forked = true
       DRb.start_service
       # we need to ensure that there are not more jobs in the queue, but
       # we reuse the same object
       @worker.restart
       schedule_tasks
+
+      # Get a reference to the runtime settings
+      # TODO: Rename #updated_settings
+      Aikido::Zen.runtime_settings = @front_object.updated_settings
     end
 
     private
 
     def schedule_tasks
-      @worker.every(@heartbeat_interval, run_now: false) { send_collector_events }
-
-      # Runtime_settings fetch must happens only in the child processes, otherwise, due to
-      # we are updating the global runtime_settings, we could have an infinite recursion.
-      if @has_forked
-        @worker.every(@polling_interval) do
-          Aikido::Zen.runtime_settings = @front_object.updated_settings
-          @config.logger.debug "Updated runtime settings after polling from child process #{Process.pid}"
-        end
+      @worker.every(@heartbeat_interval, run_now: false) do
+        send_collector_events
       end
     end
   end

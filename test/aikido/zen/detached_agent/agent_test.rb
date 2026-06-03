@@ -80,7 +80,7 @@ class Aikido::Zen::DetachedAgent::AgentTest < ActiveSupport::TestCase
 
       assert mocks[:worker].restarted
       assert_same mocks[:worker], mocks[:agent].worker
-      assert_equal 2, mocks[:worker].jobs.size
+      assert_equal 1, mocks[:worker].jobs.size
 
       assert drb_start_called
 
