@@ -52,6 +52,9 @@ module Aikido::Zen::DetachedAgent
     # a DRb service in a background thread within the child process. This service
     # will manage the connection and handle resource cleanup.
     def handle_fork
+      # We use remove_server (not stop_service) to avoid closing inherited FDs.
+      DRb.remove_server(DRb.primary_server) if DRb.primary_server
+
       DRb.start_service
       # we need to ensure that there are not more jobs in the queue, but
       # we reuse the same object
@@ -61,6 +64,8 @@ module Aikido::Zen::DetachedAgent
       # Get a reference to the runtime settings
       # TODO: Rename #updated_settings
       Aikido::Zen.runtime_settings = @front_object.updated_settings
+    rescue => err
+      @config.logger.error("Error in detached agent handling fork in process #{Process.pid}: #{err.class}: #{err.message}")
     end
 
     private
