@@ -59,3 +59,7 @@ end
 gem "aikido-zen", path: "../../../"
 
 gem "actionpack-xml_parser"
+
+gem 'json', '>= 2.19.7'
+
+gem 'psych', '>= 5.4.0'
