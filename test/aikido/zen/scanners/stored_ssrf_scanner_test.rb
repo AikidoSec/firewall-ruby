@@ -32,6 +32,8 @@ class Aikido::Zen::Scanners::StoredSSRFScannerTest < ActiveSupport::TestCase
   test "allows known hosts that resolve to dangerous addresses" do
     refute_attack "metadata.google.internal", ["169.254.169.254"]
     refute_attack "metadata.goog", ["169.254.169.254"]
+    refute_attack "metadata.google.internal.", ["169.254.169.254"]
+    refute_attack "metadata.goog.", ["169.254.169.254"]
   end
 
   test "allows hostnames that are trying to access the IMDS service when the stored SSRF scanning is disabled" do

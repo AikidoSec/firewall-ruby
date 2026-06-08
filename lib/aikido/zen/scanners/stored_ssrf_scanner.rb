@@ -36,7 +36,7 @@ module Aikido::Zen
       def attack?
         return unless @config.stored_ssrf? # Feature flag
 
-        return if @config.imds_allowed_hosts.include?(@hostname)
+        return if @config.imds_allowed_hosts.include?(@hostname.chomp("."))
 
         @addresses.find do |address|
           DANGEROUS_ADDRESSES.any? do |dangerous_address|
