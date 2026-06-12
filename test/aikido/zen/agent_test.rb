@@ -36,6 +36,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   setup do
     @config = Aikido::Zen.config
     @config.api_token = "TOKEN"
+    @config.realtime_settings_updates_enabled = true
 
     @collector = Aikido::Zen.collector
     @worker = MockWorker.new

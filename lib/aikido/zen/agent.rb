@@ -85,11 +85,13 @@ module Aikido::Zen
         end
       end
 
-      if @api_stream.can_connect?
-        @api_stream.handle("config-updated") { |event| settings_updated(event) }
-        @api_stream.start!
-      else
-        @config.logger.warn("Can't reach #{Aikido::Zen.config.realtime_endpoint}, make sure it's in your outbound firewall allowlist. Realtime config updates won't be available, switched to polling.")
+      if @config.realtime_settings_updates_enabled?
+        if @api_stream.can_connect?
+          @api_stream.handle("config-updated") { |event| settings_updated(event) }
+          @api_stream.start!
+        else
+          @config.logger.warn("Can't reach #{Aikido::Zen.config.realtime_endpoint}, make sure it's in your outbound firewall allowlist. Realtime config updates won't be available, switched to polling.")
+        end
       end
     end
 
