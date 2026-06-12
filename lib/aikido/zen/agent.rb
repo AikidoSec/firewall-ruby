@@ -229,7 +229,7 @@ module Aikido::Zen
       )
     end
 
-    module Updater
+    module ExclusiveUpdater
       # Define a method `method_name` that returns early if the method is running.
       #
       # @param method_name [Symbol, String] the name of the method to define
@@ -239,7 +239,7 @@ module Aikido::Zen
       # @yieldparam kwargs [Hash] the keyword arguments passed to the method
       # @yieldreturn [Object] the return value of the method
       # @return [void]
-      def updater(method_name, &block)
+      def exclusive_updater(method_name, &block)
         raise ArgumentError, "block required" unless block
 
         instance_variable = :"@__updater_#{block.object_id}"
@@ -257,17 +257,17 @@ module Aikido::Zen
         end
       end
     end
-    extend Updater
+    extend ExclusiveUpdater
 
     # @param data [Hash]
     # @return [Boolean, nil]
-    updater :update_settings_from_runtime_config! do |data|
+    exclusive_updater :update_settings_from_runtime_config! do |data|
       Aikido::Zen.runtime_settings.update_from_runtime_config_json(data)
     end
 
     # @param data [Hash]
     # @return [Boolean, nil]
-    updater :update_settings_from_runtime_firewall_lists! do |data|
+    exclusive_updater :update_settings_from_runtime_firewall_lists! do |data|
       Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(data)
     end
   end
