@@ -155,7 +155,7 @@ module Aikido::Zen
           response.read_body do |chunk|
             return nil unless running?
 
-            @config.logger.debug("API stream received chunk:\n#{chunk.strip}")
+            @config.logger.debug("API stream received chunk of #{chunk.bytesize} bytes")
 
             buffer << chunk
 
