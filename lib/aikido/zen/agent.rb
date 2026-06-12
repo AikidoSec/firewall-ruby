@@ -199,6 +199,8 @@ module Aikido::Zen
       end
     end
 
+    private
+
     def settings_updated(event)
       updated_at = Time.at(event[:data]["configUpdatedAt"].to_i)
 
@@ -212,8 +214,6 @@ module Aikido::Zen
         end
       end
     end
-
-    private
 
     def should_fetch_settings?(updated_at, last_updated_at = Aikido::Zen.runtime_settings.updated_at)
       return false unless @api_client.can_make_requests?
