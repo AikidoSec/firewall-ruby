@@ -129,7 +129,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     refute_logged :debug, /api token set! reporting has been enabled/i
   end
 
-  test "#start! probes the realtime endpont" do
+  test "#start! probes the realtime endpoint" do
     request = stub_probe_realtime_endpoint
       .to_return(status: 200, body: "")
 
