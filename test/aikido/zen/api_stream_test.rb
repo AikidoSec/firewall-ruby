@@ -5,9 +5,10 @@ require "securerandom"
 
 class Aikido::Zen::StreamTest < ActiveSupport::TestCase
   setup do
-    @endpoint = "https://runtime.aikido.dev/api/runtime/stream"
+    config = Aikido::Zen.config
+    config.api_token = "TOKEN"
 
-    Aikido::Zen.config.api_token = "TOKEN"
+    @endpoint = "#{config.realtime_endpoint}/api/runtime/stream"
 
     @api_stream = Aikido::Zen::APIStream.new(
       min_backoff: 0.02,
