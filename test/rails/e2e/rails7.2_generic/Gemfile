@@ -5,7 +5,7 @@ gem "rails", "~> 7.2.3", ">= 7.2.3.1"
 # The original asset pipeline for Rails [https://github.com/rails/sprockets-rails]
 gem "sprockets-rails"
 # Use sqlite3 as the database for Active Record
-gem "sqlite3", ">= 1.4"
+gem "sqlite3", '>= 2.9.5'
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 
@@ -24,3 +24,11 @@ group :development, :test do
 end
 
 gem "aikido-zen", path: "../../../../"
+
+gem 'nokogiri', '>= 1.19.3'
+
+gem 'net-imap', '>= 0.5.15'
+
+gem 'websocket-driver', '>= 0.8.1'
+
+gem 'psych', '>= 5.4.0'
