@@ -11,10 +11,11 @@ require_relative "zen/system_info"
 require_relative "zen/worker"
 require_relative "zen/agent"
 require_relative "zen/api_client"
+require_relative "zen/api_cache"
 require_relative "zen/api_stream"
 require_relative "zen/context"
 require_relative "zen/current_context"
-require_relative "zen/detached_agent"
+require_relative "zen/worker_process"
 require_relative "zen/middleware/middleware"
 require_relative "zen/middleware/fork_detector"
 require_relative "zen/middleware/context_setter"
@@ -85,6 +86,24 @@ module Aikido
 
     def self.runtime_settings=(settings)
       @runtime_settings = settings
+    end
+
+    def self.api_cache
+      @api_cache ||= APICache.new
+    end
+
+    def self.rate_limiter
+      @rate_limiter ||= RateLimiter.new
+    end
+
+    def self.calculate_rate_limits(request)
+      worker_process_client = @worker_process_client
+
+      if worker_process_client
+        worker_process_client.calculate_rate_limits(request)
+      else
+        rate_limiter.calculate_rate_limits(request)
+      end
     end
 
     def self.secret
@@ -321,37 +340,31 @@ module Aikido
     # Stop any background threads.
     def self.stop!
       @agent&.stop!
-      @detached_agent_server&.stop!
+      @worker_process_server&.stop
+
+      @worker_process_client&.stop
     end
 
-    # @!visibility private
-    # Starts the background agent if it has not been started yet.
     def self.agent
-      @agent ||= Agent.start
+      @agent
     end
 
-    def self.detached_agent
-      @detached_agent ||= DetachedAgent::Agent.new
+    def self.worker_process_server
+      @worker_process_server
     end
 
-    def self.detached_agent_server
-      @detached_agent_server ||= DetachedAgent::Server.start
-    end
+    @has_started = Concurrent::AtomicBoolean.new(false)
 
     class << self
-      # `agent` and `detached_agent` are started on the first method call.
-      # A mutex controls thread execution to prevent multiple attempts.
-      LOCK = Mutex.new
-
       def start!
         return unless start?
 
-        @pid = Process.pid
+        return unless @has_started.make_true
 
-        LOCK.synchronize do
-          agent
-          detached_agent_server
-        end
+        @worker_process_server = WorkerProcess::Agent::Server.new
+        @worker_process_server.start
+
+        @agent = Agent.start
       end
 
       def start?
@@ -360,18 +373,19 @@ module Aikido
           config.debugging?
       end
 
-      def check_and_handle_fork
-        handle_fork if forked?
-      end
+      def fork!
+        server = @worker_process_server
+        return unless server
 
-      def forked?
-        pid_changed = Process.pid != @pid
-        @pid = Process.pid
-        pid_changed
-      end
+        client = @worker_process_client
+        @worker_process_client = nil
+        client&.close
 
-      def handle_fork
-        @detached_agent&.handle_fork
+        client = WorkerProcess::Agent::Client.new(server.host, server.port)
+        client.start
+        @worker_process_client = client
+      rescue => err
+        config.logger.error("Forked worker process #{Process.pid}: failed to start worker process client: #{err.message}")
       end
     end
 
