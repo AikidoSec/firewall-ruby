@@ -8,7 +8,7 @@ class Aikido::Zen::StreamTest < ActiveSupport::TestCase
     config = Aikido::Zen.config
     config.api_token = "TOKEN"
 
-    @endpoint = "#{config.realtime_endpoint}/api/runtime/stream"
+    @endpoint = "#{config.realtime_settings_updates_endpoint}/api/runtime/stream"
 
     @api_stream = Aikido::Zen::APIStream.new(
       min_backoff: 0.02,

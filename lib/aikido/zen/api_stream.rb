@@ -26,9 +26,11 @@ module Aikido::Zen
       @running = Concurrent::AtomicBoolean.new
       @executor = nil
 
-      @host = @config.realtime_endpoint.host
-      @port = @config.realtime_endpoint.port
-      @use_ssl = @config.realtime_endpoint.scheme == "https"
+      endpoint = @config.realtime_settings_updates_endpoint
+
+      @host = endpoint.host
+      @port = endpoint.port
+      @use_ssl = endpoint.scheme == "https"
       @token = @config.api_token
 
       @handlers = Concurrent::Array.new

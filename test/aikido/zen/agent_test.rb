@@ -30,7 +30,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   def stub_probe_realtime_endpoint
-    stub_request(:get, "#{@config.realtime_endpoint}/config")
+    stub_request(:get, "#{@config.realtime_settings_updates_endpoint}/config")
   end
 
   setup do
@@ -141,7 +141,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
 
     refute_logged :debug, /error probing realtime endpoint/i
     refute_logged :error, /error probing realtime endpoint/i
-    refute_logged :warn, /can't reach #{Aikido::Zen.config.realtime_endpoint}/i
+    refute_logged :warn, /can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}/i
   end
 
   test "#start! probes the realtime endpont and logs warning after open timeout" do
@@ -155,7 +155,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
 
     assert_logged :debug, /error probing realtime endpoint/i
     refute_logged :error, /error probing realtime endpoint/i
-    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_endpoint}/i
+    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}/i
   end
 
   test "#start! probes the realtime endpont and logs warning after write timeout" do
@@ -169,7 +169,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
 
     assert_logged :debug, /error probing realtime endpoint/i
     refute_logged :error, /error probing realtime endpoint/i
-    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_endpoint}/i
+    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}/i
   end
 
   test "#start! probes the realtime endpont and logs warning after read timeout" do
@@ -183,7 +183,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
 
     assert_logged :debug, /error probing realtime endpoint/i
     refute_logged :error, /error probing realtime endpoint/i
-    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_endpoint}/i
+    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}/i
   end
 
   test "#start! probes the realtime endpont and logs error after unexpected error" do
@@ -197,7 +197,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
 
     refute_logged :debug, /error probing realtime endpoint/i
     assert_logged :error, /error probing realtime endpoint/i
-    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_endpoint}/i
+    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}/i
   end
 
   test "#start! reports a STARTED event" do

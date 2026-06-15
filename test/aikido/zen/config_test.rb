@@ -55,6 +55,7 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal [], @config.idor_excluded_table_names
     assert_equal 1000, @config.idor_max_cache_entries
     assert_equal false, @config.realtime_settings_updates_enabled?
+    assert_equal URI("https://zen.aikido.dev"), @config.realtime_settings_updates_endpoint
   end
 
   test "can set AIKIDO_DISABLE to configure if the agent should be turned off" do
