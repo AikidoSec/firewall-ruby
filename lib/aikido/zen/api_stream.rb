@@ -24,7 +24,7 @@ module Aikido::Zen
       @read_timeout = read_timeout
 
       @running = Concurrent::AtomicBoolean.new
-      @executor = nil
+      @thread = nil
 
       endpoint = @config.realtime_settings_updates_endpoint
 
@@ -69,9 +69,7 @@ module Aikido::Zen
     def start!
       return false unless @running.make_true
 
-      @executor = Concurrent::SingleThreadExecutor.new
-
-      @executor.post do
+      @thread = Thread.new do
         backoff = @min_backoff
 
         while running?
@@ -109,8 +107,7 @@ module Aikido::Zen
     def stop!
       return false unless @running.make_false
 
-      @executor.shutdown
-      @executor.wait_for_termination(@read_timeout)
+      @thread.join(@read_timeout)
 
       true
     end
