@@ -66,11 +66,6 @@ module Aikido::Zen
     # @return [Logger]
     attr_reader :logger
 
-    # @return [String] Path of the socket where the detached agent will listen.
-    # By default, the socket file is created in the current working directory.
-    # Defaults to `aikido-detached-agent.sock`.
-    attr_accessor :detached_agent_socket_path
-
     # @return [String] environment specific HTTP header providing the client IP.
     attr_accessor :client_ip_header
 
@@ -239,7 +234,6 @@ module Aikido::Zen
       self.json_encoder = DEFAULT_JSON_ENCODER
       self.json_decoder = DEFAULT_JSON_DECODER
       self.logger = Logger.new($stdout, progname: "aikido", level: debugging ? Logger::DEBUG : Logger::INFO)
-      self.detached_agent_socket_path = ENV.fetch("AIKIDO_DETACHED_AGENT_SOCKET_PATH", DEFAULT_DETACHED_AGENT_SOCKET_PATH)
       self.client_ip_header = ENV.fetch("AIKIDO_CLIENT_IP_HEADER", nil)
       self.max_performance_samples = 5000
       self.max_compressed_stats = 100
@@ -327,25 +321,7 @@ module Aikido::Zen
       @api_token_hash ||= Digest::SHA1.hexdigest(api_token)[0, 7]
     end
 
-    def detached_agent_socket_uri
-      "drbunix:" + @detached_agent_socket_path
-    end
-
-    def expanded_detached_agent_socket_path
-      @exanded_detached_agent_path ||= expand_socket_path(detached_agent_socket_path)
-    end
-
-    def expanded_detached_agent_socket_uri
-      @exanded_detached_agent_uri ||= expand_socket_path(detached_agent_socket_uri)
-    end
-
     private
-
-    def expand_socket_path(socket_path)
-      socket_path = socket_path.dup
-      socket_path.gsub!("%h", api_token_hash) if api_token_hash
-      socket_path
-    end
 
     def read_boolean_from_env(value)
       return value unless value.respond_to?(:to_str)
@@ -372,9 +348,6 @@ module Aikido::Zen
 
     # @!visibility private
     DEFAULT_JSON_DECODER = JSON.method(:parse)
-
-    # @!visibility private
-    DEFAULT_DETACHED_AGENT_SOCKET_PATH = "aikido-detached-agent.%h.sock"
 
     # @!visibility private
     DEFAULT_BLOCKED_RESPONDER = ->(request, blocking_type, reason = nil) do
