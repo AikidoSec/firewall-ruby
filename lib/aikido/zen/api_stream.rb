@@ -25,6 +25,7 @@ module Aikido::Zen
 
       @running = Concurrent::AtomicBoolean.new
       @thread = nil
+      @http = nil
 
       endpoint = @config.realtime_settings_updates_endpoint
 
@@ -77,7 +78,9 @@ module Aikido::Zen
 
           begin
             work
-          rescue Timeout::Error, SocketError, IOError, SystemCallError, OpenSSL::OpenSSLError => err
+          rescue IOError => err
+            @config.logger.debug("Error in API stream: #{err.class}: #{err.message}") if running?
+          rescue Timeout::Error, SocketError, SystemCallError, OpenSSL::OpenSSLError => err
             @config.logger.debug("Error in API stream: #{err.class}: #{err.message}")
           rescue => err
             @config.logger.error("Error in API stream: #{err.class}: #{err.message}")
@@ -106,6 +109,18 @@ module Aikido::Zen
 
     def stop!
       return false unless @running.make_false
+
+      begin
+        @http&.finish
+      rescue IOError
+        # ignore error
+      end
+
+      begin
+        @thread&.wakeup
+      rescue ThreadError
+        # ignore error
+      end
 
       @thread.join(@read_timeout)
 
@@ -136,6 +151,8 @@ module Aikido::Zen
       @config.logger.debug("API stream connecting")
       http.start
       @config.logger.debug("API stream connected")
+
+      @http = http
 
       begin
         http.request(request) do |response|
@@ -188,7 +205,11 @@ module Aikido::Zen
         end
       ensure
         @config.logger.debug("API stream disconnecting")
-        http.finish
+
+        @http = nil
+
+        http.finish if http.started?
+
         @config.logger.debug("API stream disconnected")
       end
     end
