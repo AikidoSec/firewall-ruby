@@ -32,6 +32,9 @@ module Aikido::Zen
       @api_stream = api_stream
 
       @started_at = nil
+
+      @runtime_config_update_mutex = Mutex.new
+      @runtime_firewall_lists_update_mutex = Mutex.new
     end
 
     def started?
@@ -231,46 +234,26 @@ module Aikido::Zen
       )
     end
 
-    module ExclusiveUpdater
-      # Define a method `method_name` that returns early if the method is running.
-      #
-      # @param method_name [Symbol, String] the name of the method to define
-      # @yield the block to execute
-      # @yieldparam args [Array] the positional arguments passed to the method
-      # @yieldparam blk [Proc] the block passed to the method
-      # @yieldparam kwargs [Hash] the keyword arguments passed to the method
-      # @yieldreturn [Object] the return value of the method
-      # @return [void]
-      def exclusive_updater(method_name, &block)
-        raise ArgumentError, "block required" unless block
-
-        instance_variable = :"@__updater_#{block.object_id}"
-
-        define_method(method_name) do |*args, **kwargs|
-          updating = instance_variable_get(instance_variable) ||
-            instance_variable_set(instance_variable, Concurrent::AtomicBoolean.new)
-
-          return unless updating.make_true
-          begin
-            instance_exec(*args, **kwargs, &block)
-          ensure
-            updating.make_false
-          end
-        end
+    # @param data [Hash]
+    # @return [void]
+    def update_settings_from_runtime_config!(data)
+      return unless @runtime_config_update_mutex.try_lock
+      begin
+        Aikido::Zen.runtime_settings.update_from_runtime_config_json(data)
+      ensure
+        @runtime_config_update_mutex.unlock
       end
     end
-    extend ExclusiveUpdater
 
     # @param data [Hash]
-    # @return [Boolean, nil]
-    exclusive_updater :update_settings_from_runtime_config! do |data|
-      Aikido::Zen.runtime_settings.update_from_runtime_config_json(data)
-    end
-
-    # @param data [Hash]
-    # @return [Boolean, nil]
-    exclusive_updater :update_settings_from_runtime_firewall_lists! do |data|
-      Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(data)
+    # @return [void]
+    def update_settings_from_runtime_firewall_lists!(data)
+      return unless @runtime_firewall_lists_update_mutex.try_lock
+      begin
+        Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(data)
+      ensure
+        @runtime_firewall_lists_update_mutex.unlock
+      end
     end
   end
 end
