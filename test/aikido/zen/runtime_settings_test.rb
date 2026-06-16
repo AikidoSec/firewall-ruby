@@ -93,7 +93,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     refute @settings.update_from_runtime_config_json(payload)
     refute @settings.update_from_runtime_config_json(payload)
 
-    payload["configUpdatedAt"] = 1726354453000
+    payload["configUpdatedAt"] = 1726354453
 
     assert @settings.update_from_runtime_config_json(payload)
     refute @settings.update_from_runtime_config_json(payload)
