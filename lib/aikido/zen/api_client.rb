@@ -16,6 +16,12 @@ module Aikido::Zen
       @config = config
       @system_info = system_info
       @rate_limiter = rate_limiter
+
+      @should_fetch_settings_endpoint = @config.realtime_endpoint
+    end
+
+    def should_fetch_settings_endpoint=(uri)
+      @should_fetch_settings_endpoint = URI(uri)
     end
 
     # @return [Boolean] whether we have a configured token.
@@ -38,7 +44,7 @@ module Aikido::Zen
 
       response = request(
         Net::HTTP::Get.new("/config", default_headers),
-        base_url: @config.realtime_endpoint
+        base_url: @should_fetch_settings_endpoint
       )
 
       new_updated_at = Time.at(response["configUpdatedAt"].to_i)

@@ -79,21 +79,25 @@ module Aikido::Zen
         @config.logger.error(err.message)
       end
 
+      if @config.realtime_settings_updates_enabled?
+        if @api_stream.can_connect?
+          @api_stream.handle("config-updated") { |event| settings_updated(event) }
+          @api_stream.start!
+
+          # Use the realtime setting updates endpoint when polling to check
+          # whether settings should be fetched.
+          @api_client.should_fetch_settings_endpoint = @config.realtime_settings_updates_endpoint
+        else
+          @config.logger.warn("Can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}, make sure it's in your outbound firewall allowlist. Realtime config updates won't be available, switched to polling.")
+        end
+      end
+
       poll_for_setting_updates
 
       @config.initial_heartbeat_delays.each do |heartbeat_delay|
         @worker.delay(heartbeat_delay) do
           send_heartbeat
           @config.logger.info("Executed initial heartbeat after #{heartbeat_delay} seconds")
-        end
-      end
-
-      if @config.realtime_settings_updates_enabled?
-        if @api_stream.can_connect?
-          @api_stream.handle("config-updated") { |event| settings_updated(event) }
-          @api_stream.start!
-        else
-          @config.logger.warn("Can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}, make sure it's in your outbound firewall allowlist. Realtime config updates won't be available, switched to polling.")
         end
       end
     end
