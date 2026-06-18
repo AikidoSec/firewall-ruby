@@ -542,4 +542,50 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
       Aikido::Zen::UnderAttackError.new(self)
     end
   end
+
+  test "#should_fetch_settings? returns false when the agent cannot make requests" do
+    @config.api_token = nil
+
+    refute @agent.send(:should_fetch_settings?, Time.now)
+  end
+
+  test "#should_fetch_settings? returns true when settings have never been fetched" do
+    assert_nil Aikido::Zen.runtime_settings.updated_at
+
+    assert @agent.send(:should_fetch_settings?, Time.now)
+  end
+
+  test "#should_fetch_settings? returns true when updated_at is newer than the last fetch" do
+    Aikido::Zen.runtime_settings.updated_at = Time.now - 10
+
+    assert @agent.send(:should_fetch_settings?, Time.now)
+  end
+
+  test "#should_fetch_settings? returns false when updated_at is not newer than the last fetch" do
+    last = Time.now
+    Aikido::Zen.runtime_settings.updated_at = last
+
+    refute @agent.send(:should_fetch_settings?, last)
+  end
+
+  test "#settings_updated fetches and updates settings when the timestamp is newer" do
+    Aikido::Zen.runtime_settings.updated_at = Time.at(1000)
+
+    @api_client.expect(:fetch_runtime_config, {"configUpdatedAt" => 2000})
+    @api_client.expect(:fetch_runtime_firewall_lists, {})
+
+    @agent.send(:settings_updated, {data: {"configUpdatedAt" => 2000}})
+
+    assert_mock @api_client
+    assert_logged :info, /updated runtime settings after server-side event/i
+    assert_logged :info, /updated runtime firewall list after server-side event/i
+  end
+
+  test "#settings_updated does not fetch when the timestamp is not newer" do
+    Aikido::Zen.runtime_settings.updated_at = Time.at(2000)
+
+    @agent.send(:settings_updated, {data: {"configUpdatedAt" => 1000}})
+
+    refute_logged :info, /updated runtime settings after server-side event/i
+  end
 end
