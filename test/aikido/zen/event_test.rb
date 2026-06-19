@@ -27,20 +27,20 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
   test "#as_json includes the type" do
     event = Aikido::Zen::Event.new(type: "test")
 
-    assert_equal "test", event.as_json[:type]
+    assert_equal "test", event.as_json["type"]
   end
 
   test "#as_json serializes the time in milliseconds" do
     event = Aikido::Zen::Event.new(type: "test", time: Time.at(123))
 
-    assert_equal 123000, event.as_json[:time]
+    assert_equal 123000, event.as_json["time"]
   end
 
   test "#as_json serializes the system info" do
     event = Aikido::Zen::Event.new(type: "test")
     system_info = Aikido::Zen::SystemInfo.new
 
-    refute_nil system_info.as_json, event.as_json[:agent]
+    refute_nil system_info.as_json, event.as_json["agent"]
   end
 
   class StartedTest < ActiveSupport::TestCase
@@ -69,7 +69,7 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
       attack = TestAttack.new(context: stub_context)
       event = Aikido::Zen::Events::Attack.new(attack: attack)
 
-      assert_equal({some: "info"}, event.as_json[:attack])
+      assert_equal({"some" => "info"}, event.as_json["attack"])
     end
 
     test "includes the request's JSON representation" do
@@ -78,14 +78,14 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
       attack = TestAttack.new(context: context)
       event = Aikido::Zen::Events::Attack.new(attack: attack)
 
-      assert_equal context.request.as_json, event.as_json[:request]
+      assert_equal context.request.as_json, event.as_json["request"]
     end
 
     test "request key is absent when context is nil" do
       attack = TestAttack.new(context: nil)
       event = Aikido::Zen::Events::Attack.new(attack: attack)
 
-      refute event.as_json.key?(:request)
+      refute event.as_json.key?("request")
     end
 
     def stub_context(**options)
@@ -103,7 +103,7 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
       end
 
       def as_json
-        {some: "info"}
+        {"some" => "info"}
       end
 
       def exception(*)
@@ -137,28 +137,28 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
       )
 
       assert_hash_subset_of event.as_json, {
-        stats: {
-          startedAt: 1234567890000,
-          endedAt: 1234577890000,
-          operations: {},
-          requests: {
-            total: 0,
-            aborted: 0,
-            rateLimited: 0,
-            attacksDetected: {total: 0, blocked: 0},
-            attackWaves: {total: 0, blocked: 0}
+        "stats" => {
+          "startedAt" => 1234567890000,
+          "endedAt" => 1234577890000,
+          "operations" => {},
+          "requests" => {
+            "total" => 0,
+            "aborted" => 0,
+            "rateLimited" => 0,
+            "attacksDetected" => {"total" => 0, "blocked" => 0},
+            "attackWaves" => {"total" => 0, "blocked" => 0}
           },
-          userAgents: {
-            breakdown: {}
+          "userAgents" => {
+            "breakdown" => {}
           },
-          ipAddresses: {
-            breakdown: {}
+          "ipAddresses" => {
+            "breakdown" => {}
           }
         },
-        users: [],
-        routes: [],
-        hostnames: [],
-        middlewareInstalled: true
+        "users" => [],
+        "routes" => [],
+        "hostnames" => [],
+        "middlewareInstalled" => true
       }
     end
 
@@ -188,14 +188,14 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
       )
       serialized = event.as_json
 
-      assert_includes serialized[:routes],
-        {path: "/", method: "GET", hits: 1, apispec: {}}
-      assert_includes serialized[:routes],
+      assert_includes serialized["routes"],
+        {"path" => "/", "method" => "GET", "hits" => 1, "apispec" => {}}
+      assert_includes serialized["routes"],
         {
-          path: "/users(.:format)",
-          method: "GET",
-          hits: 1,
-          apispec: {
+          "path" => "/users(.:format)",
+          "method" => "GET",
+          "hits" => 1,
+          "apispec" => {
             "query" => {
               "type" => "object",
               "properties" => {
@@ -205,12 +205,12 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
             }
           }
         }
-      assert_includes serialized[:routes],
+      assert_includes serialized["routes"],
         {
-          path: "/users(.:format)",
-          method: "POST",
-          hits: 2,
-          apispec: {
+          "path" => "/users(.:format)",
+          "method" => "POST",
+          "hits" => 2,
+          "apispec" => {
             "body" => {
               "type" => :json,
               "schema" => {
@@ -307,19 +307,19 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
       attack_wave_data = attack_wave.as_json
 
       request = {
-        ipAddress: "1.2.3.4",
-        source: "rack"
+        "ipAddress" => "1.2.3.4",
+        "source" => "rack"
       }
 
       attack = {
-        metadata: {
-          samples: '[{"method":"GET","url":"/.config"}]'
+        "metadata" => {
+          "samples" => '[{"method":"GET","url":"/.config"}]'
         }
       }
 
-      assert_equal "detected_attack_wave", attack_wave_data[:type]
-      assert_equal request, attack_wave_data[:request]
-      assert_equal attack, attack_wave_data[:attack]
+      assert_equal "detected_attack_wave", attack_wave_data["type"]
+      assert_equal request, attack_wave_data["request"]
+      assert_equal attack, attack_wave_data["attack"]
     end
   end
 end

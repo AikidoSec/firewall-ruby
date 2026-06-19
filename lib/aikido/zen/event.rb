@@ -16,9 +16,9 @@ module Aikido::Zen
 
     def as_json
       {
-        type: type,
-        time: time.to_i * 1000,
-        agent: system_info.as_json
+        "type" => type,
+        "time" => time.to_i * 1000,
+        "agent" => system_info.as_json
       }
     end
   end
@@ -42,8 +42,8 @@ module Aikido::Zen
       def as_json
         super.update(
           {
-            attack: @attack.as_json,
-            request: @attack.context&.request&.as_json
+            "attack" => @attack.as_json,
+            "request" => @attack.context&.request&.as_json
           }.compact
         )
       end
@@ -61,11 +61,11 @@ module Aikido::Zen
 
       def as_json
         super.update(
-          stats: @stats.as_json,
-          users: @users.as_json,
-          routes: @routes.as_json,
-          hostnames: @hosts.as_json,
-          middlewareInstalled: @middleware_installed
+          "stats" => @stats.as_json,
+          "users" => @users.as_json,
+          "routes" => @routes.as_json,
+          "hostnames" => @hosts.as_json,
+          "middlewareInstalled" => @middleware_installed
         )
       end
     end
@@ -90,8 +90,8 @@ module Aikido::Zen
 
       def as_json
         super.update(
-          request: @request.as_json,
-          attack: @attack.as_json
+          "request" => @request.as_json,
+          "attack" => @attack.as_json
         )
       end
     end

@@ -135,10 +135,10 @@ class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
 
     assert_equal @routes.as_json, [
       {
-        method: "GET",
-        path: "/",
-        hits: 2,
-        apispec: {
+        "method" => "GET",
+        "path" => "/",
+        "hits" => 2,
+        "apispec" => {
           "query" => {
             "type" => "object",
             "properties" => {"mode" => {"type" => "string"}}
@@ -146,10 +146,10 @@ class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
         }
       },
       {
-        method: "POST",
-        path: "/users",
-        hits: 1,
-        apispec: {
+        "method" => "POST",
+        "path" => "/users",
+        "hits" => 1,
+        "apispec" => {
           "body" => {
             "type" => :json,
             "schema" => {
@@ -205,7 +205,7 @@ class Aikido::Zen::Collector::RoutesTest < ActiveSupport::TestCase
     request = build_request(build_route("GET", "/"))
     @routes.add(request.route, request.schema)
 
-    assert_equal [{method: "GET", path: "/", hits: 1}], @routes.as_json
+    assert_equal [{"method" => "GET", "path" => "/", "hits" => 1}], @routes.as_json
   end
 
   def build_route(verb, path)
