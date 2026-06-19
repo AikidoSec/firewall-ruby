@@ -215,9 +215,9 @@ class Aikido::Zen::AttackWaveTest < ActiveSupport::TestCase
       assert 3, samples.size
 
       expected = [
-        {method: "GET", url: "/.config"},
-        {method: "GET", url: "/.git/config"},
-        {method: "GET", url: "/.ssh/known_hosts"}
+        {"method" => "GET", "url" => "/.config"},
+        {"method" => "GET", "url" => "/.git/config"},
+        {"method" => "GET", "url" => "/.ssh/known_hosts"}
       ]
 
       assert_equal expected, samples.as_json

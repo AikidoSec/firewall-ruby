@@ -50,8 +50,8 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       req = build_request(env)
 
       assert_equal(
-        {method: "POST", url: "http://example.org/test"},
-        req.as_json.slice(:method, :url)
+        {"method" => "POST", "url" => "http://example.org/test"},
+        req.as_json.slice("method", "url")
       )
     end
 
@@ -59,7 +59,7 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       env = Rack::MockRequest.env_for("/test", "REMOTE_ADDR" => "1.2.3.4")
       req = build_request(env)
 
-      assert_equal "1.2.3.4", req.as_json[:ipAddress]
+      assert_equal "1.2.3.4", req.as_json["ipAddress"]
     end
 
     test "#as_json includes the remote IP from the custom client IP header" do
@@ -68,7 +68,7 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       env = Rack::MockRequest.env_for("/test", "REMOTE_ADDR" => "1.2.3.4", "HTTP_CUSTOM_CLIENT_IP" => "4.3.2.1")
       req = build_request(env)
 
-      assert_equal "4.3.2.1", req.as_json[:ipAddress]
+      assert_equal "4.3.2.1", req.as_json["ipAddress"]
 
       Aikido::Zen.config.client_ip_header = nil
     end
@@ -77,14 +77,14 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       env = Rack::MockRequest.env_for("/test", "HTTP_USER_AGENT" => "Some/UA")
       req = build_request(env)
 
-      assert_equal "Some/UA", req.as_json[:userAgent]
+      assert_equal "Some/UA", req.as_json["userAgent"]
     end
 
     test "#as_json includes the framework handling the request as source" do
       env = Rack::MockRequest.env_for("/test")
       req = build_request(env)
 
-      assert_equal req.framework, req.as_json[:source]
+      assert_equal req.framework, req.as_json["source"]
     end
 
     test "#schema builds the request schema" do
@@ -107,7 +107,7 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       env = Rack::MockRequest.env_for("/test/123")
       req = build_request(env)
 
-      assert_equal "/test/:number", req.as_json[:route]
+      assert_equal "/test/:number", req.as_json["route"]
     end
 
     def build_request(env)
@@ -132,7 +132,7 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       env = Rack::MockRequest.env_for("/cats/123")
       req = build_request(env)
 
-      assert_equal "/cats/:id(.:format)", req.as_json[:route]
+      assert_equal "/cats/:id(.:format)", req.as_json["route"]
     end
 
     test "#schema gets built from the request body" do

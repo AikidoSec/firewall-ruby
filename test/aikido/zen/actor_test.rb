@@ -160,11 +160,11 @@ class Aikido::Zen::ActorTest < ActiveSupport::TestCase
     actor.update(seen_at: Time.at(1234577890))
 
     expected = {
-      id: "123",
-      name: "Jane Doe",
-      lastIpAddress: "1.2.3.4",
-      firstSeenAt: 1234567890000,
-      lastSeenAt: 1234577890000
+      "id" => "123",
+      "name" => "Jane Doe",
+      "lastIpAddress" => "1.2.3.4",
+      "firstSeenAt" => 1234567890000,
+      "lastSeenAt" => 1234577890000
     }
 
     assert_equal expected, actor.as_json

@@ -203,34 +203,34 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     event = @collector.flush(at: Time.at(1234577890))
 
     assert_hash_subset_of event.as_json, {
-      stats: {
-        startedAt: 1234567890000,
-        endedAt: 1234577890000,
-        operations: {},
-        requests: {
-          total: 0,
-          aborted: 0,
-          rateLimited: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
+      "stats" => {
+        "startedAt" => 1234567890000,
+        "endedAt" => 1234577890000,
+        "operations" => {},
+        "requests" => {
+          "total" => 0,
+          "aborted" => 0,
+          "rateLimited" => 0,
+          "attacksDetected" => {
+            "total" => 0,
+            "blocked" => 0
           },
-          attackWaves: {
-            total: 0,
-            blocked: 0
+          "attackWaves" => {
+            "total" => 0,
+            "blocked" => 0
           }
         },
-        userAgents: {
-          breakdown: {}
+        "userAgents" => {
+          "breakdown" => {}
         },
-        ipAddresses: {
-          breakdown: {}
+        "ipAddresses" => {
+          "breakdown" => {}
         }
       },
-      users: [],
-      routes: [],
-      hostnames: [],
-      middlewareInstalled: false
+      "users" => [],
+      "routes" => [],
+      "hostnames" => [],
+      "middlewareInstalled" => false
     }
   end
 
@@ -249,36 +249,36 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     event = @collector.flush(at: Time.at(1234577890))
 
     assert_hash_subset_of event.as_json, {
-      stats: {
-        startedAt: 1234567890000,
-        endedAt: 1234577890000,
-        operations: {},
-        requests: {
-          total: 3,
-          aborted: 0,
-          rateLimited: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
+      "stats" => {
+        "startedAt" => 1234567890000,
+        "endedAt" => 1234577890000,
+        "operations" => {},
+        "requests" => {
+          "total" => 3,
+          "aborted" => 0,
+          "rateLimited" => 0,
+          "attacksDetected" => {
+            "total" => 0,
+            "blocked" => 0
           },
-          attackWaves: {
-            total: 5,
-            blocked: 2
+          "attackWaves" => {
+            "total" => 5,
+            "blocked" => 2
           }
         },
-        userAgents: {
-          breakdown: {}
+        "userAgents" => {
+          "breakdown" => {}
         },
-        ipAddresses: {
-          breakdown: {}
+        "ipAddresses" => {
+          "breakdown" => {}
         }
       },
-      users: [],
-      routes: [
-        {path: "/", method: "GET", hits: 3, apispec: {}}
+      "users" => [],
+      "routes" => [
+        {"path" => "/", "method" => "GET", "hits" => 3, "apispec" => {}}
       ],
-      hostnames: [],
-      middlewareInstalled: false
+      "hostnames" => [],
+      "middlewareInstalled" => false
     }
   end
 
@@ -297,69 +297,69 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     event = @collector.flush(at: Time.at(1234577890))
 
     assert_hash_subset_of event.as_json, {
-      stats: {
-        startedAt: 1234567890000,
-        endedAt: 1234577890000,
-        requests: {
-          total: 2,
-          aborted: 0,
-          rateLimited: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
+      "stats" => {
+        "startedAt" => 1234567890000,
+        "endedAt" => 1234577890000,
+        "requests" => {
+          "total" => 2,
+          "aborted" => 0,
+          "rateLimited" => 0,
+          "attacksDetected" => {
+            "total" => 0,
+            "blocked" => 0
           },
-          attackWaves: {
-            total: 0,
-            blocked: 0
+          "attackWaves" => {
+            "total" => 0,
+            "blocked" => 0
           }
         },
-        userAgents: {
-          breakdown: {}
+        "userAgents" => {
+          "breakdown" => {}
         },
-        ipAddresses: {
-          breakdown: {}
+        "ipAddresses" => {
+          "breakdown" => {}
         },
-        operations: {
+        "operations" => {
           "test" => {
-            total: 2,
-            interceptorThrewError: 0,
-            withoutContext: 0,
-            attacksDetected: {
-              total: 0,
-              blocked: 0
+            "total" => 2,
+            "interceptorThrewError" => 0,
+            "withoutContext" => 0,
+            "attacksDetected" => {
+              "total" => 0,
+              "blocked" => 0
             },
-            compressedTimings: [
+            "compressedTimings" => [
               {
-                averageInMs: 1000,
-                percentiles: {50 => 1000, 75 => 1000, 90 => 1000, 95 => 1000, 99 => 1000},
-                compressedAt: 1234577890000
+                "averageInMs" => 1000,
+                "percentiles" => {50 => 1000, 75 => 1000, 90 => 1000, 95 => 1000, 99 => 1000},
+                "compressedAt" => 1234577890000
               }
             ]
           },
           "another" => {
-            total: 1,
-            interceptorThrewError: 0,
-            withoutContext: 0,
-            attacksDetected: {
-              total: 0,
-              blocked: 0
+            "total" => 1,
+            "interceptorThrewError" => 0,
+            "withoutContext" => 0,
+            "attacksDetected" => {
+              "total" => 0,
+              "blocked" => 0
             },
-            compressedTimings: [
+            "compressedTimings" => [
               {
-                averageInMs: 1000,
-                percentiles: {50 => 1000, 75 => 1000, 90 => 1000, 95 => 1000, 99 => 1000},
-                compressedAt: 1234577890000
+                "averageInMs" => 1000,
+                "percentiles" => {50 => 1000, 75 => 1000, 90 => 1000, 95 => 1000, 99 => 1000},
+                "compressedAt" => 1234577890000
               }
             ]
           }
         }
       },
-      users: [],
-      routes: [
-        {path: "/", method: "GET", hits: 2, apispec: {}}
+      "users" => [],
+      "routes" => [
+        {"path" => "/", "method" => "GET", "hits" => 2, "apispec" => {}}
       ],
-      middlewareInstalled: false,
-      hostnames: []
+      "middlewareInstalled" => false,
+      "hostnames" => []
     }
   end
 
@@ -382,69 +382,69 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     event = @collector.flush(at: Time.at(1234577890))
 
     assert_hash_subset_of event.as_json, {
-      stats: {
-        startedAt: 1234567890000,
-        endedAt: 1234577890000,
-        operations: {
+      "stats" => {
+        "startedAt" => 1234567890000,
+        "endedAt" => 1234577890000,
+        "operations" => {
           "test" => {
-            total: 2,
-            interceptorThrewError: 0,
-            withoutContext: 0,
-            attacksDetected: {
-              total: 1,
-              blocked: 1
+            "total" => 2,
+            "interceptorThrewError" => 0,
+            "withoutContext" => 0,
+            "attacksDetected" => {
+              "total" => 1,
+              "blocked" => 1
             },
-            compressedTimings: [
+            "compressedTimings" => [
               {
-                averageInMs: 1000,
-                percentiles: {50 => 1000, 75 => 1000, 90 => 1000, 95 => 1000, 99 => 1000},
-                compressedAt: 1234577890000
+                "averageInMs" => 1000,
+                "percentiles" => {50 => 1000, 75 => 1000, 90 => 1000, 95 => 1000, 99 => 1000},
+                "compressedAt" => 1234577890000
               }
             ]
           },
           "another" => {
-            total: 1,
-            interceptorThrewError: 0,
-            withoutContext: 0,
-            attacksDetected: {
-              total: 1,
-              blocked: 1
+            "total" => 1,
+            "interceptorThrewError" => 0,
+            "withoutContext" => 0,
+            "attacksDetected" => {
+              "total" => 1,
+              "blocked" => 1
             },
-            compressedTimings: [
+            "compressedTimings" => [
               {
-                averageInMs: 1000,
-                percentiles: {50 => 1000, 75 => 1000, 90 => 1000, 95 => 1000, 99 => 1000},
-                compressedAt: 1234577890000
+                "averageInMs" => 1000,
+                "percentiles" => {50 => 1000, 75 => 1000, 90 => 1000, 95 => 1000, 99 => 1000},
+                "compressedAt" => 1234577890000
               }
             ]
           }
         },
-        requests: {
-          total: 2,
-          aborted: 0,
-          rateLimited: 0,
-          attacksDetected: {
-            total: 2,
-            blocked: 2
+        "requests" => {
+          "total" => 2,
+          "aborted" => 0,
+          "rateLimited" => 0,
+          "attacksDetected" => {
+            "total" => 2,
+            "blocked" => 2
           },
-          attackWaves: {
-            total: 0,
-            blocked: 0
+          "attackWaves" => {
+            "total" => 0,
+            "blocked" => 0
           }
         },
-        userAgents: {
-          breakdown: {}
+        "userAgents" => {
+          "breakdown" => {}
         },
-        ipAddresses: {
-          breakdown: {}
+        "ipAddresses" => {
+          "breakdown" => {}
         }
       },
-      users: [],
-      routes: [
-        {path: "/", method: "GET", hits: 2, apispec: {}}
+      "users" => [],
+      "routes" => [
+        {"path" => "/", "method" => "GET", "hits" => 2, "apispec" => {}}
       ],
-      middlewareInstalled: false,
-      hostnames: []
+      "middlewareInstalled" => false,
+      "hostnames" => []
     }
   end
 
@@ -488,73 +488,73 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     event = @collector.flush(at: Time.at(1234577890))
 
     assert_hash_subset_of event.as_json, {
-      stats: {
-        startedAt: 1234567890000,
-        endedAt: 1234577890000,
-        operations: {
+      "stats" => {
+        "startedAt" => 1234567890000,
+        "endedAt" => 1234577890000,
+        "operations" => {
           "test" => {
-            total: 3,
-            interceptorThrewError: 0,
-            withoutContext: 0,
-            attacksDetected: {
-              total: 1,
-              blocked: 1
+            "total" => 3,
+            "interceptorThrewError" => 0,
+            "withoutContext" => 0,
+            "attacksDetected" => {
+              "total" => 1,
+              "blocked" => 1
             },
-            compressedTimings: [{
-              averageInMs: 2000,
-              percentiles: {
+            "compressedTimings" => [{
+              "averageInMs" => 2000,
+              "percentiles" => {
                 50 => 2000,
                 75 => 3000,
                 90 => 3000,
                 95 => 3000,
                 99 => 3000
               },
-              compressedAt: 1234577890000
+              "compressedAt" => 1234577890000
             }]
           }
         },
-        requests: {
-          total: 2,
-          aborted: 0,
-          rateLimited: 5,
-          attacksDetected: {
-            total: 1,
-            blocked: 1
+        "requests" => {
+          "total" => 2,
+          "aborted" => 0,
+          "rateLimited" => 5,
+          "attacksDetected" => {
+            "total" => 1,
+            "blocked" => 1
           },
-          attackWaves: {
-            total: 3,
-            blocked: 1
+          "attackWaves" => {
+            "total" => 3,
+            "blocked" => 1
           }
         },
-        userAgents: {
-          breakdown: {
+        "userAgents" => {
+          "breakdown" => {
             "google_adwords" => 2
           }
         },
-        ipAddresses: {
-          breakdown: {}
+        "ipAddresses" => {
+          "breakdown" => {}
         }
       },
-      middlewareInstalled: false,
-      routes: [{method: "GET", path: "/", hits: 2, apispec: {}}],
-      users: [
+      "middlewareInstalled" => false,
+      "routes" => [{"method" => "GET", "path" => "/", "hits" => 2, "apispec" => {}}],
+      "users" => [
         {
-          id: "123",
-          lastIpAddress: "1.2.3.4",
-          firstSeenAt: 12345567890000,
-          lastSeenAt: 12345567890000
+          "id" => "123",
+          "lastIpAddress" => "1.2.3.4",
+          "firstSeenAt" => 12345567890000,
+          "lastSeenAt" => 12345567890000
         },
         {
-          id: "234",
-          lastIpAddress: "5.6.7.8",
-          firstSeenAt: 12334567890000,
-          lastSeenAt: 12334567890000
+          "id" => "234",
+          "lastIpAddress" => "5.6.7.8",
+          "firstSeenAt" => 12334567890000,
+          "lastSeenAt" => 12334567890000
         }
       ],
-      hostnames: [
-        {hostname: "example.com", port: 2000, hits: 1},
-        {hostname: "example.com", port: 2001, hits: 1},
-        {hostname: "example.com", port: 2002, hits: 1}
+      "hostnames" => [
+        {"hostname" => "example.com", "port" => 2000, "hits" => 1},
+        {"hostname" => "example.com", "port" => 2001, "hits" => 1},
+        {"hostname" => "example.com", "port" => 2002, "hits" => 1}
       ]
     }
   end

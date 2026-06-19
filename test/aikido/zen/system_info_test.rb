@@ -86,26 +86,26 @@ class Aikido::Zen::InfoTest < ActiveSupport::TestCase
   test "as_json includes the expected fields" do
     Aikido::Zen::Sinks.add("concurrent-ruby", scanners: [NOOP])
 
-    assert_equal @info.attacks_are_only_reported?, @info.as_json[:dryMode]
-    assert_equal @info.library_name, @info.as_json[:library]
-    assert_equal @info.library_version, @info.as_json[:version]
-    assert_equal @info.hostname, @info.as_json[:hostname]
-    assert_equal @info.ip_address, @info.as_json[:ipAddress]
-    assert_equal @info.os_name, @info.as_json.dig(:os, :name)
-    assert_equal @info.os_version, @info.as_json.dig(:os, :version)
-    assert_equal @info.platform_version, @info.as_json.dig(:platform, :version)
+    assert_equal @info.attacks_are_only_reported?, @info.as_json["dryMode"]
+    assert_equal @info.library_name, @info.as_json["library"]
+    assert_equal @info.library_version, @info.as_json["version"]
+    assert_equal @info.hostname, @info.as_json["hostname"]
+    assert_equal @info.ip_address, @info.as_json["ipAddress"]
+    assert_equal @info.os_name, @info.as_json.dig("os", "name")
+    assert_equal @info.os_version, @info.as_json.dig("os", "version")
+    assert_equal @info.platform_version, @info.as_json.dig("platform", "version")
 
     # To keep the test scalable, only test one known dependency.
-    assert_kind_of Hash, @info.as_json[:packages]
+    assert_kind_of Hash, @info.as_json["packages"]
     assert_equal \
       Gem.loaded_specs["concurrent-ruby"].version.to_s,
-      @info.as_json.dig(:packages, "concurrent-ruby")
+      @info.as_json.dig("packages", "concurrent-ruby")
 
-    assert_equal "", @info.as_json[:nodeEnv]
-    assert_equal false, @info.as_json[:preventedPrototypePollution]
+    assert_equal "", @info.as_json["nodeEnv"]
+    assert_equal false, @info.as_json["preventedPrototypePollution"]
 
-    assert_equal false, @info.as_json[:serverless]
-    assert_equal [], @info.as_json[:stack]
-    assert_equal({}, @info.as_json[:incompatiblePackages])
+    assert_equal false, @info.as_json["serverless"]
+    assert_equal [], @info.as_json["stack"]
+    assert_equal({}, @info.as_json["incompatiblePackages"])
   end
 end

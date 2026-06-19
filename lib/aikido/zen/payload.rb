@@ -25,9 +25,9 @@ module Aikido::Zen
 
     def as_json
       {
-        payload: value.to_s,
-        source: SOURCE_SERIALIZATIONS[source],
-        path: ".#{path}"
+        "payload" => value.to_s,
+        "source" => SOURCE_SERIALIZATIONS[source],
+        "path" => ".#{path}"
       }
     end
 

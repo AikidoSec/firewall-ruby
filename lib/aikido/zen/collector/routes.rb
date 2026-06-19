@@ -26,10 +26,10 @@ module Aikido::Zen
     def as_json
       @visits.map do |route, record|
         {
-          method: route.verb,
-          path: route.path,
-          hits: record.hits,
-          apispec: record.schema.as_json
+          "method" => route.verb,
+          "path" => route.path,
+          "hits" => record.hits,
+          "apispec" => record.schema.as_json
         }.compact
       end
     end
