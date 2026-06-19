@@ -275,7 +275,7 @@ class Aikido::Zen::Sinks::HTTPTest < ActiveSupport::TestCase
     DEFAULT_RUNTIME_CONFIG = {
       "success" => true,
       "serviceId" => 1234,
-      "configUpdatedAt" => 1717171717000,
+      "configUpdatedAt" => 1717171717,
       "heartbeatIntervalInMS" => 60000,
       "endpoints" => [],
       "blockedUserIds" => [],

@@ -58,11 +58,13 @@ require_relative "support/http_connection_tracking_assertions"
 require_relative "support/rate_limiting_assertions"
 require_relative "support/sink_attack_helpers"
 require_relative "support/worker_helpers"
+require_relative "support/wait_helpers"
 
 # Utility proc that does nothing.
 NOOP = ->(*args, **opts) {}
 
 class ActiveSupport::TestCase
+  include WaitHelpers
   self.file_fixture_path = "test/fixtures"
 
   # Reset any global state before each test
@@ -142,7 +144,7 @@ class ActiveSupport::TestCase
       "matches #{pattern.inspect}. ".squeeze("\s") +
       "Log messages:\n#{lines.map { |line| "\t* #{line}" }.join("\n")}"
 
-    assert lines.any? { |line| pattern === line && (match_level === line or true) }, reason
+    assert lines.any? { |line| pattern === line && (match_level.nil? || line.include?(match_level)) }, reason
   end
 
   def refute_logged(level = nil, pattern)
@@ -155,7 +157,7 @@ class ActiveSupport::TestCase
       "to match #{pattern.inspect}".squeeze("\s") +
       "Log messages:\n#{lines.map { |line| "\t* #{line}" }.join("\n")}"
 
-    refute lines.any? { |line| pattern === line && (match_level === line or true) }, reason
+    refute lines.any? { |line| pattern === line && (match_level.nil? || line.include?(match_level)) }, reason
   end
 
   # rubocop:enable Style/OptionalArguments

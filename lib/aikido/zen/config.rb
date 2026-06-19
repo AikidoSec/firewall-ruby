@@ -216,6 +216,15 @@ module Aikido::Zen
     #   Defaults to 1000 entries.
     attr_accessor :idor_max_cache_entries
 
+    # @return [Boolean] whether the realtime settings updates feature is enabled.
+    #   Defaults to false.
+    attr_accessor :realtime_settings_updates_enabled
+    alias_method :realtime_settings_updates_enabled?, :realtime_settings_updates_enabled
+
+    # @return [URI] The HTTP host for realtime settings updates.
+    #  Defaults to +https://zen.aikido.dev+.
+    attr_reader :realtime_settings_updates_endpoint
+
     def initialize
       self.insert_middleware_after = ::ActionDispatch::RemoteIp
       self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLE", false)) || read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
@@ -261,6 +270,8 @@ module Aikido::Zen
       self.idor_tenant_column_name = nil
       self.idor_excluded_table_names = []
       self.idor_max_cache_entries = 1000
+      self.realtime_settings_updates_enabled = false
+      self.realtime_settings_updates_endpoint = ENV.fetch("AIKIDO_REALTIME_SETTINGS_UPDATES_ENDPOINT", DEFAULT_REALTIME_SETTINGS_UPDATES_BASE_URL)
     end
 
     # Set the base URL for API requests.
@@ -275,6 +286,13 @@ module Aikido::Zen
     # @param url [String, URI]
     def realtime_endpoint=(url)
       @realtime_endpoint = URI(url)
+    end
+
+    # Set the base URL for the realtime settings updates feature.
+    #
+    # @param url [String, URI]
+    def realtime_settings_updates_endpoint=(url)
+      @realtime_settings_updates_endpoint = URI(url)
     end
 
     # Set the logger and configure its severity level according to agent's debug mode
@@ -345,6 +363,9 @@ module Aikido::Zen
 
     # @!visibility private
     DEFAULT_RUNTIME_BASE_URL = "https://runtime.aikido.dev"
+
+    # @!visibility private
+    DEFAULT_REALTIME_SETTINGS_UPDATES_BASE_URL = "https://zen.aikido.dev"
 
     # @!visibility private
     DEFAULT_JSON_ENCODER = JSON.method(:dump)

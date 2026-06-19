@@ -11,7 +11,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert @settings.update_from_runtime_config_json({
       "success" => true,
       "serviceId" => 1234,
-      "configUpdatedAt" => 1717171717000,
+      "configUpdatedAt" => 1717171717,
       "heartbeatIntervalInMS" => 60000,
       "endpoints" => [],
       "blockedUserIds" => [],
@@ -60,7 +60,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert @settings.update_from_runtime_config_json({
       "success" => true,
       "serviceId" => 1234,
-      "configUpdatedAt" => 1717171717000,
+      "configUpdatedAt" => 1717171717,
       "heartbeatIntervalInMS" => 60000,
       "endpoints" => [],
       "blockedUserIds" => [],
@@ -81,7 +81,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     payload = {
       "success" => true,
       "serviceId" => 1234,
-      "configUpdatedAt" => 1717171717000,
+      "configUpdatedAt" => 1717171717,
       "heartbeatIntervalInMS" => 60000,
       "endpoints" => [],
       "blockedUserIds" => [],
@@ -93,7 +93,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     refute @settings.update_from_runtime_config_json(payload)
     refute @settings.update_from_runtime_config_json(payload)
 
-    payload["configUpdatedAt"] = 1726354453000
+    payload["configUpdatedAt"] = 1726354453
 
     assert @settings.update_from_runtime_config_json(payload)
     refute @settings.update_from_runtime_config_json(payload)
@@ -197,7 +197,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert @settings.update_from_runtime_config_json({
       "success" => true,
       "serviceId" => 1234,
-      "configUpdatedAt" => 1717171717000,
+      "configUpdatedAt" => 1717171717,
       "heartbeatIntervalInMS" => 60000,
       "endpoints" => [
         {
@@ -265,7 +265,7 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert @settings.update_from_runtime_config_json({
       "success" => true,
       "serviceId" => 1234,
-      "configUpdatedAt" => 1717171717000,
+      "configUpdatedAt" => 1717171717,
       "heartbeatIntervalInMS" => 60000,
       "endpoints" => [],
       "blockedUserIds" => [],

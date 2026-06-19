@@ -21,15 +21,20 @@ module Aikido::Zen
       collector: Aikido::Zen.collector,
       detached_agent: Aikido::Zen.detached_agent,
       worker: Aikido::Zen::Worker.new(config: config),
-      api_client: Aikido::Zen::APIClient.new(config: config)
+      api_client: Aikido::Zen::APIClient.new(config: config),
+      api_stream: Aikido::Zen::APIStream.new(config: config)
     )
-      @started_at = nil
-
       @config = config
-      @worker = worker
-      @api_client = api_client
       @collector = collector
       @detached_agent = detached_agent
+      @worker = worker
+      @api_client = api_client
+      @api_stream = api_stream
+
+      @started_at = nil
+
+      @runtime_config_update_mutex = Mutex.new
+      @runtime_firewall_lists_update_mutex = Mutex.new
     end
 
     def started?
@@ -59,7 +64,7 @@ module Aikido::Zen
       at_exit { stop! if started? }
 
       report(Events::Started.new(time: @started_at)) do |response|
-        if Aikido::Zen.runtime_settings.update_from_runtime_config_json(response)
+        if update_settings_from_runtime_config!(response)
           updated_settings!
           @config.logger.info("Updated runtime settings")
         end
@@ -68,10 +73,23 @@ module Aikido::Zen
       end
 
       begin
-        Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(@api_client.fetch_runtime_firewall_lists)
+        update_settings_from_runtime_firewall_lists!(@api_client.fetch_runtime_firewall_lists)
         @config.logger.info("Updated runtime firewall list")
       rescue => err
         @config.logger.error(err.message)
+      end
+
+      if @config.realtime_settings_updates_enabled?
+        if @api_stream.can_connect?
+          @api_stream.handle("config-updated") { |event| settings_updated(event) }
+          @api_stream.start!
+
+          # Use the realtime setting updates endpoint when polling to check
+          # whether settings should be fetched.
+          @api_client.should_fetch_settings_endpoint = @config.realtime_settings_updates_endpoint
+        else
+          @config.logger.warn("Can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}, make sure it's in your outbound firewall allowlist. Realtime config updates won't be available, switched to polling.")
+        end
       end
 
       poll_for_setting_updates
@@ -92,6 +110,8 @@ module Aikido::Zen
       @config.logger.info("Stopping Aikido agent")
       @started_at = nil
       @worker.shutdown
+
+      @api_stream.stop!
     end
 
     # Respond to the runtime settings changing after being fetched from the
@@ -157,11 +177,11 @@ module Aikido::Zen
 
       heartbeat = @collector.flush
       report(heartbeat) do |response|
-        if Aikido::Zen.runtime_settings.update_from_runtime_config_json(response)
+        if update_settings_from_runtime_config!(response)
           updated_settings!
           @config.logger.info("Updated runtime settings after heartbeat")
 
-          Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(@api_client.fetch_runtime_firewall_lists)
+          update_settings_from_runtime_firewall_lists!(@api_client.fetch_runtime_firewall_lists)
           @config.logger.info("Updated runtime firewall list after heartbeat")
         end
       end
@@ -177,22 +197,67 @@ module Aikido::Zen
     def poll_for_setting_updates
       @worker.every(@config.polling_interval) do
         if @api_client.should_fetch_settings?
-          if Aikido::Zen.runtime_settings.update_from_runtime_config_json(@api_client.fetch_runtime_config)
+          if update_settings_from_runtime_config!(@api_client.fetch_runtime_config)
             updated_settings!
             @config.logger.info("Updated runtime settings after polling")
           end
 
-          Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(@api_client.fetch_runtime_firewall_lists)
+          update_settings_from_runtime_firewall_lists!(@api_client.fetch_runtime_firewall_lists)
           @config.logger.info("Updated runtime firewall list after polling")
         end
       end
     end
 
-    private def heartbeats
+    private
+
+    def settings_updated(event)
+      updated_at = Time.at(event[:data]["configUpdatedAt"].to_i)
+
+      if should_fetch_settings?(updated_at)
+        if update_settings_from_runtime_config!(@api_client.fetch_runtime_config)
+          updated_settings!
+          @config.logger.info("Updated runtime settings after server-side event")
+
+          update_settings_from_runtime_firewall_lists!(@api_client.fetch_runtime_firewall_lists)
+          @config.logger.info("Updated runtime firewall list after server-side event")
+        end
+      end
+    end
+
+    def should_fetch_settings?(updated_at, last_updated_at = Aikido::Zen.runtime_settings.updated_at)
+      return false unless @api_client.can_make_requests?
+      return true if last_updated_at.nil?
+
+      updated_at > last_updated_at
+    end
+
+    def heartbeats
       @heartbeats ||= Aikido::Zen::Agent::HeartbeatsManager.new(
         config: @config,
         worker: @worker
       )
+    end
+
+    # @param data [Hash]
+    # @return [Boolean]
+    def update_settings_from_runtime_config!(data)
+      return unless @runtime_config_update_mutex.try_lock
+      begin
+        Aikido::Zen.runtime_settings.update_from_runtime_config_json(data)
+      ensure
+        @runtime_config_update_mutex.unlock
+      end
+    end
+
+    # @param data [Hash]
+    # @return [Boolean]
+    def update_settings_from_runtime_firewall_lists!(data)
+      return unless @runtime_firewall_lists_update_mutex.try_lock
+      begin
+        Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(data)
+      ensure
+        @runtime_firewall_lists_update_mutex.unlock
+      end
     end
   end
 end
