@@ -144,7 +144,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     refute_logged :warn, /can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}/i
   end
 
-  test "#start! probes the realtime endpont and logs warning after open timeout" do
+  test "#start! probes the realtime endpoint and logs warning after open timeout" do
     request = stub_probe_realtime_endpoint
       .to_raise(Net::OpenTimeout)
 
@@ -158,7 +158,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}/i
   end
 
-  test "#start! probes the realtime endpont and logs warning after write timeout" do
+  test "#start! probes the realtime endpoint and logs warning after write timeout" do
     request = stub_probe_realtime_endpoint
       .to_raise(Net::WriteTimeout)
 
@@ -172,7 +172,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}/i
   end
 
-  test "#start! probes the realtime endpont and logs warning after read timeout" do
+  test "#start! probes the realtime endpoint and logs warning after read timeout" do
     request = stub_probe_realtime_endpoint
       .to_raise(Net::ReadTimeout)
 
@@ -186,7 +186,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}/i
   end
 
-  test "#start! probes the realtime endpont and logs error after unexpected error" do
+  test "#start! probes the realtime endpoint and logs error after unexpected error" do
     request = stub_probe_realtime_endpoint
       .to_raise(RuntimeError)
 
