@@ -239,7 +239,7 @@ module Aikido::Zen
     end
 
     # @param data [Hash]
-    # @return [void]
+    # @return [Boolean]
     def update_settings_from_runtime_config!(data)
       return unless @runtime_config_update_mutex.try_lock
       begin
@@ -250,7 +250,7 @@ module Aikido::Zen
     end
 
     # @param data [Hash]
-    # @return [void]
+    # @return [Boolean]
     def update_settings_from_runtime_firewall_lists!(data)
       return unless @runtime_firewall_lists_update_mutex.try_lock
       begin
