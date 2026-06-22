@@ -87,6 +87,10 @@ module Aikido
       @runtime_settings = settings
     end
 
+    def self.secret
+      @secret ||= SecureRandom.bytes(32)
+    end
+
     # @return [Boolean] whether the Aikido agent is currently blocking requests.
     #   Blocking mode is configured at startup and can be controlled through the
     #   Aikido dashboard at runtime.
