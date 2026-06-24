@@ -81,7 +81,7 @@ class Aikido::Zen::Sinks::IOTest < ActiveSupport::TestCase
     test "IO.foreach" do
       refute_attack do
         assert_raise Errno::ENOENT do
-          IO.foreach(LOOKS_LIKE_AN_ATTACK_PATH) { }
+          IO.foreach(LOOKS_LIKE_AN_ATTACK_PATH) {}
         end
       end
     end
@@ -135,7 +135,7 @@ class Aikido::Zen::Sinks::IOTest < ActiveSupport::TestCase
       end
 
       assert_path_traversal_attack "IO.foreach" do
-        IO.foreach(OFFENDER_PATH) { }
+        IO.foreach(OFFENDER_PATH) {}
       end
 
       assert_path_traversal_attack "IO.readlines" do
