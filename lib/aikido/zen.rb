@@ -349,7 +349,6 @@ module Aikido
       @worker_process_server ||= WorkerProcess::Agent::Server.start
     end
 
-    @pid = Process.pid
     @has_started = Concurrent::AtomicBoolean.new(false)
     @has_handled_fork = Concurrent::AtomicBoolean.new(false)
 
@@ -360,6 +359,8 @@ module Aikido
         return unless start?
 
         return unless @has_started.make_true
+
+        @pid = Process.pid
 
         worker_process_server
         agent
@@ -372,7 +373,7 @@ module Aikido
       end
 
       def check_and_handle_fork
-        return unless @has_started.true? && @has_handled_fork.make_true
+        return unless @has_started.true? && @has_handled_fork.false?
 
         handle_fork if forked?
       end
@@ -385,6 +386,8 @@ module Aikido
       end
 
       def handle_fork
+        return unless @has_handled_fork.make_true
+
         server = @worker_process_server
         client = WorkerProcess::Agent::Client.new(server.host, server.port)
         client.start
