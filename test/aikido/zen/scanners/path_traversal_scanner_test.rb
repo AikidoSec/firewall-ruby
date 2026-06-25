@@ -76,6 +76,12 @@ class Aikido::Zen::Scanners::PathTraversalScannerTest < ActiveSupport::TestCase
     assert_attack "/./etc/passwd", "/./etc/passwd"
     assert_attack "/./././root/file.txt", "/./././root/"
     assert_attack "/./././root/file.txt", "/./././root/file.txt"
+
+    # File.expand_path expands relative paths that start with ~ to absolute path,
+    # which may start with unsafe paths.
+    assert_attack "~", "~"
+    assert_attack "~/", "~/"
+    assert_attack "~/file.txt", "~/file.txt"
   end
 
   test "does not detect if user input path contains no filename or subfolder" do

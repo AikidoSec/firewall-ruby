@@ -45,6 +45,9 @@ module Aikido::Zen
       end
 
       def attack?
+        # We block home-relative path
+        return true if @filepath.start_with?("~") && @filepath.include?(@input)
+
         # Single character are ignored because they don't pose a big threat
         return false if @input.length <= 1
 
