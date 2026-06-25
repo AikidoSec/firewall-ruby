@@ -379,14 +379,13 @@ module Aikido
       end
 
       def forked?
-        current_pid = Process.pid
-        return false if current_pid == @pid
-        @pid = current_pid
-        true
+        Process.pid != @pid
       end
 
       def handle_fork
         return unless @has_handled_fork.make_true
+
+        @pid = Process.pid
 
         server = @worker_process_server
         client = WorkerProcess::Agent::Client.new(server.host, server.port)
