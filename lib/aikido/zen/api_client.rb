@@ -135,7 +135,7 @@ module Aikido::Zen
         @config.json_encoder.call(event)
       end
 
-      request(req, base_url: @config.realtime_endpoint)
+      request(req, base_url: @config.realtime_settings_updates_endpoint)
     rescue Aikido::Zen::RateLimitedError
       @rate_limiter.open!
       raise
