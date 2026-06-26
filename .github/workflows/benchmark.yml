@@ -20,6 +20,8 @@ jobs:
         exclude:
         - ruby: "2.7"
           app: "rails7.1_benchmark"
+        - ruby: "3.0"
+          app: "rails7.1_benchmark"
 
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/sample_apps/${{ matrix.app }}/Gemfile
