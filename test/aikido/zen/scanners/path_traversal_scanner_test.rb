@@ -76,12 +76,55 @@ class Aikido::Zen::Scanners::PathTraversalScannerTest < ActiveSupport::TestCase
     assert_attack "/./etc/passwd", "/./etc/passwd"
     assert_attack "/./././root/file.txt", "/./././root/"
     assert_attack "/./././root/file.txt", "/./././root/file.txt"
+  end
 
+  test "tilde expansion" do
     # File.expand_path expands relative paths that start with ~ to absolute path,
     # which may start with unsafe paths.
+
     assert_attack "~", "~"
     assert_attack "~/", "~/"
     assert_attack "~/file.txt", "~/file.txt"
+
+    assert_attack "~root", "~root"
+    assert_attack "~root/", "~root/"
+    assert_attack "~root/file.txt", "~root/file.txt"
+
+    # File.expand_path will not expand ~ within absolute paths.
+
+    refute_attack "/some-path/~", "~"
+    refute_attack "/some-path/~/", "~/"
+    refute_attack "/some-path/~/file.txt", "~/file.txt"
+
+    refute_attack "/some-path/~root", "~root"
+    refute_attack "/some-path/~root/", "~root/"
+    refute_attack "/some-path/~root/file.txt", "~root/file.txt"
+
+    refute_attack "/some-path/~/some-file", "~"
+    refute_attack "/some-path/~//some-file", "~/"
+    refute_attack "/some-path/~/file.txt/some-file", "~/file.txt"
+
+    refute_attack "/some-path/~root/some-file", "~root"
+    refute_attack "/some-path/~root//some-file", "~root/"
+    refute_attack "/some-path/~root/file.txt/some-file", "~root/file.txt"
+
+    # File.expand_path will not expand ~ in relative paths.
+
+    refute_attack "./~", "~"
+    refute_attack "./~/", "~/"
+    refute_attack "./~/file.txt", "~/file.txt"
+
+    refute_attack "./~root", "~root"
+    refute_attack "./~root/", "~root/"
+    refute_attack "./~root/file.txt", "~root/file.txt"
+
+    refute_attack "./~/some-file", "~"
+    refute_attack "./~//some-file", "~/"
+    refute_attack "./~/file.txt/some-file", "~/file.txt"
+
+    refute_attack "./~root/some-file", "~root"
+    refute_attack "./~root//some-file", "~root/"
+    refute_attack "./~root/file.txt/some-file", "~root/file.txt"
   end
 
   test "does not detect if user input path contains no filename or subfolder" do
