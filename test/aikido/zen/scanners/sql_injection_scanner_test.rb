@@ -218,6 +218,13 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     assert_attack "SELECT id FROM users WHERE email = '' or 1=1 -- a'", "' OR 1=1 -- a"
   end
 
+  test "detects injection when user input has trailing spaces" do
+    assert_attack(
+      "INSERT INTO pets (name, owner) VALUES ('x', 'dummy'), ('injected', 'hacker'); --', 'owner')",
+      "x', 'dummy'), ('injected', 'hacker'); --    "
+    )
+  end
+
   test "it does not flag VIEW as an attack when it's a substring" do
     query = <<~SQL.chomp
       SELECT views.id AS view_id, view_settings.user_id, view_settings.settings
@@ -254,9 +261,9 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     refute_attack "SELECT * WHERE id =   123  ", "  123  "
   end
 
-  test "flags invalid whitespace around numbers" do
-    assert_attack "SELECT * WHERE id = \n123\n", "\n123\n"
-    assert_attack "SELECT * WHERE id = \t123\t", "\t123\t"
+  test "ignores leading/trailing whitespace around numbers" do
+    refute_attack "SELECT * WHERE id = \n123\n", "\n123\n"
+    refute_attack "SELECT * WHERE id = \t123\t", "\t123\t"
   end
 
   test "ignores comma-separated list of numbers" do
