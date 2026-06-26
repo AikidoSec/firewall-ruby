@@ -63,7 +63,6 @@ class ActiveSupport::TestCase
     Aikido::Zen.instance_variable_set(:@worker_process_server, nil)
     Aikido::Zen.instance_variable_set(:@pid, Process.pid)
     Aikido::Zen.instance_variable_set(:@has_started, Concurrent::AtomicBoolean.new(false))
-    Aikido::Zen.instance_variable_set(:@has_handled_fork, Concurrent::AtomicBoolean.new(false))
 
     Aikido::Zen.instance_variable_set(:@attack_wave_detector, nil)
     Aikido::Zen.instance_variable_set(:@idor_protector, nil)

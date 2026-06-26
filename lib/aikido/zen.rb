@@ -335,35 +335,29 @@ module Aikido
     # Stop any background threads.
     def self.stop!
       @agent&.stop!
-      @worker_process_client&.stop
       @worker_process_server&.stop!
+
+      @worker_process_client&.stop
     end
 
-    # @!visibility private
-    # Starts the background agent if it has not been started yet.
     def self.agent
-      @agent ||= Agent.start
+      @agent
     end
 
     def self.worker_process_server
-      @worker_process_server ||= WorkerProcess::Agent::Server.start
+      @worker_process_server
     end
 
     @has_started = Concurrent::AtomicBoolean.new(false)
-    @has_handled_fork = Concurrent::AtomicBoolean.new(false)
 
     class << self
       def start!
-        return if @has_started.true?
-
         return unless start?
 
         return unless @has_started.make_true
 
-        @pid = Process.pid
-
-        worker_process_server
-        agent
+        @worker_process_server = WorkerProcess::Agent::Server.start
+        @agent = Agent.start
       end
 
       def start?
@@ -372,22 +366,16 @@ module Aikido
           config.debugging?
       end
 
-      def check_and_handle_fork
-        return unless @has_started.true? && @has_handled_fork.false?
-
-        handle_fork if forked?
-      end
-
-      def forked?
-        Process.pid != @pid
-      end
-
-      def handle_fork
-        return unless @has_handled_fork.make_true
-
-        @pid = Process.pid
-
+      def fork!
         server = @worker_process_server
+        return unless server
+
+        # TODO: Factor; stop the server and old client then start the new client
+
+        client = @worker_process_client
+        @worker_process_client = nil
+        client&.close
+
         client = WorkerProcess::Agent::Client.new(server.host, server.port)
         client.start
         @worker_process_client = client

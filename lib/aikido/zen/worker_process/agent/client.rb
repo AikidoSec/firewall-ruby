@@ -43,6 +43,10 @@ module Aikido::Zen::WorkerProcess
         @rpc_client.stop
       end
 
+      def close
+        @rpc_client.stop
+      end
+
       def send_collector_events
         events_data = @collector.flush_events.map(&:as_json)
         @rpc_client.invoke("send_collector_events", events_data)
