@@ -27,7 +27,7 @@ module Aikido::Zen
       @thread = nil
       @http = nil
 
-      endpoint = @config.realtime_settings_updates_endpoint
+      endpoint = @config.realtime_endpoint
 
       @host = endpoint.host
       @port = endpoint.port
@@ -35,31 +35,6 @@ module Aikido::Zen
       @token = @config.api_token
 
       @handlers = Concurrent::Array.new
-    end
-
-    # @return [Boolean] whether we could connect to the realtime endpoint
-    def can_connect?
-      http = Net::HTTP.new(@host, @port)
-      http.use_ssl = @use_ssl
-      http.open_timeout = 5
-      http.write_timeout = 5
-      http.read_timeout = 5
-      http.max_retries = 0
-
-      request = Net::HTTP::Get.new("/config")
-      request["Authorization"] = @token
-
-      begin
-        http.request(request)
-
-        return true
-      rescue Timeout::Error, SocketError, IOError, SystemCallError, OpenSSL::OpenSSLError => err
-        @config.logger.debug("Error probing realtime endpoint: #{err.class}: #{err.message}")
-      rescue => err
-        @config.logger.error("Error probing realtime endpoint: #{err.class}: #{err.message}")
-      end
-
-      false
     end
 
     def running?
