@@ -21,14 +21,14 @@ module Aikido::Zen
         end
       end
 
-      def attack_wave?(context)
+      def attack_wave?(context, status_code = nil)
         client_ip = context.request.client_ip
 
         return false unless client_ip
 
         return false if @event_times[client_ip]
 
-        return false unless AttackWave::Helpers.web_scanner?(context)
+        return false unless AttackWave::Helpers.web_scanner?(context, status_code)
 
         request_count = @request_counts[client_ip] += 1
 

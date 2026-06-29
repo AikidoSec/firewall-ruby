@@ -12,28 +12,29 @@ module Aikido
 
         def call(env)
           response = @app.call(env)
+          status_code = response[0].to_i
 
           context = @zen.current_context
-          protect(context)
+          protect(context, status_code)
 
           response
         end
 
         # @api private
         # Visible for testing.
-        def attack_wave?(context)
+        def attack_wave?(context, status_code = nil)
           request = context.request
           return false if request.nil?
 
           return false if @settings.bypassed_ips.include?(request.client_ip)
 
-          @zen.attack_wave_detector.attack_wave?(context)
+          @zen.attack_wave_detector.attack_wave?(context, status_code)
         end
 
         # @api private
         # Visible for testing.
-        def protect(context)
-          if attack_wave?(context)
+        def protect(context, status_code = nil)
+          if attack_wave?(context, status_code)
             client_ip = context.request.client_ip
 
             request = Aikido::Zen::AttackWave::Request.new(

@@ -1,27 +1,29 @@
 # frozen_string_literal: true
 
+require "set"
+
 module Aikido::Zen
   module AttackWave
     module Helpers
-      def self.web_scanner?(context)
-        return true if suspicious_request?(context)
+      def self.web_scanner?(context, status_code)
+        return true if suspicious_request?(context, status_code)
 
         return true if include_suspicious_payload?(context)
 
         false
       end
 
-      def self.suspicious_request?(context)
+      def self.suspicious_request?(context, status_code)
         request = context.request
 
-        suspicious_method?(request.request_method) || suspicious_path?(request.path_info)
+        suspicious_method?(request.request_method) || suspicious_path?(request.path_info, status_code)
       end
 
       def self.suspicious_method?(method)
         SUSPICIOUS_METHODS.include?(method.downcase)
       end
 
-      def self.suspicious_path?(path)
+      def self.suspicious_path?(path, status_code)
         path_parts = path.downcase.split("/")
 
         file_name = path_parts.pop if path_parts.length > 0
@@ -34,6 +36,8 @@ module Aikido::Zen
           file_extension = file_name_parts.pop if file_name_parts.length > 1
 
           return true if SUSPICIOUS_FILE_EXTENSIONS.include?(file_extension)
+
+          return true if FOREIGN_EXTENSIONS.include?(file_extension) && status_code == 404
         end
 
         path_parts.any? do |directory_name|
@@ -433,6 +437,11 @@ module Aikido::Zen
         "sqlitedb",
         "sqlite3db"
       ].map(&:downcase).freeze
+
+      # Extensions that a Ruby app would not natively serve. Requests to these
+      # paths are only treated as scan hits when the response is 404 — a 200
+      # may indicate the app is proxying to a PHP/Java backend.
+      FOREIGN_EXTENSIONS = Set.new(%w[php php3 php4 php5 phtml java jsp jspx]).freeze
 
       SUSPICIOUS_SQL_KEYWORDS = [
         "SELECT (CASE WHEN",
