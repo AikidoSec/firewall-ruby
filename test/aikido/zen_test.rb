@@ -165,7 +165,7 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     end
 
     test ".track_user_event sends the named user event to the realtime API" do
-      request = stub_request(:post, "https://runtime.aikido.dev/api/runtime/events")
+      request = stub_request(:post, "#{Aikido::Zen.config.realtime_settings_updates_endpoint}/api/runtime/events")
         .with(
           body: {
             "name" => "user.login_failed",
