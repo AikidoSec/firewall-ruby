@@ -129,4 +129,28 @@ class Aikido::ZenTest < ActiveSupport::TestCase
 
     assert_equal "block required", err.message
   end
+
+  test ".calculate_rate_limits delegates to the rate limiter when there is no detached agent" do
+    mock = Minitest::Mock.new
+    mock.expect(:calculate_rate_limits, nil, [Object])
+
+    Aikido::Zen.stub(:rate_limiter, mock) do
+      Aikido::Zen.calculate_rate_limits(Object.new)
+    end
+
+    assert_mock mock
+  end
+
+  test ".calculate_rate_limits delegates to the detached agent when one is set" do
+    mock = Minitest::Mock.new
+    mock.expect(:calculate_rate_limits, nil, [Object])
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, mock)
+
+    Aikido::Zen.calculate_rate_limits(Object.new)
+
+    assert_mock mock
+  ensure
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
+  end
 end

@@ -7,8 +7,8 @@ module Aikido::Zen
   class Route
     def self.from_json(data)
       new(
-        verb: data[:method],
-        path: data[:path]
+        verb: data["method"],
+        path: data["path"]
       )
     end
 
@@ -25,7 +25,7 @@ module Aikido::Zen
     end
 
     def as_json
-      {method: verb, path: path}
+      {"method" => verb, "path" => path}
     end
 
     def ==(other)

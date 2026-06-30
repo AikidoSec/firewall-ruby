@@ -27,5 +27,25 @@ module Aikido::Zen
     def throttled?
       @throttled
     end
+
+    def as_json
+      {
+        "throttled" => @throttled,
+        "discriminator" => @discriminator,
+        "current_requests" => @current_requests,
+        "max_requests" => @max_requests,
+        "time_remaining" => @time_remaining
+      }
+    end
+
+    def self.from_json(data)
+      new(
+        throttled: data["throttled"],
+        discriminator: data["discriminator"],
+        current_requests: data["current_requests"],
+        max_requests: data["max_requests"],
+        time_remaining: data["time_remaining"]
+      )
+    end
   end
 end

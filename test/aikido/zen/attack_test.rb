@@ -54,16 +54,16 @@ module Aikido::Zen
       )
 
       expected = {
-        kind: "sql_injection",
-        operation: @op,
-        blocked: false,
-        payload: @input.value,
-        metadata: {
-          sql: @query,
-          dialect: @dialect.name
+        "kind" => "sql_injection",
+        "operation" => @op,
+        "blocked" => false,
+        "payload" => @input.value,
+        "metadata" => {
+          "sql" => @query,
+          "dialect" => @dialect.name
         },
-        source: "routeParams",
-        path: ".id"
+        "source" => "routeParams",
+        "path" => ".id"
       }
 
       assert_equal expected, attack.as_json
@@ -77,16 +77,16 @@ module Aikido::Zen
       attack.will_be_blocked!
 
       expected = {
-        kind: "sql_injection",
-        operation: @op,
-        blocked: true,
-        payload: @input.value,
-        metadata: {
-          sql: @query,
-          dialect: @dialect.name
+        "kind" => "sql_injection",
+        "operation" => @op,
+        "blocked" => true,
+        "payload" => @input.value,
+        "metadata" => {
+          "sql" => @query,
+          "dialect" => @dialect.name
         },
-        source: "routeParams",
-        path: ".id"
+        "source" => "routeParams",
+        "path" => ".id"
       }
 
       assert_equal expected, attack.as_json
@@ -145,9 +145,9 @@ module Aikido::Zen
 
       metadata = attack.metadata
 
-      assert_equal "localhost", metadata[:hostname]
-      assert_equal "7000", metadata[:port]
-      assert_kind_of String, metadata[:port], "Port should be a string, not an integer"
+      assert_equal "localhost", metadata["hostname"]
+      assert_equal "7000", metadata["port"]
+      assert_kind_of String, metadata["port"], "Port should be a string, not an integer"
     end
 
     test "#as_json includes the expected fields with port as string" do
@@ -156,16 +156,16 @@ module Aikido::Zen
       )
 
       expected = {
-        kind: "ssrf",
-        operation: @op,
-        blocked: false,
-        payload: @input.value,
-        metadata: {
-          hostname: "localhost",
-          port: "7000"
+        "kind" => "ssrf",
+        "operation" => @op,
+        "blocked" => false,
+        "payload" => @input.value,
+        "metadata" => {
+          "hostname" => "localhost",
+          "port" => "7000"
         },
-        source: "body",
-        path: ".url"
+        "source" => "body",
+        "path" => ".url"
       }
 
       assert_equal expected, attack.as_json
@@ -179,16 +179,16 @@ module Aikido::Zen
       attack.will_be_blocked!
 
       expected = {
-        kind: "ssrf",
-        operation: @op,
-        blocked: true,
-        payload: @input.value,
-        metadata: {
-          hostname: "localhost",
-          port: "7000"
+        "kind" => "ssrf",
+        "operation" => @op,
+        "blocked" => true,
+        "payload" => @input.value,
+        "metadata" => {
+          "hostname" => "localhost",
+          "port" => "7000"
         },
-        source: "body",
-        path: ".url"
+        "source" => "body",
+        "path" => ".url"
       }
 
       assert_equal expected, attack.as_json
@@ -207,9 +207,9 @@ module Aikido::Zen
 
       metadata = attack.metadata
 
-      assert_equal "example.com", metadata[:hostname]
-      assert_equal "80", metadata[:port]
-      assert_kind_of String, metadata[:port]
+      assert_equal "example.com", metadata["hostname"]
+      assert_equal "80", metadata["port"]
+      assert_kind_of String, metadata["port"]
     end
 
     test "#metadata handles default HTTPS port 443" do
@@ -225,9 +225,9 @@ module Aikido::Zen
 
       metadata = attack.metadata
 
-      assert_equal "example.com", metadata[:hostname]
-      assert_equal "443", metadata[:port]
-      assert_kind_of String, metadata[:port]
+      assert_equal "example.com", metadata["hostname"]
+      assert_equal "443", metadata["port"]
+      assert_kind_of String, metadata["port"]
     end
   end
 end

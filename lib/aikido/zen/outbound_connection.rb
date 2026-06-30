@@ -5,8 +5,8 @@ module Aikido::Zen
   class OutboundConnection
     def self.from_json(data)
       new(
-        host: data[:hostname],
-        port: data[:port]
+        host: data["hostname"],
+        port: data["port"]
       )
     end
 
@@ -41,7 +41,7 @@ module Aikido::Zen
     end
 
     def as_json
-      {hostname: host, port: port, hits: hits}.compact
+      {"hostname" => host, "port" => port, "hits" => hits}.compact
     end
 
     def ==(other)

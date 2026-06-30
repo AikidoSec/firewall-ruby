@@ -54,6 +54,6 @@ class Aikido::Zen::OutboundConnectionTest < ActiveSupport::TestCase
 
   test "#as_json includes hostname and port" do
     conn = Aikido::Zen::OutboundConnection.new(host: "example.com", port: 443)
-    assert_equal({hostname: "example.com", port: 443}, conn.as_json)
+    assert_equal({"hostname" => "example.com", "port" => 443}, conn.as_json)
   end
 end

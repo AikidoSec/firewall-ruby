@@ -69,9 +69,9 @@ module Aikido::Zen
 
       def as_json
         {
-          ipAddress: @ip_address,
-          userAgent: @user_agent,
-          source: @source
+          "ipAddress" => @ip_address,
+          "userAgent" => @user_agent,
+          "source" => @source
         }.compact
       end
 
@@ -101,10 +101,10 @@ module Aikido::Zen
 
       def as_json
         {
-          metadata: {
-            samples: @samples.as_json.to_json # The API only accepts string values in metadata
+          "metadata" => {
+            "samples" => @samples.as_json.to_json # The API only accepts string values in metadata
           },
-          user: @user.as_json
+          "user" => @user.as_json
         }.compact
       end
 
@@ -130,8 +130,8 @@ module Aikido::Zen
 
       def as_json
         {
-          method: @verb.as_json,
-          url: @path.as_json
+          "method" => @verb.as_json,
+          "url" => @path.as_json
         }.compact
       end
 

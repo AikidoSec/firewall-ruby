@@ -12,7 +12,7 @@ module Aikido::Zen
       end
 
       def self.from_json(data)
-        type = data[:type]
+        type = data["type"]
         subclass = @@registry[type]
         subclass.from_json(data)
       end
@@ -25,7 +25,7 @@ module Aikido::Zen
 
       def as_json
         {
-          type: @type
+          "type" => @type
         }
       end
 
@@ -72,7 +72,7 @@ module Aikido::Zen
         register "track_user_agent"
 
         def self.from_json(data)
-          new(data[:user_agent_keys])
+          new(data["user_agent_keys"])
         end
 
         def initialize(user_agent_keys)
@@ -82,7 +82,7 @@ module Aikido::Zen
 
         def as_json
           super.update({
-            user_agent_keys: @user_agent_keys
+            "user_agent_keys" => @user_agent_keys
           })
         end
 
@@ -99,7 +99,7 @@ module Aikido::Zen
         register "track_ip_list"
 
         def self.from_json(data)
-          new(data[:ip_list_keys])
+          new(data["ip_list_keys"])
         end
 
         def initialize(ip_list_keys)
@@ -109,7 +109,7 @@ module Aikido::Zen
 
         def as_json
           super.update({
-            ip_list_keys: @ip_list_keys
+            "ip_list_keys" => @ip_list_keys
           })
         end
 
@@ -127,7 +127,7 @@ module Aikido::Zen
 
         def self.from_json(data)
           new(
-            being_blocked: data[:being_blocked]
+            being_blocked: data["being_blocked"]
           )
         end
 
@@ -138,7 +138,7 @@ module Aikido::Zen
 
         def as_json
           super.update({
-            being_blocked: @being_blocked
+            "being_blocked" => @being_blocked
           })
         end
 
@@ -156,9 +156,9 @@ module Aikido::Zen
 
         def self.from_json(data)
           new(
-            data[:sink_name],
-            data[:duration],
-            has_errors: data[:has_errors]
+            data["sink_name"],
+            data["duration"],
+            has_errors: data["has_errors"]
           )
         end
 
@@ -171,9 +171,9 @@ module Aikido::Zen
 
         def as_json
           super.update({
-            sink_name: @sink_name,
-            duration: @duration,
-            has_errors: @has_errors
+            "sink_name" => @sink_name,
+            "duration" => @duration,
+            "has_errors" => @has_errors
           })
         end
 
@@ -191,8 +191,8 @@ module Aikido::Zen
 
         def self.from_json(data)
           new(
-            data[:sink_name],
-            being_blocked: data[:being_blocked]
+            data["sink_name"],
+            being_blocked: data["being_blocked"]
           )
         end
 
@@ -204,8 +204,8 @@ module Aikido::Zen
 
         def as_json
           super.update({
-            sink_name: @sink_name,
-            being_blocked: @being_blocked
+            "sink_name" => @sink_name,
+            "being_blocked" => @being_blocked
           })
         end
 
@@ -222,7 +222,7 @@ module Aikido::Zen
         register "track_user"
 
         def self.from_json(data)
-          new(Aikido::Zen::Actor.from_json(data[:actor]))
+          new(Aikido::Zen::Actor.from_json(data["actor"]))
         end
 
         def initialize(actor)
@@ -232,7 +232,7 @@ module Aikido::Zen
 
         def as_json
           super.update({
-            actor: @actor.as_json
+            "actor" => @actor.as_json
           })
         end
 
@@ -249,7 +249,7 @@ module Aikido::Zen
         register "track_outbound"
 
         def self.from_json(data)
-          new(OutboundConnection.from_json(data[:connection]))
+          new(OutboundConnection.from_json(data["connection"]))
         end
 
         def initialize(connection)
@@ -259,7 +259,7 @@ module Aikido::Zen
 
         def as_json
           super.update({
-            connection: @connection.as_json
+            "connection" => @connection.as_json
           })
         end
 
@@ -277,8 +277,8 @@ module Aikido::Zen
 
         def self.from_json(data)
           new(
-            Route.from_json(data[:route]),
-            Request::Schema.from_json(data[:schema])
+            Route.from_json(data["route"]),
+            Request::Schema.from_json(data["schema"])
           )
         end
 
@@ -290,8 +290,8 @@ module Aikido::Zen
 
         def as_json
           super.update({
-            route: @route.as_json,
-            schema: @schema.as_json
+            "route" => @route.as_json,
+            "schema" => @schema.as_json
           })
         end
 

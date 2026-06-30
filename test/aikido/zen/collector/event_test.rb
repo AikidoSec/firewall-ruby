@@ -130,7 +130,7 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     event = stub_track_request_event
 
     assert_hash_subset_of event.as_json, {
-      type: "track_request"
+      "type" => "track_request"
     }
   end
 
@@ -170,7 +170,7 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     event = stub_track_rate_limited_request_event
 
     assert_hash_subset_of event.as_json, {
-      type: "track_rate_limited_request"
+      "type" => "track_rate_limited_request"
     }
   end
 
@@ -210,7 +210,7 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     event = stub_track_user_agent_event
 
     assert_hash_subset_of event.as_json, {
-      type: "track_user_agent"
+      "type" => "track_user_agent"
     }
   end
 
@@ -250,7 +250,7 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     event = stub_track_ip_list_event
 
     assert_hash_subset_of event.as_json, {
-      type: "track_ip_list"
+      "type" => "track_ip_list"
     }
   end
 
@@ -290,7 +290,7 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     event = stub_track_attack_wave_event
 
     assert_hash_subset_of event.as_json, {
-      type: "track_attack_wave"
+      "type" => "track_attack_wave"
     }
   end
 
@@ -330,10 +330,10 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     event = stub_track_scan_event
 
     assert_hash_subset_of event.as_json, {
-      type: "track_scan",
-      sink_name: "sink_name",
-      duration: 1.0,
-      has_errors: false
+      "type" => "track_scan",
+      "sink_name" => "sink_name",
+      "duration" => 1.0,
+      "has_errors" => false
     }
   end
 
@@ -373,9 +373,9 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     event = stub_track_attack_event
 
     assert_hash_subset_of event.as_json, {
-      type: "track_attack",
-      sink_name: "sink_name",
-      being_blocked: false
+      "type" => "track_attack",
+      "sink_name" => "sink_name",
+      "being_blocked" => false
     }
   end
 
@@ -415,8 +415,8 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     event_hash = event.as_json
 
     assert_hash_subset_of event_hash, {
-      type: "track_user",
-      actor: stub_actor.as_json
+      "type" => "track_user",
+      "actor" => stub_actor.as_json
     }
   end
 
@@ -459,8 +459,8 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     event_hash = event.as_json
 
     assert_hash_subset_of event_hash, {
-      type: "track_outbound",
-      connection: stub_outbound_connection.as_json
+      "type" => "track_outbound",
+      "connection" => stub_outbound_connection.as_json
     }
   end
 
@@ -503,9 +503,9 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     event_hash = event.as_json
 
     assert_hash_subset_of event_hash, {
-      type: "track_route",
-      route: stub_route.as_json,
-      schema: stub_schema.as_json
+      "type" => "track_route",
+      "route" => stub_route.as_json,
+      "schema" => stub_schema.as_json
     }
   end
 

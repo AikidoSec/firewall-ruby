@@ -19,26 +19,6 @@ require "pathname"
 require "debug" if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.0")
 require "support/capture_stream"
 
-class FakeDetachedAgent
-  extend Forwardable
-
-  def_delegators :@collector, :track_request, :track_route, :track_outbound, :track_scan, :track_user, :track_attack
-  def_delegator :@rate_limiter, :calculate_rate_limits
-
-  def initialize(collector, rate_limiter)
-    @collector = collector
-    @rate_limiter = rate_limiter
-  end
-
-  def handle_fork
-  end
-end
-
-Aikido::Zen.instance_variable_set(
-  :@detached_agent,
-  FakeDetachedAgent.new(Aikido::Zen::Collector.new, Aikido::Zen::RateLimiter.new)
-)
-
 # Silence warnings that result from loading HTTPClient.
 ActiveSupport::Testing::Stream.quietly { require "webmock" }
 # For the HTTP adapters shipped with WebMock by default, requiring webmock first
@@ -76,10 +56,13 @@ class ActiveSupport::TestCase
     collector = Aikido::Zen::Collector.new
 
     Aikido::Zen.instance_variable_set(:@collector, collector)
-    Aikido::Zen.detached_agent.instance_variable_set(:@collector, collector)
 
     Aikido::Zen.instance_variable_set(:@runtime_settings, nil)
-    Aikido::Zen.detached_agent.instance_variable_set(:@rate_limiter, Aikido::Zen::RateLimiter.new)
+    Aikido::Zen.instance_variable_set(:@rate_limiter, Aikido::Zen::RateLimiter.new)
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
+    Aikido::Zen.instance_variable_set(:@worker_process_server, nil)
+    Aikido::Zen.instance_variable_set(:@pid, Process.pid)
+    Aikido::Zen.instance_variable_set(:@has_started, Concurrent::AtomicBoolean.new(false))
 
     Aikido::Zen.instance_variable_set(:@attack_wave_detector, nil)
     Aikido::Zen.instance_variable_set(:@idor_protector, nil)

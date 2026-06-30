@@ -205,8 +205,8 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     @stats.ended_at = Time.at(1234577890)
 
     assert_hash_subset_of @stats.as_json, {
-      startedAt: 1234567890000,
-      endedAt: 1234577890000
+      "startedAt" => 1234567890000,
+      "endedAt" => 1234577890000
     }
   end
 
@@ -214,17 +214,17 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     3.times { @stats.add_request }
 
     assert_hash_subset_of @stats.as_json, {
-      requests: {
-        total: 3,
-        aborted: 0,
-        rateLimited: 0,
-        attacksDetected: {
-          total: 0,
-          blocked: 0
+      "requests" => {
+        "total" => 3,
+        "aborted" => 0,
+        "rateLimited" => 0,
+        "attacksDetected" => {
+          "total" => 0,
+          "blocked" => 0
         },
-        attackWaves: {
-          total: 0,
-          blocked: 0
+        "attackWaves" => {
+          "total" => 0,
+          "blocked" => 0
         }
       }
     }
@@ -241,26 +241,26 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
 
     assert_hash_subset_of @stats.as_json, {
-      operations: {
+      "operations" => {
         "test" => {
-          total: 2,
-          interceptorThrewError: 0,
-          withoutContext: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
+          "total" => 2,
+          "interceptorThrewError" => 0,
+          "withoutContext" => 0,
+          "attacksDetected" => {
+            "total" => 0,
+            "blocked" => 0
           },
-          compressedTimings: []
+          "compressedTimings" => []
         },
         "another" => {
-          total: 1,
-          interceptorThrewError: 0,
-          withoutContext: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
+          "total" => 1,
+          "interceptorThrewError" => 0,
+          "withoutContext" => 0,
+          "attacksDetected" => {
+            "total" => 0,
+            "blocked" => 0
           },
-          compressedTimings: []
+          "compressedTimings" => []
         }
       }
     }
@@ -277,26 +277,26 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     @stats.add_scan(scan.sink.name, scan.duration, has_errors: scan.errors?)
 
     assert_hash_subset_of @stats.as_json, {
-      operations: {
+      "operations" => {
         "test" => {
-          total: 2,
-          interceptorThrewError: 1,
-          withoutContext: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
+          "total" => 2,
+          "interceptorThrewError" => 1,
+          "withoutContext" => 0,
+          "attacksDetected" => {
+            "total" => 0,
+            "blocked" => 0
           },
-          compressedTimings: []
+          "compressedTimings" => []
         },
         "another" => {
-          total: 1,
-          interceptorThrewError: 0,
-          withoutContext: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
+          "total" => 1,
+          "interceptorThrewError" => 0,
+          "withoutContext" => 0,
+          "attacksDetected" => {
+            "total" => 0,
+            "blocked" => 0
           },
-          compressedTimings: []
+          "compressedTimings" => []
         }
       }
     }
@@ -316,26 +316,26 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     @stats.add_attack("another", being_blocked: true)
 
     assert_hash_subset_of @stats.as_json, {
-      operations: {
+      "operations" => {
         "test" => {
-          total: 2,
-          interceptorThrewError: 0,
-          withoutContext: 0,
-          attacksDetected: {
-            total: 1,
-            blocked: 1
+          "total" => 2,
+          "interceptorThrewError" => 0,
+          "withoutContext" => 0,
+          "attacksDetected" => {
+            "total" => 1,
+            "blocked" => 1
           },
-          compressedTimings: []
+          "compressedTimings" => []
         },
         "another" => {
-          total: 1,
-          interceptorThrewError: 0,
-          withoutContext: 0,
-          attacksDetected: {
-            total: 1,
-            blocked: 1
+          "total" => 1,
+          "interceptorThrewError" => 0,
+          "withoutContext" => 0,
+          "attacksDetected" => {
+            "total" => 1,
+            "blocked" => 1
           },
-          compressedTimings: []
+          "compressedTimings" => []
         }
       }
     }
@@ -357,45 +357,45 @@ class Aikido::Zen::Collector::StatsTest < ActiveSupport::TestCase
     @stats.sinks.each_value { |s| s.compress_timings(at: Time.at(1234577890)) }
 
     assert_hash_subset_of @stats.as_json, {
-      operations: {
+      "operations" => {
         "test" => {
-          total: 3,
-          interceptorThrewError: 0,
-          withoutContext: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
+          "total" => 3,
+          "interceptorThrewError" => 0,
+          "withoutContext" => 0,
+          "attacksDetected" => {
+            "total" => 0,
+            "blocked" => 0
           },
-          compressedTimings: [{
-            averageInMs: 2000,
-            percentiles: {
+          "compressedTimings" => [{
+            "averageInMs" => 2000,
+            "percentiles" => {
               50 => 2000,
               75 => 3000,
               90 => 3000,
               95 => 3000,
               99 => 3000
             },
-            compressedAt: 1234577890000
+            "compressedAt" => 1234577890000
           }]
         },
         "another" => {
-          total: 1,
-          interceptorThrewError: 0,
-          withoutContext: 0,
-          attacksDetected: {
-            total: 0,
-            blocked: 0
+          "total" => 1,
+          "interceptorThrewError" => 0,
+          "withoutContext" => 0,
+          "attacksDetected" => {
+            "total" => 0,
+            "blocked" => 0
           },
-          compressedTimings: [{
-            averageInMs: 1000,
-            percentiles: {
+          "compressedTimings" => [{
+            "averageInMs" => 1000,
+            "percentiles" => {
               50 => 1000,
               75 => 1000,
               90 => 1000,
               95 => 1000,
               99 => 1000
             },
-            compressedAt: 1234577890000
+            "compressedAt" => 1234577890000
           }]
         }
       }
