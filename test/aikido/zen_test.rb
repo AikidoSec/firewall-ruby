@@ -129,4 +129,65 @@ class Aikido::ZenTest < ActiveSupport::TestCase
 
     assert_equal "block required", err.message
   end
+
+  class TrackUserEvent < ActiveSupport::TestCase
+    include StubsCurrentContext
+    include WorkerHelpers
+
+    # Override StubCurrentContext#current_context to provide a request with the
+    # IP address for Aikdio::Zen::UserEvent.
+    def current_context
+      @current_context ||= Aikido::Zen::Context.from_rack_env({
+        "REMOTE_ADDR" => "1.2.3.4"
+      })
+    end
+
+    class MockAPIStream < Aikido::Zen::APIStream
+      def work
+        nil
+      end
+    end
+
+    setup do
+      Aikido::Zen.config.api_token = "TOKEN"
+
+      # Replace the Aikido::Zen::Agent to prevent the agent from doing work.
+
+      @worker = MockWorker.new
+      @api_stream = Minitest::Mock.new(MockAPIStream.new)
+
+      @agent = Aikido::Zen::Agent.new(
+        worker: @worker,
+        api_stream: @api_stream
+      )
+
+      Aikido::Zen.instance_variable_set(:@agent, @agent)
+    end
+
+    test ".track_user_event sends the named user event to the realtime API" do
+      request = stub_request(:post, "#{Aikido::Zen.config.realtime_settings_updates_endpoint}/api/runtime/events")
+        .with(
+          body: {
+            "name" => "user.login_failed",
+            "userId" => "418",
+            "ipAddress" => "1.2.3.4"
+          }.to_json,
+          headers: {
+            "Content-Type" => "application/json",
+            "Authorization" => "TOKEN",
+            "Accept" => "application/json"
+          }
+        )
+        .to_return(status: 204, body: "")
+
+      Aikido::Zen.set_user(
+        id: "418",
+        name: "I. A. Teapot"
+      )
+
+      Aikido::Zen.track_user_event("user.login_failed")
+
+      assert_requested request
+    end
+  end
 end
