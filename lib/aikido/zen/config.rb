@@ -37,7 +37,8 @@ module Aikido::Zen
     attr_accessor :api_token
 
     # @return [URI] The HTTP host for the Aikido API. Defaults to
-    #   +https://guard.aikido.dev+.
+    #   +https://guard.aikido.dev+, or a region-specific host derived from
+    #   the +api_token+ (e.g. +https://guard.us.aikido.dev+).
     attr_reader :api_endpoint
 
     # @return [URI] The HTTP host for the Aikido Runtime API. Defaults to
@@ -230,7 +231,7 @@ module Aikido::Zen
       self.blocking_mode = read_boolean_from_env(ENV.fetch("AIKIDO_BLOCK", false))
       self.debugging = read_boolean_from_env(ENV.fetch("AIKIDO_DEBUG", false))
       self.api_token = ENV.fetch("AIKIDO_TOKEN", nil)
-      self.api_endpoint = ENV.fetch("AIKIDO_ENDPOINT", DEFAULT_AIKIDO_ENDPOINT)
+      self.api_endpoint = ENV.fetch("AIKIDO_ENDPOINT") { regional_api_endpoint(api_token) }
       self.realtime_endpoint = ENV.fetch("AIKIDO_REALTIME_ENDPOINT", DEFAULT_RUNTIME_BASE_URL)
       self.api_timeouts = 10
       self.polling_interval = 60 # 1 min
@@ -321,6 +322,32 @@ module Aikido::Zen
 
     private
 
+    # Extracts the region from an Aikido runtime token, if present.
+    #
+    # Tokens can either be in the old format (without a region) or the new
+    # format (with a region):
+    #   old: AIK_RUNTIME_{sys_group_id}_{service_id}_{random}
+    #   new: AIK_RUNTIME_{sys_group_id}_{service_id}_{region}_{random}
+    #
+    # @param token [String, nil]
+    # @return [String] the region code (e.g. "US"), or "EU" if the token does
+    #   not encode a region.
+    def extract_region_from_token(token)
+      return "EU" unless token&.start_with?(TOKEN_PREFIX)
+
+      parts = token.delete_prefix(TOKEN_PREFIX).split("_")
+      return parts[2] if parts.length == 4
+
+      "EU"
+    end
+
+    # @param token [String, nil]
+    # @return [String] the base URL for the Aikido API for the region
+    #   encoded in the given token, defaulting to the EU endpoint.
+    def regional_api_endpoint(token)
+      REGIONAL_AIKIDO_ENDPOINTS.fetch(extract_region_from_token(token), DEFAULT_AIKIDO_ENDPOINT)
+    end
+
     def read_boolean_from_env(value)
       return value unless value.respond_to?(:to_str)
 
@@ -334,6 +361,16 @@ module Aikido::Zen
 
     # @!visibility private
     DEFAULT_AIKIDO_ENDPOINT = "https://guard.aikido.dev"
+
+    # @!visibility private
+    TOKEN_PREFIX = "AIK_RUNTIME_"
+
+    # @!visibility private
+    REGIONAL_AIKIDO_ENDPOINTS = {
+      "US" => "https://guard.us.aikido.dev",
+      "ME" => "https://guard.me.aikido.dev",
+      "AU" => "https://guard.au.aikido.dev"
+    }.freeze
 
     # @!visibility private
     DEFAULT_RUNTIME_BASE_URL = "https://runtime.aikido.dev"
