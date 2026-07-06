@@ -12,5 +12,8 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   # root "posts#index"
 
+  get "test/worker_process" => "worker_process#show"
+  get "test/rate_limit" => "rate_limit#show"
   get "test/outbound_connection" => "outbound_connection#show"
+  get "test/path_traversal" => "path_traversal#show"
 end
