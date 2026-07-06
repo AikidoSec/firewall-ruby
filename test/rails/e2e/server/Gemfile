@@ -1,0 +1,10 @@
+source "https://rubygems.org"
+
+gem "sinatra", "~> 3.2"
+
+gem "puma", "~> 8.0"
+
+group :development do
+  gem "rerun"
+  gem "standard", "~> 1.55", require: false
+end
