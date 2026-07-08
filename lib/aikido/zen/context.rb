@@ -98,6 +98,8 @@ module Aikido::Zen
 
     # @!visibility private
     def extract_payloads_from(data, source_type, prefix = nil)
+      return [] if data.nil?
+
       if data.respond_to?(:to_hash)
         data.to_hash.flat_map do |key, value|
           extract_payloads_from(value, source_type, [prefix, key].compact.join("."))
