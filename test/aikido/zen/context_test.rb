@@ -226,7 +226,7 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       assert_includes context.payloads, stub_payload(:body, "iv", "array.3")
 
       # Values must be strings to be extracted
-      refute_includes context.payloads, stub_payload(:body, 3, "array.3")
+      refute_includes context.payloads, stub_payload(:body, 3, "array.2")
     end
 
     test "body payloads are not read from JSON-encoded bodies that cannot be parsed" do
