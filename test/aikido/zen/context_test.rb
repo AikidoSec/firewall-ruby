@@ -209,15 +209,24 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     test "body payloads are read from JSON-encoded bodies" do
       context = build_context_for("/example", {
         :method => "POST",
-        :input => %({"test":"value","nested":{"hash":"data"},"array":[1, 2, 3]}),
+        :input => %({"key":"value","hash":{"first":0,"key":"value","last":2.0},"array":["1", "two", 3, "iv"]}),
         "CONTENT_TYPE" => "application/json"
       })
 
-      assert_includes context.payloads, stub_payload(:body, "value", "test")
-      assert_includes context.payloads, stub_payload(:body, "data", "nested.hash")
-      assert_includes context.payloads, stub_payload(:body, 1, "array.0")
-      assert_includes context.payloads, stub_payload(:body, 2, "array.1")
-      assert_includes context.payloads, stub_payload(:body, 3, "array.2")
+      assert_includes context.payloads, stub_payload(:body, "value", "key")
+
+      assert_includes context.payloads, stub_payload(:body, "value", "hash.key")
+
+      # Values must be strings to be extracted
+      refute_includes context.payloads, stub_payload(:body, 0, "hash.first")
+      refute_includes context.payloads, stub_payload(:body, 2.0, "hash.last")
+
+      assert_includes context.payloads, stub_payload(:body, "1", "array.0")
+      assert_includes context.payloads, stub_payload(:body, "two", "array.1")
+      assert_includes context.payloads, stub_payload(:body, "iv", "array.3")
+
+      # Values must be strings to be extracted
+      refute_includes context.payloads, stub_payload(:body, 3, "array.3")
     end
 
     test "body payloads are not read from JSON-encoded bodies that cannot be parsed" do
