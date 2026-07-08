@@ -29,10 +29,6 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     end
   end
 
-  def stub_probe_realtime_endpoint
-    stub_request(:get, "#{@config.realtime_settings_updates_endpoint}/config")
-  end
-
   setup do
     @config = Aikido::Zen.config
     @config.api_token = "TOKEN"
@@ -59,8 +55,6 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "knows if it has started" do
-    stub_probe_realtime_endpoint
-
     refute @agent.started?
 
     @agent.start!
@@ -71,8 +65,6 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#start! fails if attempted to start multiple times" do
-    stub_probe_realtime_endpoint
-
     @agent.start!
 
     err = assert_raises Aikido::ZenError do
@@ -83,16 +75,12 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#start! sets the start time for our stats funnel" do
-    stub_probe_realtime_endpoint
-
     assert_changes "@collector.stats.started_at", from: nil do
       @agent.start!
     end
   end
 
   test "#start! warns if blocking mode is disabled" do
-    stub_probe_realtime_endpoint
-
     @config.blocking_mode = false
     @agent.start!
 
@@ -101,8 +89,6 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#start! notifies if blocking mode is enabled" do
-    stub_probe_realtime_endpoint
-
     @config.blocking_mode = true
     @agent.start!
 
@@ -111,8 +97,6 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#start! notifies if an API token has been set" do
-    stub_probe_realtime_endpoint
-
     @config.api_token = "TOKEN"
     @agent.start!
 
@@ -121,8 +105,6 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#start! warns if there's no API token set" do
-    stub_probe_realtime_endpoint
-
     @config.api_token = nil
     @agent.start!
 
@@ -130,79 +112,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     refute_logged :debug, /api token set! reporting has been enabled/i
   end
 
-  test "#start! probes the realtime endpoint" do
-    request = stub_probe_realtime_endpoint
-      .to_return(status: 200, body: "")
-
-    @config.api_token = "TOKEN"
-    @agent.start!
-
-    assert_requested request
-
-    refute_logged :debug, /error probing realtime endpoint/i
-    refute_logged :error, /error probing realtime endpoint/i
-    refute_logged :warn, /can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}/i
-  end
-
-  test "#start! probes the realtime endpoint and logs warning after open timeout" do
-    request = stub_probe_realtime_endpoint
-      .to_raise(Net::OpenTimeout)
-
-    @config.api_token = "TOKEN"
-    @agent.start!
-
-    assert_requested request
-
-    assert_logged :debug, /error probing realtime endpoint/i
-    refute_logged :error, /error probing realtime endpoint/i
-    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}/i
-  end
-
-  test "#start! probes the realtime endpoint and logs warning after write timeout" do
-    request = stub_probe_realtime_endpoint
-      .to_raise(Net::WriteTimeout)
-
-    @config.api_token = "TOKEN"
-    @agent.start!
-
-    assert_requested request
-
-    assert_logged :debug, /error probing realtime endpoint/i
-    refute_logged :error, /error probing realtime endpoint/i
-    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}/i
-  end
-
-  test "#start! probes the realtime endpoint and logs warning after read timeout" do
-    request = stub_probe_realtime_endpoint
-      .to_raise(Net::ReadTimeout)
-
-    @config.api_token = "TOKEN"
-    @agent.start!
-
-    assert_requested request
-
-    assert_logged :debug, /error probing realtime endpoint/i
-    refute_logged :error, /error probing realtime endpoint/i
-    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}/i
-  end
-
-  test "#start! probes the realtime endpoint and logs error after unexpected error" do
-    request = stub_probe_realtime_endpoint
-      .to_raise(RuntimeError)
-
-    @config.api_token = "TOKEN"
-    @agent.start!
-
-    assert_requested request
-
-    refute_logged :debug, /error probing realtime endpoint/i
-    assert_logged :error, /error probing realtime endpoint/i
-    assert_logged :warn, /can't reach #{Aikido::Zen.config.realtime_settings_updates_endpoint}/i
-  end
-
   test "#start! reports a STARTED event" do
-    stub_probe_realtime_endpoint
-
     @api_client.expect :report, {}, [Aikido::Zen::Events::Started]
 
     @agent.start!
@@ -211,8 +121,6 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#start! takes the response of the STARTED event as runtime settings" do
-    stub_probe_realtime_endpoint
-
     @api_client.expect :report,
       {"configUpdatedAt" => 1234567890},
       [Aikido::Zen::Events::Started]
@@ -238,8 +146,6 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#start! starts polling for setting updates every minute" do
-    stub_probe_realtime_endpoint
-
     @api_client.expect :should_fetch_settings?, false
 
     assert_difference "@worker.jobs.size", +1 do
@@ -255,8 +161,6 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#start! updates the runtime settings after polling if needed" do
-    stub_probe_realtime_endpoint
-
     @api_client.expect :should_fetch_settings?, true
     @api_client.expect :fetch_runtime_config, {"configUpdatedAt" => 1234567890}
 
@@ -437,8 +341,6 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#start! queues a one-off tasks for each initial heartbeat delay" do
-    stub_probe_realtime_endpoint
-
     size = @config.initial_heartbeat_delays.size
 
     assert_difference "@worker.delayed.size", size do
@@ -454,8 +356,6 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#start! successfully sends the initial heartbeats" do
-    stub_probe_realtime_endpoint
-
     # Make sure there are _some_ stats
     @collector.track_request
 
