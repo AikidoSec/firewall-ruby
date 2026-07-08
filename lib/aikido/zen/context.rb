@@ -98,7 +98,9 @@ module Aikido::Zen
 
     # @!visibility private
     def extract_payloads_from(data, source_type, prefix = nil)
-      if data.respond_to?(:to_hash)
+      if data.is_a?(String)
+        [Payload.new(data, source_type, prefix.to_s)]
+      elsif data.respond_to?(:to_hash)
         data.to_hash.flat_map do |key, value|
           extract_payloads_from(value, source_type, [prefix, key].compact.join("."))
         end
@@ -125,7 +127,7 @@ module Aikido::Zen
 
         payloads
       else
-        [Payload.new(data, source_type, prefix.to_s)]
+        []
       end
     end
 
