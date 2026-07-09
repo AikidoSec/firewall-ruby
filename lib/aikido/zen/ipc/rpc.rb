@@ -79,6 +79,9 @@ module Aikido
 
         def start
           @server.start do |socket|
+            # Disable Nagle/delayed-ACK to optimize request/response latency
+            socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+
             @logger.info("RPC server: client connected")
 
             handle_messages(socket)
@@ -229,6 +232,9 @@ module Aikido
             connect_timeout: connect_timeout,
             handshake_timeout: handshake_timeout
           )
+
+          # Disable Nagle/delayed-ACK to optimize request/response latency
+          @client.socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
         end
 
         def close
