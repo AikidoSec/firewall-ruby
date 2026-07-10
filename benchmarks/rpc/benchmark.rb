@@ -23,7 +23,7 @@ def run(duration, concurrency)
     threads = concurrency.times.map do
       Thread.new do
         while Process.clock_gettime(Process::CLOCK_MONOTONIC) < deadline
-          client.invoke("echo", "hello", timeout: 5.0)
+          client.invoke("echo", 5.0, "hello")
 
           calls.increment
         end

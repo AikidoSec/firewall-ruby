@@ -273,7 +273,7 @@ module Aikido
           end
         end
 
-        def invoke(name, *args, timeout: nil, **kwargs)
+        def invoke(name, timeout, *args, **kwargs)
           id = SecureRandom.uuid
 
           ivar = Concurrent::IVar.new
