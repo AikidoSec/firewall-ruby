@@ -471,7 +471,7 @@ class Aikido::Zen::IPC::FramedIOTest < ActiveSupport::TestCase
     writer.close
   end
 
-  test "handles large frames correctly" do
+  test "#read_frame_with_timeout and #write_frame_with_timeout handle large frames correctly" do
     reader, writer = socket_pair
 
     data = SecureRandom.bytes(1 * 1024 * 1024)
@@ -483,6 +483,70 @@ class Aikido::Zen::IPC::FramedIOTest < ActiveSupport::TestCase
     assert_equal data, result
   ensure
     reader.close
+    writer.close
+  end
+
+  test "#read_coalesced_frame_with_timeout raises FrameTooLargeError when the frame exceeds max_size" do
+    reader, writer = socket_pair
+
+    writer.write([10].pack("N")) # declare a 10-byte frame
+
+    buffer = String.new(encoding: Encoding::BINARY)
+
+    err = assert_raises(Aikido::Zen::IPC::FramedIO::FrameTooLargeError) do
+      read_coalesced_frame_with_timeout(reader, buffer, 4, 1.0)
+    end
+
+    assert_equal "frame too large: 10 bytes (max: 4)", err.message
+  ensure
+    reader.close
+    writer.close
+  end
+
+  test "#write_coalesced_frame_with_timeout raises FrameTooLargeError when the frame exceeds max_size" do
+    reader, writer = socket_pair
+
+    err = assert_raises(Aikido::Zen::IPC::FramedIO::FrameTooLargeError) do
+      write_coalesced_frame_with_timeout(writer, "hello world", 5, 1.0)
+    end
+    assert_equal "frame too large: 11 bytes (max: 5)", err.message
+  ensure
+    reader.close
+    writer.close
+  end
+
+  test "#read_coalesced_frame_with_timeout and #write_coalesced_frame_with_timeout handle large frames correctly" do
+    reader, writer = socket_pair
+
+    data = SecureRandom.bytes(1 * 1024 * 1024)
+    buffer = String.new(encoding: Encoding::BINARY)
+
+    thread = Thread.new { write_coalesced_frame_with_timeout(writer, data, nil, 5.0) }
+    result = read_coalesced_frame_with_timeout(reader, buffer, nil, 5.0)
+    thread.join
+
+    assert_equal data, result
+  ensure
+    reader.close
+    writer.close
+  end
+
+  test "#read_coalesced_frame_with_timeout reads frames already in the buffer" do
+    reader, writer = socket_pair
+
+    write_frame_with_timeout(writer, "first", nil, 1.0)
+    write_frame_with_timeout(writer, "second", nil, 1.0)
+    write_frame_with_timeout(writer, "third", nil, 1.0)
+
+    buffer = String.new(encoding: Encoding::BINARY)
+
+    assert_equal "first", read_coalesced_frame_with_timeout(reader, buffer, nil, 1.0)
+
+    reader.close
+
+    assert_equal "second", read_coalesced_frame_with_timeout(reader, buffer, nil, 1.0)
+    assert_equal "third", read_coalesced_frame_with_timeout(reader, buffer, nil, 1.0)
+  ensure
     writer.close
   end
 end

@@ -66,14 +66,15 @@ class FramedIO
   def initialize(data, timeout: 5)
     @data = data
     @timeout = timeout
+    @buffer = String.new(encoding: Encoding::BINARY)
   end
 
   def read(socket)
-    read_frame_with_timeout(socket, nil, @timeout)
+    read_coalesced_frame_with_timeout(socket, @buffer, nil, @timeout)
   end
 
   def write(socket)
-    write_frame_with_timeout(socket, @data, nil, @timeout)
+    write_coalesced_frame_with_timeout(socket, @data, nil, @timeout)
   end
 end
 
@@ -144,5 +145,5 @@ if __FILE__ == $0
 
   framed_io = FramedIO.new(data)
   framed_io_sent, framed_io_real = run(duration, framed_io)
-  report("FramedIO", framed_io_sent, framed_io_real, data_size, baseline: basic_io_rate)
+  report("FramedIO (coalesced)", framed_io_sent, framed_io_real, data_size, baseline: basic_io_rate)
 end

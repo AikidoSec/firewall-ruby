@@ -79,15 +79,15 @@ module Aikido
           connect_with_deadline(host, port, deadline)
         end
 
-        def read_with_deadline(socket, length, deadline)
-          buf = String.new(encoding: Encoding::BINARY)
-
-          while buf.bytesize < length
+        def read_with_deadline(socket, length, deadline, buffer: String.new(encoding: Encoding::BINARY), chunk_size: 0)
+          while buffer.bytesize < length
             remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
             raise Errno::ETIMEDOUT, "read timed out" unless remaining > 0
 
-            case chunk = socket.read_nonblock(length - buf.bytesize, exception: false)
+            read_size = [chunk_size, length - buffer.bytesize].max
+
+            case chunk = socket.read_nonblock(read_size, exception: false)
             # Code coverage is disabled here because this is hard to control.
             # :nocov:
             when :wait_readable
@@ -96,11 +96,11 @@ module Aikido
             when nil
               raise EOFError
             else
-              buf << chunk
+              buffer << chunk
             end
           end
 
-          buf
+          buffer
         end
 
         def write_with_deadline(socket, data, deadline)
@@ -127,6 +127,8 @@ module Aikido
       module FramedIO
         include TimedIO
 
+        READ_CHUNK_SIZE = 65536
+
         class FrameTooLargeError < StandardError
           def initialize(size, max_size)
             super("frame too large: #{size} bytes (max: #{max_size})")
@@ -135,20 +137,38 @@ module Aikido
 
         private
 
-        def read_frame_with_deadline(socket, max_size, deadline)
-          len = read_with_deadline(socket, 4, deadline).unpack1("N")
+        def read_frame_with_deadline(socket, max_size, deadline, buffer: String.new(encoding: Encoding::BINARY), chunk_size: 0)
+          read_with_deadline(socket, 4, deadline, buffer: buffer, chunk_size: chunk_size)
 
-          if max_size && len > max_size
-            raise FrameTooLargeError.new(len, max_size)
+          size = buffer.byteslice(0, 4).unpack1("N")
+
+          if max_size && size > max_size
+            raise FrameTooLargeError.new(size, max_size)
           end
 
-          read_with_deadline(socket, len, deadline)
+          read_with_deadline(socket, 4 + size, deadline, buffer: buffer, chunk_size: chunk_size)
+
+          buffer.byteslice(4, size)
         end
 
-        def read_frame_with_timeout(socket, max_size, timeout)
+        def read_frame_with_timeout(socket, max_size, timeout, buffer: String.new(encoding: Encoding::BINARY), chunk_size: 0)
           deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
 
-          read_frame_with_deadline(socket, max_size, deadline)
+          read_frame_with_deadline(socket, max_size, deadline, buffer: buffer, chunk_size: chunk_size)
+        end
+
+        def read_coalesced_frame_with_deadline(socket, buffer, max_size, deadline, chunk_size: READ_CHUNK_SIZE)
+          frame = read_frame_with_deadline(socket, max_size, deadline, buffer: buffer, chunk_size: chunk_size)
+
+          buffer.replace(buffer.byteslice((4 + frame.bytesize)..))
+
+          frame
+        end
+
+        def read_coalesced_frame_with_timeout(socket, buffer, max_size, timeout, chunk_size: READ_CHUNK_SIZE)
+          deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
+
+          read_coalesced_frame_with_deadline(socket, buffer, max_size, deadline, chunk_size: chunk_size)
         end
 
         def write_frame_with_deadline(socket, data, max_size, deadline)
@@ -166,6 +186,25 @@ module Aikido
           deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
 
           write_frame_with_deadline(socket, data, max_size, deadline)
+        end
+
+        def write_coalesced_frame_with_deadline(socket, data, max_size, deadline)
+          size = data.bytesize
+
+          if max_size && size > max_size
+            raise FrameTooLargeError.new(size, max_size)
+          end
+
+          frame = [size].pack("N")
+          frame << data
+
+          write_with_deadline(socket, frame, deadline)
+        end
+
+        def write_coalesced_frame_with_timeout(socket, data, max_size, timeout)
+          deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
+
+          write_coalesced_frame_with_deadline(socket, data, max_size, deadline)
         end
       end
 
@@ -187,10 +226,10 @@ module Aikido
 
             write_with_deadline(socket, server_challenge, deadline)
 
-            buf = read_with_deadline(socket, HMAC_LEN + CHALLENGE_LEN, deadline)
+            buffer = read_with_deadline(socket, HMAC_LEN + CHALLENGE_LEN, deadline)
 
-            client_hmac = buf.byteslice(0, HMAC_LEN)
-            client_challenge = buf.byteslice(HMAC_LEN, CHALLENGE_LEN)
+            client_hmac = buffer.byteslice(0, HMAC_LEN)
+            client_challenge = buffer.byteslice(HMAC_LEN, CHALLENGE_LEN)
 
             expected = OpenSSL::HMAC.digest("SHA256", secret, "CLIENT-AUTH" + server_challenge)
 

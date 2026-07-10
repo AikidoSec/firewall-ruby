@@ -106,9 +106,10 @@ module Aikido
 
         def handle_messages(socket)
           write_mutex = Mutex.new
+          buffer = String.new(encoding: Encoding::BINARY)
 
           loop do
-            message = read_message(socket)
+            message = read_message(socket, buffer)
             next unless valid_message?(message)
 
             handle_message(message, write_mutex, socket)
@@ -160,12 +161,12 @@ module Aikido
           true
         end
 
-        def read_message(socket)
-          JSON.parse(read_frame_with_timeout(socket, @max_read_size, @read_timeout))
+        def read_message(socket, buffer)
+          JSON.parse(read_coalesced_frame_with_timeout(socket, buffer, @max_read_size, @read_timeout))
         end
 
         def write_message(socket, message)
-          write_frame_with_timeout(socket, JSON.generate(message), @max_write_size, @write_timeout)
+          write_coalesced_frame_with_timeout(socket, JSON.generate(message), @max_write_size, @write_timeout)
         end
       end
 
@@ -287,8 +288,10 @@ module Aikido
         private
 
         def handle_messages(socket)
+          buffer = String.new(encoding: Encoding::BINARY)
+
           loop do
-            message = read_message(socket)
+            message = read_message(socket, buffer)
             next unless valid_message?(message)
 
             handle_message(message)
@@ -316,12 +319,12 @@ module Aikido
           true
         end
 
-        def read_message(socket)
-          JSON.parse(read_frame_with_timeout(socket, @max_read_size, @read_timeout))
+        def read_message(socket, buffer)
+          JSON.parse(read_coalesced_frame_with_timeout(socket, buffer, @max_read_size, @read_timeout))
         end
 
         def write_message(socket, message)
-          write_frame_with_timeout(socket, JSON.generate(message), @max_write_size, @write_timeout)
+          write_coalesced_frame_with_timeout(socket, JSON.generate(message), @max_write_size, @write_timeout)
         end
       end
     end
