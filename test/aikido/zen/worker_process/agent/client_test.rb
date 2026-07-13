@@ -15,8 +15,10 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       @invoke_results = {}
     end
 
-    def start
+    def start(&block)
       @started = true
+
+      block&.call
     end
 
     def stop
@@ -120,7 +122,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
 
         agent.start
 
-        assert_logged :error, /failed to get initial settings from parent: boom/
+        assert_logged :error, /failed to get settings after connecting to parent: boom/
       end
     end
   end
@@ -296,7 +298,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientIntegrationTest < ActiveSupport::
   def build_client
     Aikido::Zen::WorkerProcess::Agent::Client.new(
       @server.host, @server.port,
-      worker: MockWorker.new,
+      worker: Aikido::Zen::Worker.new,
       collector: Aikido::Zen.collector
     )
   end
@@ -315,6 +317,8 @@ class Aikido::Zen::WorkerProcess::Agent::ClientIntegrationTest < ActiveSupport::
     in_forked_worker do
       client = build_client
       client.start
+
+      wait_until(timeout: 2) { Aikido::Zen.runtime_settings.heartbeat_interval == 90 }
 
       interval = Aikido::Zen.runtime_settings.heartbeat_interval
       raise "expected heartbeat_interval=90, got #{interval}" unless interval == 90
@@ -348,6 +352,37 @@ class Aikido::Zen::WorkerProcess::Agent::ClientIntegrationTest < ActiveSupport::
         nil
       ))
       raise "expected nil with no rate limit rules, got #{result.inspect}" unless result.nil?
+    end
+  end
+
+  test "client reconnects and updates settings after the connection drops" do
+    connections = Concurrent::AtomicFixnum.new(0)
+
+    config = -> do
+      {
+        "configUpdatedAt" => 0, "heartbeatIntervalInMS" => connections.increment * 1000,
+        "endpoints" => [], "blockedUserIds" => [], "allowedIPAddresses" => [],
+        "receivedAnyStats" => false, "block" => false,
+        "blockNewOutgoingRequests" => false, "domains" => {},
+        "excludedUserIdsFromRateLimiting" => []
+      }
+    end
+
+    Aikido::Zen.api_cache.stub(:runtime_config, config) do
+      in_forked_worker do
+        client = build_client
+        client.start
+
+        wait_until(timeout: 2.0) { Aikido::Zen.runtime_settings.heartbeat_interval == 1 }
+
+        client.instance_variable_get(:@rpc_client).instance_variable_get(:@client)
+          .socket.shutdown(Socket::SHUT_RDWR)
+
+        wait_until(timeout: 2.0) { Aikido::Zen.runtime_settings.heartbeat_interval == 2 }
+
+        interval = Aikido::Zen.runtime_settings.heartbeat_interval
+        raise "expected heartbeat_interval=2 after reconnecting, got #{interval}" unless interval == 2
+      end
     end
   end
 end

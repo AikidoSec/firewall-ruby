@@ -269,6 +269,147 @@ class Aikido::Zen::IPC::ClientTest < ActiveSupport::TestCase
   ensure
     client.close
   end
+
+  test "#reconnect is not triggered by default" do
+    gate = Concurrent::CountDownLatch.new(1)
+
+    server = start_ipc_server { gate.wait }
+
+    connections = Concurrent::AtomicFixnum.new(0)
+
+    client = Aikido::Zen::IPC::Client.start(
+      Aikido::Zen.secret,
+      server.host,
+      server.port,
+      connect_timeout: 1.0,
+      handshake_timeout: 1.0
+    ) do |socket|
+      connections.increment
+      socket.readline
+    end
+
+    wait_until(timeout: 1.0) { connections.value == 1 }
+
+    client.stop
+
+    sleep 1.0
+
+    assert_equal 1, connections.value
+  ensure
+    gate.count_down
+    server.stop
+  end
+
+  test "#reconnect is triggered when enabled" do
+    gate = Concurrent::CountDownLatch.new(1)
+
+    server = start_ipc_server { gate.wait }
+
+    connections = Concurrent::AtomicFixnum.new(0)
+
+    client = Aikido::Zen::IPC::Client.start(
+      Aikido::Zen.secret,
+      server.host,
+      server.port,
+      connect_timeout: 1.0,
+      handshake_timeout: 1.0,
+      reconnect: true
+    ) do |socket|
+      if connections.increment == 1
+        raise EOFError
+      else
+        socket.readline
+      end
+    end
+
+    wait_until(timeout: 1.0) { connections.value == 2 }
+
+    assert_equal 2, connections.value
+  ensure
+    gate.count_down
+    client.stop
+    server.stop
+  end
+
+  test "#reconnect is not triggered after #stop when enabled" do
+    gate = Concurrent::CountDownLatch.new(1)
+
+    server = start_ipc_server { gate.wait }
+
+    connections = Concurrent::AtomicFixnum.new(0)
+
+    client = Aikido::Zen::IPC::Client.start(
+      Aikido::Zen.secret,
+      server.host,
+      server.port,
+      connect_timeout: 1.0,
+      handshake_timeout: 1.0,
+      reconnect: true
+    ) do |socket|
+      connections.increment
+      socket.readline
+    end
+
+    wait_until(timeout: 1.0) { connections.value == 1 }
+
+    client.stop
+
+    sleep 1.0
+
+    assert_equal 1, connections.value
+  ensure
+    gate.count_down
+    server.stop
+  end
+
+  test "#reconnect retries after a failed connection attempt" do
+    gate = Concurrent::CountDownLatch.new(1)
+
+    server = start_ipc_server { gate.wait }
+
+    client = Aikido::Zen::IPC::Client.new(
+      Aikido::Zen.secret,
+      server.host,
+      server.port,
+      connect_timeout: 1.0,
+      handshake_timeout: 1.0,
+      reconnect: true,
+      reconnect_delay: 0.1
+    )
+
+    connect_calls = Concurrent::AtomicFixnum.new(0)
+
+    original_connect = client.method(:connect)
+
+    connect_stub = lambda do
+      if connect_calls.increment == 1
+        raise Errno::ECONNREFUSED
+      else
+        original_connect.call
+      end
+    end
+
+    connections = Concurrent::AtomicFixnum.new(0)
+
+    client.stub(:connect, connect_stub) do
+      client.start do |socket|
+        connections.increment
+        socket.readline
+      end
+
+      wait_until(timeout: 1.0) { connections.value == 1 }
+
+      client.socket.shutdown(Socket::SHUT_RDWR)
+
+      wait_until(timeout: 1.0) { connections.value == 2 }
+
+      assert_equal 2, connections.value
+    end
+  ensure
+    gate.count_down
+    client.stop
+    server.stop
+  end
 end
 
 class Aikido::Zen::IPC::ConnectionTest < ActiveSupport::TestCase

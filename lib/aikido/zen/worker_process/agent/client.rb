@@ -26,7 +26,7 @@ module Aikido::Zen::WorkerProcess
         @heartbeat_interval = heartbeat_interval
         @collector = collector
 
-        @rpc_client = Aikido::Zen::RPC::Client.new(secret, host, port)
+        @rpc_client = Aikido::Zen::RPC::Client.new(secret, host, port, reconnect: true)
       end
 
       def close
@@ -34,12 +34,12 @@ module Aikido::Zen::WorkerProcess
       end
 
       def start
-        @rpc_client.start
-
-        begin
-          update_settings(updated_settings)
-        rescue => err
-          @config.logger.error("Forked worker process #{Process.pid}: failed to get initial settings from parent: #{err.message}")
+        @rpc_client.start do
+          @worker.perform do
+            update_settings(updated_settings)
+          rescue => err
+            @config.logger.error("Forked worker process #{Process.pid}: failed to get settings after connecting to parent: #{err.message}")
+          end
         end
 
         schedule_tasks

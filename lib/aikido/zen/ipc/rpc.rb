@@ -186,7 +186,10 @@ module Aikido
           write_timeout: IPC::WRITE_TIMEOUT,
           max_read_size: nil,
           max_write_size: nil,
-          logger: Aikido::Zen.config.logger
+          reconnect: false,
+          reconnect_delay: IPC::RECONNECT_DELAY,
+          logger: Aikido::Zen.config.logger,
+          &block
         )
           client = new(
             secret,
@@ -198,9 +201,11 @@ module Aikido
             write_timeout: write_timeout,
             max_read_size: max_read_size,
             max_write_size: max_write_size,
+            reconnect: reconnect,
+            reconnect_delay: reconnect_delay,
             logger: logger
           )
-          client.start
+          client.start(&block)
           client
         end
 
@@ -214,6 +219,8 @@ module Aikido
           write_timeout: IPC::WRITE_TIMEOUT,
           max_read_size: nil,
           max_write_size: nil,
+          reconnect: false,
+          reconnect_delay: IPC::RECONNECT_DELAY,
           logger: Aikido::Zen.config.logger
         )
           @read_timeout = read_timeout
@@ -230,7 +237,9 @@ module Aikido
             host,
             port,
             connect_timeout: connect_timeout,
-            handshake_timeout: handshake_timeout
+            handshake_timeout: handshake_timeout,
+            reconnect: reconnect,
+            reconnect_delay: reconnect_delay
           )
 
           # Disable Nagle/delayed-ACK to optimize request/response latency
@@ -241,22 +250,20 @@ module Aikido
           @client.close
         end
 
-        def start
+        def start(&block)
           @client.start do |socket|
             @logger.info("RPC client connected")
 
+            block&.call
+
             handle_messages(socket)
-          rescue EOFError, Errno::ECONNRESET, Errno::EPIPE => err
-            # disconnected
-          rescue IOError => err
-            # client stopped
           rescue => err
             @logger.error("RPC client error: #{err.class}: #{err.message}")
             @logger.debug(err.backtrace.join("\n"))
+
+            raise
           ensure
             @logger.info("RPC client disconnected")
-
-            @client.stop
 
             @pending.each_value { |ivar| ivar.fail(err) }
             @pending.clear

@@ -27,6 +27,8 @@ module Aikido
       READ_TIMEOUT = 5.0
       WRITE_TIMEOUT = 5.0
 
+      RECONNECT_DELAY = 1.0
+
       module TimedIO
         private
 
@@ -397,9 +399,19 @@ module Aikido
           port = 0,
           connect_timeout: IPC::CONNECT_TIMEOUT,
           handshake_timeout: IPC::HANDSHAKE_TIMEOUT,
+          reconnect: false,
+          reconnect_delay: IPC::RECONNECT_DELAY,
           &block
         )
-          client = new(secret, host, port, connect_timeout: connect_timeout, handshake_timeout: handshake_timeout)
+          client = new(
+            secret,
+            host,
+            port,
+            connect_timeout: connect_timeout,
+            handshake_timeout: handshake_timeout,
+            reconnect: reconnect,
+            reconnect_delay: reconnect_delay
+          )
           client.start(&block)
           client
         end
@@ -409,12 +421,21 @@ module Aikido
           host = "127.0.0.1",
           port = 0,
           connect_timeout: IPC::CONNECT_TIMEOUT,
-          handshake_timeout: IPC::HANDSHAKE_TIMEOUT
+          handshake_timeout: IPC::HANDSHAKE_TIMEOUT,
+          reconnect: false,
+          reconnect_delay: IPC::RECONNECT_DELAY
         )
+          @secret = secret
+          @host = host
+          @port = port
+          @connect_timeout = connect_timeout
+          @handshake_timeout = handshake_timeout
+          @reconnect = reconnect
+          @reconnect_delay = reconnect_delay
+
           @running = Concurrent::AtomicBoolean.new(false)
 
-          @socket = connect_with_timeout(host, port, connect_timeout)
-          handshake(@socket, secret, handshake_timeout)
+          connect
         end
 
         def close
@@ -427,7 +448,13 @@ module Aikido
           return false unless @running.make_true
 
           Thread.new do
-            block.call(@socket)
+            loop do
+              block.call(@socket)
+
+              break
+            rescue
+              break unless @reconnect && reconnect
+            end
           ensure
             @running.make_false
             close
@@ -444,6 +471,30 @@ module Aikido
           close
 
           true
+        end
+
+        private
+
+        def connect
+          @socket = connect_with_timeout(@host, @port, @connect_timeout)
+
+          handshake(@socket, @secret, @handshake_timeout)
+        end
+
+        def reconnect
+          close
+
+          while @running.true?
+            begin
+              connect
+
+              return true
+            rescue
+              sleep @reconnect_delay
+            end
+          end
+
+          false
         end
       end
     end
