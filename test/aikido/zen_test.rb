@@ -153,4 +153,27 @@ class Aikido::ZenTest < ActiveSupport::TestCase
   ensure
     Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
   end
+
+  test ".calculate_rate_limits falls back to the local rate limiter when the worker process client raises" do
+    failing_client = Object.new
+
+    def failing_client.calculate_rate_limits(request)
+      raise "RPC error"
+    end
+
+    def failing_client.stop
+    end
+
+    rate_limiter_mock = Minitest::Mock.new
+    rate_limiter_mock.expect(:calculate_rate_limits, :local_result, [Object])
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, failing_client)
+
+    result = Aikido::Zen.stub(:rate_limiter, rate_limiter_mock) do
+      Aikido::Zen.calculate_rate_limits(Object.new)
+    end
+
+    assert_equal :local_result, result
+    assert_mock rate_limiter_mock
+  end
 end

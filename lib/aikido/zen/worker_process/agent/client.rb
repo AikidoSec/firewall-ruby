@@ -64,7 +64,7 @@ module Aikido::Zen::WorkerProcess
         Aikido::Zen::RateLimiter::Result.from_json(result) if result
       rescue => err
         @config.logger.error("Forked worker process #{Process.pid}: failed to get rate limits from parent: #{err.message}")
-        nil
+        raise
       end
 
       private

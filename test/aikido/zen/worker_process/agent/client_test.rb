@@ -175,7 +175,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     end
   end
 
-  test "#calculate_rate_limits returns nil and logs when the RPC call raises" do
+  test "#calculate_rate_limits logs and re-raises when the RPC call raises" do
     build_agent("updated_settings" => {}) do |agent, worker, collector, client|
       request = MockRequest.new(
         Aikido::Zen::Route.new(verb: "GET", path: "/test"),
@@ -184,7 +184,8 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       )
 
       client.stub(:invoke, ->(*) { raise "RPC error" }) do
-        assert_nil agent.calculate_rate_limits(request)
+        err = assert_raises(RuntimeError) { agent.calculate_rate_limits(request) }
+        assert_equal "RPC error", err.message
         assert_logged :error, /failed to get rate limits from parent/i
       end
     end

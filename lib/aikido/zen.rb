@@ -100,7 +100,11 @@ module Aikido
       worker_process_client = @worker_process_client
 
       if worker_process_client
-        worker_process_client.calculate_rate_limits(request)
+        begin
+          worker_process_client.calculate_rate_limits(request)
+        rescue
+          rate_limiter.calculate_rate_limits(request)
+        end
       else
         rate_limiter.calculate_rate_limits(request)
       end
