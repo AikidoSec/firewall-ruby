@@ -50,7 +50,7 @@ module Aikido::Zen::WorkerProcess
 
       def send_collector_events
         events_data = @collector.flush_events.map(&:as_json)
-        @rpc_client.invoke("send_collector_events", nil, events_data)
+        @rpc_client.invoke("send_collector_events", KEEPALIVE_INTERVAL, events_data)
       rescue => err
         @config.logger.error("Forked worker process #{Process.pid}: failed to send collector events to parent: #{err.message}")
       end
@@ -70,7 +70,7 @@ module Aikido::Zen::WorkerProcess
       private
 
       def updated_settings
-        @rpc_client.invoke("updated_settings", Aikido::Zen::IPC::READ_TIMEOUT)
+        @rpc_client.invoke("updated_settings", KEEPALIVE_INTERVAL)
       end
 
       def update_settings(settings)
@@ -100,7 +100,7 @@ module Aikido::Zen::WorkerProcess
       end
 
       def keepalive
-        @rpc_client.invoke("ping", nil)
+        @rpc_client.invoke("ping", KEEPALIVE_INTERVAL)
       rescue => err
         @config.logger.error("Forked worker process #{Process.pid}: keepalive failed: #{err.message}")
       end
