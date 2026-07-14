@@ -39,19 +39,21 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     Aikido::Zen::RPC::Client.stub(:new, client) do
       collector = Minitest::Mock.new
       worker = MockWorker.new
+      keepalive_worker = MockWorker.new
 
       agent = Aikido::Zen::WorkerProcess::Agent::Client.new(
         "127.0.0.1",
         12345,
         config: Aikido::Zen.config,
         worker: worker,
+        keepalive_worker: keepalive_worker,
         collector: collector,
         polling_interval: 10,
         heartbeat_interval: 10
       )
       agent.start
 
-      yield agent, worker, collector, client
+      yield agent, worker, collector, client, keepalive_worker
     end
   end
 
@@ -59,25 +61,31 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     client = MockRPCClient.new
     Aikido::Zen::RPC::Client.stub(:new, client) do
       worker = MockWorker.new
-      Aikido::Zen::WorkerProcess::Agent::Client.new("127.0.0.1", 12345, worker: worker)
+      keepalive_worker = MockWorker.new
+      Aikido::Zen::WorkerProcess::Agent::Client.new(
+        "127.0.0.1", 12345, worker: worker, keepalive_worker: keepalive_worker
+      )
       assert_empty worker.jobs
+      assert_empty keepalive_worker.jobs
     end
   end
 
   test "#close does not stop the RPC client or shutdown the worker" do
-    build_agent("updated_settings" => {}) do |agent, worker, collector, client|
+    build_agent("updated_settings" => {}) do |agent, worker, collector, client, keepalive_worker|
       agent.close
 
       assert client.closed
       refute client.stopped
       assert worker.jobs.all?(&:running?)
+      assert keepalive_worker.jobs.all?(&:running?)
     end
   end
 
-  test "#start connects the RPC client and schedules three tasks" do
-    build_agent("updated_settings" => {}) do |agent, worker, collector, client|
+  test "#start connects the RPC client and schedules three tasks across two workers" do
+    build_agent("updated_settings" => {}) do |agent, worker, collector, client, keepalive_worker|
       assert client.started
-      assert_equal 3, worker.jobs.size
+      assert_equal 2, worker.jobs.size
+      assert_equal 1, keepalive_worker.jobs.size
     end
   end
 
@@ -118,11 +126,12 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
   end
 
   test "#stop does stop the RPC client and does shut down the worker" do
-    build_agent("updated_settings" => {}) do |agent, worker, collector, client|
+    build_agent("updated_settings" => {}) do |agent, worker, collector, client, keepalive_worker|
       agent.stop
 
       assert client.stopped
       assert worker.jobs.none?(&:running?)
+      assert keepalive_worker.jobs.none?(&:running?)
     end
   end
 
@@ -216,15 +225,15 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
   end
 
   test "the scheduled keepalive task pings the parent" do
-    build_agent("updated_settings" => {}) do |agent, worker, collector, client|
-      assert_nothing_raised { worker.jobs[0].task.call }
+    build_agent("updated_settings" => {}) do |agent, worker, collector, client, keepalive_worker|
+      assert_nothing_raised { keepalive_worker.jobs[0].task.call }
     end
   end
 
   test "the scheduled keepalive task logs an error when the RPC call raises" do
-    build_agent("updated_settings" => {}) do |agent, worker, collector, client|
+    build_agent("updated_settings" => {}) do |agent, worker, collector, client, keepalive_worker|
       client.stub(:invoke, ->(*) { raise "boom" }) do
-        worker.jobs[0].task.call
+        keepalive_worker.jobs[0].task.call
 
         assert_logged :error, /keepalive failed: boom/
       end
@@ -233,14 +242,14 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
 
   test "the scheduled polling task updates settings from the parent" do
     build_agent("updated_settings" => {}) do |agent, worker, collector, client|
-      assert_nothing_raised { worker.jobs[1].task.call }
+      assert_nothing_raised { worker.jobs[0].task.call }
     end
   end
 
   test "the scheduled polling task logs an error when the RPC call raises" do
     build_agent("updated_settings" => {}) do |agent, worker, collector, client|
       client.stub(:invoke, ->(*) { raise "boom" }) do
-        worker.jobs[1].task.call
+        worker.jobs[0].task.call
 
         assert_logged :error, /failed to get settings from parent: boom/
       end

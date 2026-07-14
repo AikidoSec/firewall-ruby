@@ -14,12 +14,14 @@ module Aikido::Zen::WorkerProcess
         secret: Aikido::Zen.secret,
         config: Aikido::Zen.config,
         worker: Aikido::Zen::Worker.new(config: config),
+        keepalive_worker: Aikido::Zen::Worker.new(config: config),
         polling_interval: config.worker_process_polling_interval,
         heartbeat_interval: config.worker_process_heartbeat_interval,
         collector: Aikido::Zen.collector
       )
         @config = config
         @worker = worker
+        @keepalive_worker = keepalive_worker
         @polling_interval = polling_interval
         @heartbeat_interval = heartbeat_interval
         @collector = collector
@@ -44,6 +46,7 @@ module Aikido::Zen::WorkerProcess
       end
 
       def stop
+        @keepalive_worker.shutdown
         @worker.shutdown
         @rpc_client.stop
       end
@@ -86,7 +89,7 @@ module Aikido::Zen::WorkerProcess
       end
 
       def schedule_tasks
-        @worker.every(KEEPALIVE_INTERVAL, run_now: false) { keepalive }
+        @keepalive_worker.every(KEEPALIVE_INTERVAL, run_now: false) { keepalive }
 
         @worker.every(@polling_interval, run_now: false) do
           update_settings(updated_settings)
