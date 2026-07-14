@@ -21,6 +21,33 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
     assert @server.started?
   end
 
+  test "#close causes subsequent connection attempts to fail" do
+    @server.start
+    @server.close
+
+    assert_raises(Errno::ECONNREFUSED) do
+      Aikido::Zen::RPC::Client.start(Aikido::Zen.secret, @server.host, @server.port)
+    end
+  end
+
+  test "#close does not stop the server" do
+    @server.start
+    @server.close
+
+    assert @server.started?
+  end
+
+  test "#close does not disconnect existing clients" do
+    @server.start
+    client = Aikido::Zen::RPC::Client.start(Aikido::Zen.secret, @server.host, @server.port)
+
+    @server.close
+
+    assert_nil client.invoke("ping", 2.0)
+  ensure
+    client.stop
+  end
+
   test "#start marks the server as started and exposes host and port" do
     @server.start
 

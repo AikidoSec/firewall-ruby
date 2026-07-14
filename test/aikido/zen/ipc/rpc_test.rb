@@ -65,6 +65,40 @@ class Aikido::Zen::RPC::ServerTest < ActiveSupport::TestCase
     server.close
   end
 
+  test "#close causes subsequent connection attempts to fail" do
+    server = start_rpc_server
+
+    server.close
+
+    assert_raises(Errno::ECONNREFUSED) do
+      build_ipc_client(server)
+    end
+  end
+
+  test "#close does not stop the server" do
+    server = start_rpc_server
+
+    server.close
+
+    assert_equal true, server.stop
+  end
+
+  test "#close does not disconnect existing clients" do
+    server = start_rpc_server do |server|
+      server.handle("echo") { |respond, value| respond.call(value) }
+    end
+
+    client = start_rpc_client(server)
+
+    server.close
+
+    result = client.invoke("echo", 2.0, "hello")
+    assert_equal "hello", result
+  ensure
+    client.stop
+    server.stop
+  end
+
   test "skips non-array messages and continues processing" do
     server = start_rpc_server do |server|
       server.handle("echo") { |respond, value| respond.call(value) }

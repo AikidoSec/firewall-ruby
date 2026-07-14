@@ -381,6 +381,9 @@ module Aikido
         server = @worker_process_server
         return unless server
 
+        @worker_process_server = nil
+        server.close
+
         client = @worker_process_client
         @worker_process_client = nil
         client&.close

@@ -39,6 +39,10 @@ module Aikido::Zen::WorkerProcess
         !!@started_at
       end
 
+      def close
+        @rpc_server.close
+      end
+
       def start
         @config.logger.info("Starting RPC Server...")
 

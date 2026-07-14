@@ -101,6 +101,10 @@ module Aikido
           @server.stop
         end
 
+        def close
+          @server.close
+        end
+
         def handle(name, &block)
           @handlers[name] = block
         end
