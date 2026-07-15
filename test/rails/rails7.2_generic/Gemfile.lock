@@ -1,7 +1,7 @@
 PATH
   remote: ../../..
   specs:
-    aikido-zen (1.5.1)
+    aikido-zen (1.6.0.beta.1)
       concurrent-ruby (~> 1.0)
       ffi
       rack
@@ -118,6 +118,7 @@ GEM
     drb (2.2.3)
     erb (6.0.4)
     erubi (1.13.1)
+    ffi (1.17.4)
     ffi (1.17.4-aarch64-linux-gnu)
     ffi (1.17.4-aarch64-linux-musl)
     ffi (1.17.4-arm-linux-gnu)
@@ -159,6 +160,7 @@ GEM
     marcel (1.2.1)
     matrix (0.4.3)
     mini_mime (1.1.5)
+    mini_portile2 (2.8.9)
     minitest (5.27.0)
     msgpack (1.8.3)
     net-imap (0.6.4.1)
@@ -171,6 +173,9 @@ GEM
     net-smtp (0.5.1)
       net-protocol
     nio4r (2.7.5)
+    nokogiri (1.19.4)
+      mini_portile2 (~> 2.8.2)
+      racc (~> 1.4)
     nokogiri (1.19.4-aarch64-linux-gnu)
       racc (~> 1.4)
     nokogiri (1.19.4-aarch64-linux-musl)
@@ -299,6 +304,8 @@ GEM
       actionpack (>= 6.1)
       activesupport (>= 6.1)
       sprockets (>= 3.0.0)
+    sqlite3 (2.9.5)
+      mini_portile2 (~> 2.8.0)
     sqlite3 (2.9.5-aarch64-linux-gnu)
     sqlite3 (2.9.5-aarch64-linux-musl)
     sqlite3 (2.9.5-arm-linux-gnu)
@@ -317,6 +324,8 @@ GEM
       railties (>= 7.1.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
+    tzinfo-data (1.2026.3)
+      tzinfo (>= 1.0.0)
     unicode-display_width (3.2.0)
       unicode-emoji (~> 4.1)
     unicode-emoji (4.2.0)
@@ -336,6 +345,7 @@ GEM
     zeitwerk (2.8.2)
 
 PLATFORMS
+  aarch64-linux
   aarch64-linux-gnu
   aarch64-linux-musl
   arm-linux-gnu
@@ -345,6 +355,8 @@ PLATFORMS
   x86_64-linux
   x86_64-linux-gnu
   x86_64-linux-musl
+  x86_64-mingw-ucrt
+  x86_64-mingw32
 
 DEPENDENCIES
   actionpack-xml_parser
