@@ -155,6 +155,19 @@ module Aikido::Zen
       end
     end
 
+    # @param event [Aikido::Zen::Tracked]
+    # @return [void]
+    def send_user_event(event)
+      return unless @api_client.can_make_requests?
+
+      @worker.perform do
+        response = @api_client.send_user_event(event)
+        yield response if response && block_given?
+      rescue Aikido::Zen::APIError, Aikido::Zen::NetworkError => err
+        @config.logger.error(err.message)
+      end
+    end
+
     # @api private
     #
     # Atomically flushes all the stats stored by the agent, and sends a

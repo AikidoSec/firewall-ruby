@@ -216,6 +216,25 @@ module Aikido
       alias_method :set_user, :track_user
     end
 
+    # Track user event with name
+    #
+    # @param name [String]
+    # @return [void]
+    def self.track_user_event(name)
+      context = current_context
+      return unless context
+
+      request = context.request
+
+      event = Aikido::Zen::UserEvent.new(
+        name: name,
+        user_id: request.actor&.id,
+        ip_address: request.client_ip
+      )
+
+      agent.send_user_event(event)
+    end
+
     # @return [Aikido::Zen::AttackWave::Detector] the attack wave detector.
     def self.attack_wave_detector
       @attack_wave_detector ||= AttackWave::Detector.new
