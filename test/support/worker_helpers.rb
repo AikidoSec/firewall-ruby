@@ -15,7 +15,7 @@ module WorkerHelpers
 
     def every(interval, run_now: true, &task)
       yield if run_now
-      MockTimer.new(running: true, interval: interval, run_now: run_now)
+      MockTimer.new(running: true, interval: interval, run_now: run_now, task: task)
         .tap { |timer| jobs << timer }
     end
 
@@ -38,7 +38,7 @@ module WorkerHelpers
     end
   end
 
-  MockTimer = Struct.new(:running, :interval, :run_now, keyword_init: true) do
+  MockTimer = Struct.new(:running, :interval, :run_now, :task, keyword_init: true) do
     alias_method :running?, :running
     alias_method :execution_interval, :interval
 

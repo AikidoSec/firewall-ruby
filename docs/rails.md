@@ -27,6 +27,28 @@ Bundler.require(*Rails.groups)
 That's it! Zen will start to run inside your app when it starts getting
 requests.
 
+## Running with multiple worker processes (Puma)
+
+Zen can share rate limiting state, runtime settings, and runtime stats
+across all of an app's worker processes. This only works if Rails is booted
+once and then forked into workers, which on Puma requires
+[`preload_app!`][puma-preload]:
+
+```ruby
+# config/puma.rb
+preload_app!
+```
+
+Without `preload_app!`, each worker boots Rails independently, so Zen
+tracks rate limits, settings, and stats separately per worker instead
+of sharing them.
+
+> [!NOTE]
+> This only matters for multi-process setups; it doesn't apply to
+> single-process or threaded-only deployments.
+
+[puma-preload]: https://github.com/puma/puma#cluster-mode
+
 ## Rate limiting and user blocking
 
 If you want to add the rate limiting feature to your app, modify your code like this:

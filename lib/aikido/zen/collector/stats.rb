@@ -116,27 +116,27 @@ module Aikido::Zen
     def as_json
       total_attacks, total_blocked = aggregate_attacks_from_sinks
       {
-        startedAt: @started_at.to_i * 1000,
-        endedAt: (@ended_at.to_i * 1000 if @ended_at),
-        operations: @sinks.transform_values(&:as_json),
-        requests: {
-          total: @requests,
-          aborted: @aborted_requests,
-          rateLimited: @rate_limited_requests,
-          attacksDetected: {
-            total: total_attacks,
-            blocked: total_blocked
+        "startedAt" => @started_at.to_i * 1000,
+        "endedAt" => (@ended_at.to_i * 1000 if @ended_at),
+        "operations" => @sinks.transform_values(&:as_json),
+        "requests" => {
+          "total" => @requests,
+          "aborted" => @aborted_requests,
+          "rateLimited" => @rate_limited_requests,
+          "attacksDetected" => {
+            "total" => total_attacks,
+            "blocked" => total_blocked
           },
-          attackWaves: {
-            total: @attack_waves,
-            blocked: @blocked_attack_waves
+          "attackWaves" => {
+            "total" => @attack_waves,
+            "blocked" => @blocked_attack_waves
           }
         },
-        userAgents: {
-          breakdown: @user_agents
+        "userAgents" => {
+          "breakdown" => @user_agents
         },
-        ipAddresses: {
-          breakdown: @ip_lists
+        "ipAddresses" => {
+          "breakdown" => @ip_lists
         }
       }
     end

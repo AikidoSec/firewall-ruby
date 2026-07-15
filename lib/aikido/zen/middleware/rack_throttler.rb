@@ -12,14 +12,12 @@ module Aikido::Zen
         app,
         zen: Aikido::Zen,
         config: Aikido::Zen.config,
-        settings: Aikido::Zen.runtime_settings,
-        detached_agent: Aikido::Zen.detached_agent
+        settings: Aikido::Zen.runtime_settings
       )
         @zen = zen
         @app = app
         @config = config
         @settings = settings
-        @detached_agent = detached_agent
       end
 
       def call(env)
@@ -42,7 +40,7 @@ module Aikido::Zen
 
         return false unless @settings.endpoints[request.route].rate_limiting.enabled?
 
-        result = @detached_agent.calculate_rate_limits(request)
+        result = @zen.calculate_rate_limits(request)
 
         return false unless result
 

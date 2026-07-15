@@ -9,11 +9,17 @@ module Aikido
       class ForkDetector
         def initialize(app)
           @app = app
+
+          @pid = Concurrent::AtomicFixnum.new(Process.pid)
         end
 
         def call(env)
-          # This is the single, reliable trigger point for the fork check.
-          Aikido::Zen.check_and_handle_fork
+          new_pid = Process.pid
+          old_pid = @pid.value
+
+          if new_pid != old_pid && @pid.compare_and_set(old_pid, new_pid)
+            Aikido::Zen.fork!
+          end
 
           @app.call(env)
         end

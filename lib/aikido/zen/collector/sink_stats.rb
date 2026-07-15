@@ -62,14 +62,14 @@ module Aikido::Zen
 
     def as_json
       {
-        total: @scans,
-        interceptorThrewError: @errors,
-        withoutContext: 0,
-        attacksDetected: {
-          total: @attacks,
-          blocked: @blocked_attacks
+        "total" => @scans,
+        "interceptorThrewError" => @errors,
+        "withoutContext" => 0,
+        "attacksDetected" => {
+          "total" => @attacks,
+          "blocked" => @blocked_attacks
         },
-        compressedTimings: @compressed_timings.as_json
+        "compressedTimings" => @compressed_timings.as_json
       }
     end
 
@@ -85,9 +85,9 @@ module Aikido::Zen
     CompressedTiming = Struct.new(:mean, :percentiles, :compressed_at) do
       def as_json
         {
-          averageInMs: mean * 1000,
-          percentiles: percentiles.transform_values { |t| t * 1000 },
-          compressedAt: compressed_at.to_i * 1000
+          "averageInMs" => mean * 1000,
+          "percentiles" => percentiles.transform_values { |t| t * 1000 },
+          "compressedAt" => compressed_at.to_i * 1000
         }
       end
     end

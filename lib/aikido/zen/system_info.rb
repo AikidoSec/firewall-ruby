@@ -61,19 +61,19 @@ module Aikido::Zen
 
     def as_json
       {
-        dryMode: attacks_are_only_reported?,
-        library: library_name,
-        version: library_version,
-        hostname: hostname,
-        ipAddress: ip_address,
-        platform: {version: platform_version},
-        os: {name: os_name, version: os_version},
-        packages: packages.reduce({}) { |all, package| all.update(package.as_json) },
-        incompatiblePackages: {},
-        stack: [],
-        serverless: false,
-        nodeEnv: "",
-        preventedPrototypePollution: false
+        "dryMode" => attacks_are_only_reported?,
+        "library" => library_name,
+        "version" => library_version,
+        "hostname" => hostname,
+        "ipAddress" => ip_address,
+        "platform" => {"version" => platform_version},
+        "os" => {"name" => os_name, "version" => os_version},
+        "packages" => packages.reduce({}) { |all, package| all.update(package.as_json) },
+        "incompatiblePackages" => {},
+        "stack" => [],
+        "serverless" => false,
+        "nodeEnv" => "",
+        "preventedPrototypePollution" => false
       }
     end
   end

@@ -70,7 +70,7 @@ class Aikido::Zen::RouteTest < ActiveSupport::TestCase
 
   test "#as_json includes method and path" do
     route = Aikido::Zen::Route.new(verb: "GET", path: "/users/:id")
-    assert_equal({method: "GET", path: "/users/:id"}, route.as_json)
+    assert_equal({"method" => "GET", "path" => "/users/:id"}, route.as_json)
   end
 
   test "routes support wildcard matching on verbs" do

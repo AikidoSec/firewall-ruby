@@ -44,11 +44,11 @@ module Aikido::Zen
 
     def as_json
       {
-        kind: kind,
-        blocked: blocked?,
-        metadata: metadata,
-        operation: @operation,
-        stack: @stack
+        "kind" => kind,
+        "blocked" => blocked?,
+        "metadata" => metadata,
+        "operation" => @operation,
+        "stack" => @stack
       }.compact.merge(input.as_json)
     end
 
@@ -70,7 +70,7 @@ module Aikido::Zen
 
       def metadata
         {
-          filename: filepath
+          "filename" => filepath
         }
       end
 
@@ -107,7 +107,7 @@ module Aikido::Zen
 
       def metadata
         {
-          command: @command
+          "command" => @command
         }
       end
 
@@ -139,9 +139,9 @@ module Aikido::Zen
 
       def metadata
         {
-          sql: @query,
-          dialect: @dialect.name,
-          failedToTokenize: @failed_to_tokenize || nil
+          "sql" => @query,
+          "dialect" => @dialect.name,
+          "failedToTokenize" => @failed_to_tokenize || nil
         }.compact
       end
 
@@ -174,8 +174,8 @@ module Aikido::Zen
 
       def metadata
         {
-          hostname: @request.uri.hostname,
-          port: @request.uri.port.to_s
+          "hostname" => @request.uri.hostname,
+          "port" => @request.uri.port.to_s
         }
       end
     end
@@ -212,8 +212,8 @@ module Aikido::Zen
 
       def metadata
         {
-          hostname: @hostname,
-          privateIP: @address
+          "hostname" => @hostname,
+          "privateIP" => @address
         }
       end
     end

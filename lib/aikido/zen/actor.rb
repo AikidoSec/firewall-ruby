@@ -40,11 +40,11 @@ module Aikido::Zen
   class Actor
     def self.from_json(data)
       new(
-        id: data[:id],
-        name: data[:name],
-        ip: data[:lastIpAddress],
-        first_seen_at: Time.at(data[:firstSeenAt] / 1000),
-        last_seen_at: Time.at(data[:lastSeenAt] / 1000)
+        id: data["id"],
+        name: data["name"],
+        ip: data["lastIpAddress"],
+        first_seen_at: Time.at(data["firstSeenAt"] / 1000),
+        last_seen_at: Time.at(data["lastSeenAt"] / 1000)
       )
     end
 
@@ -135,11 +135,11 @@ module Aikido::Zen
 
     def as_json
       {
-        id: id,
-        name: name,
-        lastIpAddress: ip,
-        firstSeenAt: first_seen_at.to_i * 1000,
-        lastSeenAt: last_seen_at.to_i * 1000
+        "id" => id,
+        "name" => name,
+        "lastIpAddress" => ip,
+        "firstSeenAt" => first_seen_at.to_i * 1000,
+        "lastSeenAt" => last_seen_at.to_i * 1000
       }.compact
     end
   end
