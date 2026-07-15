@@ -149,6 +149,45 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     end
   end
 
+  test "derives the api_endpoint region from the AIKIDO_TOKEN" do
+    {
+      "US" => "https://guard.us.aikido.dev",
+      "ME" => "https://guard.me.aikido.dev",
+      "AU" => "https://guard.au.aikido.dev"
+    }.each do |region, expected_endpoint|
+      with_env "AIKIDO_TOKEN" => "AIK_RUNTIME_1_2_#{region}_random" do
+        config = Aikido::Zen::Config.new
+        assert_equal URI(expected_endpoint), config.api_endpoint
+      end
+    end
+  end
+
+  test "defaults to the EU api_endpoint for tokens without a region" do
+    with_env "AIKIDO_TOKEN" => "AIK_RUNTIME_1_2_random" do
+      config = Aikido::Zen::Config.new
+      assert_equal URI("https://guard.aikido.dev"), config.api_endpoint
+    end
+  end
+
+  test "defaults to the EU api_endpoint for tokens with an unknown region" do
+    with_env "AIKIDO_TOKEN" => "AIK_RUNTIME_1_2_ZZ_random" do
+      config = Aikido::Zen::Config.new
+      assert_equal URI("https://guard.aikido.dev"), config.api_endpoint
+    end
+  end
+
+  test "defaults to the EU api_endpoint when there is no token" do
+    config = Aikido::Zen::Config.new
+    assert_equal URI("https://guard.aikido.dev"), config.api_endpoint
+  end
+
+  test "AIKIDO_ENDPOINT takes precedence over the region derived from the token" do
+    with_env "AIKIDO_TOKEN" => "AIK_RUNTIME_1_2_US_random", "AIKIDO_ENDPOINT" => "https://test.aikido.dev" do
+      config = Aikido::Zen::Config.new
+      assert_equal URI("https://test.aikido.dev"), config.api_endpoint
+    end
+  end
+
   test "can set blocking_mode via an ENV variable" do
     assert_boolean_env_var "AIKIDO_BLOCK" do |config|
       config.blocking_mode
