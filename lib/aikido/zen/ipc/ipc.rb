@@ -191,14 +191,15 @@ module Aikido
         end
 
         def write_coalesced_frame_with_deadline(socket, data, max_size, deadline)
-          size = data.bytesize
+          bytes = data.b
+          size = bytes.bytesize
 
           if max_size && size > max_size
             raise FrameTooLargeError.new(size, max_size)
           end
 
           frame = [size].pack("N")
-          frame << data
+          frame << bytes
 
           write_with_deadline(socket, frame, deadline)
         end
