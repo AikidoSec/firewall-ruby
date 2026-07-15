@@ -51,10 +51,15 @@ module Aikido::Zen
 
       if @config.client_ip_header
         value = env[@config.client_ip_header]
-        if Resolv::AddressRegex.match?(value)
-          @client_ip = value
+
+        if value
+          if Resolv::AddressRegex.match?(value)
+            @client_ip = value
+          else
+            @config.logger.warn("Invalid IP address in custom client IP header `#{@config.client_ip_header}`: `#{value}`")
+          end
         else
-          @config.logger.warn("Invalid IP address in custom client IP header `#{@config.client_ip_header}`: `#{value}`")
+          @config.logger.debug("Custom client IP header `#{@config.client_ip_header}` not present in request")
         end
       end
 
