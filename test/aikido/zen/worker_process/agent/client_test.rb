@@ -324,7 +324,8 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     }) do |agent, worker, collector, client|
       worker.jobs[0].task.call
 
-      assert_logged :debug, /updated runtime settings from parent/
+      assert_logged :debug, /starting runtime settings update/
+      assert_logged :debug, /finished runtime settings update/
     end
   end
 
@@ -332,7 +333,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     build_agent("updated_settings" => {}) do |agent, worker, collector, client|
       worker.jobs[0].task.call
 
-      refute_logged :debug, /updated runtime settings from parent/
+      refute_logged :debug, /runtime settings update/
     end
   end
 

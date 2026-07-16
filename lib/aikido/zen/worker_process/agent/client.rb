@@ -79,43 +79,49 @@ module Aikido::Zen::WorkerProcess
         )
       end
 
-      def update_settings(settings)
+      def update_settings
+        settings = updated_settings
         return false unless settings
+        return false unless settings["config"] || settings["firewall_lists"]
 
-        updated = false
+        @config.logger.debug("Forked worker process #{Process.pid}: starting runtime settings update")
 
         if settings["config"]
+          @config.logger.debug("Forked worker process #{Process.pid}: starting config update")
           Aikido::Zen.runtime_settings.update_from_runtime_config_json(settings["config"])
           @known_config_generation = settings["config_generation"]
-          updated = true
+          @config.logger.debug("Forked worker process #{Process.pid}: finished config update")
         end
 
         if settings["firewall_lists"]
+          @config.logger.debug("Forked worker process #{Process.pid}: starting firewall_lists update")
           Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(settings["firewall_lists"])
           @known_firewall_lists_generation = settings["firewall_lists_generation"]
-          updated = true
+          @config.logger.debug("Forked worker process #{Process.pid}: finished firewall_lists update")
         end
 
-        updated
+        @config.logger.debug("Forked worker process #{Process.pid}: finished runtime settings update")
+
+        true
+      rescue => err
+        @config.logger.error("Forked worker process #{Process.pid}: failed to get settings from parent: #{err.message}")
+        false
       end
 
       def schedule_tasks
         @keepalive_worker.every(KEEPALIVE_INTERVAL, run_now: false) { keepalive }
 
         # Delay start polling to reduce the chance of workers polling in lockstep.
-        @worker.delay(polling_start_delay) { start_polling }
+        delay = polling_start_delay
+        @config.logger.debug("Forked worker process #{Process.pid}: will start polling in #{delay}s")
+        @worker.delay(delay) { start_polling }
 
         @worker.every(@heartbeat_interval, run_now: false) { send_collector_events }
       end
 
       def start_polling
-        @worker.every(@polling_interval, run_now: true) do
-          if update_settings(updated_settings)
-            @config.logger.debug("Forked worker process #{Process.pid}: updated runtime settings from parent")
-          end
-        rescue => err
-          @config.logger.error("Forked worker process #{Process.pid}: failed to get settings from parent: #{err.message}")
-        end
+        @config.logger.debug("Forked worker process #{Process.pid}: started polling")
+        @worker.every(@polling_interval, run_now: true) { update_settings }
       end
 
       def polling_start_delay
