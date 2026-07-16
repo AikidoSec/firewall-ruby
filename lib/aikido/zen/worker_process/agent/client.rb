@@ -27,6 +27,9 @@ module Aikido::Zen::WorkerProcess
         @collector = collector
 
         @rpc_client = Aikido::Zen::RPC::Client.new(secret, host, port, reconnect: true)
+
+        @known_config_generation = nil
+        @known_firewall_lists_generation = nil
       end
 
       def close
@@ -73,28 +76,41 @@ module Aikido::Zen::WorkerProcess
       private
 
       def updated_settings
-        @rpc_client.invoke("updated_settings", KEEPALIVE_INTERVAL)
+        @rpc_client.invoke(
+          "updated_settings",
+          KEEPALIVE_INTERVAL,
+          @known_config_generation,
+          @known_firewall_lists_generation
+        )
       end
 
       def update_settings(settings)
-        return unless settings
+        return false unless settings
+
+        updated = false
 
         if settings["config"]
           Aikido::Zen.runtime_settings.update_from_runtime_config_json(settings["config"])
+          @known_config_generation = settings["config_generation"]
+          updated = true
         end
 
         if settings["firewall_lists"]
           Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(settings["firewall_lists"])
+          @known_firewall_lists_generation = settings["firewall_lists_generation"]
+          updated = true
         end
+
+        updated
       end
 
       def schedule_tasks
         @keepalive_worker.every(KEEPALIVE_INTERVAL, run_now: false) { keepalive }
 
         @worker.every(@polling_interval, run_now: false) do
-          update_settings(updated_settings)
-
-          @config.logger.debug("Forked worker process #{Process.pid}: updated runtime settings from parent")
+          if update_settings(updated_settings)
+            @config.logger.debug("Forked worker process #{Process.pid}: updated runtime settings from parent")
+          end
         rescue => err
           @config.logger.error("Forked worker process #{Process.pid}: failed to get settings from parent: #{err.message}")
         end

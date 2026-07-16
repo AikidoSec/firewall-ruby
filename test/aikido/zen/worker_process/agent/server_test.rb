@@ -127,6 +127,92 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
     assert_equal firewall_lists, settings["firewall_lists"]
   end
 
+  test "#updated_settings includes config_generation and firewall_lists_generation" do
+    Aikido::Zen.api_cache.runtime_config = {"configUpdatedAt" => 1234567890}
+    Aikido::Zen.api_cache.runtime_firewall_lists = {"blockedIPAddresses" => []}
+
+    settings = @server.updated_settings
+
+    assert_equal Aikido::Zen.api_cache.runtime_config_generation, settings["config_generation"]
+    assert_equal Aikido::Zen.api_cache.runtime_firewall_lists_generation, settings["firewall_lists_generation"]
+  end
+
+  test "#updated_settings does not include config when the generation is unchanged" do
+    Aikido::Zen.api_cache.runtime_config = {"configUpdatedAt" => 1234567890}
+    current_generation = Aikido::Zen.api_cache.runtime_config_generation
+
+    settings = @server.updated_settings(current_generation)
+
+    refute settings.key?("config")
+    refute settings.key?("config_generation")
+  end
+
+  test "#updated_settings includes config again once it changes" do
+    Aikido::Zen.api_cache.runtime_config = {"configUpdatedAt" => 1}
+    stale_generation = Aikido::Zen.api_cache.runtime_config_generation
+
+    Aikido::Zen.api_cache.runtime_config = {"configUpdatedAt" => 2}
+
+    settings = @server.updated_settings(stale_generation)
+
+    assert_equal({"configUpdatedAt" => 2}, settings["config"])
+    assert_equal Aikido::Zen.api_cache.runtime_config_generation, settings["config_generation"]
+  end
+
+  test "updated_settings handler does not include config when the generation is unchanged" do
+    Aikido::Zen.api_cache.runtime_config = {"configUpdatedAt" => 1234567890}
+    Aikido::Zen.api_cache.runtime_firewall_lists = {"blockedIPAddresses" => []}
+
+    @server.start
+    client = Aikido::Zen::RPC::Client.start(Aikido::Zen.secret, @server.host, @server.port)
+
+    result = client.invoke("updated_settings", 2.0, Aikido::Zen.api_cache.runtime_config_generation)
+
+    refute result.key?("config")
+    refute result.key?("config_generation")
+    assert result.key?("firewall_lists")
+  ensure
+    client.stop
+  end
+
+  test "#updated_settings does not include firewall_lists when the generation is unchanged" do
+    Aikido::Zen.api_cache.runtime_firewall_lists = {"blockedIPAddresses" => []}
+    current_generation = Aikido::Zen.api_cache.runtime_firewall_lists_generation
+
+    settings = @server.updated_settings(nil, current_generation)
+
+    refute settings.key?("firewall_lists")
+    refute settings.key?("firewall_lists_generation")
+  end
+
+  test "#updated_settings includes firewall_lists again once it changes" do
+    Aikido::Zen.api_cache.runtime_firewall_lists = {"blockedIPAddresses" => []}
+    stale_generation = Aikido::Zen.api_cache.runtime_firewall_lists_generation
+
+    Aikido::Zen.api_cache.runtime_firewall_lists = {"blockedIPAddresses" => ["1.2.3.4"]}
+
+    settings = @server.updated_settings(nil, stale_generation)
+
+    assert_equal({"blockedIPAddresses" => ["1.2.3.4"]}, settings["firewall_lists"])
+    assert_equal Aikido::Zen.api_cache.runtime_firewall_lists_generation, settings["firewall_lists_generation"]
+  end
+
+  test "updated_settings handler does not include firewall_lists when the generation is unchanged" do
+    Aikido::Zen.api_cache.runtime_config = {"configUpdatedAt" => 1234567890}
+    Aikido::Zen.api_cache.runtime_firewall_lists = {"blockedIPAddresses" => []}
+
+    @server.start
+    client = Aikido::Zen::RPC::Client.start(Aikido::Zen.secret, @server.host, @server.port)
+
+    result = client.invoke("updated_settings", 2.0, nil, Aikido::Zen.api_cache.runtime_firewall_lists_generation)
+
+    refute result.key?("firewall_lists")
+    refute result.key?("firewall_lists_generation")
+    assert result.key?("config")
+  ensure
+    client.stop
+  end
+
   test "send_collector_events handler pushes events into the collector" do
     input_events = Array.new(3) { Aikido::Zen::Collector::Events::TrackRequest.new }
     input_events_data = input_events.map(&:as_json)

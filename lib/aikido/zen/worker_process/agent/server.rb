@@ -12,8 +12,8 @@ module Aikido::Zen::WorkerProcess
           respond.call(nil)
         end
 
-        @rpc_server.handle("updated_settings") do |respond|
-          respond.call(updated_settings)
+        @rpc_server.handle("updated_settings") do |respond, known_config_generation = nil, known_firewall_lists_generation = nil|
+          respond.call(updated_settings(known_config_generation, known_firewall_lists_generation))
         end
 
         @rpc_server.handle("send_collector_events") do |respond, events_data|
@@ -64,11 +64,20 @@ module Aikido::Zen::WorkerProcess
       # Visible for testing.
       RequestKind = Struct.new(:route, :schema, :client_ip, :actor)
 
-      def updated_settings
-        {
-          "config" => Aikido::Zen.api_cache.runtime_config,
-          "firewall_lists" => Aikido::Zen.api_cache.runtime_firewall_lists
-        }
+      def updated_settings(known_config_generation = nil, known_firewall_lists_generation = nil)
+        result = {}
+
+        config_change = Aikido::Zen.api_cache.config_if_changed(known_config_generation)
+        if config_change
+          result["config"], result["config_generation"] = config_change
+        end
+
+        firewall_lists_change = Aikido::Zen.api_cache.firewall_lists_if_changed(known_firewall_lists_generation)
+        if firewall_lists_change
+          result["firewall_lists"], result["firewall_lists_generation"] = firewall_lists_change
+        end
+
+        result
       end
 
       def send_collector_events(events_data)
