@@ -47,6 +47,11 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       worker = MockWorker.new
       keepalive_worker = MockWorker.new
 
+      # Ignore the actual delay before polling starts.
+      def worker.delay(*)
+        yield
+      end
+
       agent = Aikido::Zen::WorkerProcess::Agent::Client.new(
         "127.0.0.1",
         12345,
@@ -92,6 +97,57 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       assert client.started
       assert_equal 2, worker.jobs.size
       assert_equal 1, keepalive_worker.jobs.size
+    end
+  end
+
+  test "#start delays the first poll to reduce the chance of workers polling in lockstep" do
+    client = MockRPCClient.new
+    client.invoke_results["updated_settings"] = {}
+
+    Aikido::Zen::RPC::Client.stub(:new, client) do
+      worker = MockWorker.new
+      keepalive_worker = MockWorker.new
+
+      agent = Aikido::Zen::WorkerProcess::Agent::Client.new(
+        "127.0.0.1",
+        12345,
+        config: Aikido::Zen.config,
+        worker: worker,
+        keepalive_worker: keepalive_worker,
+        collector: Minitest::Mock.new,
+        polling_interval: 10,
+        polling_jitter: 5,
+        heartbeat_interval: 10
+      )
+      agent.start
+
+      assert_equal 1, worker.delayed.size
+      assert_includes 1..5, worker.delayed.first.initial_delay
+    end
+  end
+
+  test "#start does not delay the first poll when polling_jitter is 0" do
+    client = MockRPCClient.new
+    client.invoke_results["updated_settings"] = {}
+
+    Aikido::Zen::RPC::Client.stub(:new, client) do
+      worker = MockWorker.new
+      keepalive_worker = MockWorker.new
+
+      agent = Aikido::Zen::WorkerProcess::Agent::Client.new(
+        "127.0.0.1",
+        12345,
+        config: Aikido::Zen.config,
+        worker: worker,
+        keepalive_worker: keepalive_worker,
+        collector: Minitest::Mock.new,
+        polling_interval: 10,
+        polling_jitter: 0,
+        heartbeat_interval: 10
+      )
+      agent.start
+
+      assert_equal 0, worker.delayed.first.initial_delay
     end
   end
 

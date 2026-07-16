@@ -16,6 +16,7 @@ module Aikido::Zen::WorkerProcess
         worker: Aikido::Zen::Worker.new(config: config),
         keepalive_worker: Aikido::Zen::Worker.new(config: config),
         polling_interval: config.worker_process_polling_interval,
+        polling_jitter: config.worker_process_polling_jitter,
         heartbeat_interval: config.worker_process_heartbeat_interval,
         collector: Aikido::Zen.collector
       )
@@ -23,6 +24,7 @@ module Aikido::Zen::WorkerProcess
         @worker = worker
         @keepalive_worker = keepalive_worker
         @polling_interval = polling_interval
+        @polling_jitter = polling_jitter
         @heartbeat_interval = heartbeat_interval
         @collector = collector
 
@@ -107,6 +109,13 @@ module Aikido::Zen::WorkerProcess
       def schedule_tasks
         @keepalive_worker.every(KEEPALIVE_INTERVAL, run_now: false) { keepalive }
 
+        # Delay start polling to reduce the chance of workers polling in lockstep.
+        @worker.delay(polling_start_delay) { start_polling }
+
+        @worker.every(@heartbeat_interval, run_now: false) { send_collector_events }
+      end
+
+      def start_polling
         @worker.every(@polling_interval, run_now: false) do
           if update_settings(updated_settings)
             @config.logger.debug("Forked worker process #{Process.pid}: updated runtime settings from parent")
@@ -114,8 +123,13 @@ module Aikido::Zen::WorkerProcess
         rescue => err
           @config.logger.error("Forked worker process #{Process.pid}: failed to get settings from parent: #{err.message}")
         end
+      end
 
-        @worker.every(@heartbeat_interval, run_now: false) { send_collector_events }
+      def polling_start_delay
+        return 0 if @polling_jitter < 1
+
+        # Seed by pid because forked processes inherit identical PRNG state.
+        Random.new(Process.pid).rand(1..@polling_jitter)
       end
 
       def keepalive
