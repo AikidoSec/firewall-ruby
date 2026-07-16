@@ -174,14 +174,14 @@ module Aikido
         end
 
         def write_frame_with_deadline(socket, data, max_size, deadline)
-          bytes = data.b
+          size = data.bytesize
 
-          if max_size && bytes.bytesize > max_size
-            raise FrameTooLargeError.new(bytes.bytesize, max_size)
+          if max_size && size > max_size
+            raise FrameTooLargeError.new(size, max_size)
           end
 
-          write_with_deadline(socket, [bytes.bytesize].pack("N"), deadline)
-          write_with_deadline(socket, bytes, deadline)
+          write_with_deadline(socket, [size].pack("N"), deadline)
+          write_with_deadline(socket, data, deadline)
         end
 
         def write_frame_with_timeout(socket, data, max_size, timeout)
@@ -197,7 +197,11 @@ module Aikido
             raise FrameTooLargeError.new(size, max_size)
           end
 
+          # String#<< raises Encoding::CompatibilityError when concatenating
+          # strings with different encodings unless one of them is ASCII-only.
           frame = [size].pack("N")
+          # Retag data to avoid copying it.
+          frame.force_encoding(data.encoding)
           frame << data
 
           write_with_deadline(socket, frame, deadline)

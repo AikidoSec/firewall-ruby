@@ -690,6 +690,28 @@ class Aikido::Zen::IPC::FramedIOTest < ActiveSupport::TestCase
   ensure
     writer.close
   end
+
+  test "#write_coalesced_frame_with_timeout handles UTF-8 data whose size prefix contains a high byte" do
+    reader, writer = socket_pair
+
+    # String#<< used to raise Encoding::CompatibilityError when the ASCII-8BIT
+    # size prefix had a byte >= 128 and was concatenated with non-ASCII data.
+    data = ("héllo " * 30).dup.force_encoding(Encoding::UTF_8)
+
+    refute data.ascii_only?
+    assert data.bytesize >= 128
+
+    buffer = String.new(encoding: Encoding::BINARY)
+
+    thread = Thread.new { write_coalesced_frame_with_timeout(writer, data, nil, 5.0) }
+    result = read_coalesced_frame_with_timeout(reader, buffer, nil, 5.0)
+    thread.join
+
+    assert_equal data.b, result
+  ensure
+    reader.close
+    writer.close
+  end
 end
 
 class Aikido::Zen::IPC::HandshakeTest < ActiveSupport::TestCase
