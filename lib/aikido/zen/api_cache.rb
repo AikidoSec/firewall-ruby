@@ -13,13 +13,29 @@ module Aikido::Zen
     end
 
     def runtime_config=(value)
-      @runtime_config_generation += 1 unless value == @runtime_config
-      @runtime_config = value
+      update_runtime_config(value)
     end
 
     def runtime_firewall_lists=(value)
-      @runtime_firewall_lists_generation += 1 unless value == @runtime_firewall_lists
+      update_runtime_firewall_lists(value)
+    end
+
+    # @param value [Hash, nil]
+    # @return [Boolean] whether the value actually changed
+    def update_runtime_config(value)
+      changed = value != @runtime_config
+      @runtime_config_generation += 1 if changed
+      @runtime_config = value
+      changed
+    end
+
+    # @param value [Hash, nil]
+    # @return [Boolean] whether the value actually changed
+    def update_runtime_firewall_lists(value)
+      changed = value != @runtime_firewall_lists
+      @runtime_firewall_lists_generation += 1 if changed
       @runtime_firewall_lists = value
+      changed
     end
 
     # @param known_generation [Integer, nil]

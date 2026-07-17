@@ -58,6 +58,7 @@ class ActiveSupport::TestCase
     Aikido::Zen.instance_variable_set(:@collector, collector)
 
     Aikido::Zen.instance_variable_set(:@runtime_settings, nil)
+    Aikido::Zen.instance_variable_set(:@api_cache, nil)
     Aikido::Zen.instance_variable_set(:@rate_limiter, Aikido::Zen::RateLimiter.new)
     Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
     Aikido::Zen.instance_variable_set(:@worker_process_server, nil)

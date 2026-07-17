@@ -233,7 +233,8 @@ module Aikido::Zen
     def update_settings_from_runtime_config!(data)
       return unless @runtime_config_update_mutex.try_lock
       begin
-        Aikido::Zen.api_cache.runtime_config = data
+        return false unless Aikido::Zen.api_cache.update_runtime_config(data)
+
         Aikido::Zen.runtime_settings.update_from_runtime_config_json(data)
       ensure
         @runtime_config_update_mutex.unlock
@@ -245,7 +246,8 @@ module Aikido::Zen
     def update_settings_from_runtime_firewall_lists!(data)
       return unless @runtime_firewall_lists_update_mutex.try_lock
       begin
-        Aikido::Zen.api_cache.runtime_firewall_lists = data
+        return false unless Aikido::Zen.api_cache.update_runtime_firewall_lists(data)
+
         Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(data)
       ensure
         @runtime_firewall_lists_update_mutex.unlock

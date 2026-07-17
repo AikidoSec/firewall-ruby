@@ -27,6 +27,26 @@ class Aikido::Zen::APICacheTest < ActiveSupport::TestCase
     assert_equal 1, cache.runtime_config_generation
   end
 
+  test "#update_runtime_config returns true when the value changes" do
+    cache = build_cache
+
+    assert cache.update_runtime_config({"configUpdatedAt" => 1})
+  end
+
+  test "#update_runtime_config returns false when the value is unchanged" do
+    cache = build_cache
+    cache.update_runtime_config({"configUpdatedAt" => 1})
+
+    refute cache.update_runtime_config({"configUpdatedAt" => 1})
+  end
+
+  test "#update_runtime_config returns true again once the value changes" do
+    cache = build_cache
+    cache.update_runtime_config({"configUpdatedAt" => 1})
+
+    assert cache.update_runtime_config({"configUpdatedAt" => 2})
+  end
+
   test "#config_if_changed returns the value and generation when the known generation is nil" do
     cache = build_cache
     cache.runtime_config = {"configUpdatedAt" => 1}
@@ -69,6 +89,26 @@ class Aikido::Zen::APICacheTest < ActiveSupport::TestCase
     cache.runtime_firewall_lists = {"blockedIPAddresses" => []}
 
     assert_equal 1, cache.runtime_firewall_lists_generation
+  end
+
+  test "#update_runtime_firewall_lists returns true when the value changes" do
+    cache = build_cache
+
+    assert cache.update_runtime_firewall_lists({"blockedIPAddresses" => []})
+  end
+
+  test "#update_runtime_firewall_lists returns false when the value is unchanged" do
+    cache = build_cache
+    cache.update_runtime_firewall_lists({"blockedIPAddresses" => []})
+
+    refute cache.update_runtime_firewall_lists({"blockedIPAddresses" => []})
+  end
+
+  test "#update_runtime_firewall_lists returns true again once the value changes" do
+    cache = build_cache
+    cache.update_runtime_firewall_lists({"blockedIPAddresses" => []})
+
+    assert cache.update_runtime_firewall_lists({"blockedIPAddresses" => ["1.2.3.4"]})
   end
 
   test "#firewall_lists_if_changed returns the value and generation when the known generation is nil" do
