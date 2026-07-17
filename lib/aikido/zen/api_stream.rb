@@ -123,6 +123,9 @@ module Aikido::Zen
       request["Authorization"] = @token
       request["Accept"] = "text/event-stream"
       request["Cache-Control"] = "no-cache"
+      # Working around Net::HTTP cleverness; auto-negotiates gzip and buffers
+      # decompressed output internally.
+      request["Accept-Encoding"] = "identity"
 
       @config.logger.debug("API stream connecting")
       http.start
