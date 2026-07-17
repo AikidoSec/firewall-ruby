@@ -59,3 +59,5 @@ end
 gem "aikido-zen", path: "../../../"
 
 gem "actionpack-xml_parser"
+
+gem "loofah", ">= 2.25.2"
