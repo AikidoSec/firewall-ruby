@@ -172,21 +172,6 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     end
   end
 
-  test "#start logs an error when the RPC call raises" do
-    client = MockRPCClient.new
-
-    client.stub(:invoke, ->(*) { raise "boom" }) do
-      Aikido::Zen::RPC::Client.stub(:new, client) do
-        worker = MockWorker.new
-        agent = Aikido::Zen::WorkerProcess::Agent::Client.new("127.0.0.1", 12345, worker: worker)
-
-        agent.start
-
-        assert_logged :error, /failed to get settings after connecting to parent: boom/
-      end
-    end
-  end
-
   test "#stop does stop the RPC client and does shut down the worker" do
     build_agent("updated_settings" => {}) do |agent, worker, collector, client, keepalive_worker|
       agent.stop
@@ -524,7 +509,9 @@ class Aikido::Zen::WorkerProcess::Agent::ClientIntegrationTest < ActiveSupport::
     Aikido::Zen::WorkerProcess::Agent::Client.new(
       @server.host, @server.port,
       worker: Aikido::Zen::Worker.new,
-      collector: Aikido::Zen.collector
+      collector: Aikido::Zen.collector,
+      polling_interval: 1,
+      polling_jitter: 0
     )
   end
 

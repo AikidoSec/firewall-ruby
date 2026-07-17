@@ -39,14 +39,7 @@ module Aikido::Zen::WorkerProcess
       end
 
       def start
-        @rpc_client.start do
-          @worker.perform do
-            update_settings(updated_settings)
-          rescue => err
-            @config.logger.error("Forked worker process #{Process.pid}: failed to get settings after connecting to parent: #{err.message}")
-          end
-        end
-
+        @rpc_client.start
         schedule_tasks
       end
 
@@ -116,7 +109,7 @@ module Aikido::Zen::WorkerProcess
       end
 
       def start_polling
-        @worker.every(@polling_interval, run_now: false) do
+        @worker.every(@polling_interval, run_now: true) do
           if update_settings(updated_settings)
             @config.logger.debug("Forked worker process #{Process.pid}: updated runtime settings from parent")
           end
