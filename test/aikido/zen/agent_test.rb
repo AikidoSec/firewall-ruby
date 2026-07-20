@@ -477,8 +477,8 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     @agent.send(:settings_updated, {data: {"configUpdatedAt" => 2000}})
 
     assert_mock @api_client
-    assert_logged :info, /updated runtime settings after server-side event/i
-    assert_logged :info, /updated runtime firewall list after server-side event/i
+    assert_logged :info, /updated runtime settings after server-sent event/i
+    assert_logged :info, /updated runtime firewall list after server-sent event/i
   end
 
   test "#settings_updated does not fetch when the timestamp is not newer" do
@@ -486,6 +486,6 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
 
     @agent.send(:settings_updated, {data: {"configUpdatedAt" => 1000}})
 
-    refute_logged :info, /updated runtime settings after server-side event/i
+    refute_logged :info, /updated runtime settings after server-sent event/i
   end
 end

@@ -206,10 +206,10 @@ module Aikido::Zen
       if should_fetch_settings?(updated_at)
         if update_settings_from_runtime_config!(@api_client.fetch_runtime_config)
           updated_settings!
-          @config.logger.info("Updated runtime settings after server-side event")
+          @config.logger.info("Updated runtime settings after server-sent event")
 
           update_settings_from_runtime_firewall_lists!(@api_client.fetch_runtime_firewall_lists)
-          @config.logger.info("Updated runtime firewall list after server-side event")
+          @config.logger.info("Updated runtime firewall list after server-sent event")
         end
       end
     end
