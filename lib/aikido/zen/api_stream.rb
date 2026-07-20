@@ -116,12 +116,16 @@ module Aikido::Zen
       http.open_timeout = @open_timeout
       http.write_timeout = @write_timeout
       http.read_timeout = @read_timeout
+      # Working around Net::HTTP cleverness; retries GET requests once by default.
       http.max_retries = 0
 
       request = Net::HTTP::Get.new("/api/runtime/stream")
       request["Authorization"] = @token
       request["Accept"] = "text/event-stream"
       request["Cache-Control"] = "no-cache"
+      # Working around Net::HTTP cleverness; auto-negotiates gzip and buffers
+      # decompressed output internally.
+      request["Accept-Encoding"] = "identity"
 
       @config.logger.debug("API stream connecting")
       http.start
