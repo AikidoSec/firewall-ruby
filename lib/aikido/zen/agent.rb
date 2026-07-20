@@ -59,12 +59,20 @@ module Aikido::Zen
         return
       end
 
+      # Code coverage is disabled here because the block is only called when
+      # the process exits.
+      # :nocov:
       at_exit { stop! if started? }
+      # :nocov:
 
       report(Events::Started.new(time: @started_at)) do |response|
         if update_settings_from_runtime_config!(response, reason: "after start")
           updated_settings!
+        # :nocov:
+        else
+          # empty
         end
+        # :nocov:
       rescue => err
         @config.logger.error(err.message)
       end
@@ -173,7 +181,11 @@ module Aikido::Zen
           updated_settings!
 
           update_settings_from_runtime_firewall_lists!(@api_client.fetch_runtime_firewall_lists, reason: "after heartbeat")
+        # :nocov:
+        else
+          # empty
         end
+        # :nocov:
       end
     end
 
@@ -189,7 +201,11 @@ module Aikido::Zen
         if @api_client.should_fetch_settings?
           if update_settings_from_runtime_config!(@api_client.fetch_runtime_config, reason: "after polling")
             updated_settings!
+          # :nocov:
+          else
+            # empty
           end
+          # :nocov:
 
           update_settings_from_runtime_firewall_lists!(@api_client.fetch_runtime_firewall_lists, reason: "after polling")
         end
@@ -206,7 +222,11 @@ module Aikido::Zen
           updated_settings!
 
           update_settings_from_runtime_firewall_lists!(@api_client.fetch_runtime_firewall_lists, reason: "after server-sent event")
+        # :nocov:
+        else
+          # empty
         end
+        # :nocov:
       end
     end
 
@@ -228,13 +248,18 @@ module Aikido::Zen
     # @param reason [String] context appended to the log message when logged
     # @return [Boolean]
     def update_settings_from_runtime_config!(data, reason:)
+      # :nocov:
       return unless @runtime_config_update_mutex.try_lock
+      # :nocov:
       begin
         return false unless Aikido::Zen.api_cache.update_runtime_config(data)
 
-        result = Aikido::Zen.runtime_settings.update_from_runtime_config_json(data)
-        @config.logger.info("Updated runtime settings #{reason}") if result
-        result
+        if Aikido::Zen.runtime_settings.update_from_runtime_config_json(data)
+          @config.logger.info("Updated runtime settings #{reason}")
+          true
+        else
+          false
+        end
       ensure
         @runtime_config_update_mutex.unlock
       end
@@ -244,13 +269,18 @@ module Aikido::Zen
     # @param reason [String] context appended to the log message when logged
     # @return [Boolean]
     def update_settings_from_runtime_firewall_lists!(data, reason:)
+      # :nocov:
       return unless @runtime_firewall_lists_update_mutex.try_lock
+      # :nocov:
       begin
         return false unless Aikido::Zen.api_cache.update_runtime_firewall_lists(data)
 
-        result = Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(data)
-        @config.logger.info("Updated runtime firewall list #{reason}") if result
-        result
+        if Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(data)
+          @config.logger.info("Updated runtime firewall list #{reason}")
+          true
+        else
+          false
+        end
       ensure
         @runtime_firewall_lists_update_mutex.unlock
       end

@@ -37,7 +37,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     @collector = Aikido::Zen.collector
     @worker = MockWorker.new
     @api_client = Minitest::Mock.new(MockAPIClient.new)
-    @api_stream = Minitest::Mock.new(MockAPIStream.new)
+    @api_stream = MockAPIStream.new
 
     @agent = Aikido::Zen::Agent.new(
       config: @config,
@@ -52,6 +52,22 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
 
   teardown do
     @agent.stop!
+  end
+
+  test ".start creates a new agent and immediately starts it" do
+    @api_client.expect :should_fetch_settings?, false
+
+    agent = Aikido::Zen::Agent.start(
+      config: @config,
+      collector: @collector,
+      worker: @worker,
+      api_client: @api_client,
+      api_stream: @api_stream
+    )
+
+    assert agent.started?
+  ensure
+    agent.stop!
   end
 
   test "knows if it has started" do
@@ -133,6 +149,16 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert_logged :info, /updated runtime settings/i
   end
 
+  test "#start! logs an error if handling the STARTED event response raises" do
+    @api_client.expect :report, {"configUpdatedAt" => 1234567890}, [Aikido::Zen::Events::Started]
+
+    @agent.stub :update_settings_from_runtime_config!, ->(*) { raise "boom" } do
+      assert_nothing_raised { @agent.start! }
+    end
+
+    assert_logged :error, /boom/
+  end
+
   test "#start! does not report a STARTED event if it does not have an API token" do
     @config.api_token = nil
 
@@ -143,6 +169,43 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert_nothing_raised do
       @agent.start!
     end
+  end
+
+  test "#start! logs an error if updating firewall lists on startup raises" do
+    @agent.stub :update_settings_from_runtime_firewall_lists!, ->(*) { raise "boom" } do
+      assert_nothing_raised { @agent.start! }
+    end
+
+    assert_logged :error, /boom/
+  end
+
+  test "#start! registers a handler for config-updated events when realtime settings updates are enabled" do
+    Aikido::Zen.runtime_settings.updated_at = Time.at(1000)
+
+    @api_client.expect :fetch_runtime_firewall_lists, {}
+    @api_client.expect :fetch_runtime_config, {"configUpdatedAt" => 2000}
+    @api_client.expect :fetch_runtime_firewall_lists, {}
+
+    @agent.start!
+
+    handlers = @api_stream.instance_variable_get(:@handlers)
+
+    handlers.each do |handler|
+      handler.call(type: "config-updated", data: {"configUpdatedAt" => 2000})
+    end
+
+    assert_logged :debug, /received server-sent event: config-updated/i
+    assert_logged :info, /updated runtime settings after server-sent event/i
+
+    assert_mock @api_client
+  end
+
+  test "#start! does not register any event handlers when realtime settings updates are disabled" do
+    @config.realtime_settings_updates_enabled = false
+
+    @agent.start!
+
+    assert_empty @api_stream.instance_variable_get(:@handlers)
   end
 
   test "#start! starts polling for setting updates every minute" do
@@ -340,6 +403,15 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert second_timer.running?
   end
 
+  test "#updated_settings! does not restart heartbeats when they are running and not stale" do
+    Aikido::Zen.runtime_settings.heartbeat_interval = 10
+    @agent.updated_settings!
+
+    assert_no_difference "@worker.jobs.size" do
+      @agent.updated_settings!
+    end
+  end
+
   test "#start! queues a one-off tasks for each initial heartbeat delay" do
     size = @config.initial_heartbeat_delays.size
 
@@ -487,5 +559,59 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     @agent.send(:settings_updated, {data: {"configUpdatedAt" => 1000}})
 
     refute_logged :info, /updated runtime settings after server-sent event/i
+  end
+
+  test "#update_settings_from_runtime_config! updates settings and logs a message including the reason" do
+    config_data = {"configUpdatedAt" => 1234567890}
+
+    assert @agent.send(:update_settings_from_runtime_config!, config_data, reason: "for some reason")
+
+    assert_logged :info, /updated runtime settings for some reason/i
+  end
+
+  test "#update_settings_from_runtime_config! returns false and does not log when settings are unchanged" do
+    config_data = {"configUpdatedAt" => 1234567890}
+    Aikido::Zen.api_cache.update_runtime_config(config_data)
+
+    refute @agent.send(:update_settings_from_runtime_config!, config_data, reason: "for some reason")
+
+    refute_logged :info, /updated runtime settings/i
+  end
+
+  test "#update_settings_from_runtime_config! does not log when the config timestamp is unchanged" do
+    Aikido::Zen.runtime_settings.updated_at = Time.at(1234567890)
+
+    config_data = {"configUpdatedAt" => 1234567890, "blockedUserIds" => ["1"]}
+
+    refute @agent.send(:update_settings_from_runtime_config!, config_data, reason: "for some reason")
+
+    refute_logged :info, /updated runtime settings/i
+  end
+
+  test "#update_settings_from_runtime_firewall_lists! updates settings and logs a message including the reason" do
+    firewall_data = {"blockedIPAddresses" => []}
+
+    assert @agent.send(:update_settings_from_runtime_firewall_lists!, firewall_data, reason: "for some reason")
+
+    assert_logged :info, /updated runtime firewall list for some reason/i
+  end
+
+  test "#update_settings_from_runtime_firewall_lists! returns false and does not log when settings are unchanged" do
+    firewall_data = {"blockedIPAddresses" => []}
+    Aikido::Zen.api_cache.update_runtime_firewall_lists(firewall_data)
+
+    refute @agent.send(:update_settings_from_runtime_firewall_lists!, firewall_data, reason: "for some reason")
+
+    refute_logged :info, /updated runtime firewall list/i
+  end
+
+  test "#update_settings_from_runtime_firewall_lists! does not log when the update did not change any settings" do
+    firewall_data = {"blockedIPAddresses" => []}
+
+    Aikido::Zen.runtime_settings.stub :update_from_runtime_firewall_lists_json, false do
+      refute @agent.send(:update_settings_from_runtime_firewall_lists!, firewall_data, reason: "for some reason")
+    end
+
+    refute_logged :info, /updated runtime firewall list/i
   end
 end
