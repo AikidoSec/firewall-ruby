@@ -23,19 +23,23 @@ module Aikido::Zen
     # @param value [Hash, nil]
     # @return [Boolean] whether the value actually changed
     def update_runtime_config(value)
-      changed = value != @runtime_config
-      @runtime_config_generation += 1 if changed
+      return false if value == @runtime_config
+
+      @runtime_config_generation += 1
       @runtime_config = value
-      changed
+
+      true
     end
 
     # @param value [Hash, nil]
     # @return [Boolean] whether the value actually changed
     def update_runtime_firewall_lists(value)
-      changed = value != @runtime_firewall_lists
-      @runtime_firewall_lists_generation += 1 if changed
+      return false if value == @runtime_firewall_lists
+
+      @runtime_firewall_lists_generation += 1
       @runtime_firewall_lists = value
-      changed
+
+      true
     end
 
     # @param known_generation [Integer, nil]
