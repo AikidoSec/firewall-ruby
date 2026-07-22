@@ -60,6 +60,10 @@ module Aikido::Zen
     #   poll the parent process for updated runtime settings. Defaults to 10 seconds.
     attr_accessor :worker_process_polling_interval
 
+    # @return [Integer] the maximum random delay in seconds before a forked
+    #   worker process starts polling. Defaults to 10 seconds.
+    attr_accessor :worker_process_polling_jitter
+
     # @return [Integer] the interval in seconds at which forked worker processes
     #   flush their collected stats to the parent process. Defaults to 10 seconds.
     attr_accessor :worker_process_heartbeat_interval
@@ -237,6 +241,7 @@ module Aikido::Zen
       self.polling_interval = 60 # 1 min
       self.initial_heartbeat_delays = [30, 60 * 2] # 30 sec, 2 min
       self.worker_process_polling_interval = 10
+      self.worker_process_polling_jitter = 10
       self.worker_process_heartbeat_interval = 10
       self.json_encoder = DEFAULT_JSON_ENCODER
       self.json_decoder = DEFAULT_JSON_DECODER

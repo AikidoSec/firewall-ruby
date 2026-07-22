@@ -6,12 +6,13 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
   include WorkerHelpers
 
   class MockRPCClient
-    attr_reader :started, :stopped, :closed, :invoke_results
+    attr_reader :started, :stopped, :closed, :invoke_calls, :invoke_results
 
     def initialize
       @started = false
       @stopped = false
       @closed = false
+      @invoke_calls = []
       @invoke_results = {}
     end
 
@@ -30,9 +31,12 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     end
 
     def invoke(name, *args, timeout: nil)
+      @invoke_calls << [name, args]
       @invoke_results[name]
     end
   end
+
+  KEEPALIVE_INTERVAL = Aikido::Zen::WorkerProcess::Agent::Client::KEEPALIVE_INTERVAL
 
   def build_agent(invoke_results = {})
     client = MockRPCClient.new
@@ -42,6 +46,11 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       collector = Minitest::Mock.new
       worker = MockWorker.new
       keepalive_worker = MockWorker.new
+
+      # Ignore the actual delay before polling starts.
+      def worker.delay(*)
+        yield
+      end
 
       agent = Aikido::Zen::WorkerProcess::Agent::Client.new(
         "127.0.0.1",
@@ -91,6 +100,57 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     end
   end
 
+  test "#start delays the first poll to reduce the chance of workers polling in lockstep" do
+    client = MockRPCClient.new
+    client.invoke_results["updated_settings"] = {}
+
+    Aikido::Zen::RPC::Client.stub(:new, client) do
+      worker = MockWorker.new
+      keepalive_worker = MockWorker.new
+
+      agent = Aikido::Zen::WorkerProcess::Agent::Client.new(
+        "127.0.0.1",
+        12345,
+        config: Aikido::Zen.config,
+        worker: worker,
+        keepalive_worker: keepalive_worker,
+        collector: Minitest::Mock.new,
+        polling_interval: 10,
+        polling_jitter: 5,
+        heartbeat_interval: 10
+      )
+      agent.start
+
+      assert_equal 1, worker.delayed.size
+      assert_includes 1..5, worker.delayed.first.initial_delay
+    end
+  end
+
+  test "#start does not delay the first poll when polling_jitter is 0" do
+    client = MockRPCClient.new
+    client.invoke_results["updated_settings"] = {}
+
+    Aikido::Zen::RPC::Client.stub(:new, client) do
+      worker = MockWorker.new
+      keepalive_worker = MockWorker.new
+
+      agent = Aikido::Zen::WorkerProcess::Agent::Client.new(
+        "127.0.0.1",
+        12345,
+        config: Aikido::Zen.config,
+        worker: worker,
+        keepalive_worker: keepalive_worker,
+        collector: Minitest::Mock.new,
+        polling_interval: 10,
+        polling_jitter: 0,
+        heartbeat_interval: 10
+      )
+      agent.start
+
+      assert_equal 0, worker.delayed.first.initial_delay
+    end
+  end
+
   test "#start handles nil settings from parent gracefully" do
     build_agent("updated_settings" => nil) do |agent|
       pass
@@ -109,21 +169,6 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
 
     build_agent("updated_settings" => {"config" => config_data, "firewall_lists" => firewall_data}) do
       assert_equal 60, Aikido::Zen.runtime_settings.heartbeat_interval
-    end
-  end
-
-  test "#start logs an error when the RPC call raises" do
-    client = MockRPCClient.new
-
-    client.stub(:invoke, ->(*) { raise "boom" }) do
-      Aikido::Zen::RPC::Client.stub(:new, client) do
-        worker = MockWorker.new
-        agent = Aikido::Zen::WorkerProcess::Agent::Client.new("127.0.0.1", 12345, worker: worker)
-
-        agent.start
-
-        assert_logged :error, /failed to get settings after connecting to parent: boom/
-      end
     end
   end
 
@@ -248,6 +293,172 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     end
   end
 
+  test "the scheduled polling task logs a debug message when settings change" do
+    config_data = {
+      "configUpdatedAt" => 0,
+      "heartbeatIntervalInMS" => 60_000,
+      "endpoints" => [],
+      "blockedUserIds" => [],
+      "allowedIPAddresses" => [],
+      "receivedAnyStats" => false,
+      "block" => false,
+      "blockNewOutgoingRequests" => false,
+      "domains" => {},
+      "excludedUserIdsFromRateLimiting" => []
+    }
+
+    firewall_data = {
+      "blockedUserAgents" => nil,
+      "monitoredUserAgents" => nil,
+      "userAgentDetails" => [],
+      "blockedIPAddresses" => [],
+      "allowedIPAddresses" => [],
+      "monitoredIPAddresses" => []
+    }
+
+    build_agent("updated_settings" => {
+      "config" => config_data,
+      "config_generation" => 5,
+      "firewall_lists" => firewall_data,
+      "firewall_lists_generation" => 9
+    }) do |agent, worker, collector, client|
+      worker.jobs[0].task.call
+
+      assert_logged :debug, /starting runtime settings update/
+      assert_logged :debug, /finished runtime settings update/
+    end
+  end
+
+  test "the scheduled polling task does not log when settings are unchanged" do
+    build_agent("updated_settings" => {}) do |agent, worker, collector, client|
+      worker.jobs[0].task.call
+
+      refute_logged :debug, /runtime settings update/
+    end
+  end
+
+  test "the scheduled polling task sends the known generations to the parent" do
+    config_data = {
+      "configUpdatedAt" => 0,
+      "heartbeatIntervalInMS" => 60_000,
+      "endpoints" => [],
+      "blockedUserIds" => [],
+      "allowedIPAddresses" => [],
+      "receivedAnyStats" => false,
+      "block" => false,
+      "blockNewOutgoingRequests" => false,
+      "domains" => {},
+      "excludedUserIdsFromRateLimiting" => []
+    }
+
+    firewall_data = {
+      "blockedUserAgents" => nil,
+      "monitoredUserAgents" => nil,
+      "userAgentDetails" => [],
+      "blockedIPAddresses" => [],
+      "allowedIPAddresses" => [],
+      "monitoredIPAddresses" => []
+    }
+
+    build_agent("updated_settings" => {
+      "config" => config_data,
+      "config_generation" => 5,
+      "firewall_lists" => firewall_data,
+      "firewall_lists_generation" => 9
+    }) do |agent, worker, collector, client|
+      worker.jobs[0].task.call
+
+      _name, args = client.invoke_calls.last
+      assert_equal [KEEPALIVE_INTERVAL, 5, 9], args
+    end
+  end
+
+  test "the scheduled polling task applies config without firewall_lists" do
+    config_data = {
+      "configUpdatedAt" => 0,
+      "heartbeatIntervalInMS" => 60_000,
+      "endpoints" => [],
+      "blockedUserIds" => [],
+      "allowedIPAddresses" => [],
+      "receivedAnyStats" => false,
+      "block" => false,
+      "blockNewOutgoingRequests" => false,
+      "domains" => {},
+      "excludedUserIdsFromRateLimiting" => []
+    }
+
+    build_agent("updated_settings" => {
+      "config" => config_data,
+      "config_generation" => 5
+    }) do |agent, worker, collector, client|
+      worker.jobs[0].task.call
+
+      assert_equal 60, Aikido::Zen.runtime_settings.heartbeat_interval
+
+      _name, args = client.invoke_calls.last
+      assert_equal [KEEPALIVE_INTERVAL, 5, nil], args
+    end
+  end
+
+  test "the scheduled polling task applies firewall_lists without config" do
+    firewall_data = {
+      "blockedUserAgents" => nil,
+      "monitoredUserAgents" => nil,
+      "userAgentDetails" => [],
+      "blockedIPAddresses" => [],
+      "allowedIPAddresses" => [],
+      "monitoredIPAddresses" => []
+    }
+
+    build_agent("updated_settings" => {
+      "firewall_lists" => firewall_data,
+      "firewall_lists_generation" => 9
+    }) do |agent, worker, collector, client|
+      worker.jobs[0].task.call
+
+      _name, args = client.invoke_calls.last
+      assert_equal [KEEPALIVE_INTERVAL, nil, 9], args
+    end
+  end
+
+  test "the scheduled polling task keeps the known generations when settings are unchanged" do
+    config_data = {
+      "configUpdatedAt" => 0,
+      "heartbeatIntervalInMS" => 60_000,
+      "endpoints" => [],
+      "blockedUserIds" => [],
+      "allowedIPAddresses" => [],
+      "receivedAnyStats" => false,
+      "block" => false,
+      "blockNewOutgoingRequests" => false,
+      "domains" => {},
+      "excludedUserIdsFromRateLimiting" => []
+    }
+
+    firewall_data = {
+      "blockedUserAgents" => nil,
+      "monitoredUserAgents" => nil,
+      "userAgentDetails" => [],
+      "blockedIPAddresses" => [],
+      "allowedIPAddresses" => [],
+      "monitoredIPAddresses" => []
+    }
+
+    build_agent("updated_settings" => {
+      "config" => config_data,
+      "config_generation" => 5,
+      "firewall_lists" => firewall_data,
+      "firewall_lists_generation" => 9
+    }) do |agent, worker, collector, client|
+      client.invoke_results["updated_settings"] = {}
+
+      assert_nothing_raised { worker.jobs[0].task.call }
+
+      _name, args = client.invoke_calls.last
+      assert_equal [KEEPALIVE_INTERVAL, 5, 9], args
+    end
+  end
+
   test "the scheduled polling task logs an error when the RPC call raises" do
     build_agent("updated_settings" => {}) do |agent, worker, collector, client|
       client.stub(:invoke, ->(*) { raise "boom" }) do
@@ -299,7 +510,9 @@ class Aikido::Zen::WorkerProcess::Agent::ClientIntegrationTest < ActiveSupport::
     Aikido::Zen::WorkerProcess::Agent::Client.new(
       @server.host, @server.port,
       worker: Aikido::Zen::Worker.new,
-      collector: Aikido::Zen.collector
+      collector: Aikido::Zen.collector,
+      polling_interval: 1,
+      polling_jitter: 0
     )
   end
 
@@ -357,6 +570,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientIntegrationTest < ActiveSupport::
 
   test "client reconnects and updates settings after the connection drops" do
     connections = Concurrent::AtomicFixnum.new(0)
+    generations = Concurrent::AtomicFixnum.new(0)
 
     config = -> do
       {
@@ -368,20 +582,25 @@ class Aikido::Zen::WorkerProcess::Agent::ClientIntegrationTest < ActiveSupport::
       }
     end
 
+    # Simulates the config having changed every poll.
+    next_generation = -> { generations.increment }
+
     Aikido::Zen.api_cache.stub(:runtime_config, config) do
-      in_forked_worker do
-        client = build_client
-        client.start
+      Aikido::Zen.api_cache.stub(:runtime_config_generation, next_generation) do
+        in_forked_worker do
+          client = build_client
+          client.start
 
-        wait_until(timeout: 2.0) { Aikido::Zen.runtime_settings.heartbeat_interval == 1 }
+          wait_until(timeout: 2.0) { Aikido::Zen.runtime_settings.heartbeat_interval == 1 }
 
-        client.instance_variable_get(:@rpc_client).instance_variable_get(:@client)
-          .socket.shutdown(Socket::SHUT_RDWR)
+          client.instance_variable_get(:@rpc_client).instance_variable_get(:@client)
+            .socket.shutdown(Socket::SHUT_RDWR)
 
-        wait_until(timeout: 2.0) { Aikido::Zen.runtime_settings.heartbeat_interval == 2 }
+          wait_until(timeout: 2.0) { Aikido::Zen.runtime_settings.heartbeat_interval == 2 }
 
-        interval = Aikido::Zen.runtime_settings.heartbeat_interval
-        raise "expected heartbeat_interval=2 after reconnecting, got #{interval}" unless interval == 2
+          interval = Aikido::Zen.runtime_settings.heartbeat_interval
+          raise "expected heartbeat_interval=2 after reconnecting, got #{interval}" unless interval == 2
+        end
       end
     end
   end

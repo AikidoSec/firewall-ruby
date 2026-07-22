@@ -16,6 +16,7 @@ module Aikido::Zen::WorkerProcess
         worker: Aikido::Zen::Worker.new(config: config),
         keepalive_worker: Aikido::Zen::Worker.new(config: config),
         polling_interval: config.worker_process_polling_interval,
+        polling_jitter: config.worker_process_polling_jitter,
         heartbeat_interval: config.worker_process_heartbeat_interval,
         collector: Aikido::Zen.collector
       )
@@ -23,10 +24,14 @@ module Aikido::Zen::WorkerProcess
         @worker = worker
         @keepalive_worker = keepalive_worker
         @polling_interval = polling_interval
+        @polling_jitter = polling_jitter
         @heartbeat_interval = heartbeat_interval
         @collector = collector
 
         @rpc_client = Aikido::Zen::RPC::Client.new(secret, host, port, reconnect: true)
+
+        @known_config_generation = nil
+        @known_firewall_lists_generation = nil
       end
 
       def close
@@ -34,14 +39,7 @@ module Aikido::Zen::WorkerProcess
       end
 
       def start
-        @rpc_client.start do
-          @worker.perform do
-            update_settings(updated_settings)
-          rescue => err
-            @config.logger.error("Forked worker process #{Process.pid}: failed to get settings after connecting to parent: #{err.message}")
-          end
-        end
-
+        @rpc_client.start
         schedule_tasks
       end
 
@@ -73,33 +71,64 @@ module Aikido::Zen::WorkerProcess
       private
 
       def updated_settings
-        @rpc_client.invoke("updated_settings", KEEPALIVE_INTERVAL)
+        @rpc_client.invoke(
+          "updated_settings",
+          KEEPALIVE_INTERVAL,
+          @known_config_generation,
+          @known_firewall_lists_generation
+        )
       end
 
-      def update_settings(settings)
-        return unless settings
+      def update_settings
+        settings = updated_settings
+        return false unless settings
+        return false unless settings["config"] || settings["firewall_lists"]
+
+        @config.logger.debug("Forked worker process #{Process.pid}: starting runtime settings update")
 
         if settings["config"]
+          @config.logger.debug("Forked worker process #{Process.pid}: starting config update")
           Aikido::Zen.runtime_settings.update_from_runtime_config_json(settings["config"])
+          @known_config_generation = settings["config_generation"]
+          @config.logger.debug("Forked worker process #{Process.pid}: finished config update")
         end
 
         if settings["firewall_lists"]
+          @config.logger.debug("Forked worker process #{Process.pid}: starting firewall_lists update")
           Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(settings["firewall_lists"])
+          @known_firewall_lists_generation = settings["firewall_lists_generation"]
+          @config.logger.debug("Forked worker process #{Process.pid}: finished firewall_lists update")
         end
+
+        @config.logger.debug("Forked worker process #{Process.pid}: finished runtime settings update")
+
+        true
+      rescue => err
+        @config.logger.error("Forked worker process #{Process.pid}: failed to get settings from parent: #{err.message}")
+        false
       end
 
       def schedule_tasks
         @keepalive_worker.every(KEEPALIVE_INTERVAL, run_now: false) { keepalive }
 
-        @worker.every(@polling_interval, run_now: false) do
-          update_settings(updated_settings)
-
-          @config.logger.debug("Forked worker process #{Process.pid}: updated runtime settings from parent")
-        rescue => err
-          @config.logger.error("Forked worker process #{Process.pid}: failed to get settings from parent: #{err.message}")
-        end
+        # Delay start polling to reduce the chance of workers polling in lockstep.
+        delay = polling_start_delay
+        @config.logger.debug("Forked worker process #{Process.pid}: will start polling in #{delay}s")
+        @worker.delay(delay) { start_polling }
 
         @worker.every(@heartbeat_interval, run_now: false) { send_collector_events }
+      end
+
+      def start_polling
+        @config.logger.debug("Forked worker process #{Process.pid}: started polling")
+        @worker.every(@polling_interval, run_now: true) { update_settings }
+      end
+
+      def polling_start_delay
+        return 0 if @polling_jitter < 1
+
+        # Seed by pid because forked processes inherit identical PRNG state.
+        Random.new(Process.pid).rand(1..@polling_jitter)
       end
 
       def keepalive

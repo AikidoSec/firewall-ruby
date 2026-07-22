@@ -20,6 +20,9 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 10, @config.api_timeouts[:write_timeout]
     assert_equal 60, @config.polling_interval
     assert_equal [30, 120], @config.initial_heartbeat_delays
+    assert_equal 10, @config.worker_process_polling_interval
+    assert_equal 10, @config.worker_process_polling_jitter
+    assert_equal 10, @config.worker_process_heartbeat_interval
     assert_equal Aikido::Zen::Config::DEFAULT_JSON_ENCODER, @config.json_encoder
     assert_equal Aikido::Zen::Config::DEFAULT_JSON_DECODER, @config.json_decoder
     assert_kind_of ::Logger, @config.logger
