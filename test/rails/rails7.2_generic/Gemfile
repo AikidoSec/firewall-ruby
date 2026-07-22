@@ -59,3 +59,9 @@ end
 gem "aikido-zen", path: "../../../"
 
 gem "actionpack-xml_parser"
+
+gem "erb", ">= 6.0.5"
+
+gem "rails-html-sanitizer", ">= 1.7.1"
+
+gem "loofah", ">= 2.25.2"
