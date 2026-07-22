@@ -246,7 +246,8 @@ module Aikido::Zen
 
     # @param data [Hash]
     # @param reason [String] context appended to the log message when logged
-    # @return [Boolean]
+    # @return [Boolean] whether the settings were updated; or nil if another
+    #   thread is already applying an update.
     def update_settings_from_runtime_config!(data, reason:)
       # :nocov:
       return unless @runtime_config_update_mutex.try_lock
@@ -267,7 +268,8 @@ module Aikido::Zen
 
     # @param data [Hash]
     # @param reason [String] context appended to the log message when logged
-    # @return [Boolean]
+    # @return [Boolean] whether the settings were updated; or nil if another
+    #   thread is already applying an update.
     def update_settings_from_runtime_firewall_lists!(data, reason:)
       # :nocov:
       return unless @runtime_firewall_lists_update_mutex.try_lock
