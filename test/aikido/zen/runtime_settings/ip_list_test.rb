@@ -32,6 +32,11 @@ class Aikido::Zen::RuntimeSettings::IPListTest < ActiveSupport::TestCase
     assert_equal 10, ip_list.ips.size
     assert_equal 5, ip_list.ipv4_ranges.size
     assert_equal 5, ip_list.ipv6_ranges.size
+
+    assert_kind_of Integer, ip_list.ipv4_ranges.first.begin
+    assert_kind_of Integer, ip_list.ipv4_ranges.first.end
+    assert_kind_of Integer, ip_list.ipv6_ranges.first.begin
+    assert_kind_of Integer, ip_list.ipv6_ranges.first.end
   end
 
   test "#include? is true if the ip address is included" do
@@ -70,6 +75,7 @@ class Aikido::Zen::RuntimeSettings::IPListTest < ActiveSupport::TestCase
       "fe80::ffff:ffff:ffff:ffff"
     ].each do |ip|
       assert ip_list.include?(ip)
+      assert ip_list.include?(IPAddr.new(ip))
     end
   end
 

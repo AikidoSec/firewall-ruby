@@ -29,10 +29,13 @@ module Aikido::Zen
       @ipv6_ranges = []
 
       ips.each do |ip|
+        range = ip.to_range
+        ip_int_range = (range.begin.to_i..range.end.to_i)
+
         if ip.ipv4?
-          @ipv4_ranges << ip.to_range
+          @ipv4_ranges << ip_int_range
         elsif ip.ipv6?
-          @ipv6_ranges << ip.to_range
+          @ipv6_ranges << ip_int_range
         else
           raise ArgumentError, "Unsupported IP address family: #{ip.inspect}"
         end
@@ -50,10 +53,12 @@ module Aikido::Zen
       native_ip = nativize_ip(ip)
       return false if native_ip.nil?
 
+      ip_int = native_ip.to_i
+
       if native_ip.ipv4?
-        ranges_cover?(@ipv4_ranges, native_ip)
+        ranges_cover?(@ipv4_ranges, ip_int)
       elsif native_ip.ipv6?
-        ranges_cover?(@ipv6_ranges, native_ip)
+        ranges_cover?(@ipv6_ranges, ip_int)
       else
         raise ArgumentError, "Unsupported IP address family: #{ip.inspect}"
       end
@@ -78,12 +83,12 @@ module Aikido::Zen
       end
     end
 
-    def ranges_cover?(ranges, ip)
-      index = ranges.bsearch_index { |range| range.begin > ip }
+    def ranges_cover?(ranges, ip_int)
+      index = ranges.bsearch_index { |range| range.begin > ip_int }
       index = index ? index - 1 : ranges.size - 1
       return false if index < 0
 
-      ranges[index].cover?(ip)
+      ranges[index].cover?(ip_int)
     end
   end
 end
