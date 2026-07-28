@@ -95,6 +95,8 @@ class ActiveSupport::TestCase
     Aikido::Zen.stop!
 
     Aikido::Zen::Sinks.registry.replace(@_old_sinks_registry)
+
+    Aikido::Zen.current_context = nil
   end
 
   # Reset the routes in the test app defined in test/support/fake_rails_app to
