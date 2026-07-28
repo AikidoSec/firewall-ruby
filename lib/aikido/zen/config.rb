@@ -7,6 +7,12 @@ require "digest"
 
 require_relative "context"
 
+# Create this alias before Config exists, so that Config can join paths safely
+# whether or not sinks have loaded yet.
+class << File
+  alias_method :join__internal_for_aikido_zen, :join
+end
+
 module Aikido::Zen
   class Config
     # @return [Class, Integer, nil] The Rack middleware class or index after which
