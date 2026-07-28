@@ -78,7 +78,10 @@ module Aikido::Zen::WorkerProcess
 
         firewall_lists_change = Aikido::Zen.api_cache.firewall_lists_if_changed(known_firewall_lists_generation)
         if firewall_lists_change
-          result["firewall_lists"], result["firewall_lists_generation"] = firewall_lists_change
+          data, generation = firewall_lists_change
+
+          result["firewall_lists"] = data&.except("blockedIPAddresses", "allowedIPAddresses", "monitoredIPAddresses")
+          result["firewall_lists_generation"] = generation
         end
 
         result

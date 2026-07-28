@@ -19,6 +19,7 @@ module Aikido::Zen
     def initialize(
       config: Aikido::Zen.config,
       settings: Aikido::Zen.runtime_settings,
+      firewall: Aikido::Zen.firewall,
       collector: Aikido::Zen.collector,
       worker: Aikido::Zen::Worker.new(config: config),
       api_client: Aikido::Zen::APIClient.new(config: config),
@@ -26,6 +27,7 @@ module Aikido::Zen
     )
       @config = config
       @settings = settings
+      @firewall = firewall
       @collector = collector
       @worker = worker
       @api_client = api_client
@@ -294,12 +296,11 @@ module Aikido::Zen
       begin
         return false unless Aikido::Zen.api_cache.update_runtime_firewall_lists(data)
 
-        if Aikido::Zen.firewall.update_from_json(data)
-          @config.logger.info("Updated runtime firewall list #{reason}")
-          true
-        else
-          false
-        end
+        @firewall.update_user_agents_from_json(data)
+        @firewall.update_ip_lists_from_json(data)
+
+        @config.logger.info("Updated runtime firewall list #{reason}")
+        true
       ensure
         @runtime_firewall_lists_update_mutex.unlock
       end

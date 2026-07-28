@@ -5,22 +5,24 @@ require "test_helper"
 class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
   module Configuration
     def configure_ips(ip_list_name, ips, key: "key", source: "source", description: "description")
-      if ips.empty?
-        @firewall.update_from_json({
-          ip_list_name => []
-        })
-      else
-        @firewall.update_from_json({
-          ip_list_name => [
-            {
-              "key" => key,
-              "source" => source,
-              "description" => description,
-              "ips" => ips
-            }
-          ]
-        })
-      end
+      data =
+        if ips.empty?
+          {ip_list_name => []}
+        else
+          {
+            ip_list_name => [
+              {
+                "key" => key,
+                "source" => source,
+                "description" => description,
+                "ips" => ips
+              }
+            ]
+          }
+        end
+
+      @firewall.update_user_agents_from_json(data)
+      @firewall.update_ip_lists_from_json(data)
     end
 
     def configure_blocked_ips(*args, **kwargs)
@@ -115,7 +117,7 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
     end
 
     test "blocked IP lists are configured and reconfigured" do
-      assert @firewall.blocked_ip_lists.empty?
+      assert_nil @firewall.blocked_ip_lists
 
       configure_blocked_ips(DEFAULT_BLOCKED_IPS)
 
@@ -135,7 +137,7 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
     end
 
     test "allowed IP lists are configured and reconfigured" do
-      assert @firewall.allowed_ip_lists.empty?
+      assert_nil @firewall.allowed_ip_lists
 
       configure_allowed_ips(DEFAULT_ALLOWED_IPS)
 
@@ -155,7 +157,7 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
     end
 
     test "monitored IP lists are configured and reconfigured" do
-      assert @firewall.monitored_ip_lists.empty?
+      assert_nil @firewall.monitored_ip_lists
 
       configure_monitored_ips(DEFAULT_MONITORED_IPS)
 
@@ -325,10 +327,12 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
         }
       ]
 
-      @firewall.update_from_json({
+      data = {
         "blockedIPAddresses" => blocked_ip_lists,
         "monitoredIPAddresses" => monitored_ip_lists
-      })
+      }
+      @firewall.update_user_agents_from_json(data)
+      @firewall.update_ip_lists_from_json(data)
 
       blocked_ips = [
         "1.4.9.3",
