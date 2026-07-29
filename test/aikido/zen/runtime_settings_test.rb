@@ -113,6 +113,18 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     refute @settings.user_excluded_from_rate_limiting?(nil)
   end
 
+  test "#realtime_settings_updates_enabled defaults to false" do
+    assert_equal false, @settings.realtime_settings_updates_enabled
+  end
+
+  test "#update_from_runtime_config_json sets realtime_settings_updates_enabled" do
+    @settings.update_from_runtime_config_json({"realtimeUpdatesEnabled" => true})
+    assert_equal true, @settings.realtime_settings_updates_enabled
+
+    @settings.update_from_runtime_config_json({"realtimeUpdatesEnabled" => false})
+    assert_equal false, @settings.realtime_settings_updates_enabled
+  end
+
   test "#user_excluded_from_rate_limiting? returns false when the list is nil" do
     refute @settings.user_excluded_from_rate_limiting?("user1")
   end
