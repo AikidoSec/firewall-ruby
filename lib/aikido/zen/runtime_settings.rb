@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "set"
+
 module Aikido::Zen
   # Stores the firewall configuration sourced from the Aikido dashboard. This
   # object is updated by the Agent regularly.
@@ -28,7 +30,7 @@ module Aikido::Zen
     :block_new_outbound,
     :domains,
     :excluded_user_ids_from_rate_limiting,
-    :realtime_settings_updates_enabled
+    :enabled_features
   ) do
     def initialize(*)
       super
@@ -38,7 +40,7 @@ module Aikido::Zen
       self.allowed_ip_lists ||= []
       self.monitored_ip_lists ||= []
       self.domains ||= RuntimeSettings::Domains.new
-      self.realtime_settings_updates_enabled = false
+      self.enabled_features ||= Set.new
     end
 
     # @!attribute [rw] updated_at
@@ -92,8 +94,8 @@ module Aikido::Zen
     #   @return [Array<String>, nil] the user IDs that should be skipped from
     #     rate limiting entirely.
 
-    # @!attribute [rw] realtime_settings_updates_enabled
-    #   @return [Boolean]
+    # @!attribute [rw] enabled_features
+    #   @return [Set<String>]
 
     # Parse and interpret the JSON response from the core API with updated
     # runtime settings, and apply the changes.
@@ -119,7 +121,7 @@ module Aikido::Zen
 
       self.excluded_user_ids_from_rate_limiting = data["excludedUserIdsFromRateLimiting"]
 
-      self.realtime_settings_updates_enabled = data["realtimeUpdatesEnabled"]
+      self.enabled_features = Set.new(data["enabledFeatures"])
 
       updated_at != last_updated_at
     end
@@ -246,6 +248,14 @@ module Aikido::Zen
       domain = domains[connection.host]
 
       (!domain.nil? && domain.block?) || (domain.nil? && block_new_outbound)
+    end
+
+    private def enabled_feature?(feature)
+      enabled_features.include?(feature)
+    end
+
+    def realtime_settings_updates_enabled?
+      enabled_feature?("realtime_updates")
     end
   end
 end

@@ -71,7 +71,7 @@ module Aikido::Zen
         if update_settings_from_runtime_config!(response, reason: "after start")
           updated_settings!
 
-          if @config.realtime_settings_updates_enabled? || @settings.realtime_settings_updates_enabled
+          if @config.realtime_settings_updates_enabled? || @settings.realtime_settings_updates_enabled?
             @api_stream.handle("config-updated") do |event|
               @config.logger.debug("Received server-sent event: config-updated")
               settings_updated(event)

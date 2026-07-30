@@ -212,7 +212,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     @config.realtime_settings_updates_enabled = false
 
     @api_client.expect :report,
-      {"configUpdatedAt" => 1234567890, "realtimeUpdatesEnabled" => true},
+      {"configUpdatedAt" => 1234567890, "enabledFeatures" => ["realtime_updates"]},
       [Aikido::Zen::Events::Started]
 
     @agent.start!
@@ -227,7 +227,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     @config.realtime_settings_updates_enabled = false
 
     @api_client.expect :report,
-      {"configUpdatedAt" => 1234567890, "realtimeUpdatesEnabled" => false},
+      {"configUpdatedAt" => 1234567890, "enabledFeatures" => []},
       [Aikido::Zen::Events::Started]
 
     @agent.start!
