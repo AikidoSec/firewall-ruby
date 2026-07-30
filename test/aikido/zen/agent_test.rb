@@ -208,6 +208,45 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert_empty @api_stream.instance_variable_get(:@handlers)
   end
 
+  test "#start! starts the api_stream when the runtime settings response enables realtime updates, even if the config flag is off" do
+    @config.realtime_settings_updates_enabled = false
+
+    @api_client.expect :report,
+      {"configUpdatedAt" => 1234567890, "enabledFeatures" => ["realtime_updates"]},
+      [Aikido::Zen::Events::Started]
+
+    @agent.start!
+
+    assert @api_stream.started?
+    refute_empty @api_stream.instance_variable_get(:@handlers)
+
+    assert_mock @api_client
+  end
+
+  test "#start! does not start the api_stream when neither the config flag nor the runtime settings enable realtime updates" do
+    @config.realtime_settings_updates_enabled = false
+
+    @api_client.expect :report,
+      {"configUpdatedAt" => 1234567890, "enabledFeatures" => []},
+      [Aikido::Zen::Events::Started]
+
+    @agent.start!
+
+    refute @api_stream.started?
+    assert_empty @api_stream.instance_variable_get(:@handlers)
+
+    assert_mock @api_client
+  end
+
+  test "#start! does not start the api_stream until the initial settings update actually applies changes" do
+    @agent.stub :update_settings_from_runtime_config!, ->(*) { false } do
+      @agent.start!
+    end
+
+    refute @api_stream.started?
+    assert_empty @api_stream.instance_variable_get(:@handlers)
+  end
+
   test "#start! starts polling for setting updates every minute" do
     @api_client.expect :should_fetch_settings?, false
 

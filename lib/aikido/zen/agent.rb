@@ -18,12 +18,14 @@ module Aikido::Zen
 
     def initialize(
       config: Aikido::Zen.config,
+      settings: Aikido::Zen.runtime_settings,
       collector: Aikido::Zen.collector,
       worker: Aikido::Zen::Worker.new(config: config),
       api_client: Aikido::Zen::APIClient.new(config: config),
       api_stream: Aikido::Zen::APIStream.new(config: config)
     )
       @config = config
+      @settings = settings
       @collector = collector
       @worker = worker
       @api_client = api_client
@@ -68,6 +70,15 @@ module Aikido::Zen
       report(Events::Started.new(time: @started_at)) do |response|
         if update_settings_from_runtime_config!(response, reason: "after start")
           updated_settings!
+
+          if @config.realtime_settings_updates_enabled? || @settings.realtime_settings_updates_enabled?
+            @api_stream.handle("config-updated") do |event|
+              @config.logger.debug("Received server-sent event: config-updated")
+              settings_updated(event)
+            end
+
+            @api_stream.start!
+          end
         # :nocov:
         else
           # empty
@@ -81,15 +92,6 @@ module Aikido::Zen
         update_settings_from_runtime_firewall_lists!(@api_client.fetch_runtime_firewall_lists, reason: "after start")
       rescue => err
         @config.logger.error(err.message)
-      end
-
-      if @config.realtime_settings_updates_enabled?
-        @api_stream.handle("config-updated") do |event|
-          @config.logger.debug("Received server-sent event: config-updated")
-          settings_updated(event)
-        end
-
-        @api_stream.start!
       end
 
       poll_for_setting_updates
@@ -197,7 +199,7 @@ module Aikido::Zen
     # @return [void]
     # @see Aikido::Zen::RuntimeSettings
     def poll_for_setting_updates
-      @worker.every(@config.polling_interval) do
+      @worker.every(@config.polling_interval, run_now: true) do
         if @api_client.should_fetch_settings?
           if update_settings_from_runtime_config!(@api_client.fetch_runtime_config, reason: "after polling")
             updated_settings!
