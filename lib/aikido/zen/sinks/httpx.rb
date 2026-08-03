@@ -70,6 +70,10 @@ module Aikido::Zen
               Helpers.scan(wrapped_request, connection, "request")
 
               request.on(:response) do |response|
+                # HTTPX emits an ErrorResponse (no status/headers) through this
+                # same callback when the request fails at the transport level.
+                next if response.is_a?(::HTTPX::ErrorResponse)
+
                 Scanners::SSRFScanner.track_redirects(
                   request: wrapped_request,
                   response: Helpers.wrap_response(response)
