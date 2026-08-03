@@ -19,3 +19,6 @@
 *.atom
 *.sublime-workspace
 *.sublime-project
+
+# MacOS System files
+*.DS_Store
