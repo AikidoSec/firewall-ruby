@@ -74,6 +74,15 @@ class Aikido::Zen::Sinks::HTTPXTest < ActiveSupport::TestCase
       assert_not_requested :get, "http://localhost"
     end
 
+    test "returns an ErrorResponse when the request fails at the transport level" do
+      stub_request(:get, "https://localhost/boom").to_timeout
+
+      refute_attack do
+        response = HTTPX.get("https://localhost/boom")
+        assert_kind_of HTTPX::ErrorResponse, response
+      end
+    end
+
     test "prevents automated requests to redirected domains when the origin is user input" do
       stub_request(:get, "https://this-is-harmless-i-swear.com/")
         .to_return(status: 301, headers: {"Location" => "https://localhost/"})

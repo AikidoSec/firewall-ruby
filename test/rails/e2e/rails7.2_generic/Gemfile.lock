@@ -111,6 +111,9 @@ GEM
     ffi (1.17.4-x86_64-linux-musl)
     globalid (1.4.0)
       activesupport (>= 6.1)
+    http-2 (1.2.1)
+    httpx (1.8.1)
+      http-2 (>= 1.2.0)
     i18n (1.15.2)
       concurrent-ruby (~> 1.0)
     io-console (0.8.2)
@@ -310,6 +313,7 @@ DEPENDENCIES
   aikido-zen!
   brakeman
   debug
+  httpx
   puma (>= 5.0)
   rails (~> 7.2.3, >= 7.2.3.1)
   rubocop-rails-omakase
