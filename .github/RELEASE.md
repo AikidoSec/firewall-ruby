@@ -24,11 +24,15 @@ The gem version is read from `lib/aikido/zen/version.rb` (`Aikido::Zen::VERSION`
    ```sh
    find gemfiles sample_apps -name "*.gemfile.lock" \
      -exec sed -i '' 's/aikido-zen (OLD)/aikido-zen (NEW)/' {} +
+   sed -i '' 's/aikido-zen (OLD)/aikido-zen (NEW)/' \
+     test/rails/rails7.2_generic/Gemfile.lock \
+     test/rails/e2e/rails7.2_generic/Gemfile.lock
    ```
 
-   (Drop the `''` after `-i` on Linux.) This should change exactly **24 lockfiles**:
+   (Drop the `''` after `-i` on Linux.) This should change exactly **26 lockfiles**:
    - `gemfiles/ruby-{2.7,3.0,3.1,3.2,3.3,3.4}.gemfile.lock` (6)
    - `sample_apps/rails7.1_{path_traversal,sql_injection,template}/gemfiles/ruby-{2.7,3.0,3.1,3.2,3.3,3.4}.gemfile.lock` (18)
+   - `test/rails/rails7.2_generic/Gemfile.lock` and `test/rails/e2e/rails7.2_generic/Gemfile.lock` (2)
 
 4. Commit, push, and open a PR titled `Prepare X.Y.Z`:
 
