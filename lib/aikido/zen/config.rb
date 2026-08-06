@@ -4,6 +4,7 @@ require "uri"
 require "json"
 require "logger"
 require "digest"
+require "tmpdir"
 
 require_relative "context"
 
@@ -235,6 +236,18 @@ module Aikido::Zen
     attr_accessor :realtime_settings_updates_enabled
     alias_method :realtime_settings_updates_enabled?, :realtime_settings_updates_enabled
 
+    # @return [String] a scratch directory this app instance can write to
+    #   and every process sharing it (including forked workers) can read
+    #   from -- e.g. the on-disk IP lists (see Firewall). Defaults to
+    #   a directory under the system temp dir, scoped to this process's pid.
+    attr_accessor :tmp_dir
+
+    # @return [String] the directory where the on-disk IP lists (see
+    #   Firewall#update_from_json) are written by the master process and
+    #   read from by forked workers. Defaults to an "ip_lists" subdirectory
+    #   of +tmp_dir+.
+    attr_accessor :ip_lists_dir
+
     def initialize
       self.insert_middleware_after = ::ActionDispatch::RemoteIp
       self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLE", false)) || read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
@@ -283,6 +296,8 @@ module Aikido::Zen
       self.idor_excluded_table_names = []
       self.idor_max_cache_entries = 1000
       self.realtime_settings_updates_enabled = false
+      self.tmp_dir = File.join__internal_for_aikido_zen(Dir.tmpdir, "aikido-zen-#{Process.pid}")
+      self.ip_lists_dir = File.join__internal_for_aikido_zen(tmp_dir, "ip_lists")
     end
 
     # Set the base URL for API requests.

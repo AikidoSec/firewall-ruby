@@ -88,7 +88,7 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
 
   test "updated_settings handler returns cached config and firewall_lists" do
     config = {"configUpdatedAt" => 1234567890}
-    firewall_lists = {"blockedIPAddresses" => []}
+    firewall_lists = {"blockedUserAgents" => "bot", "blockedIPAddresses" => []}
 
     Aikido::Zen.api_cache.runtime_config = config
     Aikido::Zen.api_cache.runtime_firewall_lists = firewall_lists
@@ -99,7 +99,7 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
     result = client.invoke("updated_settings", 2.0)
 
     assert_equal config, result["config"]
-    assert_equal firewall_lists, result["firewall_lists"]
+    assert_equal({"blockedUserAgents" => "bot"}, result["firewall_lists"])
   ensure
     client.stop
   end
@@ -116,7 +116,7 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
 
   test "#updated_settings returns cached config and firewall_lists" do
     config = {"configUpdatedAt" => 1234567890}
-    firewall_lists = {"blockedIPAddresses" => []}
+    firewall_lists = {"blockedUserAgents" => "bot", "blockedIPAddresses" => []}
 
     Aikido::Zen.api_cache.runtime_config = config
     Aikido::Zen.api_cache.runtime_firewall_lists = firewall_lists
@@ -124,7 +124,20 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
     settings = @server.updated_settings
 
     assert_equal config, settings["config"]
-    assert_equal firewall_lists, settings["firewall_lists"]
+    assert_equal({"blockedUserAgents" => "bot"}, settings["firewall_lists"])
+  end
+
+  test "#updated_settings strips IP list keys from firewall_lists, since workers read those from disk instead" do
+    Aikido::Zen.api_cache.runtime_firewall_lists = {
+      "blockedUserAgents" => "bot",
+      "blockedIPAddresses" => [{"key" => "k"}],
+      "allowedIPAddresses" => [{"key" => "k"}],
+      "monitoredIPAddresses" => [{"key" => "k"}]
+    }
+
+    settings = @server.updated_settings
+
+    assert_equal({"blockedUserAgents" => "bot"}, settings["firewall_lists"])
   end
 
   test "#updated_settings includes config_generation and firewall_lists_generation" do
@@ -186,14 +199,14 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
   end
 
   test "#updated_settings includes firewall_lists again once it changes" do
-    Aikido::Zen.api_cache.runtime_firewall_lists = {"blockedIPAddresses" => []}
+    Aikido::Zen.api_cache.runtime_firewall_lists = {"blockedUserAgents" => "bot"}
     stale_generation = Aikido::Zen.api_cache.runtime_firewall_lists_generation
 
-    Aikido::Zen.api_cache.runtime_firewall_lists = {"blockedIPAddresses" => ["1.2.3.4"]}
+    Aikido::Zen.api_cache.runtime_firewall_lists = {"blockedUserAgents" => "bot2", "blockedIPAddresses" => ["1.2.3.4"]}
 
     settings = @server.updated_settings(nil, stale_generation)
 
-    assert_equal({"blockedIPAddresses" => ["1.2.3.4"]}, settings["firewall_lists"])
+    assert_equal({"blockedUserAgents" => "bot2"}, settings["firewall_lists"])
     assert_equal Aikido::Zen.api_cache.runtime_firewall_lists_generation, settings["firewall_lists_generation"]
   end
 

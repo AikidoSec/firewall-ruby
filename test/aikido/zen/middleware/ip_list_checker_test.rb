@@ -115,7 +115,7 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
     end
 
     test "blocked IP lists are configured and reconfigured" do
-      assert @firewall.blocked_ip_lists.empty?
+      assert_nil @firewall.blocked_ip_lists
 
       configure_blocked_ips(DEFAULT_BLOCKED_IPS)
 
@@ -135,7 +135,7 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
     end
 
     test "allowed IP lists are configured and reconfigured" do
-      assert @firewall.allowed_ip_lists.empty?
+      assert_nil @firewall.allowed_ip_lists
 
       configure_allowed_ips(DEFAULT_ALLOWED_IPS)
 
@@ -155,7 +155,7 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
     end
 
     test "monitored IP lists are configured and reconfigured" do
-      assert @firewall.monitored_ip_lists.empty?
+      assert_nil @firewall.monitored_ip_lists
 
       configure_monitored_ips(DEFAULT_MONITORED_IPS)
 

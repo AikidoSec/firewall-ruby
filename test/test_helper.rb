@@ -39,6 +39,7 @@ require_relative "support/rate_limiting_assertions"
 require_relative "support/sink_attack_helpers"
 require_relative "support/worker_helpers"
 require_relative "support/wait_helpers"
+require_relative "support/stringio_pwrite"
 
 # Utility proc that does nothing.
 NOOP = ->(*args, **opts) {}

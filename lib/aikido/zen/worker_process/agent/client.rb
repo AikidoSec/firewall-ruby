@@ -95,7 +95,10 @@ module Aikido::Zen::WorkerProcess
 
         if settings["firewall_lists"]
           @config.logger.debug("Forked worker process #{Process.pid}: starting firewall_lists update")
-          Aikido::Zen.firewall.update_from_json(settings["firewall_lists"])
+          # write_ip_lists: false -- the master process already wrote the on-disk
+          # IP lists (that's what this generation bump means); this worker just
+          # reopens readers against the same files instead of rebuilding them.
+          Aikido::Zen.firewall.update_from_json(settings["firewall_lists"], write_ip_lists: false)
           @known_firewall_lists_generation = settings["firewall_lists_generation"]
           @config.logger.debug("Forked worker process #{Process.pid}: finished firewall_lists update")
         end

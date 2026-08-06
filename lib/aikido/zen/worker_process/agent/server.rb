@@ -74,7 +74,15 @@ module Aikido::Zen::WorkerProcess
 
         firewall_lists_change = Aikido::Zen.api_cache.firewall_lists_if_changed(known_firewall_lists_generation)
         if firewall_lists_change
-          result["firewall_lists"], result["firewall_lists_generation"] = firewall_lists_change
+          data, generation = firewall_lists_change
+
+          # Workers get IP lists from the on-disk Aikido::Zen::IPLists::Data
+          # files the master process already wrote (see
+          # Firewall#update_from_json), not by parsing this JSON -- no need
+          # to relay the raw (and potentially large) IP address lists over
+          # IPC too.
+          result["firewall_lists"] = data&.except("blockedIPAddresses", "allowedIPAddresses", "monitoredIPAddresses")
+          result["firewall_lists_generation"] = generation
         end
 
         result
