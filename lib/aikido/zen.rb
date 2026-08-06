@@ -224,6 +224,15 @@ module Aikido
       collector.track_outbound(connection)
     end
 
+    # @param connection [Aikido::Zen::OutboundConnection]
+    # @return [Boolean] whether this outbound connection should be blocked.
+    def self.block_outbound?(connection)
+      return false unless blocking_mode?
+      return false if current_context&.protection_disabled?
+
+      runtime_settings.block_outbound?(connection)
+    end
+
     # Track statistics about the result of a Sink's scan, and report it as
     # an Attack if one is detected.
     #

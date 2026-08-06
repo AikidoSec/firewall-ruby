@@ -606,6 +606,20 @@ class Aikido::Zen::Sinks::NetHTTPTest < ActiveSupport::TestCase
       end
     end
 
+    test "requests to blocked domains are allowed when protection is disabled for the current route" do
+      configure_domains(block_new_outbound: true, domains: DEFAULT_DOMAINS)
+      Aikido::Zen.current_context.protection_disabled = true
+
+      assert_equal "OK (80)", Net::HTTP.get(@evil_uri)
+    end
+
+    test "requests to blocked domains are allowed in detection mode" do
+      configure_domains(block_new_outbound: true, domains: DEFAULT_DOMAINS)
+      @settings.blocking_mode = false
+
+      assert_equal "OK (80)", Net::HTTP.get(@evil_uri)
+    end
+
     test "requests to unknown domains are allowed when blockNewOutgoingRequests is false" do
       configure_domains(block_new_outbound: false, domains: DEFAULT_DOMAINS)
 
