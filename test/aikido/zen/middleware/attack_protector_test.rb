@@ -36,7 +36,7 @@ class Aikido::Zen::Middleware::AttackProtectorTest < ActiveSupport::TestCase
     end
 
     test "protection is disabled when the request IP is an allowed IP" do
-      @settings.update_from_runtime_config_json({
+      @settings.update_from_json({
         "allowedIPAddresses" => ["10.0.0.1"]
       })
 
@@ -64,7 +64,7 @@ class Aikido::Zen::Middleware::AttackProtectorTest < ActiveSupport::TestCase
     end
 
     test "the runtime settings endpoints are checked" do
-      @settings.update_from_runtime_config_json({
+      @settings.update_from_json({
         "success" => true,
         "serviceId" => 1234,
         "configUpdatedAt" => 1717171717,
@@ -114,7 +114,7 @@ class Aikido::Zen::Middleware::AttackProtectorTest < ActiveSupport::TestCase
     end
 
     test "all the runtime settings endpoints are checked" do
-      @settings.update_from_runtime_config_json({
+      @settings.update_from_json({
         "success" => true,
         "serviceId" => 1234,
         "configUpdatedAt" => 1717171717,
@@ -209,7 +209,7 @@ class Aikido::Zen::Middleware::AttackProtectorTest < ActiveSupport::TestCase
         get "/not_configured" => "example#not_configured"
       end
 
-      @settings.update_from_runtime_config_json({
+      @settings.update_from_json({
         "endpoints" => [
           {
             "method" => "GET",
@@ -258,7 +258,7 @@ class Aikido::Zen::Middleware::AttackProtectorTest < ActiveSupport::TestCase
         get "/not_configured" => "example#not_configured"
       end
 
-      @settings.update_from_runtime_config_json({
+      @settings.update_from_json({
         "endpoints" => [
           {
             "method" => "GET",

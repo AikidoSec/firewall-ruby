@@ -7,7 +7,7 @@ class Aikido::Zen::Middleware::UserAgentCheckerTest < ActiveSupport::TestCase
     extend ActiveSupport::Testing::Declarative
 
     def update_runtime_firewall_lists
-      @settings.update_from_runtime_firewall_lists_json({
+      @firewall.update_from_json({
         "blockedUserAgents" => "Applebot-Extended|CCBot|ClaudeBot|Google-Extended|GPTBot|meta-externalagent|anthropic-ai|AdsBot-Google|Mediapartners-Google|Mediapartners \\(Googlebot\\)|Google-Adwords",
         "monitoredUserAgents" => "ChatGPT-User|Meta-ExternalFetcher|Claude-Web|GitHubCopilotChat|Claude-User",
         "userAgentDetails" => [
@@ -108,6 +108,7 @@ class Aikido::Zen::Middleware::UserAgentCheckerTest < ActiveSupport::TestCase
 
       @config = Aikido::Zen.config
       @settings = Aikido::Zen.runtime_settings
+      @firewall = Aikido::Zen.firewall
 
       app = ->(env) { [200, {}, ["OK"]] }
       @middleware = Aikido::Zen::Middleware::UserAgentChecker.new(app)
@@ -127,6 +128,7 @@ class Aikido::Zen::Middleware::UserAgentCheckerTest < ActiveSupport::TestCase
 
       @config = Aikido::Zen.config
       @settings = Aikido::Zen.runtime_settings
+      @firewall = Aikido::Zen.firewall
 
       app = ->(env) { [200, {}, ["OK"]] }
       @middleware = Aikido::Zen::Middleware::UserAgentChecker.new(app)
