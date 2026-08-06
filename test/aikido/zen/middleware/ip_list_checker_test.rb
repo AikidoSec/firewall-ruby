@@ -6,11 +6,11 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
   module Configuration
     def configure_ips(ip_list_name, ips, key: "key", source: "source", description: "description")
       if ips.empty?
-        @settings.update_from_runtime_firewall_lists_json({
+        @firewall.update_from_json({
           ip_list_name => []
         })
       else
-        @settings.update_from_runtime_firewall_lists_json({
+        @firewall.update_from_json({
           ip_list_name => [
             {
               "key" => key,
@@ -111,65 +111,66 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
 
     setup do
       @settings = Aikido::Zen.runtime_settings
+      @firewall = Aikido::Zen.firewall
     end
 
     test "blocked IP lists are configured and reconfigured" do
-      assert @settings.blocked_ip_lists.empty?
+      assert @firewall.blocked_ip_lists.empty?
 
       configure_blocked_ips(DEFAULT_BLOCKED_IPS)
 
-      refute @settings.blocked_ip_lists.empty?
+      refute @firewall.blocked_ip_lists.empty?
 
       ["2.16.53.5", "2.16.53.6"].each do |ip|
-        assert(@settings.blocked_ip?(ip))
+        assert(@firewall.blocked_ip?(ip))
       end
 
       configure_blocked_ips([])
 
-      assert @settings.blocked_ip_lists.empty?
+      assert @firewall.blocked_ip_lists.empty?
 
       ["2.16.53.5", "2.16.53.6"].each do |ip|
-        refute(@settings.blocked_ip?(ip))
+        refute(@firewall.blocked_ip?(ip))
       end
     end
 
     test "allowed IP lists are configured and reconfigured" do
-      assert @settings.allowed_ip_lists.empty?
+      assert @firewall.allowed_ip_lists.empty?
 
       configure_allowed_ips(DEFAULT_ALLOWED_IPS)
 
-      refute @settings.allowed_ip_lists.empty?
+      refute @firewall.allowed_ip_lists.empty?
 
       ["2.16.53.5", "2.16.53.6"].each do |ip|
-        assert(@settings.allowed_ip?(ip))
+        assert(@firewall.allowed_ip?(ip))
       end
 
       configure_allowed_ips([])
 
-      assert @settings.allowed_ip_lists.empty?
+      assert @firewall.allowed_ip_lists.empty?
 
       ["2.16.53.5", "2.16.53.6"].each do |ip|
-        assert(@settings.allowed_ip?(ip))
+        assert(@firewall.allowed_ip?(ip))
       end
     end
 
     test "monitored IP lists are configured and reconfigured" do
-      assert @settings.monitored_ip_lists.empty?
+      assert @firewall.monitored_ip_lists.empty?
 
       configure_monitored_ips(DEFAULT_MONITORED_IPS)
 
-      refute @settings.monitored_ip_lists.empty?
+      refute @firewall.monitored_ip_lists.empty?
 
       ["2.16.53.5", "2.16.53.6"].each do |ip|
-        assert(@settings.monitored_ip?(ip))
+        assert(@firewall.monitored_ip?(ip))
       end
 
       configure_monitored_ips([])
 
-      assert @settings.monitored_ip_lists.empty?
+      assert @firewall.monitored_ip_lists.empty?
 
       ["2.16.53.5", "2.16.53.6"].each do |ip|
-        refute(@settings.monitored_ip?(ip))
+        refute(@firewall.monitored_ip?(ip))
       end
     end
   end
@@ -323,7 +324,7 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
         }
       ]
 
-      @settings.update_from_runtime_firewall_lists_json({
+      @firewall.update_from_json({
         "blockedIPAddresses" => blocked_ip_lists,
         "monitoredIPAddresses" => monitored_ip_lists
       })
@@ -383,6 +384,7 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
       Aikido::Zen.config.request_builder = Aikido::Zen::Context::RACK_REQUEST_BUILDER
 
       @settings = Aikido::Zen.runtime_settings
+      @firewall = Aikido::Zen.firewall
 
       app = ->(_env) { [200, {}, ["OK"]] }
       @middleware = Aikido::Zen::Middleware::IPListChecker.new(app)
@@ -401,6 +403,7 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
       Aikido::Zen.config.request_builder = Aikido::Zen::Context::RAILS_REQUEST_BUILDER
 
       @settings = Aikido::Zen.runtime_settings
+      @firewall = Aikido::Zen.firewall
 
       app = ->(_env) { [200, {}, ["OK"]] }
       @middleware = Aikido::Zen::Middleware::IPListChecker.new(app)

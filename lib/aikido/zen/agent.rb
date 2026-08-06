@@ -257,7 +257,7 @@ module Aikido::Zen
       begin
         return false unless Aikido::Zen.api_cache.update_runtime_config(data)
 
-        if Aikido::Zen.runtime_settings.update_from_runtime_config_json(data)
+        if Aikido::Zen.runtime_settings.update_from_json(data)
           @config.logger.info("Updated runtime settings #{reason}")
           true
         else
@@ -279,7 +279,7 @@ module Aikido::Zen
       begin
         return false unless Aikido::Zen.api_cache.update_runtime_firewall_lists(data)
 
-        if Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(data)
+        if Aikido::Zen.firewall.update_from_json(data)
           @config.logger.info("Updated runtime firewall list #{reason}")
           true
         else

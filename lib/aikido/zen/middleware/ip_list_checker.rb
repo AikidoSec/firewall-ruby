@@ -3,11 +3,12 @@
 module Aikido::Zen
   module Middleware
     class IPListChecker
-      def initialize(app, zen: Aikido::Zen, config: zen.config, settings: zen.runtime_settings)
+      def initialize(app, zen: Aikido::Zen, config: zen.config, settings: zen.runtime_settings, firewall: zen.firewall)
         @app = app
         @zen = zen
         @config = config
         @settings = settings
+        @firewall = firewall
       end
 
       def call(env)
@@ -17,14 +18,14 @@ module Aikido::Zen
 
         return @app.call(env) if bypassed_ip?(client_ip)
 
-        if !@settings.allowed_ip?(client_ip)
+        if !@firewall.allowed_ip?(client_ip)
           return @config.blocked_responder.call(request, :ip_allowed_list)
         end
 
-        monitored_ip_list_keys = @settings.monitored_ip_list_keys(client_ip)
+        monitored_ip_list_keys = @firewall.monitored_ip_list_keys(client_ip)
         @zen.track_ip_list(monitored_ip_list_keys)
 
-        blocked_ip_lists = @settings.blocked_ip_lists.filter { |ip_list| ip_list.include?(client_ip) }
+        blocked_ip_lists = @firewall.blocked_ip_lists.filter { |ip_list| ip_list.include?(client_ip) }
 
         if !blocked_ip_lists.empty?
           @zen.track_ip_list(blocked_ip_lists.map(&:key))

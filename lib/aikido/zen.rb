@@ -27,6 +27,7 @@ require_relative "zen/middleware/attack_wave_protector"
 require_relative "zen/middleware/request_tracker"
 require_relative "zen/outbound_connection"
 require_relative "zen/runtime_settings"
+require_relative "zen/firewall"
 require_relative "zen/rate_limiter"
 require_relative "zen/attack_wave"
 require_relative "zen/sql"
@@ -86,6 +87,14 @@ module Aikido
 
     def self.runtime_settings=(settings)
       @runtime_settings = settings
+    end
+
+    def self.firewall
+      @firewall ||= Firewall.new
+    end
+
+    def self.firewall=(firewall)
+      @firewall = firewall
     end
 
     def self.api_cache

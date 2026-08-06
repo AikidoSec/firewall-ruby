@@ -647,7 +647,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   test "#update_settings_from_runtime_firewall_lists! does not log when the update did not change any settings" do
     firewall_data = {"blockedIPAddresses" => []}
 
-    Aikido::Zen.runtime_settings.stub :update_from_runtime_firewall_lists_json, false do
+    Aikido::Zen.firewall.stub :update_from_json, false do
       refute @agent.send(:update_settings_from_runtime_firewall_lists!, firewall_data, reason: "for some reason")
     end
 

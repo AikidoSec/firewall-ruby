@@ -296,7 +296,7 @@ class Aikido::Zen::Sinks::CurbTest < ActiveSupport::TestCase
         }.compact
       )
 
-      @settings.update_from_runtime_config_json(data)
+      @settings.update_from_json(data)
     end
 
     test "all requests are allowed by default" do

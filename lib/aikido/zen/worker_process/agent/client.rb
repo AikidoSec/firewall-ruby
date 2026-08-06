@@ -88,14 +88,14 @@ module Aikido::Zen::WorkerProcess
 
         if settings["config"]
           @config.logger.debug("Forked worker process #{Process.pid}: starting config update")
-          Aikido::Zen.runtime_settings.update_from_runtime_config_json(settings["config"])
+          Aikido::Zen.runtime_settings.update_from_json(settings["config"])
           @known_config_generation = settings["config_generation"]
           @config.logger.debug("Forked worker process #{Process.pid}: finished config update")
         end
 
         if settings["firewall_lists"]
           @config.logger.debug("Forked worker process #{Process.pid}: starting firewall_lists update")
-          Aikido::Zen.runtime_settings.update_from_runtime_firewall_lists_json(settings["firewall_lists"])
+          Aikido::Zen.firewall.update_from_json(settings["firewall_lists"])
           @known_firewall_lists_generation = settings["firewall_lists_generation"]
           @config.logger.debug("Forked worker process #{Process.pid}: finished firewall_lists update")
         end

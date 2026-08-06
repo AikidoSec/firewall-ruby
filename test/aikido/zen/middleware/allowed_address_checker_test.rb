@@ -205,7 +205,7 @@ class Aikido::Zen::Middleware::AllowedAddressCheckerTest < ActiveSupport::TestCa
 
   def add_bypassed_ips(ips:)
     settings = Aikido::Zen.runtime_settings
-    assert settings.update_from_runtime_config_json({
+    assert settings.update_from_json({
       "allowedIPAddresses" => ips
     })
   end
