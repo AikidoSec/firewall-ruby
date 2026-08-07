@@ -10,10 +10,10 @@ module Aikido::Zen
       end
 
       def call(env)
-        context = @zen.current_context
-        request = context.request
-
-        context.protection_disabled = protection_disabled?(request)
+        # No context means ContextSetter never ran, so there is nothing to mark.
+        if (context = @zen.current_context)
+          context.protection_disabled = protection_disabled?(context.request)
+        end
 
         @app.call(env)
       end

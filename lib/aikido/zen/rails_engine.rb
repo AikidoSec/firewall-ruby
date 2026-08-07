@@ -50,7 +50,11 @@ module Aikido::Zen
         # This way, we overwrite the Request object as early as we can in the
         # request handling, so that by the time we start evaluating inputs, we
         # have assigned the request correctly.
-        before_action { Aikido::Zen.current_context.update_request(request) }
+        #
+        # Read from the Rack env, not the fiber-local current_context: that one is nil when the
+        # action runs in another thread (ActionController::Live) or when no middleware ran at
+        # all (ActionController::TestCase). See https://github.com/AikidoSec/firewall-ruby/issues/357
+        before_action { request.env[Aikido::Zen::ENV_KEY]&.update_request(request) }
       end
     end
 

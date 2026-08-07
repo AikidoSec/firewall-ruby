@@ -25,7 +25,10 @@ module Aikido::Zen
           # This feature requires a request object to perform checks and enforce blocking.
           return false unless controller.respond_to?(:request)
 
+          # No context means ContextSetter never ran, so Zen is not tracking this request.
           context = controller.request.env[Aikido::Zen::ENV_KEY]
+          return false if context.nil?
+
           request = context.request
 
           return false if @settings.bypassed_ips.include?(request.client_ip)

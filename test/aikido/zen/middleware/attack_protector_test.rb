@@ -27,6 +27,10 @@ class Aikido::Zen::Middleware::AttackProtectorTest < ActiveSupport::TestCase
       assert_mock app
     end
 
+    test "the request is passed through when there is no context" do
+      assert_mock_middleware(nil)
+    end
+
     test "protection is enabled by default" do
       context = build_context_for("/path", "REMOTE_ADDR" => "1.2.3.4")
 

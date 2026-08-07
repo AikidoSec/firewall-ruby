@@ -23,6 +23,8 @@ module Aikido
         # @api private
         # Visible for testing.
         def attack_wave?(context, status_code = nil)
+          return false if context.nil?
+
           request = context.request
           return false if request.nil?
 

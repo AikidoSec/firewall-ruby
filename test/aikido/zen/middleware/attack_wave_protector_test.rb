@@ -50,6 +50,20 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     @settings = Aikido::Zen.runtime_settings
   end
 
+  test "#call passes the request through when there is no context" do
+    app = Minitest::Mock.new
+    zen = Minitest::Mock.new
+
+    middleware = Aikido::Zen::Middleware::AttackWaveProtector.new(app, zen: zen)
+
+    zen.expect :current_context, nil
+    app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
+    middleware.call({})
+
+    assert_mock zen
+    assert_mock app
+  end
+
   test "#call detects attack waves and collects statistics then reports the event" do
     app = Minitest::Mock.new
     zen = Minitest::Mock.new

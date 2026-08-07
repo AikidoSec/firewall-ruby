@@ -115,8 +115,7 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
   end
 
   def refute_throttled_or_blocked(controller)
-    refute_equal({status: 429, plain: "Too many requests."}, controller.response)
-    refute_equal({status: 403, plain: "Too many requests."}, controller.response)
+    refute_includes [403, 429], controller.response[:status]
   end
 
   test "controller executes normally when no rate limiting or user blocking is configured" do
@@ -320,12 +319,41 @@ class Aikido::Zen::Sinks::ActionControllerTest < ActiveSupport::TestCase
     assert_blocked make_request(blocked_user_request)
   end
 
+  test "controller executes normally when the request has no context" do
+    configure "GET", "/", max_requests: 1, period: 10
+    assert_nil Aikido::Zen.current_context
+
+    2.times do
+      controller = make_request(build_request_without_context("GET", "/", ip: "1.2.3.4"))
+
+      refute_throttled_or_blocked(controller)
+      assert_equal \
+        [:before, :auth_check, :before_around, :get_root, :after_around, :after],
+        controller.sequence
+    end
+  end
+
+  test "blocked users are not blocked when the request has no context" do
+    Aikido::Zen.runtime_settings.blocked_user_ids = ["1234"]
+
+    controller = make_request(build_request_without_context("GET", "/", ip: "1.2.3.4"))
+
+    refute_throttled_or_blocked(controller)
+  end
+
   def build_request(method, path, extra_env = {}, ip: nil, user: nil)
     env = Rack::MockRequest.env_for(path, {"REMOTE_ADDR" => ip, :method => method}.merge(extra_env))
     env["user_data"] = user if user
     ctx = env[Aikido::Zen::ENV_KEY] = Aikido::Zen::Context.from_rack_env(env)
     Aikido::Zen.current_context = ctx
     ctx.request
+  end
+
+  # Mimics a request that never went through the ContextSetter middleware, as
+  # happens under ActionController::TestCase.
+  def build_request_without_context(method, path, ip: nil)
+    env = Rack::MockRequest.env_for(path, {"REMOTE_ADDR" => ip, :method => method})
+    ActionDispatch::Request.new(env)
   end
 
   def make_request(request, only_allow_authenticated: false)
