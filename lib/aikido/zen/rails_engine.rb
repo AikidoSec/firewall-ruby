@@ -4,6 +4,31 @@ require "action_dispatch"
 
 module Aikido::Zen
   class RailsEngine < ::Rails::Engine
+    # ActionController::Live runs the whole action in a new Thread so that
+    # the original thread can be freed to handle the next request once the
+    # response headers are committed.
+    #
+    # Zen stores the current context on the current Fiber, and propagates
+    # this context to new Fibers created with Fiber.new. The root Fiber of
+    # a new Thread is not created with Fiber.new so the current context is
+    # not propagated automatically.
+    #
+    # Propagate the current context to the root Fiber of the new Thread
+    # created by ActionController::Live to run the action.
+    module LiveThreadContextSetter
+      private
+
+      def new_controller_thread(&blk)
+        context = Aikido::Zen.current_context
+
+        super do
+          Fiber.current.aikido_current_context = context
+
+          blk.call
+        end
+      end
+    end
+
     config.before_configuration do
       # Access library configuration at `Rails.application.config.zen`.
       config.zen = Aikido::Zen.config
@@ -39,6 +64,8 @@ module Aikido::Zen
       end
 
       ActiveSupport.on_load(:action_controller) do
+        ::ActionController::Live.prepend(Aikido::Zen::RailsEngine::LiveThreadContextSetter)
+
         before_action do
           Aikido::Zen.enable_idor_protection if Aikido::Zen.config.idor_protection_enabled?
         end
