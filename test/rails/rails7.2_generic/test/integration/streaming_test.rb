@@ -11,8 +11,26 @@ StreamsController.class_eval do
 end
 
 class StreamingTest < ActionDispatch::IntegrationTest
+  setup do
+    Rails.application.load_seed
+  end
+
   test "streaming action runs in its own thread" do
     get "/streams"
+
+    assert_response :success
+    assert_equal "data: ok\n\n", response.body
+  end
+
+  test "sinks still scan inside the streaming thread" do
+    get "/streams/query", params: {token: "abc' OR 1=1--"}
+
+    assert_response :success
+    assert_equal "data: Aikido::Zen::SQLInjectionError\n\n", response.body
+  end
+
+  test "legitimate queries are not flagged inside the streaming thread" do
+    get "/streams/query", params: {token: "abc123"}
 
     assert_response :success
     assert_equal "data: ok\n\n", response.body

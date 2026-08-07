@@ -10,6 +10,7 @@ Rails.application.routes.draw do
   get "manifest" => "rails/pwa#manifest", :as => :pwa_manifest
 
   get "streams" => "streams#show"
+  get "streams/query" => "streams#query"
 
   # Defines the root path route ("/")
   # root "posts#index"

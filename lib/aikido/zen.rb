@@ -141,7 +141,7 @@ module Aikido
     #
     # @return [Aikido::Zen::Context, nil]
     def self.current_context
-      Fiber.current.aikido_current_context
+      Fiber.current.aikido_current_context || SharedContext.get
     end
 
     # Sets the current context object that holds all information about the
@@ -151,6 +151,7 @@ module Aikido
     # @return [Aikido::Zen::Context, nil]
     def self.current_context=(context)
       Fiber.current.aikido_current_context = context
+      SharedContext.set(context)
     end
 
     # Track statistics about an HTTP request the app is handling.

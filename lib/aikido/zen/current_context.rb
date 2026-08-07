@@ -25,3 +25,30 @@ class << Fiber
     end
   end
 end
+
+module Aikido::Zen
+  # Mirror of the Fiber-local context above, used only as a fallback when that
+  # one is empty.
+  #
+  # ActionController::Live runs the action in its own thread, where the
+  # Fiber-local is gone. Rails copies the IsolatedExecutionState into that
+  # thread for us (ActiveSupport::IsolatedExecutionState#share_with), so this is
+  # what carries the context across the hop. No-op when ActiveSupport is absent.
+  #
+  # @api private
+  module SharedContext
+    KEY = :aikido_current_context
+
+    def self.available?
+      defined?(ActiveSupport::IsolatedExecutionState) ? true : false
+    end
+
+    def self.get
+      ActiveSupport::IsolatedExecutionState[KEY] if available?
+    end
+
+    def self.set(context)
+      ActiveSupport::IsolatedExecutionState[KEY] = context if available?
+    end
+  end
+end

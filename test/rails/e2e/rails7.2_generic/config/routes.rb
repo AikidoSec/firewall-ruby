@@ -17,4 +17,5 @@ Rails.application.routes.draw do
   get "test/outbound_connection" => "outbound_connection#show"
   get "test/path_traversal" => "path_traversal#show"
   get "test/httpx" => "httpx#show"
+  get "test/streaming" => "streaming#show"
 end
