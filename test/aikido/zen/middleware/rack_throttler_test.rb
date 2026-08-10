@@ -86,7 +86,7 @@ class Aikido::Zen::Middleware::RackThrottlerTest < ActiveSupport::TestCase
     assert_equal 5, env["aikido.rate_limiting"].time_remaining
 
     response = @middleware.call(env)
-    assert_equal [429, {"Content-Type" => "text/plain"}, ["Too many requests."]], response
+    assert_equal [429, {"Content-Type" => "text/plain", "Retry-After" => "5"}, ["Too many requests."]], response
 
     assert_equal true, env["aikido.rate_limiting"].throttled?
     assert_equal "1.2.3.4", env["aikido.rate_limiting"].discriminator

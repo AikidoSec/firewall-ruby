@@ -235,10 +235,13 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   end
 
   test " the default #rate_limited_responder returns the expected Rack response" do
-    status, headers, body = @config.rate_limited_responder.call(Object.new)
+    rate_limit = OpenStruct.new(time_remaining: 42)
+    request = OpenStruct.new(env: {"aikido.rate_limiting" => rate_limit})
+
+    status, headers, body = @config.rate_limited_responder.call(request)
 
     assert_equal 429, status
-    assert_equal({"Content-Type" => "text/plain"}, headers)
+    assert_equal({"Content-Type" => "text/plain", "Retry-After" => "42"}, headers)
     assert_equal ["Too many requests."], body
   end
 

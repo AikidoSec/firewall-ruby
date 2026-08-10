@@ -409,7 +409,13 @@ module Aikido::Zen
 
     # @!visibility private
     DEFAULT_RATE_LIMITED_RESPONDER = ->(request) do
-      [429, {"Content-Type" => "text/plain"}, ["Too many requests."]]
+      rate_limit = request.env["aikido.rate_limiting"]
+      headers = {
+        "Content-Type" => "text/plain",
+        "Retry-After" => rate_limit.time_remaining.to_s
+      }
+
+      [429, headers, ["Too many requests."]]
     end
 
     # @!visibility private

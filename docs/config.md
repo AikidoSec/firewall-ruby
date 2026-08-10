@@ -77,7 +77,9 @@ Aikido::Zen.rate_limited_responder = ->(request) {
 }
 ```
 
-By default, Zen emits a `text/plain` 429 response that says "Too many requests".
+By default, Zen emits a `text/plain` 429 response that says "Too many requests"
+and includes a `Retry-After` header with the number of seconds until the rate
+limit window resets.
 
 ### Providing details about the rate limiting
 
