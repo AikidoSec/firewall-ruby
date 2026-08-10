@@ -26,6 +26,8 @@ module Aikido::Zen
           return false unless controller.respond_to?(:request)
 
           context = controller.request.env[Aikido::Zen::ENV_KEY]
+          return false if context.nil?
+
           request = context.request
 
           return false if @settings.bypassed_ips.include?(request.client_ip)

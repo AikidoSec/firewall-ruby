@@ -50,7 +50,7 @@ module Aikido::Zen
         # This way, we overwrite the Request object as early as we can in the
         # request handling, so that by the time we start evaluating inputs, we
         # have assigned the request correctly.
-        before_action { Aikido::Zen.current_context.update_request(request) }
+        before_action { Aikido::Zen.current_context&.update_request(request) }
       end
     end
 
