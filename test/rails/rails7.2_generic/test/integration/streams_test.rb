@@ -10,6 +10,17 @@ ActionController::Live.class_eval do
 end
 
 class StreamsTest < ActionDispatch::IntegrationTest
+  setup do
+    Rails.application.load_seed
+  end
+
+  test "streams successfully" do
+    get "/streams", params: {token: "abc123"}
+
+    assert_response :success
+    assert_equal "data: ok\n\n", response.body
+  end
+
   # Regression test for https://github.com/AikidoSec/firewall-ruby/issues/357.
   test "detects SQL injection in param from within the Live thread" do
     get "/streams", params: {token: "' OR 1=1--"}
