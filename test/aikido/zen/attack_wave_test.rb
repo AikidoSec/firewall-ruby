@@ -222,5 +222,16 @@ class Aikido::Zen::AttackWaveTest < ActiveSupport::TestCase
 
       assert_equal expected, samples.as_json
     end
+
+    test "#record shares state with #attack_wave? so a delegated recording is reflected locally" do
+      detector = build_detector
+      sample = Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
+
+      refute detector.record("1.2.3.4", sample)
+      refute detector.record("1.2.3.4", sample)
+      assert detector.record("1.2.3.4", sample)
+
+      refute_attack_wave_for("/.config", detector: detector)
+    end
   end
 end

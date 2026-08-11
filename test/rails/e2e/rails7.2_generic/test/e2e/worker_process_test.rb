@@ -122,10 +122,38 @@ class WorkerProcessTest < ActiveSupport::TestCase
     assert_equal "429", responses[2].code
   end
 
+  test "worker process reports one attack wave for hits shared across worker processes" do
+    client_ip = "203.0.113.#{rand(2..254)}"
+
+    baseline = received_events(type: "detected_attack_wave").length
+
+    15.times { |i| trigger_attack_wave_hit(client_ip, i) }
+
+    fresh = wait_for_event(type: "detected_attack_wave", after_index: baseline, timeout: 5)
+    assert_equal 1, fresh.length, "Expected exactly 1 detected_attack_wave event, got #{fresh.length}"
+
+    samples = JSON.parse(fresh.first.dig("attack", "metadata", "samples"))
+    expected_samples = 15.times.map { |i| {"method" => "GET", "url" => "/test/worker_process?i=#{i}&q=SELECT+*+FROM+users"} }
+    assert_equal expected_samples, samples
+
+    5.times { |i| trigger_attack_wave_hit(client_ip, 15 + i) }
+    sleep 1.5
+
+    assert_equal 1, received_events(type: "detected_attack_wave")[baseline..].length
+  end
+
   private
 
   def trigger_attack
     rails_get("/test/path_traversal?path=../../../../etc/passwd")
+  end
+
+  def trigger_attack_wave_hit(client_ip, index)
+    uri = URI("#{RailsServerHelpers::RAILS_SERVER_URI}/test/worker_process?i=#{index}&q=SELECT+*+FROM+users")
+    request = Net::HTTP::Get.new(uri)
+    request["X-Forwarded-For"] = client_ip
+
+    Net::HTTP.start(uri.host, uri.port) { |http| http.request(request) }
   end
 
   # Polls until a qualifying response has been seen from at least +count+

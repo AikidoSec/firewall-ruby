@@ -30,14 +30,22 @@ module Aikido::Zen
 
         return false unless AttackWave::Helpers.web_scanner?(context, status_code)
 
+        sample = context.request.then do |request|
+          Sample.new(verb: request.request_method, path: request.fullpath)
+        end
+
+        record(client_ip, sample)
+      end
+
+      # @param client_ip [String]
+      # @param sample [Aikido::Zen::AttackWave::Sample]
+      # @return [Boolean]
+      def record(client_ip, sample)
+        return false if @event_times[client_ip]
+
         request_count = @request_counts[client_ip] += 1
 
-        context.request.then do |request|
-          @samples[client_ip] <<= Sample.new(
-            verb: request.request_method,
-            path: request.fullpath
-          )
-        end
+        @samples[client_ip] <<= sample
 
         return false if request_count < @config.attack_wave_threshold
 
@@ -117,6 +125,10 @@ module Aikido::Zen
     end
 
     class Sample
+      def self.from_json(data)
+        new(verb: data["method"], path: data["url"])
+      end
+
       # @return [String]
       attr_reader :verb
 

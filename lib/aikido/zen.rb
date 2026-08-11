@@ -249,6 +249,35 @@ module Aikido
       @attack_wave_detector ||= AttackWave::Detector.new
     end
 
+    # @param context [Aikido::Zen::Context]
+    # @param status_code [Integer, nil]
+    # @return [Boolean]
+    def self.attack_wave?(context, status_code = nil)
+      worker_process_client = @worker_process_client
+      return attack_wave_detector.attack_wave?(context, status_code) unless worker_process_client
+
+      client_ip = context.request.client_ip
+      return false unless client_ip
+
+      return false unless AttackWave::Helpers.web_scanner?(context, status_code)
+
+      sample = context.request.then { |r| AttackWave::Sample.new(verb: r.request_method, path: r.fullpath) }
+
+      begin
+        attack, samples = worker_process_client.record_attack_wave(client_ip, sample)
+        attack_wave_detector.samples[client_ip] = samples if attack
+        attack
+      rescue
+        attack_wave_detector.record(client_ip, sample)
+      end
+    end
+
+    # @param client_ip [String]
+    # @return [Array<Aikido::Zen::AttackWave::Sample>]
+    def self.attack_wave_samples(client_ip)
+      attack_wave_detector.samples[client_ip].to_a
+    end
+
     # @return [Aikido::Zen::IDOR::Protector]
     def self.idor_protector
       @idor_protector ||= IDOR::Protector.new

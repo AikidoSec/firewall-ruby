@@ -326,4 +326,15 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
 
     assert_nil received_actor
   end
+
+  test "#record_attack_wave records the hit against the shared detector, and returns the samples once it crosses the threshold" do
+    Aikido::Zen.config.attack_wave_threshold = 2
+
+    refute @server.record_attack_wave("1.2.3.4", "GET", "/.config")["attack"]
+
+    result = @server.record_attack_wave("1.2.3.4", "GET", "/.config")
+
+    assert result["attack"]
+    assert_equal [{"method" => "GET", "url" => "/.config"}], result["samples"]
+  end
 end
