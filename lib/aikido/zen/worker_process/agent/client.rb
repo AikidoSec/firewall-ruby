@@ -70,8 +70,9 @@ module Aikido::Zen::WorkerProcess
 
       # @return [Array(Boolean, Array<Aikido::Zen::AttackWave::Sample>)]
       def record_attack_wave(client_ip, sample)
+        # An attacker can trigger this at will, so we'd rather serve the app.
         result = @rpc_client.invoke(
-          "record_attack_wave", Aikido::Zen::IPC::READ_TIMEOUT,
+          "record_attack_wave", Aikido::Zen::IPC::READ_ATTACK_WAVE_TIMEOUT,
           client_ip, sample.verb, sample.path
         )
 

@@ -25,6 +25,7 @@ module Aikido
       CONNECT_TIMEOUT = 2.0
       HANDSHAKE_TIMEOUT = 3.0
       READ_TIMEOUT = 5.0
+      READ_ATTACK_WAVE_TIMEOUT = 1.0
       WRITE_TIMEOUT = 5.0
 
       RECONNECT_DELAY = 1.0
