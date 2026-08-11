@@ -45,9 +45,12 @@ module RailsServerHelpers
   RAILS_SERVER_URI = ENV.fetch("RAILS_SERVER_URI", "http://127.0.0.1:3000")
 
   # @param path [String] path and query string to request
+  # @param headers [Hash<String, String>] extra request headers
   # @return [Net::HTTPResponse]
-  def rails_get(path)
-    Net::HTTP.get_response(URI("#{RAILS_SERVER_URI}#{path}"))
+  def rails_get(path, headers: {})
+    uri = URI("#{RAILS_SERVER_URI}#{path}")
+    request = Net::HTTP::Get.new(uri, headers)
+    Net::HTTP.start(uri.host, uri.port) { |http| http.request(request) }
   end
 end
 

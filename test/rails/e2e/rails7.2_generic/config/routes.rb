@@ -17,4 +17,7 @@ Rails.application.routes.draw do
   get "test/outbound_connection" => "outbound_connection#show"
   get "test/path_traversal" => "path_traversal#show"
   get "test/httpx" => "httpx#show"
+
+  # Enable custom 404 page for test/e2e/attack_wave_test.rb.
+  get "/404" => "errors#not_found"
 end

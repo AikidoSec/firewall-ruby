@@ -16,7 +16,26 @@ module Aikido::Zen
       def self.suspicious_request?(context, status_code)
         request = context.request
 
-        suspicious_method?(request.request_method) || suspicious_path?(request.path_info, status_code)
+        suspicious_method?(request.request_method) || suspicious_path?(original_path(request), status_code)
+      end
+
+      # Rails rewrites PATH_INFO to /status before invoking an exceptions_app.
+      # Returns the path that Rails rewrote.
+      # @param request [Aikido::Zen::Request]
+      # @return [String]
+      def self.original_path(request)
+        request.env["action_dispatch.original_path"] || request.path_info
+      end
+
+      # Rails rewrites PATH_INFO to /status before invoking an exceptions_app.
+      # Returns the path that Rails rewrote, including the same query string.
+      # @param request [Aikido::Zen::Request]
+      # @return [String]
+      def self.original_fullpath(request)
+        path = original_path(request)
+        query = request.query_string
+
+        query.empty? ? path : "#{path}?#{query}"
       end
 
       def self.suspicious_method?(method)

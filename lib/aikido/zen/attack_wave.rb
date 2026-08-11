@@ -35,7 +35,7 @@ module Aikido::Zen
         context.request.then do |request|
           @samples[client_ip] <<= Sample.new(
             verb: request.request_method,
-            path: request.fullpath
+            path: AttackWave::Helpers.original_fullpath(request)
           )
         end
 

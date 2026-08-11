@@ -43,5 +43,8 @@ module SampleApp
 
     # Don't generate system test files.
     config.generators.system_tests = nil
+
+    # Enable custom 404 page for test/e2e/attack_wave_test.rb.
+    config.exceptions_app = routes
   end
 end
