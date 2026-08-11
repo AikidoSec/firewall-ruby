@@ -6,4 +6,5 @@ if Rails.application.config.respond_to?(:zen)
   zen.worker_process_polling_jitter = 0
   zen.worker_process_heartbeat_interval = 1
   zen.realtime_settings_updates_enabled = true
+  zen.attack_wave_threshold = 1
 end

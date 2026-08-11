@@ -20,8 +20,10 @@ Rails.application.configure do
   # Configure public file server for tests with Cache-Control for performance.
   config.public_file_server.headers = {"Cache-Control" => "public, max-age=#{1.hour.to_i}"}
 
-  # Show full error reports and disable caching.
-  config.consider_all_requests_local = true
+  # Enable custom 404 page for test/e2e/attack_wave_test.rb.
+  config.consider_all_requests_local = false
+
+  # Disable caching.
   config.action_controller.perform_caching = false
   config.cache_store = :null_store
 
