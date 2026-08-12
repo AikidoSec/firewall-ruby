@@ -21,27 +21,41 @@ module Aikido::Zen
         end
       end
 
-      def attack_wave?(context, status_code = nil)
-        client_ip = context.request.client_ip
+      # Whether the client IP is within the cooldown period after triggering
+      # an attack wave.
+      #
+      # @param client_ip [String]
+      # @return [Boolean]
+      def flagged?(client_ip)
+        !!@event_times[client_ip]
+      end
 
-        return false unless client_ip
+      # Flags the client IP as having triggered an attack wave for the
+      # cooldown period.
+      #
+      # @param client_ip [String]
+      # @return [void]
+      def flag!(client_ip)
+        @event_times[client_ip] = Time.now.utc
+      end
 
-        return false if @event_times[client_ip]
-
-        return false unless AttackWave::Helpers.web_scanner?(context, status_code)
+      # Records a suspicious sample and returns whether the threshold for
+      # triggering an attack wave is crossed. If the threshold is crossed,
+      # the client IP is flagged as having just triggered an attack wave.
+      #
+      # @param client_ip [String]
+      # @param sample [Aikido::Zen::AttackWave::Sample]
+      # @return [Boolean]
+      def record(client_ip, sample)
+        return false if flagged?(client_ip)
 
         request_count = @request_counts[client_ip] += 1
 
-        context.request.then do |request|
-          @samples[client_ip] <<= Sample.new(
-            verb: request.request_method,
-            path: AttackWave::Helpers.original_fullpath(request)
-          )
-        end
+        @samples[client_ip] <<= sample
 
         return false if request_count < @config.attack_wave_threshold
 
-        @event_times[client_ip] = Time.now.utc
+        flag!(client_ip)
 
         true
       end
@@ -117,6 +131,10 @@ module Aikido::Zen
     end
 
     class Sample
+      def self.from_json(data)
+        new(verb: data["method"], path: data["url"])
+      end
+
       # @return [String]
       attr_reader :verb
 

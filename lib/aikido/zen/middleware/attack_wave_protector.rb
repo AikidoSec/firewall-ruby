@@ -28,7 +28,7 @@ module Aikido
 
           return false if @settings.bypassed_ips.include?(request.client_ip)
 
-          @zen.attack_wave_detector.attack_wave?(context, status_code)
+          @zen.attack_wave?(context, status_code)
         end
 
         # @api private
@@ -43,7 +43,7 @@ module Aikido
               source: context.request.framework
             )
 
-            samples = @zen.attack_wave_detector.samples[client_ip].to_a
+            samples = @zen.attack_wave_samples(client_ip)
 
             attack = Aikido::Zen::AttackWave::Attack.new(
               samples: samples,

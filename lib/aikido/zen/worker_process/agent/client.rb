@@ -8,6 +8,11 @@ module Aikido::Zen::WorkerProcess
       # The keepalive interval must be less than the RPC server read timeout.
       KEEPALIVE_INTERVAL = 4
 
+      # This read timeout should be kept short because attackers can trigger
+      # attack wave detection checks at will, to limit how much latency an
+      # attacker can introduce per request.
+      ATTACK_WAVE_TIMEOUT = 1.0
+
       def initialize(
         host,
         port,
@@ -65,6 +70,38 @@ module Aikido::Zen::WorkerProcess
         Aikido::Zen::RateLimiter::Result.from_json(result) if result
       rescue => err
         @config.logger.error("Forked worker process #{Process.pid}: failed to get rate limits from parent: #{err.message}")
+        raise
+      end
+
+      # @param client_ip [String]
+      # @return [Boolean]
+      def attack_wave_flagged?(client_ip)
+        @rpc_client.invoke("attack_wave_flagged?", ATTACK_WAVE_TIMEOUT, client_ip)
+      rescue => err
+        @config.logger.error("Forked worker process #{Process.pid}: failed to check attack wave status with parent: #{err.message}")
+        raise
+      end
+
+      # @param client_ip [String]
+      # @param sample [Aikido::Zen::AttackWave::Sample]
+      # @return [Boolean]
+      def record_attack_wave(client_ip, sample)
+        @rpc_client.invoke(
+          "record_attack_wave", ATTACK_WAVE_TIMEOUT,
+          client_ip, sample.verb, sample.path
+        )
+      rescue => err
+        @config.logger.error("Forked worker process #{Process.pid}: failed to record attack wave sample with parent: #{err.message}")
+        raise
+      end
+
+      # @param client_ip [String]
+      # @return [Array<Aikido::Zen::AttackWave::Sample>]
+      def attack_wave_samples(client_ip)
+        result = @rpc_client.invoke("attack_wave_samples", ATTACK_WAVE_TIMEOUT, client_ip)
+        result.map { |data| Aikido::Zen::AttackWave::Sample.from_json(data) }
+      rescue => err
+        @config.logger.error("Forked worker process #{Process.pid}: failed to get attack wave samples from parent: #{err.message}")
         raise
       end
 

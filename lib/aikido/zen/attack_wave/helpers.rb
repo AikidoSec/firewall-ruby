@@ -13,6 +13,16 @@ module Aikido::Zen
         false
       end
 
+      # Builds the sample for a request that has been classified as suspicious.
+      #
+      # @param context [Aikido::Zen::Context]
+      # @return [Aikido::Zen::AttackWave::Sample]
+      def self.sample_for(context)
+        request = context.request
+
+        Sample.new(verb: request.request_method, path: original_fullpath(request))
+      end
+
       def self.suspicious_request?(context, status_code)
         request = context.request
 

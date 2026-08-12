@@ -3,6 +3,10 @@
 require "test_helper"
 
 class Aikido::ZenTest < ActiveSupport::TestCase
+  def context_for(path, env = {})
+    Aikido::Zen::Context.from_rack_env(Rack::MockRequest.env_for(path, env))
+  end
+
   test "it has a version number" do
     refute_nil ::Aikido::Zen::VERSION
   end
@@ -175,5 +179,145 @@ class Aikido::ZenTest < ActiveSupport::TestCase
 
     assert_equal :local_result, result
     assert_mock rate_limiter_mock
+  end
+
+  test ".attack_wave? delegates to the local detector when there is no detached agent" do
+    context = context_for("/.config", "REMOTE_ADDR" => "1.2.3.4")
+
+    mock = Minitest::Mock.new
+    mock.expect(:flagged?, false, ["1.2.3.4"])
+    mock.expect(:record, true, ["1.2.3.4", Object])
+
+    result = Aikido::Zen.stub(:attack_wave_detector, mock) do
+      Aikido::Zen.attack_wave?(context)
+    end
+
+    assert result
+    assert_mock mock
+  end
+
+  test ".attack_wave? returns false without submitting when the client is already flagged" do
+    context = context_for("/.config", "REMOTE_ADDR" => "1.2.3.4")
+
+    mock = Minitest::Mock.new
+    mock.expect(:attack_wave_flagged?, true, ["1.2.3.4"])
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, mock)
+
+    refute Aikido::Zen.attack_wave?(context)
+    assert_mock mock
+  ensure
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
+  end
+
+  test ".attack_wave? never calls the detached agent's record when the request isn't suspicious" do
+    context = context_for("/safe", "REMOTE_ADDR" => "1.2.3.4")
+
+    mock = Minitest::Mock.new
+    mock.expect(:attack_wave_flagged?, false, ["1.2.3.4"])
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, mock)
+
+    refute Aikido::Zen.attack_wave?(context)
+    assert_mock mock
+  ensure
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
+  end
+
+  test ".attack_wave? classifies locally and submits the sample when the client isn't flagged" do
+    context = context_for("/.config", "REMOTE_ADDR" => "1.2.3.4")
+
+    mock = Minitest::Mock.new
+    mock.expect(:attack_wave_flagged?, false, ["1.2.3.4"])
+    mock.expect(:record_attack_wave, true, ["1.2.3.4", Object])
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, mock)
+
+    assert Aikido::Zen.attack_wave?(context)
+    assert_mock mock
+  ensure
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
+  end
+
+  test ".attack_wave? falls back to the local detector's flagged check when that RPC call raises" do
+    context = context_for("/.config", "REMOTE_ADDR" => "1.2.3.4")
+
+    failing_client = Minitest::Mock.new
+    failing_client.expect(:attack_wave_flagged?, nil) { |*| raise "RPC error" }
+    failing_client.expect(:record_attack_wave, true, ["1.2.3.4", Object])
+
+    detector_mock = Minitest::Mock.new
+    detector_mock.expect(:flagged?, false, ["1.2.3.4"])
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, failing_client)
+
+    result = Aikido::Zen.stub(:attack_wave_detector, detector_mock) do
+      Aikido::Zen.attack_wave?(context)
+    end
+
+    assert result
+    assert_mock failing_client
+    assert_mock detector_mock
+  ensure
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
+  end
+
+  test ".attack_wave? falls back to the local detector's record when that RPC call raises" do
+    context = context_for("/.config", "REMOTE_ADDR" => "1.2.3.4")
+
+    failing_client = Minitest::Mock.new
+    failing_client.expect(:attack_wave_flagged?, false, ["1.2.3.4"])
+    failing_client.expect(:record_attack_wave, nil) { |*| raise "RPC error" }
+
+    detector_mock = Minitest::Mock.new
+    detector_mock.expect(:record, true, ["1.2.3.4", Object])
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, failing_client)
+
+    result = Aikido::Zen.stub(:attack_wave_detector, detector_mock) do
+      Aikido::Zen.attack_wave?(context)
+    end
+
+    assert result
+    assert_mock failing_client
+    assert_mock detector_mock
+  ensure
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
+  end
+
+  test ".attack_wave_samples returns the local detector's collected samples when there is no detached agent" do
+    sample = Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
+    Aikido::Zen.attack_wave_detector.samples["1.2.3.4"] <<= sample
+
+    assert_equal [sample], Aikido::Zen.attack_wave_samples("1.2.3.4")
+  end
+
+  test ".attack_wave_samples delegates to the detached agent when one is set" do
+    sample = Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
+
+    mock = Minitest::Mock.new
+    mock.expect(:attack_wave_samples, [sample], ["1.2.3.4"])
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, mock)
+
+    assert_equal [sample], Aikido::Zen.attack_wave_samples("1.2.3.4")
+    assert_mock mock
+  ensure
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
+  end
+
+  test ".attack_wave_samples falls back to the local detector when the detached agent raises" do
+    sample = Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
+    Aikido::Zen.attack_wave_detector.samples["1.2.3.4"] <<= sample
+
+    failing_client = Minitest::Mock.new
+    failing_client.expect(:attack_wave_samples, nil) { |*| raise "RPC error" }
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, failing_client)
+
+    assert_equal [sample], Aikido::Zen.attack_wave_samples("1.2.3.4")
+    assert_mock failing_client
+  ensure
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
   end
 end
