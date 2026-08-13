@@ -8,7 +8,7 @@ module Aikido::Zen
   # Keeps track of the visited routes.
   class Collector::Routes
     # @api private
-    # Visible for testing.
+    # @note Visible for testing.
     attr_reader :visits
 
     def initialize(config = Aikido::Zen.config)
@@ -35,7 +35,7 @@ module Aikido::Zen
     end
 
     # @api private
-    # Visible for testing.
+    # @note Visible for testing.
     def [](route)
       @visits[route]
     end

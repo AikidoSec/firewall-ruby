@@ -21,43 +21,46 @@ module Aikido
         end
 
         # @api private
-        # Visible for testing.
-        def attack_wave?(context, status_code = nil)
+        # @note Visible for testing.
+        #
+        # @param context [Aikido::Zen::Context]
+        # @param status_code [Integer, nil]
+        # @return [Array<Aikido::Zen::AttackWave::Sample>, nil]
+        def detect_attack_wave(context, status_code = nil)
           request = context.request
-          return false if request.nil?
+          return nil if request.nil?
 
-          return false if @settings.bypassed_ips.include?(request.client_ip)
+          return nil if @settings.bypassed_ips.include?(request.client_ip)
 
-          @zen.attack_wave_detector.attack_wave?(context, status_code)
+          @zen.detect_attack_wave(context, status_code)
         end
 
         # @api private
-        # Visible for testing.
+        # @note Visible for testing.
         def protect(context, status_code = nil)
-          if attack_wave?(context, status_code)
-            client_ip = context.request.client_ip
+          samples = detect_attack_wave(context, status_code)
+          return unless samples
 
-            request = Aikido::Zen::AttackWave::Request.new(
-              ip_address: client_ip,
-              user_agent: context.request.user_agent,
-              source: context.request.framework
-            )
+          client_ip = context.request.client_ip
 
-            samples = @zen.attack_wave_detector.samples[client_ip].to_a
+          request = Aikido::Zen::AttackWave::Request.new(
+            ip_address: client_ip,
+            user_agent: context.request.user_agent,
+            source: context.request.framework
+          )
 
-            attack = Aikido::Zen::AttackWave::Attack.new(
-              samples: samples,
-              user: context.request.actor
-            )
+          attack = Aikido::Zen::AttackWave::Attack.new(
+            samples: samples,
+            user: context.request.actor
+          )
 
-            attack_wave = Aikido::Zen::Events::AttackWave.new(
-              request: request,
-              attack: attack
-            )
+          attack_wave = Aikido::Zen::Events::AttackWave.new(
+            request: request,
+            attack: attack
+          )
 
-            @zen.track_attack_wave(attack_wave)
-            @zen.agent.report(attack_wave)
-          end
+          @zen.track_attack_wave(attack_wave)
+          @zen.agent.report(attack_wave)
         end
       end
     end

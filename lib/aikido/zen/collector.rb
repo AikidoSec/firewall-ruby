@@ -210,7 +210,6 @@ module Aikido::Zen
     end
 
     # @api private
-    #
     # @note Visible for testing.
     def stats
       handle
@@ -218,7 +217,6 @@ module Aikido::Zen
     end
 
     # @api private
-    #
     # @note Visible for testing.
     def users
       handle
@@ -226,7 +224,6 @@ module Aikido::Zen
     end
 
     # @api private
-    #
     # @note Visible for testing.
     def hosts
       handle
@@ -234,7 +231,6 @@ module Aikido::Zen
     end
 
     # @api private
-    #
     # @note Visible for testing.
     def routes
       handle
@@ -242,7 +238,6 @@ module Aikido::Zen
     end
 
     # @api private
-    #
     # @note Visible for testing.
     def middleware_installed?
       @middleware_installed.true?

@@ -3,6 +3,10 @@
 require "test_helper"
 
 class Aikido::ZenTest < ActiveSupport::TestCase
+  def context_for(path, env = {})
+    Aikido::Zen::Context.from_rack_env(Rack::MockRequest.env_for(path, env))
+  end
+
   test "it has a version number" do
     refute_nil ::Aikido::Zen::VERSION
   end
@@ -175,5 +179,111 @@ class Aikido::ZenTest < ActiveSupport::TestCase
 
     assert_equal :local_result, result
     assert_mock rate_limiter_mock
+  end
+
+  test ".detect_attack_wave delegates to the local detector when there is no detached agent" do
+    context = context_for("/.config", "REMOTE_ADDR" => "1.2.3.4")
+
+    mock = Minitest::Mock.new
+    mock.expect(:record, true, ["1.2.3.4", Object])
+
+    result = Aikido::Zen.stub(:attack_wave_detector, mock) do
+      Aikido::Zen.detect_attack_wave(context)
+    end
+
+    assert result
+    assert_mock mock
+  end
+
+  test ".detect_attack_wave reflects record_attack_wave's outcome, even when the client is already flagged" do
+    context = context_for("/.config", "REMOTE_ADDR" => "1.2.3.4")
+
+    mock = Minitest::Mock.new
+    mock.expect(:record_attack_wave, false, ["1.2.3.4", Object])
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, mock)
+
+    refute Aikido::Zen.detect_attack_wave(context)
+    assert_mock mock
+  ensure
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
+  end
+
+  test ".detect_attack_wave never calls the detached agent when the request isn't suspicious" do
+    context = context_for("/safe", "REMOTE_ADDR" => "1.2.3.4")
+
+    mock = Minitest::Mock.new
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, mock)
+
+    refute Aikido::Zen.detect_attack_wave(context)
+    assert_mock mock
+  ensure
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
+  end
+
+  test ".detect_attack_wave classifies locally and submits the sample when the request is suspicious" do
+    context = context_for("/.config", "REMOTE_ADDR" => "1.2.3.4")
+
+    mock = Minitest::Mock.new
+    mock.expect(:record_attack_wave, true, ["1.2.3.4", Object])
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, mock)
+
+    assert Aikido::Zen.detect_attack_wave(context)
+    assert_mock mock
+  ensure
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
+  end
+
+  test ".detect_attack_wave falls back to the local detector when the RPC call raises" do
+    context = context_for("/.config", "REMOTE_ADDR" => "1.2.3.4")
+
+    failing_client = Minitest::Mock.new
+    failing_client.expect(:record_attack_wave, nil) { |*| raise "RPC error" }
+
+    detector_mock = Minitest::Mock.new
+    detector_mock.expect(:record, true, ["1.2.3.4", Object])
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, failing_client)
+
+    result = Aikido::Zen.stub(:attack_wave_detector, detector_mock) do
+      Aikido::Zen.detect_attack_wave(context)
+    end
+
+    assert result
+    assert_mock failing_client
+    assert_mock detector_mock
+  ensure
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
+  end
+
+  test ".detect_attack_wave returns the samples that crossed the threshold, not just a flag" do
+    context = context_for("/.config", "REMOTE_ADDR" => "1.2.3.4")
+    samples = [Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")]
+
+    mock = Minitest::Mock.new
+    mock.expect(:record_attack_wave, samples, ["1.2.3.4", Object])
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, mock)
+
+    assert_equal samples, Aikido::Zen.detect_attack_wave(context)
+    assert_mock mock
+  ensure
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
+  end
+
+  test ".detect_attack_wave returns nil when the threshold was not crossed" do
+    context = context_for("/.config", "REMOTE_ADDR" => "1.2.3.4")
+
+    mock = Minitest::Mock.new
+    mock.expect(:record_attack_wave, nil, ["1.2.3.4", Object])
+
+    Aikido::Zen.instance_variable_set(:@worker_process_client, mock)
+
+    assert_nil Aikido::Zen.detect_attack_wave(context)
+    assert_mock mock
+  ensure
+    Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
   end
 end

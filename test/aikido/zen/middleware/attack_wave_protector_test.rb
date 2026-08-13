@@ -60,7 +60,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     context = build_context_for("/.config", DEFAULT_ENV)
 
     zen.expect :current_context, context
-    zen.expect :attack_wave_detector, Aikido::Zen.attack_wave_detector
+    zen.expect :detect_attack_wave, nil, [context, 200]
     app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
@@ -68,18 +68,17 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     assert_mock app
 
     zen.expect :current_context, context
-    zen.expect :attack_wave_detector, Aikido::Zen.attack_wave_detector
+    zen.expect :detect_attack_wave, nil, [context, 200]
     app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
     assert_mock zen
     assert_mock app
-
-    zen.expect :current_context, context
-    2.times { zen.expect :attack_wave_detector, Aikido::Zen.attack_wave_detector }
 
     attack_wave = build_attack_wave(context)
 
+    zen.expect :current_context, context
+    zen.expect :detect_attack_wave, attack_wave.attack.samples, [context, 200]
     zen.expect(:track_attack_wave, nil) do |arg|
       arg.is_a?(Aikido::Zen::Events::AttackWave) &&
         arg.request == attack_wave.request &&

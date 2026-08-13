@@ -5,7 +5,7 @@ module Aikido::Zen
     extend Forwardable
 
     # @api private
-    # Visible for testing.
+    # @note Visible for testing.
     def_delegators :@data,
       :size, :empty?
 
@@ -54,13 +54,13 @@ module Aikido::Zen
     end
 
     # @api private
-    # Visible for testing.
+    # @note Visible for testing.
     def to_a
       @data.map { |key, entry| [key, entry.value] }
     end
 
     # @api private
-    # Visible for testing.
+    # @note Visible for testing.
     def to_h
       to_a.to_h
     end

@@ -326,4 +326,51 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
 
     assert_nil received_actor
   end
+
+  test "record_attack_wave handler returns false when the threshold has not been reached" do
+    Aikido::Zen.config.attack_wave_threshold = 3
+
+    @server.start
+    client = Aikido::Zen::RPC::Client.start(Aikido::Zen.secret, @server.host, @server.port)
+
+    refute client.invoke("record_attack_wave", 2.0, "1.2.3.4", "GET", "/.config")
+  ensure
+    client.stop
+  end
+
+  test "record_attack_wave handler returns true once the threshold is reached" do
+    Aikido::Zen.config.attack_wave_threshold = 1
+
+    @server.start
+    client = Aikido::Zen::RPC::Client.start(Aikido::Zen.secret, @server.host, @server.port)
+
+    assert client.invoke("record_attack_wave", 2.0, "1.2.3.4", "GET", "/.config")
+  ensure
+    client.stop
+  end
+
+  test "#record_attack_wave records the sample against the shared detector" do
+    Aikido::Zen.config.attack_wave_threshold = 1
+
+    assert @server.record_attack_wave("1.2.3.4", "GET", "/.config")
+    assert Aikido::Zen.attack_wave_detector.flagged?("1.2.3.4")
+  end
+
+  test "record_attack_wave handler returns the accumulated samples once the threshold is reached" do
+    Aikido::Zen.config.attack_wave_threshold = 2
+
+    @server.start
+    client = Aikido::Zen::RPC::Client.start(Aikido::Zen.secret, @server.host, @server.port)
+
+    refute client.invoke("record_attack_wave", 2.0, "1.2.3.4", "GET", "/.config")
+
+    result = client.invoke("record_attack_wave", 2.0, "1.2.3.4", "GET", "/.git/config")
+
+    assert_equal [
+      {"method" => "GET", "url" => "/.config"},
+      {"method" => "GET", "url" => "/.git/config"}
+    ], result
+  ensure
+    client.stop
+  end
 end

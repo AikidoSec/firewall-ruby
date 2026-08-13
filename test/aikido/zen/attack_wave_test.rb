@@ -4,6 +4,10 @@ require "test_helper"
 
 class Aikido::Zen::AttackWaveTest < ActiveSupport::TestCase
   class HelpersTest < ActiveSupport::TestCase
+    def context_for(path, env = {})
+      Aikido::Zen::Context.from_rack_env(Rack::MockRequest.env_for(path, env))
+    end
+
     test "suspicious_path? returns true for foreign extension with 404 status" do
       assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/admin.php", 404)
       assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/app.jsp", 404)
@@ -32,6 +36,26 @@ class Aikido::Zen::AttackWaveTest < ActiveSupport::TestCase
     test "suspicious_path? still returns true for suspicious file names regardless of status" do
       assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/.gitconfig", 200)
       assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/wp-config.php", 200)
+    end
+
+    test "sample_for builds a sample from the request's verb and path" do
+      context = context_for("/.config?q=1", "REMOTE_ADDR" => "1.2.3.4")
+
+      sample = Aikido::Zen::AttackWave::Helpers.sample_for(context)
+
+      assert_equal "GET", sample.verb
+      assert_equal "/.config?q=1", sample.path
+    end
+
+    test "sample_for uses the original path when Rails has rewritten PATH_INFO for an exceptions_app" do
+      context = context_for("/.config?q=1",
+        "REMOTE_ADDR" => "1.2.3.4",
+        "action_dispatch.original_path" => "/.config",
+        "PATH_INFO" => "/404")
+
+      sample = Aikido::Zen::AttackWave::Helpers.sample_for(context)
+
+      assert_equal "/.config?q=1", sample.path
     end
   end
 
@@ -68,18 +92,27 @@ class Aikido::Zen::AttackWaveTest < ActiveSupport::TestCase
       Aikido::Zen::AttackWave::Detector.new(clock: @clock)
     end
 
+    # Aikido::Zen orchestrates attack wave detection so that it works in the
+    # main process and worker processes. The detector under test is stubbed
+    # as the local attack_wave_detector. No worker process client is present.
+    def attack_wave?(context, detector = build_detector)
+      Aikido::Zen.stub(:attack_wave_detector, detector) do
+        Aikido::Zen.detect_attack_wave(context)
+      end
+    end
+
     def assert_attack_wave_in(context, detector: nil)
       detector ||= build_detector
-      refute detector.attack_wave?(context)
-      refute detector.attack_wave?(context)
-      assert detector.attack_wave?(context)
+      refute attack_wave?(context, detector)
+      refute attack_wave?(context, detector)
+      assert attack_wave?(context, detector)
     end
 
     def refute_attack_wave_in(context, detector: nil)
       detector ||= build_detector
-      refute detector.attack_wave?(context)
-      refute detector.attack_wave?(context)
-      refute detector.attack_wave?(context)
+      refute attack_wave?(context, detector)
+      refute attack_wave?(context, detector)
+      refute attack_wave?(context, detector)
     end
 
     def assert_attack_wave_for(path, env = {}, detector: nil)
@@ -202,13 +235,13 @@ class Aikido::Zen::AttackWaveTest < ActiveSupport::TestCase
       detector ||= build_detector
 
       context = build_context_for("/.config", DEFAULT_ENV)
-      refute detector.attack_wave?(context)
+      refute attack_wave?(context, detector)
 
       context = build_context_for("/.git/config", DEFAULT_ENV)
-      refute detector.attack_wave?(context)
+      refute attack_wave?(context, detector)
 
       context = build_context_for("/.ssh/known_hosts", DEFAULT_ENV)
-      assert detector.attack_wave?(context)
+      assert attack_wave?(context, detector)
 
       samples = detector.samples[context.request.client_ip]
 
@@ -221,6 +254,43 @@ class Aikido::Zen::AttackWaveTest < ActiveSupport::TestCase
       ]
 
       assert_equal expected, samples.as_json
+    end
+
+    test "#flagged? returns false until the threshold is crossed via #record" do
+      detector = build_detector
+      sample = Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
+
+      refute detector.flagged?("1.2.3.4")
+
+      detector.record("1.2.3.4", sample)
+      refute detector.flagged?("1.2.3.4")
+
+      detector.record("1.2.3.4", sample)
+      refute detector.flagged?("1.2.3.4")
+
+      detector.record("1.2.3.4", sample)
+      assert detector.flagged?("1.2.3.4")
+    end
+
+    test "#flag! marks a client IP as flagged directly" do
+      detector = build_detector
+
+      refute detector.flagged?("1.2.3.4")
+
+      detector.flag!("1.2.3.4")
+
+      assert detector.flagged?("1.2.3.4")
+    end
+
+    test "#record shares state with .detect_attack_wave so a delegated recording is reflected locally" do
+      detector = build_detector
+      sample = Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
+
+      refute detector.record("1.2.3.4", sample)
+      refute detector.record("1.2.3.4", sample)
+      assert detector.record("1.2.3.4", sample)
+
+      refute_attack_wave_for("/.config", detector: detector)
     end
   end
 end

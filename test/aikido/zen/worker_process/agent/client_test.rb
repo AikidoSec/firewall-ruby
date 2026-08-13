@@ -271,6 +271,38 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     end
   end
 
+  test "#record_attack_wave returns nil when the threshold has not been reached" do
+    build_agent("updated_settings" => {}, "record_attack_wave" => nil) do |agent|
+      sample = Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
+
+      assert_nil agent.record_attack_wave("1.2.3.4", sample)
+    end
+  end
+
+  test "#record_attack_wave parses the samples returned by the parent once the threshold is reached" do
+    result_data = [{"method" => "GET", "url" => "/.config"}]
+
+    build_agent("updated_settings" => {}, "record_attack_wave" => result_data) do |agent|
+      sample = Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
+
+      samples = agent.record_attack_wave("1.2.3.4", sample)
+
+      assert_equal [Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")], samples
+    end
+  end
+
+  test "#record_attack_wave logs and re-raises when the RPC call raises" do
+    build_agent("updated_settings" => {}) do |agent, worker, collector, client|
+      sample = Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
+
+      client.stub(:invoke, ->(*) { raise "RPC error" }) do
+        err = assert_raises(RuntimeError) { agent.record_attack_wave("1.2.3.4", sample) }
+        assert_equal "RPC error", err.message
+        assert_logged :error, /failed to record attack wave sample with parent/i
+      end
+    end
+  end
+
   test "the scheduled keepalive task pings the parent" do
     build_agent("updated_settings" => {}) do |agent, worker, collector, client, keepalive_worker|
       assert_nothing_raised { keepalive_worker.jobs[0].task.call }
