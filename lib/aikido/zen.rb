@@ -268,6 +268,13 @@ module Aikido
     # triggering an attack wave is crossed. If the threshold is crossed,
     # the client IP is flagged as having just triggered an attack wave.
     #
+    # In multiprocess deployments, on RPC failure, the worker process
+    # records against its local detector.
+    #
+    # If RPC failures are intermittent, it is possible that an attack
+    # wave may be missed or duplicated, because state is split between
+    # the global and local detectors.
+    #
     # @param client_ip [String]
     # @param sample [Aikido::Zen::AttackWave::Sample]
     # @return [Boolean]
