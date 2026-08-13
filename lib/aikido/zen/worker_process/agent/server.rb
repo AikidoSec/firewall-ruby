@@ -27,10 +27,6 @@ module Aikido::Zen::WorkerProcess
           respond.call(result&.as_json)
         end
 
-        @rpc_server.handle("attack_wave_flagged?") do |respond, client_ip|
-          respond.call(attack_wave_flagged?(client_ip))
-        end
-
         @rpc_server.handle("record_attack_wave") do |respond, client_ip, verb, path|
           respond.call(record_attack_wave(client_ip, verb, path))
         end
@@ -104,11 +100,6 @@ module Aikido::Zen::WorkerProcess
         actor = Aikido::Zen::Actor.from_json(actor_data) if actor_data
         route = Aikido::Zen::Route.from_json(route_data)
         Aikido::Zen.rate_limiter.calculate_rate_limits(RequestKind.new(route, nil, ip, actor))
-      end
-
-      # @return [Boolean]
-      def attack_wave_flagged?(client_ip)
-        @detector.flagged?(client_ip)
       end
 
       # @return [Boolean]

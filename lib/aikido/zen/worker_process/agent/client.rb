@@ -74,15 +74,6 @@ module Aikido::Zen::WorkerProcess
       end
 
       # @param client_ip [String]
-      # @return [Boolean]
-      def attack_wave_flagged?(client_ip)
-        @rpc_client.invoke("attack_wave_flagged?", ATTACK_WAVE_TIMEOUT, client_ip)
-      rescue => err
-        @config.logger.error("Forked worker process #{Process.pid}: failed to check attack wave status with parent: #{err.message}")
-        raise
-      end
-
-      # @param client_ip [String]
       # @param sample [Aikido::Zen::AttackWave::Sample]
       # @return [Boolean]
       def record_attack_wave(client_ip, sample)

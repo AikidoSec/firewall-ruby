@@ -259,30 +259,9 @@ module Aikido
       client_ip = context.request.client_ip
       return false unless client_ip
 
-      return false if attack_wave_flagged?(client_ip)
-
       return false unless AttackWave::Helpers.web_scanner?(context, status_code)
 
       record_attack_wave(client_ip, AttackWave::Helpers.sample_for(context))
-    end
-
-    # Whether the client IP is within the cooldown period after triggering
-    # an attack wave.
-    #
-    # @param client_ip [String]
-    # @return [Boolean]
-    def self.attack_wave_flagged?(client_ip)
-      worker_process_client = @worker_process_client
-
-      if worker_process_client
-        begin
-          worker_process_client.attack_wave_flagged?(client_ip)
-        rescue
-          attack_wave_detector.flagged?(client_ip)
-        end
-      else
-        attack_wave_detector.flagged?(client_ip)
-      end
     end
 
     # Records a suspicious sample and returns whether the threshold for

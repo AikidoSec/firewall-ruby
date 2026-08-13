@@ -327,28 +327,6 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
     assert_nil received_actor
   end
 
-  test "attack_wave_flagged? handler returns false for a client that has not been recorded" do
-    @server.start
-    client = Aikido::Zen::RPC::Client.start(Aikido::Zen.secret, @server.host, @server.port)
-
-    refute client.invoke("attack_wave_flagged?", 2.0, "1.2.3.4")
-  ensure
-    client.stop
-  end
-
-  test "attack_wave_flagged? handler returns true once the client has crossed the threshold" do
-    Aikido::Zen.config.attack_wave_threshold = 1
-    sample = Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
-    Aikido::Zen.attack_wave_detector.record("1.2.3.4", sample)
-
-    @server.start
-    client = Aikido::Zen::RPC::Client.start(Aikido::Zen.secret, @server.host, @server.port)
-
-    assert client.invoke("attack_wave_flagged?", 2.0, "1.2.3.4")
-  ensure
-    client.stop
-  end
-
   test "record_attack_wave handler returns false when the threshold has not been reached" do
     Aikido::Zen.config.attack_wave_threshold = 3
 

@@ -271,22 +271,6 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     end
   end
 
-  test "#attack_wave_flagged? returns the parent's answer" do
-    build_agent("updated_settings" => {}, "attack_wave_flagged?" => true) do |agent|
-      assert agent.attack_wave_flagged?("1.2.3.4")
-    end
-  end
-
-  test "#attack_wave_flagged? logs and re-raises when the RPC call raises" do
-    build_agent("updated_settings" => {}) do |agent, worker, collector, client|
-      client.stub(:invoke, ->(*) { raise "RPC error" }) do
-        err = assert_raises(RuntimeError) { agent.attack_wave_flagged?("1.2.3.4") }
-        assert_equal "RPC error", err.message
-        assert_logged :error, /failed to check attack wave status with parent/i
-      end
-    end
-  end
-
   test "#record_attack_wave returns the parent's verdict" do
     build_agent("updated_settings" => {}, "record_attack_wave" => true) do |agent|
       sample = Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
