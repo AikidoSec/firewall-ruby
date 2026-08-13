@@ -7,7 +7,7 @@ module Aikido::Zen
 
     class Protector
       # @api private
-      # Visible for testing.
+      # @note Visible for testing.
       attr_accessor :cache
 
       def initialize(config: Aikido::Zen.config)

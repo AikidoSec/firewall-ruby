@@ -69,8 +69,7 @@ module Aikido::Zen::WorkerProcess
       end
 
       # @api private
-      #
-      # Visible for testing.
+      # @note Visible for testing.
       RequestKind = Struct.new(:route, :schema, :client_ip, :actor)
 
       def updated_settings(known_config_generation = nil, known_firewall_lists_generation = nil)

@@ -21,7 +21,7 @@ module Aikido
         end
 
         # @api private
-        # Visible for testing.
+        # @note Visible for testing.
         def attack_wave?(context, status_code = nil)
           request = context.request
           return false if request.nil?
@@ -32,7 +32,7 @@ module Aikido
         end
 
         # @api private
-        # Visible for testing.
+        # @note Visible for testing.
         def protect(context, status_code = nil)
           if attack_wave?(context, status_code)
             client_ip = context.request.client_ip
