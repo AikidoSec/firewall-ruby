@@ -12,6 +12,8 @@ require_relative "sinks/action_controller" if defined?(::ActionController)
 require_relative "sinks/kernel"
 
 require_relative "sinks/file"
+require_relative "sinks/io"
+require_relative "sinks/pathname"
 require_relative "sinks/socket"
 require_relative "sinks/resolv"
 

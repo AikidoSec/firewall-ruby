@@ -192,6 +192,10 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
       assert_equal "/some-path", File.expand_path("../some-path/this-wont-appear/..", "/")
     end
 
+    test "File.absolute_path" do
+      assert File.absolute_path("../some-path", "/base").end_with?("some-path")
+    end
+
     test "File.realpath" do
       assert File.realpath("../../sinks", __FILE__).end_with?("test/aikido/zen/sinks")
     end
@@ -325,6 +329,13 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
       end
     end
 
+    test "File.absolute_path" do
+      refute_attack do
+        result = File.absolute_path(LOOKS_LIKE_AN_ATTACK_PATH, __FILE__)
+        assert result.end_with?("looks-like-an-attack")
+      end
+    end
+
     test "File.realpath" do
       refute_attack do
         assert_raise(Errno::ENOTDIR, Errno::ENOENT) do
@@ -427,6 +438,10 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
 
       assert_path_traversal_attack "File.expand_path" do
         File.expand_path OFFENDER_PATH
+      end
+
+      assert_path_traversal_attack "File.absolute_path" do
+        File.absolute_path OFFENDER_PATH
       end
 
       assert_path_traversal_attack "File.realpath" do
