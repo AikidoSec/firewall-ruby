@@ -249,24 +249,24 @@ module Aikido
       @attack_wave_detector ||= AttackWave::Detector.new
     end
 
-    # Classifies the current request and returns whether the threshold for
-    # triggering an attack wave is crossed.
+    # Classifies the current request and, if it is classified as suspicious,
+    # records a sample against the attack wave detector.
     #
     # @param context [Aikido::Zen::Context]
     # @param status_code [Integer, nil]
-    # @return [Boolean]
-    def self.attack_wave?(context, status_code = nil)
+    # @return [Array<Aikido::Zen::AttackWave::Sample>, nil]
+    def self.detect_attack_wave(context, status_code = nil)
       client_ip = context.request.client_ip
-      return false unless client_ip
+      return nil unless client_ip
 
-      return false unless AttackWave::Helpers.web_scanner?(context, status_code)
+      return nil unless AttackWave::Helpers.web_scanner?(context, status_code)
 
       record_attack_wave(client_ip, AttackWave::Helpers.sample_for(context))
     end
 
-    # Records a suspicious sample and returns whether the threshold for
-    # triggering an attack wave is crossed. If the threshold is crossed,
-    # the client IP is flagged as having just triggered an attack wave.
+    # Records a suspicious sample and, if the threshold for triggering
+    # an attack wave has been crossed, flags the client IP as having
+    # just triggered an attack wave.
     #
     # In multiprocess deployments, on RPC failure, the worker process
     # records against its local detector.
@@ -277,7 +277,7 @@ module Aikido
     #
     # @param client_ip [String]
     # @param sample [Aikido::Zen::AttackWave::Sample]
-    # @return [Boolean]
+    # @return [Array<Aikido::Zen::AttackWave::Sample>, nil]
     def self.record_attack_wave(client_ip, sample)
       worker_process_client = @worker_process_client
 
@@ -289,25 +289,6 @@ module Aikido
         end
       else
         attack_wave_detector.record(client_ip, sample)
-      end
-    end
-
-    # Returns any samples collected for the client IP as part of the
-    # current attack wave.
-    #
-    # @param client_ip [String]
-    # @return [Array<Aikido::Zen::AttackWave::Sample>]
-    def self.attack_wave_samples(client_ip)
-      worker_process_client = @worker_process_client
-
-      if worker_process_client
-        begin
-          worker_process_client.attack_wave_samples(client_ip)
-        rescue
-          attack_wave_detector.samples[client_ip].to_a
-        end
-      else
-        attack_wave_detector.samples[client_ip].to_a
       end
     end
 

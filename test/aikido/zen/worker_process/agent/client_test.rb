@@ -271,11 +271,23 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     end
   end
 
-  test "#record_attack_wave returns the parent's verdict" do
-    build_agent("updated_settings" => {}, "record_attack_wave" => true) do |agent|
+  test "#record_attack_wave returns nil when the threshold has not been reached" do
+    build_agent("updated_settings" => {}, "record_attack_wave" => nil) do |agent|
       sample = Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
 
-      assert agent.record_attack_wave("1.2.3.4", sample)
+      assert_nil agent.record_attack_wave("1.2.3.4", sample)
+    end
+  end
+
+  test "#record_attack_wave parses the samples returned by the parent once the threshold is reached" do
+    result_data = [{"method" => "GET", "url" => "/.config"}]
+
+    build_agent("updated_settings" => {}, "record_attack_wave" => result_data) do |agent|
+      sample = Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
+
+      samples = agent.record_attack_wave("1.2.3.4", sample)
+
+      assert_equal [Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")], samples
     end
   end
 
@@ -287,26 +299,6 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
         err = assert_raises(RuntimeError) { agent.record_attack_wave("1.2.3.4", sample) }
         assert_equal "RPC error", err.message
         assert_logged :error, /failed to record attack wave sample with parent/i
-      end
-    end
-  end
-
-  test "#attack_wave_samples parses the samples returned by the parent" do
-    result_data = [{"method" => "GET", "url" => "/.config"}]
-
-    build_agent("updated_settings" => {}, "attack_wave_samples" => result_data) do |agent|
-      samples = agent.attack_wave_samples("1.2.3.4")
-
-      assert_equal [Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")], samples
-    end
-  end
-
-  test "#attack_wave_samples logs and re-raises when the RPC call raises" do
-    build_agent("updated_settings" => {}) do |agent, worker, collector, client|
-      client.stub(:invoke, ->(*) { raise "RPC error" }) do
-        err = assert_raises(RuntimeError) { agent.attack_wave_samples("1.2.3.4") }
-        assert_equal "RPC error", err.message
-        assert_logged :error, /failed to get attack wave samples from parent/i
       end
     end
   end

@@ -356,28 +356,20 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
     assert Aikido::Zen.attack_wave_detector.flagged?("1.2.3.4")
   end
 
-  test "attack_wave_samples handler returns the samples collected for a client" do
-    Aikido::Zen.attack_wave_detector.samples["1.2.3.4"] <<= Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
-    Aikido::Zen.attack_wave_detector.samples["1.2.3.4"] <<= Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.git/config")
+  test "record_attack_wave handler returns the accumulated samples once the threshold is reached" do
+    Aikido::Zen.config.attack_wave_threshold = 2
 
     @server.start
     client = Aikido::Zen::RPC::Client.start(Aikido::Zen.secret, @server.host, @server.port)
 
-    result = client.invoke("attack_wave_samples", 2.0, "1.2.3.4")
+    refute client.invoke("record_attack_wave", 2.0, "1.2.3.4", "GET", "/.config")
+
+    result = client.invoke("record_attack_wave", 2.0, "1.2.3.4", "GET", "/.git/config")
 
     assert_equal [
       {"method" => "GET", "url" => "/.config"},
       {"method" => "GET", "url" => "/.git/config"}
     ], result
-  ensure
-    client.stop
-  end
-
-  test "attack_wave_samples handler returns an empty array for a client with no samples" do
-    @server.start
-    client = Aikido::Zen::RPC::Client.start(Aikido::Zen.secret, @server.host, @server.port)
-
-    assert_equal [], client.invoke("attack_wave_samples", 2.0, "1.2.3.4")
   ensure
     client.stop
   end

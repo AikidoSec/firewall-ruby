@@ -52,29 +52,29 @@ module Aikido::Zen
         @event_times[client_ip] = Time.now.utc
       end
 
-      # Records a suspicious sample and returns whether the threshold for
-      # triggering an attack wave is crossed. If the threshold is crossed,
-      # the client IP is flagged as having just triggered an attack wave.
+      # Records a suspicious sample and, if it crosses the threshold for
+      # triggering an attack wave, flags the client IP as having just
+      # triggered an attack wave.
       #
       # This method is synchronized to prevent concurrent calls for the
       # same client IP from crossing the threshold in the same instant.
       #
       # @param client_ip [String]
       # @param sample [Aikido::Zen::AttackWave::Sample]
-      # @return [Boolean]
+      # @return [Array<Aikido::Zen::AttackWave::Sample>, nil]
       def record(client_ip, sample)
         @mutex.synchronize do
-          return false if flagged?(client_ip)
+          return nil if flagged?(client_ip)
 
           request_count = @request_counts[client_ip] += 1
 
           @samples[client_ip] <<= sample
 
-          return false if request_count < @config.attack_wave_threshold
+          return nil if request_count < @config.attack_wave_threshold
 
           flag!(client_ip)
 
-          true
+          @samples[client_ip].to_a
         end
       end
     end

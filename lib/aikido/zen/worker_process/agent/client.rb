@@ -75,24 +75,15 @@ module Aikido::Zen::WorkerProcess
 
       # @param client_ip [String]
       # @param sample [Aikido::Zen::AttackWave::Sample]
-      # @return [Boolean]
+      # @return [Array<Aikido::Zen::AttackWave::Sample>, nil]
       def record_attack_wave(client_ip, sample)
-        @rpc_client.invoke(
+        result = @rpc_client.invoke(
           "record_attack_wave", ATTACK_WAVE_TIMEOUT,
           client_ip, sample.verb, sample.path
         )
+        result&.map { |data| Aikido::Zen::AttackWave::Sample.from_json(data) }
       rescue => err
         @config.logger.error("Forked worker process #{Process.pid}: failed to record attack wave sample with parent: #{err.message}")
-        raise
-      end
-
-      # @param client_ip [String]
-      # @return [Array<Aikido::Zen::AttackWave::Sample>]
-      def attack_wave_samples(client_ip)
-        result = @rpc_client.invoke("attack_wave_samples", ATTACK_WAVE_TIMEOUT, client_ip)
-        result.map { |data| Aikido::Zen::AttackWave::Sample.from_json(data) }
-      rescue => err
-        @config.logger.error("Forked worker process #{Process.pid}: failed to get attack wave samples from parent: #{err.message}")
         raise
       end
 

@@ -97,7 +97,7 @@ class Aikido::Zen::AttackWaveTest < ActiveSupport::TestCase
     # as the local attack_wave_detector. No worker process client is present.
     def attack_wave?(context, detector = build_detector)
       Aikido::Zen.stub(:attack_wave_detector, detector) do
-        Aikido::Zen.attack_wave?(context)
+        Aikido::Zen.detect_attack_wave(context)
       end
     end
 
@@ -282,7 +282,7 @@ class Aikido::Zen::AttackWaveTest < ActiveSupport::TestCase
       assert detector.flagged?("1.2.3.4")
     end
 
-    test "#record shares state with #attack_wave? so a delegated recording is reflected locally" do
+    test "#record shares state with .detect_attack_wave so a delegated recording is reflected locally" do
       detector = build_detector
       sample = Aikido::Zen::AttackWave::Sample.new(verb: "GET", path: "/.config")
 
