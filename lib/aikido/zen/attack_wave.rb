@@ -5,12 +5,19 @@ require_relative "attack_wave/helpers"
 
 module Aikido::Zen
   module AttackWave
+    # Tracks per-client-IP attack wave state.
+    #
+    # In multiprocess deployments, the main process has a single instance
+    # that may be accessed concurrently from each forked worker process's
+    # Aikido::Zen::RPC::Server connection thread.
     class Detector
       # @return [Aikido::Zen::CappedSet]
       attr_reader :samples
 
       def initialize(config: Aikido::Zen.config, clock: nil)
         @config = config
+
+        @mutex = Mutex.new
 
         @event_times = Cache.new(@config.attack_wave_max_cache_entries, ttl: @config.attack_wave_min_time_between_events, clock: clock)
 
@@ -43,21 +50,26 @@ module Aikido::Zen
       # triggering an attack wave is crossed. If the threshold is crossed,
       # the client IP is flagged as having just triggered an attack wave.
       #
+      # This method is synchronized to prevent concurrent calls for the
+      # same client IP from crossing the threshold in the same instant.
+      #
       # @param client_ip [String]
       # @param sample [Aikido::Zen::AttackWave::Sample]
       # @return [Boolean]
       def record(client_ip, sample)
-        return false if flagged?(client_ip)
+        @mutex.synchronize do
+          return false if flagged?(client_ip)
 
-        request_count = @request_counts[client_ip] += 1
+          request_count = @request_counts[client_ip] += 1
 
-        @samples[client_ip] <<= sample
+          @samples[client_ip] <<= sample
 
-        return false if request_count < @config.attack_wave_threshold
+          return false if request_count < @config.attack_wave_threshold
 
-        flag!(client_ip)
+          flag!(client_ip)
 
-        true
+          true
+        end
       end
     end
 
