@@ -28,6 +28,9 @@ module Aikido::Zen
         end
       end
 
+      # @api private
+      # @note Visible for testing.
+      #
       # Whether the client IP is within the cooldown period after triggering
       # an attack wave.
       #
@@ -37,6 +40,9 @@ module Aikido::Zen
         !!@event_times[client_ip]
       end
 
+      # @api private
+      # @note Visible for testing.
+      #
       # Flags the client IP as having triggered an attack wave for the
       # cooldown period.
       #
