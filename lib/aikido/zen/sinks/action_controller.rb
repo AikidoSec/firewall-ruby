@@ -30,7 +30,7 @@ module Aikido::Zen
 
           request = context.request
 
-          return false if @settings.bypassed_ips.include?(request.client_ip)
+          return false if @zen.request_bypassed?
 
           if should_block_user?(request)
             status, headers, body = @config.blocked_responder.call(request, :user)

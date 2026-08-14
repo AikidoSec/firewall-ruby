@@ -5,8 +5,9 @@ module Aikido::Zen
     # Middleware that only allows allowed IPs when allowed IPs are configured for
     # any matching route in the Aikido dashboard.
     class AllowedAddressChecker
-      def initialize(app, config: Aikido::Zen.config, settings: Aikido::Zen.runtime_settings)
+      def initialize(app, zen: Aikido::Zen, config: zen.config, settings: zen.runtime_settings)
         @app = app
+        @zen = zen
         @config = config
         @settings = settings
       end
@@ -22,7 +23,7 @@ module Aikido::Zen
       end
 
       private def allowed?(request)
-        return true if @settings.bypassed_ips.include?(request.client_ip)
+        return true if @zen.request_bypassed?
 
         matches = @settings.endpoints.matched_settings(request.route)
 

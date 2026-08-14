@@ -153,6 +153,14 @@ module Aikido
       Fiber.current.aikido_current_context = context
     end
 
+    # @return [Boolean] whether the current request is bypassed.
+    def self.request_bypassed?
+      context = current_context
+      return unless context
+
+      runtime_settings.bypassed_ip?(context.request.client_ip)
+    end
+
     # Track statistics about an HTTP request the app is handling.
     #
     # @param request [Aikido::Zen::Request]
