@@ -158,7 +158,14 @@ module Aikido
       context = current_context
       return unless context
 
-      runtime_settings.bypassed_ip?(context.request.client_ip)
+      context.request_bypassed ||= runtime_settings.bypassed_ip?(context.request.client_ip)
+    end
+
+    # Marks the current request as bypassed.
+    #
+    # @return [void]
+    def self.request_bypassed!
+      current_context&.request_bypassed = true
     end
 
     # Track statistics about an HTTP request the app is handling.
