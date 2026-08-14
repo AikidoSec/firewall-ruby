@@ -261,7 +261,8 @@ class Aikido::Zen::Middleware::IPListCheckerTest < ActiveSupport::TestCase
 
       env = env_for("/", {"HTTP_X_FORWARDED_FOR" => "2.16.53.5"})
 
-      status, = @middleware.call(env)
+      middleware = Aikido::Zen::Middleware::ContextSetter.new(@middleware)
+      status, = middleware.call(env)
 
       assert_equal 200, status
 

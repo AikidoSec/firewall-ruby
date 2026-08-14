@@ -60,6 +60,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     context = build_context_for("/.config", DEFAULT_ENV)
 
     zen.expect :current_context, context
+    zen.expect :request_bypassed?, false
     zen.expect :detect_attack_wave, nil, [context, 200]
     app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
@@ -68,6 +69,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     assert_mock app
 
     zen.expect :current_context, context
+    zen.expect :request_bypassed?, false
     zen.expect :detect_attack_wave, nil, [context, 200]
     app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
@@ -78,6 +80,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     attack_wave = build_attack_wave(context)
 
     zen.expect :current_context, context
+    zen.expect :request_bypassed?, false
     zen.expect :detect_attack_wave, attack_wave.attack.samples, [context, 200]
     zen.expect(:track_attack_wave, nil) do |arg|
       arg.is_a?(Aikido::Zen::Events::AttackWave) &&
@@ -109,6 +112,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     context = build_context_for("/.config", DEFAULT_ENV)
 
     zen.expect :current_context, context
+    zen.expect :request_bypassed?, true
     app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
@@ -116,6 +120,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     assert_mock app
 
     zen.expect :current_context, context
+    zen.expect :request_bypassed?, true
     app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
@@ -123,6 +128,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     assert_mock app
 
     zen.expect :current_context, context
+    zen.expect :request_bypassed?, true
     app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 

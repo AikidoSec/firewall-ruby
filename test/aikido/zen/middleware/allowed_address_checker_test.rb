@@ -38,7 +38,8 @@ class Aikido::Zen::Middleware::AllowedAddressCheckerTest < ActiveSupport::TestCa
     add_allowed_ips "GET", "/admin/portal", ips: ["1.2.3.4", "2.3.4.5"]
 
     env = Rack::MockRequest.env_for("/admin/portal", "REMOTE_ADDR" => "3.4.5.6")
-    response = @middleware.call(env)
+    middleware = Aikido::Zen::Middleware::ContextSetter.new(@middleware)
+    response = middleware.call(env)
 
     assert_equal [200, {}, ["OK"]], response
     assert_passed_to_downstream
@@ -173,6 +174,7 @@ class Aikido::Zen::Middleware::AllowedAddressCheckerTest < ActiveSupport::TestCa
 
     context = Aikido::Zen::Context.from_rack_env(env)
     verifier = Minitest::Mock.new(context)
+    verifier.expect :request, context.request
     verifier.expect :request, context.request
     Aikido::Zen.current_context = verifier
 

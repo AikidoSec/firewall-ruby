@@ -48,11 +48,12 @@ class Aikido::Zen::Middleware::RequestTrackerTest < ActiveSupport::TestCase
   test "requests & routes are tracked in our stats funnel, unless the request IP is an bypassed IP" do
     @settings.bypassed_ips = Aikido::Zen::RuntimeSettings::IPSet.from_json(["1.2.3.4"])
 
-    @middleware.call(Rack::MockRequest.env_for("/200", "REMOTE_ADDR" => "1.2.3.4"))
-    @middleware.call(Rack::MockRequest.env_for("/200", "REMOTE_ADDR" => "1.2.3.4"))
-    @middleware.call(Rack::MockRequest.env_for("/100", "REMOTE_ADDR" => "1.2.3.4"))
-    @middleware.call(Rack::MockRequest.env_for("/200", "REMOTE_ADDR" => "1.2.3.4"))
-    @middleware.call(Rack::MockRequest.env_for("/400", "REMOTE_ADDR" => "1.2.3.4"))
+    middleware = Aikido::Zen::Middleware::ContextSetter.new(@middleware)
+    middleware.call(Rack::MockRequest.env_for("/200", "REMOTE_ADDR" => "1.2.3.4"))
+    middleware.call(Rack::MockRequest.env_for("/200", "REMOTE_ADDR" => "1.2.3.4"))
+    middleware.call(Rack::MockRequest.env_for("/100", "REMOTE_ADDR" => "1.2.3.4"))
+    middleware.call(Rack::MockRequest.env_for("/200", "REMOTE_ADDR" => "1.2.3.4"))
+    middleware.call(Rack::MockRequest.env_for("/400", "REMOTE_ADDR" => "1.2.3.4"))
 
     assert_equal 0, Aikido::Zen.collector.stats.requests
     assert_equal 0, Aikido::Zen.collector.routes.visits.size
