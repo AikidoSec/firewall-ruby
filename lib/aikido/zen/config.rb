@@ -42,7 +42,7 @@ module Aikido::Zen
     attr_reader :api_endpoint
 
     # @return [URI] The HTTP host for the Aikido Runtime API. Defaults to
-    #   +https://runtime.aikido.dev+.
+    #   +https://guard.aikido.dev+.
     attr_reader :realtime_endpoint
 
     # @return [Hash] HTTP timeouts for communicating with the API.
@@ -236,7 +236,7 @@ module Aikido::Zen
       self.debugging = read_boolean_from_env(ENV.fetch("AIKIDO_DEBUG", false))
       self.api_token = ENV.fetch("AIKIDO_TOKEN", nil)
       self.api_endpoint = ENV.fetch("AIKIDO_ENDPOINT") { regional_api_endpoint(api_token) }
-      self.realtime_endpoint = ENV.fetch("AIKIDO_REALTIME_ENDPOINT", DEFAULT_RUNTIME_BASE_URL)
+      self.realtime_endpoint = ENV.fetch("AIKIDO_REALTIME_ENDPOINT") { regional_api_endpoint(api_token) }
       self.api_timeouts = 10
       self.polling_interval = 60 # 1 min
       self.initial_heartbeat_delays = [30, 60 * 2] # 30 sec, 2 min
@@ -376,9 +376,6 @@ module Aikido::Zen
       "ME" => "https://guard.me.aikido.dev",
       "AU" => "https://guard.au.aikido.dev"
     }.freeze
-
-    # @!visibility private
-    DEFAULT_RUNTIME_BASE_URL = "https://runtime.aikido.dev"
 
     # @!visibility private
     DEFAULT_JSON_ENCODER = JSON.method(:dump)

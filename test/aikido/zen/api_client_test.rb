@@ -69,20 +69,20 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
       Aikido::Zen.config.api_token = nil
 
       assert_not @client.should_fetch_settings?
-      assert_not_requested :get, "https://runtime.aikido.dev/config"
+      assert_not_requested :get, "https://guard.aikido.dev/config"
     end
 
     test "returns true without making a request if we don't know the last update time" do
       assert @client.should_fetch_settings?(nil)
-      assert_not_requested :get, "https://runtime.aikido.dev/config"
+      assert_not_requested :get, "https://guard.aikido.dev/config"
 
       Aikido::Zen.runtime_settings.updated_at = nil
       assert @client.should_fetch_settings?
-      assert_not_requested :get, "https://runtime.aikido.dev/config"
+      assert_not_requested :get, "https://guard.aikido.dev/config"
     end
 
     test "returns false if the updated_at from the server is the same or older than the one we have" do
-      stub_request(:get, "https://runtime.aikido.dev/config")
+      stub_request(:get, "https://guard.aikido.dev/config")
         .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890))
 
       Aikido::Zen.runtime_settings.updated_at = Time.at(1234567890)
@@ -93,7 +93,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     end
 
     test "returns true if the updated_at from the server is newer than the one we have" do
-      stub_request(:get, "https://runtime.aikido.dev/config")
+      stub_request(:get, "https://guard.aikido.dev/config")
         .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890))
 
       Aikido::Zen.runtime_settings.updated_at = Time.at(1234567890 - 1)
@@ -101,17 +101,17 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     end
 
     test "sets the User-Agent on the request" do
-      stub_request(:get, "https://runtime.aikido.dev/config")
+      stub_request(:get, "https://guard.aikido.dev/config")
         .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890))
 
       @client.should_fetch_settings?
 
-      assert_requested :get, "https://runtime.aikido.dev/config",
+      assert_requested :get, "https://guard.aikido.dev/config",
         headers: {"User-Agent" => "firewall-ruby v#{Aikido::Zen::VERSION}"}
     end
 
     test "raises Aikido::Zen::APIError on 4XX requests" do
-      stub_request(:get, "https://runtime.aikido.dev/config")
+      stub_request(:get, "https://guard.aikido.dev/config")
         .to_return(status: 401, body: "")
 
       err = assert_raises Aikido::Zen::APIError do
@@ -123,7 +123,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     end
 
     test "raises Aikido::Zen::APIError on 5XX requests" do
-      stub_request(:get, "https://runtime.aikido.dev/config")
+      stub_request(:get, "https://guard.aikido.dev/config")
         .to_return(status: 502, body: "")
 
       err = assert_raises Aikido::Zen::APIError do
@@ -135,7 +135,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     end
 
     test "wraps timeouts in Aikido::Zen::NetworkError" do
-      stub_request(:get, "https://runtime.aikido.dev/config")
+      stub_request(:get, "https://guard.aikido.dev/config")
         .to_timeout
 
       err = assert_raises Aikido::Zen::NetworkError do
@@ -146,7 +146,7 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     end
 
     test "logs a debug message" do
-      stub_request(:get, "https://runtime.aikido.dev/config")
+      stub_request(:get, "https://guard.aikido.dev/config")
         .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890))
 
       @client.should_fetch_settings?

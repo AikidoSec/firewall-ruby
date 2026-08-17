@@ -14,7 +14,7 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal false, @config.debugging
     assert_nil @config.api_token
     assert_equal URI("https://guard.aikido.dev"), @config.api_endpoint
-    assert_equal URI("https://runtime.aikido.dev"), @config.realtime_endpoint
+    assert_equal URI("https://guard.aikido.dev"), @config.realtime_endpoint
     assert_equal 10, @config.api_timeouts[:open_timeout]
     assert_equal 10, @config.api_timeouts[:read_timeout]
     assert_equal 10, @config.api_timeouts[:write_timeout]
@@ -165,10 +165,30 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     end
   end
 
+  test "derives the realtime_endpoint region from the AIKIDO_TOKEN" do
+    {
+      "US" => "https://guard.us.aikido.dev",
+      "ME" => "https://guard.me.aikido.dev",
+      "AU" => "https://guard.au.aikido.dev"
+    }.each do |region, expected_endpoint|
+      with_env "AIKIDO_TOKEN" => "AIK_RUNTIME_1_2_#{region}_random" do
+        config = Aikido::Zen::Config.new
+        assert_equal URI(expected_endpoint), config.realtime_endpoint
+      end
+    end
+  end
+
   test "defaults to the EU api_endpoint for tokens without a region" do
     with_env "AIKIDO_TOKEN" => "AIK_RUNTIME_1_2_random" do
       config = Aikido::Zen::Config.new
       assert_equal URI("https://guard.aikido.dev"), config.api_endpoint
+    end
+  end
+
+  test "defaults to the EU realtime_endpoint for tokens without a region" do
+    with_env "AIKIDO_TOKEN" => "AIK_RUNTIME_1_2_random" do
+      config = Aikido::Zen::Config.new
+      assert_equal URI("https://guard.aikido.dev"), config.realtime_endpoint
     end
   end
 
