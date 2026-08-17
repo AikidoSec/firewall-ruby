@@ -157,14 +157,16 @@ module Aikido::Zen
         def self.from_json(data)
           new(
             data["sink_name"],
+            data["sink_kind"],
             data["duration"],
             has_errors: data["has_errors"]
           )
         end
 
-        def initialize(sink_name, duration, has_errors:)
+        def initialize(sink_name, sink_kind, duration, has_errors:)
           super()
           @sink_name = sink_name
+          @sink_kind = sink_kind
           @duration = duration
           @has_errors = has_errors
         end
@@ -172,17 +174,18 @@ module Aikido::Zen
         def as_json
           super.update({
             "sink_name" => @sink_name,
+            "sink_kind" => @sink_kind,
             "duration" => @duration,
             "has_errors" => @has_errors
           })
         end
 
         def handle(collector)
-          collector.handle_track_scan(@sink_name, @duration, has_errors: @has_errors)
+          collector.handle_track_scan(@sink_name, @sink_kind, @duration, has_errors: @has_errors)
         end
 
         def inspect
-          "#<#{self.class.name} #{@sink_name} #{format "%0.6f", @duration} #{@has_errors}>"
+          "#<#{self.class.name} #{@sink_name} #{@sink_kind} #{format "%0.6f", @duration} #{@has_errors}>"
         end
       end
 
@@ -192,29 +195,32 @@ module Aikido::Zen
         def self.from_json(data)
           new(
             data["sink_name"],
+            data["sink_kind"],
             being_blocked: data["being_blocked"]
           )
         end
 
-        def initialize(sink_name, being_blocked:)
+        def initialize(sink_name, sink_kind, being_blocked:)
           super()
           @sink_name = sink_name
+          @sink_kind = sink_kind
           @being_blocked = being_blocked
         end
 
         def as_json
           super.update({
             "sink_name" => @sink_name,
+            "sink_kind" => @sink_kind,
             "being_blocked" => @being_blocked
           })
         end
 
         def handle(collector)
-          collector.handle_track_attack(@sink_name, being_blocked: @being_blocked)
+          collector.handle_track_attack(@sink_name, @sink_kind, being_blocked: @being_blocked)
         end
 
         def inspect
-          "#<#{self.class.name} #{@sink_name} #{@being_blocked}>"
+          "#<#{self.class.name} #{@sink_name} #{@sink_kind} #{@being_blocked}>"
         end
       end
 

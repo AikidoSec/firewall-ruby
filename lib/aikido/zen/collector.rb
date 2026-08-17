@@ -146,12 +146,12 @@ module Aikido::Zen
     # @param scan [Aikido::Zen::Scan]
     # @return [void]
     def track_scan(scan)
-      add_event(Events::TrackScan.new(scan.sink.name, scan.duration, has_errors: scan.errors?))
+      add_event(Events::TrackScan.new(scan.sink.name, scan.sink.kind, scan.duration, has_errors: scan.errors?))
     end
 
-    def handle_track_scan(sink_name, duration, has_errors:)
+    def handle_track_scan(sink_name, sink_kind, duration, has_errors:)
       synchronize(@stats) do |stats|
-        stats.add_scan(sink_name, duration, has_errors: has_errors)
+        stats.add_scan(sink_name, sink_kind, duration, has_errors: has_errors)
       end
     end
 
@@ -160,12 +160,12 @@ module Aikido::Zen
     # @param attack [Aikido::Zen::Attack]
     # @return [void]
     def track_attack(attack)
-      add_event(Events::TrackAttack.new(attack.sink.name, being_blocked: attack.blocked?))
+      add_event(Events::TrackAttack.new(attack.sink.name, attack.sink.kind, being_blocked: attack.blocked?))
     end
 
-    def handle_track_attack(sink_name, being_blocked:)
+    def handle_track_attack(sink_name, sink_kind, being_blocked:)
       synchronize(@stats) do |stats|
-        stats.add_attack(sink_name, being_blocked: being_blocked)
+        stats.add_attack(sink_name, sink_kind, being_blocked: being_blocked)
       end
     end
 

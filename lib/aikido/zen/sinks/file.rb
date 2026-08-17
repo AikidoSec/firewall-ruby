@@ -3,7 +3,7 @@
 module Aikido::Zen
   module Sinks
     module File
-      SINK = Sinks.add("File", scanners: [Scanners::PathTraversalScanner])
+      SINK = Sinks.add("File", "fs_op", scanners: [Scanners::PathTraversalScanner])
 
       module Helpers
         def self.scan(filepath, operation)

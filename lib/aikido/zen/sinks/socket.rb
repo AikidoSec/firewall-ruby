@@ -10,7 +10,7 @@ module Aikido::Zen
     # there's no way to access the internal DNS resolution that happens in C
     # when using the socket primitives.
     module Socket
-      SINK = Sinks.add("socket", scanners: [
+      SINK = Sinks.add("socket", "outgoing_http_op", scanners: [
         Scanners::StoredSSRFScanner,
         Scanners::SSRFScanner
       ])

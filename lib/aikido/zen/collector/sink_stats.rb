@@ -7,6 +7,9 @@ module Aikido::Zen
   #
   # Tracks data specific to a single Sink.
   class Collector::SinkStats
+    # @return [String] category of operation this sink represents.
+    attr_accessor :kind
+
     # @return [Integer] number of total calls to Sink#scan.
     attr_accessor :scans
 
@@ -62,6 +65,7 @@ module Aikido::Zen
 
     def as_json
       {
+        "kind" => @kind,
         "total" => @scans,
         "interceptorThrewError" => @errors,
         "withoutContext" => 0,

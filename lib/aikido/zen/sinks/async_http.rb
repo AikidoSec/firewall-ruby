@@ -6,7 +6,7 @@ module Aikido::Zen
   module Sinks
     module Async
       module HTTP
-        SINK = Sinks.add("async-http", scanners: [
+        SINK = Sinks.add("async-http", "outgoing_http_op", scanners: [
           Scanners::SSRFScanner
         ])
 

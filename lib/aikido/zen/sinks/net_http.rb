@@ -6,7 +6,7 @@ module Aikido::Zen
   module Sinks
     module Net
       module HTTP
-        SINK = Sinks.add("net-http", scanners: [
+        SINK = Sinks.add("net-http", "outgoing_http_op", scanners: [
           Scanners::SSRFScanner
         ])
 

@@ -5,7 +5,7 @@ require_relative "../sink"
 module Aikido::Zen
   module Sinks
     module Typhoeus
-      SINK = Sinks.add("typhoeus", scanners: [
+      SINK = Sinks.add("typhoeus", "outgoing_http_op", scanners: [
         Aikido::Zen::Scanners::SSRFScanner
       ])
 

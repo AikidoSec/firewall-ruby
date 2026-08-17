@@ -3,7 +3,7 @@
 module Aikido::Zen
   module Sinks
     module Trilogy
-      SINK = Sinks.add("trilogy", scanners: [Scanners::SQLInjectionScanner])
+      SINK = Sinks.add("trilogy", "sql_op", scanners: [Scanners::SQLInjectionScanner])
 
       module Helpers
         def self.scan(query, operation)

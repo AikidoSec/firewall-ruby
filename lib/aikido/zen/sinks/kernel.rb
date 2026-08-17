@@ -3,7 +3,7 @@
 module Aikido::Zen
   module Sinks
     module Kernel
-      SINK = Sinks.add("Kernel", scanners: [Scanners::ShellInjectionScanner])
+      SINK = Sinks.add("Kernel", "exec_op", scanners: [Scanners::ShellInjectionScanner])
 
       module Helpers
         def self.scan(command, operation)
