@@ -46,8 +46,6 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
 
   setup do
     Aikido::Zen.config.attack_wave_threshold = 3
-
-    @settings = Aikido::Zen.runtime_settings
   end
 
   test "#call detects attack waves and collects statistics then reports the event" do
@@ -101,9 +99,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     assert_mock app
   end
 
-  test "#call detects attack waves, collects statistics, and reports the event, unless the request IP is an bypassed IP" do
-    @settings.bypassed_ips = Aikido::Zen::RuntimeSettings::IPSet.from_json(["1.2.3.4"])
-
+  test "#call detects attack waves, collects statistics, and reports the event, unless the request is bypassed" do
     app = Minitest::Mock.new
     zen = Minitest::Mock.new
 
