@@ -30,7 +30,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
   NOOPScanner = FakeScanner.new { |*args, **kwargs| }
 
   test "provides access to its name and scanners" do
-    sink = Aikido::Zen::Sink.new("test", scanners: [NOOPScanner])
+    sink = Aikido::Zen::Sink.new("test", "test_op", scanners: [NOOPScanner])
 
     assert_equal "test", sink.name
     assert_equal [NOOPScanner], sink.scanners
@@ -38,12 +38,12 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
 
   test "does not allow initializing without scanners" do
     assert_raises ArgumentError do
-      Aikido::Zen::Sink.new("test", scanners: [])
+      Aikido::Zen::Sink.new("test", "test_op", scanners: [])
     end
   end
 
   test "scans are skipped if they don't process nil contexts and the context is nil" do
-    sink = Aikido::Zen::Sink.new("test", scanners: [
+    sink = Aikido::Zen::Sink.new("test", "test_op", scanners: [
       FakeScanner.new(skip_on_nil_context: true) {},
       FakeScanner.new(skip_on_nil_context: true) {},
       FakeScanner.new(skip_on_nil_context: true) {},
@@ -58,7 +58,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
   test "scans are not skipped if they don't process nil contexts and the context is not nil" do
     Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env({})
 
-    sink = Aikido::Zen::Sink.new("test", scanners: [
+    sink = Aikido::Zen::Sink.new("test", "test_op", scanners: [
       FakeScanner.new(skip_on_nil_context: true) {},
       FakeScanner.new(skip_on_nil_context: true) {},
       FakeScanner.new(skip_on_nil_context: true) {},
@@ -79,7 +79,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
       nil
     end
 
-    sink = Aikido::Zen::Sink.new("test", scanners: [scanner])
+    sink = Aikido::Zen::Sink.new("test", "test_op", scanners: [scanner])
     sink.scan(foo: 1, bar: 2)
 
     assert_hash_subset_of(scan_params, {foo: 1, bar: 2, sink: sink, context: nil})
@@ -96,7 +96,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
 
     Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env({})
 
-    sink = Aikido::Zen::Sink.new("test", scanners: [scanner])
+    sink = Aikido::Zen::Sink.new("test", "test_op", scanners: [scanner])
     sink.scan(foo: 1, bar: 2)
 
     assert_equal Aikido::Zen.current_context, scan_params[:context]
@@ -106,7 +106,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
   end
 
   test "#scan returns a Scan object" do
-    sink = Aikido::Zen::Sink.new("test", scanners: [NOOPScanner])
+    sink = Aikido::Zen::Sink.new("test", "test_op", scanners: [NOOPScanner])
 
     scan = sink.scan(foo: 1, bar: 2)
 
@@ -122,7 +122,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
     context.expect :scanning=, true, [true]
     context.expect :scanning=, false, [false]
 
-    sink = Aikido::Zen::Sink.new("test", reporter: NOOP, scanners: [
+    sink = Aikido::Zen::Sink.new("test", "test_op", reporter: NOOP, scanners: [
       FakeScanner.new { raise Exception, "oops" } # StandardError would be caught
     ])
 
@@ -139,7 +139,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
   # rubocop:disable Lint/RaiseException
   test "#scan stops after the first Attack is detected" do
     attack = Aikido::Zen::Attack.new(context: nil, sink: nil, operation: nil)
-    sink = Aikido::Zen::Sink.new("test", reporter: NOOP, scanners: [
+    sink = Aikido::Zen::Sink.new("test", "test_op", reporter: NOOP, scanners: [
       FakeScanner.new { attack },
       FakeScanner.new { raise Exception, "oops" } # StandardError would be caught
     ])
@@ -160,6 +160,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
 
     sink = Aikido::Zen::Sink.new(
       "test",
+      "test_op",
       scanners: [FakeScanner.new {}],
       reporter: reporter
     )
@@ -172,7 +173,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
   test "#scan captures errors raised by a scanner" do
     error = RuntimeError.new("oops")
     scanner = FakeScanner.new { raise error }
-    sink = Aikido::Zen::Sink.new("test", scanners: [scanner])
+    sink = Aikido::Zen::Sink.new("test", "test_op", scanners: [scanner])
 
     assert_nothing_raised do
       scan = sink.scan(foo: 1, bar: 2)
@@ -184,7 +185,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
 
   test "#scan tracks how long it takes to run the scanners" do
     scanner = FakeScanner.new { sleep 0.001 and nil }
-    sink = Aikido::Zen::Sink.new("test", scanners: [scanner])
+    sink = Aikido::Zen::Sink.new("test", "test_op", scanners: [scanner])
 
     scan = sink.scan(foo: 1, bar: 2)
     assert scan.duration > 0.001
@@ -196,7 +197,7 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
 
     test "Sinks.add defines a new sink and registers it" do
       assert_changes -> { Sinks.registry.keys }, from: [], to: ["test"] do
-        sink = Sinks.add("test", scanners: [NOOPScanner])
+        sink = Sinks.add("test", "test_op", scanners: [NOOPScanner])
 
         assert_kind_of Aikido::Zen::Sink, sink
         assert_equal "test", sink.name
@@ -208,15 +209,15 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
       package = Aikido::Zen::Package.new("test", Gem::Version.new("1.0.0"))
       refute package.supported?
 
-      Sinks.add(package.name, scanners: [NOOPScanner])
+      Sinks.add(package.name, "test_op", scanners: [NOOPScanner])
       assert package.supported?
     end
 
     test "registering a sink more than once raises an error" do
-      Sinks.add("test", scanners: [NOOPScanner])
+      Sinks.add("test", "test_op", scanners: [NOOPScanner])
 
       assert_raises ArgumentError do
-        Sinks.add("test", scanners: [NOOPScanner])
+        Sinks.add("test", "test_op", scanners: [NOOPScanner])
       end
     end
   end

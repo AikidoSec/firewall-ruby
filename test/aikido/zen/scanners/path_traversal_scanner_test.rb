@@ -185,7 +185,7 @@ class Aikido::Zen::Scanners::PathTraversalScannerTest < ActiveSupport::TestCase
     end
 
     def stub_sink(name:)
-      Aikido::Zen::Sink.new(name, operation: "test", scanners: [NOOP])
+      Aikido::Zen::Sink.new(name, "fs_op", operation: "test", scanners: [NOOP])
     end
 
     def stub_payload(source, value, path)

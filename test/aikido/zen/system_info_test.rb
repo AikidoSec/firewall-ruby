@@ -70,8 +70,8 @@ class Aikido::Zen::InfoTest < ActiveSupport::TestCase
   test "#packages maps the list of supported loaded gems into a list of Package instances" do
     test_specs = Gem.loaded_specs.slice("concurrent-ruby", "minitest", "rack")
 
-    Aikido::Zen::Sinks.add("minitest", scanners: [NOOP])
-    Aikido::Zen::Sinks.add("concurrent-ruby", scanners: [NOOP])
+    Aikido::Zen::Sinks.add("minitest", "test_op", scanners: [NOOP])
+    Aikido::Zen::Sinks.add("concurrent-ruby", "test_op", scanners: [NOOP])
 
     Gem.stub(:loaded_specs, test_specs) do
       expected_packages = [
@@ -84,7 +84,7 @@ class Aikido::Zen::InfoTest < ActiveSupport::TestCase
   end
 
   test "as_json includes the expected fields" do
-    Aikido::Zen::Sinks.add("concurrent-ruby", scanners: [NOOP])
+    Aikido::Zen::Sinks.add("concurrent-ruby", "test_op", scanners: [NOOP])
 
     assert_equal @info.attacks_are_only_reported?, @info.as_json["dryMode"]
     assert_equal @info.library_name, @info.as_json["library"]
