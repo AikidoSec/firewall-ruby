@@ -24,6 +24,10 @@ module Aikido::Zen
     attr_accessor :scanning
     alias_method :scanning?, :scanning
 
+    # @return [Boolean, nil] whether the request is bypassed.
+    attr_accessor :request_bypassed
+    alias_method :request_bypassed?, :request_bypassed
+
     # @return [Boolean] whether attack protection for the currently requested
     #   endpoint was disabled on the Aikido dashboard, or if the source IP for
     #   this request is in the "Bypass List".
@@ -48,6 +52,7 @@ module Aikido::Zen
 
       @metadata = {}
       @scanning = false
+      @request_bypassed = nil
       @protection_disabled = false
       @idor_protection_enabled = false
     end

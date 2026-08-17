@@ -108,10 +108,11 @@ class Aikido::Zen::Middleware::RackThrottlerTest < ActiveSupport::TestCase
     @app.expect :call, [200, {}, ["OK"]], [Hash]
 
     env = Rack::MockRequest.env_for("/", "REMOTE_ADDR" => "1.2.3.4")
-    assert_equal [200, {}, ["OK"]], @middleware.call(env)
-    assert_equal [200, {}, ["OK"]], @middleware.call(env)
-    assert_equal [200, {}, ["OK"]], @middleware.call(env)
-    assert_equal [200, {}, ["OK"]], @middleware.call(env)
+    middleware = Aikido::Zen::Middleware::ContextSetter.new(@middleware)
+    assert_equal [200, {}, ["OK"]], middleware.call(env)
+    assert_equal [200, {}, ["OK"]], middleware.call(env)
+    assert_equal [200, {}, ["OK"]], middleware.call(env)
+    assert_equal [200, {}, ["OK"]], middleware.call(env)
 
     refute env.key?("aikido.rate_limiting")
     assert_mock @app
@@ -191,6 +192,7 @@ class Aikido::Zen::Middleware::RackThrottlerTest < ActiveSupport::TestCase
 
     context = Aikido::Zen::Context.from_rack_env(env)
     verifier = Minitest::Mock.new(context)
+    verifier.expect :request, context.request
     verifier.expect :request, context.request
     Aikido::Zen.current_context = verifier
 

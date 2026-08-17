@@ -21,6 +21,7 @@ class Aikido::Zen::Middleware::AttackProtectorTest < ActiveSupport::TestCase
       assert_mock app
 
       zen.expect :current_context, context
+      zen.expect :request_bypassed?, @settings.bypassed_ip?(context.request.client_ip)
       app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
       middleware.call({})
       assert_mock zen

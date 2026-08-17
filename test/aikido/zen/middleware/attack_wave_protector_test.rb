@@ -46,8 +46,6 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
 
   setup do
     Aikido::Zen.config.attack_wave_threshold = 3
-
-    @settings = Aikido::Zen.runtime_settings
   end
 
   test "#call detects attack waves and collects statistics then reports the event" do
@@ -60,6 +58,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     context = build_context_for("/.config", DEFAULT_ENV)
 
     zen.expect :current_context, context
+    zen.expect :request_bypassed?, false
     zen.expect :detect_attack_wave, nil, [context, 200]
     app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
@@ -68,6 +67,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     assert_mock app
 
     zen.expect :current_context, context
+    zen.expect :request_bypassed?, false
     zen.expect :detect_attack_wave, nil, [context, 200]
     app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
@@ -78,6 +78,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     attack_wave = build_attack_wave(context)
 
     zen.expect :current_context, context
+    zen.expect :request_bypassed?, false
     zen.expect :detect_attack_wave, attack_wave.attack.samples, [context, 200]
     zen.expect(:track_attack_wave, nil) do |arg|
       arg.is_a?(Aikido::Zen::Events::AttackWave) &&
@@ -98,9 +99,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     assert_mock app
   end
 
-  test "#call detects attack waves, collects statistics, and reports the event, unless the request IP is an bypassed IP" do
-    @settings.bypassed_ips = Aikido::Zen::RuntimeSettings::IPSet.from_json(["1.2.3.4"])
-
+  test "#call detects attack waves, collects statistics, and reports the event, unless the request is bypassed" do
     app = Minitest::Mock.new
     zen = Minitest::Mock.new
 
@@ -109,6 +108,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     context = build_context_for("/.config", DEFAULT_ENV)
 
     zen.expect :current_context, context
+    zen.expect :request_bypassed?, true
     app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
@@ -116,6 +116,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     assert_mock app
 
     zen.expect :current_context, context
+    zen.expect :request_bypassed?, true
     app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 
@@ -123,6 +124,7 @@ class Aikido::Zen::Middleware::AttackWaveProtectorTest < ActiveSupport::TestCase
     assert_mock app
 
     zen.expect :current_context, context
+    zen.expect :request_bypassed?, true
     app.expect(:call, [200, {}, ["OK"]]) { |arg| arg.is_a?(Hash) }
     middleware.call({})
 

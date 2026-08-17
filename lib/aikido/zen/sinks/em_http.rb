@@ -50,9 +50,7 @@ module Aikido::Zen
 
                 settings = Aikido::Zen.runtime_settings
 
-                client_ip = context&.request&.client_ip
-
-                unless settings.bypassed_ip?(client_ip)
+                unless Aikido::Zen.request_bypassed?
                   Aikido::Zen.track_outbound(connection)
 
                   if settings.block_outbound?(connection)

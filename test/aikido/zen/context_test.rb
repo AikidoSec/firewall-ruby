@@ -115,6 +115,11 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       refute context.scanning?
     end
 
+    test "#request_bypassed? is nil by default" do
+      context = build_context_for("/path")
+      assert_nil context.request_bypassed?
+    end
+
     test "#protection_disabled? is false by default" do
       context = build_context_for("/path")
       refute context.protection_disabled?

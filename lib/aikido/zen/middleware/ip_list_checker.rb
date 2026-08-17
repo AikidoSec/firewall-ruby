@@ -15,7 +15,7 @@ module Aikido::Zen
 
         client_ip = request.client_ip
 
-        return @app.call(env) if bypassed_ip?(client_ip)
+        return @app.call(env) if @zen.request_bypassed?
 
         if !@settings.allowed_ip?(client_ip)
           return @config.blocked_responder.call(request, :ip_allowed_list)
@@ -37,10 +37,6 @@ module Aikido::Zen
         end
 
         @app.call(env)
-      end
-
-      def bypassed_ip?(client_ip)
-        @settings.bypassed_ips.include?(client_ip)
       end
     end
   end

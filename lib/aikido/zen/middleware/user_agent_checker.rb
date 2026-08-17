@@ -13,7 +13,7 @@ module Aikido::Zen
       def call(env)
         request = Aikido::Zen::Middleware.request_from(env)
 
-        return @app.call(env) if bypassed?(request)
+        return @app.call(env) if @zen.request_bypassed?
 
         user_agent = request.user_agent
 
@@ -30,10 +30,6 @@ module Aikido::Zen
         end
 
         @app.call(env)
-      end
-
-      def bypassed?(request)
-        @settings.bypassed_ips.include?(request.client_ip)
       end
     end
   end

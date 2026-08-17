@@ -9,6 +9,21 @@ Aikido::Zen.protect!
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+# Test-only middleware mirroring docs/request-bypassing.md's example.
+class RequestBypasser
+  def initialize(app)
+    @app = app
+  end
+
+  def call(env)
+    if env["HTTP_X_BYPASS_ZEN"] == "true"
+      Aikido::Zen.request_bypassed! # Bypasses Zen for this request
+    end
+
+    @app.call(env)
+  end
+end
+
 module Generic
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
@@ -26,5 +41,9 @@ module Generic
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+
+    initializer "generic.insert_request_bypasser", after: "aikido.add_middleware" do |app|
+      app.middleware.insert_after Aikido::Zen::Middleware::ContextSetter, RequestBypasser
+    end
   end
 end

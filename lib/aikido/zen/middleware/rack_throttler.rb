@@ -34,7 +34,7 @@ module Aikido::Zen
       private
 
       def should_throttle?(request)
-        return false if @settings.bypassed_ips.include?(request.client_ip)
+        return false if @zen.request_bypassed?
 
         return false if request.actor && @settings.user_excluded_from_rate_limiting?(request.actor.id)
 

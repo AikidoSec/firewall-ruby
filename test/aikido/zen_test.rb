@@ -21,6 +21,56 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     assert_equal true, Aikido::Zen.blocking_mode?
   end
 
+  test ".request_bypassed? returns nil if there is no current context" do
+    assert_nil Aikido::Zen.current_context
+
+    assert_nil Aikido::Zen.request_bypassed?
+  end
+
+  test ".request_bypassed? returns true if the request IP is in the bypassed IP set" do
+    Aikido::Zen.runtime_settings.bypassed_ips = Aikido::Zen::RuntimeSettings::IPSet.from_json(["1.2.3.4"])
+    Aikido::Zen.current_context = context_for("/", "REMOTE_ADDR" => "1.2.3.4")
+
+    assert Aikido::Zen.request_bypassed?
+  end
+
+  test ".request_bypassed? returns false if the request IP is not in the bypassed IP set" do
+    Aikido::Zen.runtime_settings.bypassed_ips = Aikido::Zen::RuntimeSettings::IPSet.from_json(["1.2.3.4"])
+    Aikido::Zen.current_context = context_for("/", "REMOTE_ADDR" => "5.6.7.8")
+
+    refute Aikido::Zen.request_bypassed?
+  end
+
+  test ".request_bypassed? sticks once the request has been found bypassed, even if the settings change afterwards" do
+    Aikido::Zen.runtime_settings.bypassed_ips = Aikido::Zen::RuntimeSettings::IPSet.from_json(["1.2.3.4"])
+    context = Aikido::Zen.current_context = context_for("/", "REMOTE_ADDR" => "1.2.3.4")
+
+    assert Aikido::Zen.request_bypassed?
+
+    Aikido::Zen.runtime_settings.bypassed_ips = Aikido::Zen::RuntimeSettings::IPSet.new
+
+    assert Aikido::Zen.request_bypassed?
+    assert context.request_bypassed?
+  end
+
+  test ".request_bypassed! marks the current request as bypassed regardless of its IP" do
+    Aikido::Zen.current_context = context_for("/", "REMOTE_ADDR" => "5.6.7.8")
+
+    refute Aikido::Zen.request_bypassed?
+
+    Aikido::Zen.request_bypassed!
+
+    assert Aikido::Zen.request_bypassed?
+  end
+
+  test ".request_bypassed! does not fail if context is not set" do
+    assert_nil Aikido::Zen.current_context
+
+    assert_silent do
+      Aikido::Zen.request_bypassed!
+    end
+  end
+
   test ".track_user tracks the actor object in the collector" do
     users = Aikido::Zen.collector.users
 

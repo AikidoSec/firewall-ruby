@@ -5,8 +5,9 @@ module Aikido::Zen
     # Rack middleware used to track request
     # It implements the logic under that which is considered worthy of being tracked.
     class RequestTracker
-      def initialize(app, settings: Aikido::Zen.runtime_settings)
+      def initialize(app, zen: Aikido::Zen, settings: zen.runtime_settings)
         @app = app
+        @zen = zen
         @settings = settings
       end
 
@@ -17,13 +18,12 @@ module Aikido::Zen
         if request.route && track?(
           status_code: response[0],
           route: request.route.path,
-          http_method: request.request_method,
-          ip: request.client_ip
+          http_method: request.request_method
         )
-          Aikido::Zen.track_request(request)
+          @zen.track_request(request)
 
-          if Aikido::Zen.config.collect_api_schema?
-            Aikido::Zen.track_discovered_route(request)
+          if @zen.config.collect_api_schema?
+            @zen.track_discovered_route(request)
           end
         end
 
@@ -128,8 +128,8 @@ module Aikido::Zen
       # @param status_code [Integer]
       # @param route [String]
       # @param http_method [String]
-      def track?(status_code:, route:, http_method:, ip: nil)
-        return false if @settings.bypassed_ips.include?(ip)
+      def track?(status_code:, route:, http_method:)
+        return false if @zen.request_bypassed?
 
         # In the UI we want to show only successful (2xx) or redirect (3xx) responses
         # anything else is discarded.
