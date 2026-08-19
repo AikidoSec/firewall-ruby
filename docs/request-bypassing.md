@@ -1,6 +1,6 @@
 # Bypass Zen for a specific request
 
-Call `Aikido::Zen.request_bypassed!` from a Rack middleware to bypass this request. A bypassed request is fully excluded from Zen inspection and enforcement: Zen will not analyze the request, generate findings, or apply blocking rules for that traffic. Your application handles the request normally.
+Call `Aikido::Zen.request_bypassed!` from a Rack middleware to bypass Zen for this request. A bypassed request is fully excluded from Zen inspection and enforcement: Zen will not analyze the request, generate findings, or apply blocking rules for that traffic. Your application handles the request normally.
 
 > [!NOTE]
 > Zen's built-in [Bypassed IPs](https://help.aikido.dev/zen-firewall/zen-features/bypassed-ips) feature uses request bypassing internally, triggered by a matching IP/CIDR. `Aikido::Zen.request_bypassed!` lets you bypass requests using your custom logic.
