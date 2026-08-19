@@ -1,11 +1,23 @@
 # Bypass Zen for a specific request
 
-To disable Zen for a specific request, call `Aikido::Zen.request_bypassed!` from a Rack middleware. This bypasses Zen's security checks and stats collection for that request.
+Call `Aikido::Zen.request_bypassed!` from a Rack middleware to bypass Zen for this request. A bypassed request is fully excluded from Zen inspection and enforcement: Zen will not analyze the request, generate findings, or apply blocking rules for that traffic. Your application handles the request normally.
 
 > [!NOTE]
-> Zen already has a built-in feature for bypassing specific IP addresses. This feature offers more flexibility, letting you bypass Zen for a request based on any criteria you choose.
+> Zen's built-in [Bypassed IPs](https://help.aikido.dev/zen-firewall/zen-features/bypassed-ips) feature uses request bypassing internally, triggered by a matching IP/CIDR. `Aikido::Zen.request_bypassed!` lets you bypass requests using your custom logic.
 
-`Aikido::Zen.request_bypassed!` needs the request's context to already be set up, so your middleware must run after Zen's `ContextSetter` middleware. The following example shows how to bypass a specific request in a Rails application:
+## What gets bypassed
+
+* **Attack protection** — SQL injection, path traversal, command injection, and SSRF attacks are not blocked or reported
+* **Rate limiting** — never triggered.
+* **IP blocking** — Known Threat Actors, Tor traffic blocking/monitoring, country blocking, and custom IP allow/block lists are not checked.
+* **Bot traffic blocking** — not checked.
+* **User blocking** — blocked users are not blocked.
+* **Statistics** — the request isn't counted, and doesn't count against your monitored request quota.
+* **Attack wave protection** — the request doesn't count towards wave detection.
+
+## Usage
+
+Insert your middleware directly after `Aikido::Zen::Middleware::ContextSetter`, so it runs after the request context is set up but before Zen's other middleware:
 
 ```ruby
 # config/application.rb
@@ -35,4 +47,4 @@ end
 ```
 
 > [!WARNING]
-> Use this feature with caution, as it can potentially expose your application to security risks if not used properly.
+> A bypassed request gets zero protection from Zen — no attack detection, no rate limiting, no blocking, no tracking. Ensure that your custom logic only bypasses requests that you fully trust.
