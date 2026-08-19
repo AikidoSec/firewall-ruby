@@ -3,7 +3,7 @@
 module Aikido::Zen
   module Sinks
     module Mysql2
-      SINK = Sinks.add("mysql2", scanners: [Scanners::SQLInjectionScanner])
+      SINK = Sinks.add("mysql2", "sql_op", scanners: [Scanners::SQLInjectionScanner])
 
       module Helpers
         def self.scan(query, operation)

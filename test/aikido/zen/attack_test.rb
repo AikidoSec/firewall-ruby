@@ -10,7 +10,7 @@ module Aikido::Zen
       @dialect = Aikido::Zen::SQL::Dialects.fetch(:common)
       @context = Aikido::Zen::Context.from_rack_env({})
       @op = "test.op"
-      @sink = Sink.new("test", scanners: [NOOP])
+      @sink = Sink.new("test", "sql_op", scanners: [NOOP])
     end
 
     test "keeps track of the query and triggering input" do
@@ -104,7 +104,7 @@ module Aikido::Zen
       @input = Aikido::Zen::Payload.new("localhost:7000", :body, "url")
       @context = Aikido::Zen::Context.from_rack_env({})
       @op = "net-http.request"
-      @sink = Sink.new("net-http", scanners: [NOOP])
+      @sink = Sink.new("net-http", "outgoing_http_op", scanners: [NOOP])
     end
 
     test "keeps track of the request and triggering input" do

@@ -6,7 +6,7 @@ module Aikido::Zen
   module Sinks
     module EventMachine
       module HttpRequest
-        SINK = Sinks.add("em-http-request", scanners: [
+        SINK = Sinks.add("em-http-request", "outgoing_http_op", scanners: [
           Scanners::SSRFScanner
         ])
 

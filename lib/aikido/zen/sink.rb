@@ -15,6 +15,7 @@ module Aikido::Zen
     # @param name [String] name of the library being patched. (This must
     #   match the name of the gem, or we won't report that gem as
     #   supported.)
+    # @param kind [String] category of operation this sink represents.
     # @param scanners [Array<#call>] a list of objects that respond to
     #   #call with a Hash and return an Attack or nil.
     # @param opts [Hash<Symbol, Object>] any other options to pass to
@@ -23,9 +24,9 @@ module Aikido::Zen
     # @return [void]
     # @raise [ArgumentError] if a Sink with this name has already been
     #   registered.
-    def self.add(name, scanners:, **opts)
+    def self.add(name, kind, scanners:, **opts)
       raise ArgumentError, "Sink #{name} already registered" if registry.key?(name.to_s)
-      registry[name.to_s] = Sink.new(name.to_s, scanners: scanners, **opts)
+      registry[name.to_s] = Sink.new(name.to_s, kind, scanners: scanners, **opts)
     end
   end
 
@@ -42,6 +43,9 @@ module Aikido::Zen
     # @return [String] name of the patched library (e.g. "mysql2").
     attr_reader :name
 
+    # @return [String] category of operation this sink represents.
+    attr_reader :kind
+
     # @return [Array<#call>] list of registered scanners for this sink.
     attr_reader :scanners
 
@@ -53,10 +57,11 @@ module Aikido::Zen
 
     DEFAULT_REPORTER = ->(scan) { Aikido::Zen.track_scan(scan) }
 
-    def initialize(name, scanners:, operation: name, reporter: DEFAULT_REPORTER)
+    def initialize(name, kind, scanners:, operation: name, reporter: DEFAULT_REPORTER)
       raise ArgumentError, "scanners cannot be empty" if scanners.empty?
 
       @name = name
+      @kind = kind
       @operation = operation
       @scanners = scanners
       @reporter = reporter

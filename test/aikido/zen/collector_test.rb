@@ -321,6 +321,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         },
         "operations" => {
           "test" => {
+            "kind" => "test_op",
             "total" => 2,
             "interceptorThrewError" => 0,
             "withoutContext" => 0,
@@ -337,6 +338,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
             ]
           },
           "another" => {
+            "kind" => "test_op",
             "total" => 1,
             "interceptorThrewError" => 0,
             "withoutContext" => 0,
@@ -387,6 +389,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         "endedAt" => 1234577890000,
         "operations" => {
           "test" => {
+            "kind" => "test_op",
             "total" => 2,
             "interceptorThrewError" => 0,
             "withoutContext" => 0,
@@ -403,6 +406,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
             ]
           },
           "another" => {
+            "kind" => "test_op",
             "total" => 1,
             "interceptorThrewError" => 0,
             "withoutContext" => 0,
@@ -493,6 +497,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
         "endedAt" => 1234577890000,
         "operations" => {
           "test" => {
+            "kind" => "test_op",
             "total" => 3,
             "interceptorThrewError" => 0,
             "withoutContext" => 0,
@@ -559,8 +564,8 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     }
   end
 
-  def stub_sink(name:)
-    Aikido::Zen::Sink.new(name, operation: "test", scanners: [NOOP])
+  def stub_sink(name:, kind: "test_op")
+    Aikido::Zen::Sink.new(name, kind, operation: "test", scanners: [NOOP])
   end
 
   def stub_scan(sink: @sink, context: stub_context, duration: 1, attack: nil, errors: [])

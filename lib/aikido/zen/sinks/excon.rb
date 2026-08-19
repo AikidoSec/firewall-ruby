@@ -5,7 +5,7 @@ require_relative "../scanners/ssrf_scanner"
 module Aikido::Zen
   module Sinks
     module Excon
-      SINK = Sinks.add("excon", scanners: [
+      SINK = Sinks.add("excon", "outgoing_http_op", scanners: [
         Scanners::SSRFScanner
       ])
 

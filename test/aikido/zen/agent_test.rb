@@ -47,7 +47,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
       api_stream: @api_stream
     )
 
-    @test_sink = Aikido::Zen::Sink.new("test", scanners: [NOOP])
+    @test_sink = Aikido::Zen::Sink.new("test", "test_op", scanners: [NOOP])
   end
 
   teardown do

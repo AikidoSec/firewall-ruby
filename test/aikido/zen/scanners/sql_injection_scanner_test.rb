@@ -470,7 +470,7 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     end
 
     def stub_sink(name:)
-      Aikido::Zen::Sink.new(name, operation: "test", scanners: [NOOP])
+      Aikido::Zen::Sink.new(name, "sql_op", operation: "test", scanners: [NOOP])
     end
 
     def stub_payload(source, value, path)

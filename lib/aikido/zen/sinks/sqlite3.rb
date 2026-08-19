@@ -3,7 +3,7 @@
 module Aikido::Zen
   module Sinks
     module SQLite3
-      SINK = Sinks.add("sqlite3", scanners: [Scanners::SQLInjectionScanner])
+      SINK = Sinks.add("sqlite3", "sql_op", scanners: [Scanners::SQLInjectionScanner])
 
       module Helpers
         def self.scan(query, operation)

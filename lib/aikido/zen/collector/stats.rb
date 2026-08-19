@@ -94,21 +94,25 @@ module Aikido::Zen
     end
 
     # @param sink_name [String] the name of the sink
+    # @param sink_kind [String] the category of operation the sink represents
     # @param duration [Float] the length the scan in seconds
     # @param has_errors [Boolean] whether errors occurred during the scan
     # @return [void]
-    def add_scan(sink_name, duration, has_errors:)
+    def add_scan(sink_name, sink_kind, duration, has_errors:)
       stats = @sinks[sink_name]
+      stats.kind = sink_kind
       stats.scans += 1
       stats.errors += 1 if has_errors
       stats.add_timing(duration)
     end
 
     # @param sink_name [String] the name of the sink
+    # @param sink_kind [String] the category of operation the sink represents
     # @param being_blocked [Boolean] whether the Agent blocked the request
     # @return [void]
-    def add_attack(sink_name, being_blocked:)
+    def add_attack(sink_name, sink_kind, being_blocked:)
       stats = @sinks[sink_name]
+      stats.kind = sink_kind
       stats.attacks += 1
       stats.blocked_attacks += 1 if being_blocked
     end

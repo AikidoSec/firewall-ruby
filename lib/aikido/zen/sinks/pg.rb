@@ -3,7 +3,7 @@
 module Aikido::Zen
   module Sinks
     module PG
-      SINK = Sinks.add("pg", scanners: [Scanners::SQLInjectionScanner])
+      SINK = Sinks.add("pg", "sql_op", scanners: [Scanners::SQLInjectionScanner])
 
       module Helpers
         # For some reason, the ActiveRecord pg adaptor does not wrap exceptions

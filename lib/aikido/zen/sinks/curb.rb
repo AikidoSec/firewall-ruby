@@ -5,7 +5,7 @@ require_relative "../scanners/ssrf_scanner"
 module Aikido::Zen
   module Sinks
     module Curl
-      SINK = Sinks.add("curb", scanners: [
+      SINK = Sinks.add("curb", "outgoing_http_op", scanners: [
         Scanners::SSRFScanner
       ])
 
