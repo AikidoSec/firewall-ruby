@@ -68,8 +68,6 @@ module Aikido::Zen
 
               connection = Helpers.build_outbound(req)
 
-              settings = Aikido::Zen.runtime_settings
-
               unless Aikido::Zen.request_bypassed?
                 Aikido::Zen.track_outbound(connection)
 

@@ -62,8 +62,6 @@ module Aikido::Zen
 
               connection = OutboundConnection.from_uri(URI(url))
 
-              settings = Aikido::Zen.runtime_settings
-
               unless Aikido::Zen.request_bypassed?
                 Aikido::Zen.track_outbound(connection)
 

@@ -48,8 +48,6 @@ module Aikido::Zen
             context["ssrf.request"] = wrapped_request
           end
 
-          settings = Aikido::Zen.runtime_settings
-
           unless Aikido::Zen.request_bypassed?
             Aikido::Zen.track_outbound(connection)
 
