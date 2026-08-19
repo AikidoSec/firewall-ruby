@@ -7,7 +7,7 @@ Call `Aikido::Zen.request_bypassed!` from a Rack middleware to bypass Zen for th
 
 ## What gets bypassed
 
-* **Attack protection** — SQL injection, path traversal, command injection, and SSRF attacks are not detected.
+* **Attack protection** — SQL injection, path traversal, command injection, and SSRF attacks are not blocked or reported
 * **Rate limiting** — never triggered.
 * **IP blocking** — Known Threat Actors, Tor traffic blocking/monitoring, country blocking, and custom IP allow/block lists are not checked.
 * **Bot traffic blocking** — not checked.
