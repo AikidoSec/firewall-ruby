@@ -67,9 +67,7 @@ namespace :ci do
           "RAILS_ENV" => "test",
           "PORT" => rails_port.to_s,
           "AIKIDO_TOKEN" => mock_token,
-          "AIKIDO_ENDPOINT" => mock_uri,
-          "AIKIDO_REALTIME_ENDPOINT" => mock_uri,
-          "AIKIDO_REALTIME_SETTINGS_UPDATES_ENDPOINT" => mock_uri
+          "AIKIDO_ENDPOINT" => mock_uri
         },
         "bundle exec rails server",
         out: rails_log,

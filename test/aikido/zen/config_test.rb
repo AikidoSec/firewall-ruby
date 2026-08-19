@@ -145,13 +145,6 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     end
   end
 
-  test "can override the default realtime URL with an ENV variable" do
-    with_env "AIKIDO_REALTIME_ENDPOINT" => "https://test.aikido.dev" do
-      config = Aikido::Zen::Config.new
-      assert_equal URI("https://test.aikido.dev"), config.realtime_endpoint
-    end
-  end
-
   test "derives the api_endpoint region from the AIKIDO_TOKEN" do
     {
       "US" => "https://guard.us.aikido.dev",

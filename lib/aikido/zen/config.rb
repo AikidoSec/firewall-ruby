@@ -236,7 +236,7 @@ module Aikido::Zen
       self.debugging = read_boolean_from_env(ENV.fetch("AIKIDO_DEBUG", false))
       self.api_token = ENV.fetch("AIKIDO_TOKEN", nil)
       self.api_endpoint = ENV.fetch("AIKIDO_ENDPOINT") { regional_api_endpoint(api_token) }
-      self.realtime_endpoint = ENV.fetch("AIKIDO_REALTIME_ENDPOINT") { regional_api_endpoint(api_token) }
+      self.realtime_endpoint = ENV.fetch("AIKIDO_ENDPOINT") { regional_api_endpoint(api_token) }
       self.api_timeouts = 10
       self.polling_interval = 60 # 1 min
       self.initial_heartbeat_delays = [30, 60 * 2] # 30 sec, 2 min
