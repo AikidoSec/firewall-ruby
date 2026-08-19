@@ -48,12 +48,10 @@ module Aikido::Zen
             context["ssrf.request"] = wrapped_request
           end
 
-          settings = Aikido::Zen.runtime_settings
-
           unless Aikido::Zen.request_bypassed?
             Aikido::Zen.track_outbound(connection)
 
-            if settings.block_outbound?(connection)
+            if Aikido::Zen.block_outbound?(connection)
               Sinks::DSL.presafe do
                 raise OutboundConnectionBlockedError.new(connection)
               end
