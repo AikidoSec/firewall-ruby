@@ -600,6 +600,33 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     refute_logged :info, /updated runtime settings after server-sent event/i
   end
 
+  test "#settings_updated ignores newer events that arrive too fast" do
+    Aikido::Zen.runtime_settings.updated_at = Time.at(1000)
+
+    @api_client.expect(:fetch_runtime_config, {"configUpdatedAt" => 2000})
+    @api_client.expect(:fetch_runtime_firewall_lists, {})
+
+    @agent.send(:settings_updated, {data: {"configUpdatedAt" => 2000}})
+    @agent.send(:settings_updated, {data: {"configUpdatedAt" => 3000}})
+
+    assert_mock @api_client
+  end
+
+  test "#settings_updated does not let a stale event suppress a genuine later update" do
+    Aikido::Zen.runtime_settings.updated_at = Time.at(2000)
+
+    # A stale/duplicate event that doesn't trigger a fetch should not start the
+    # "arrived too fast" cooldown, or it could suppress the next genuine update.
+    @agent.send(:settings_updated, {data: {"configUpdatedAt" => 1000}})
+
+    @api_client.expect(:fetch_runtime_config, {"configUpdatedAt" => 3000})
+    @api_client.expect(:fetch_runtime_firewall_lists, {})
+
+    @agent.send(:settings_updated, {data: {"configUpdatedAt" => 3000}})
+
+    assert_mock @api_client
+  end
+
   test "#update_settings_from_runtime_config! updates settings and logs a message including the reason" do
     config_data = {"configUpdatedAt" => 1234567890}
 

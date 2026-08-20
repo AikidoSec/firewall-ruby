@@ -220,6 +220,8 @@ module Aikido::Zen
       updated_at = Time.at(event[:data]["configUpdatedAt"].to_i)
 
       if should_fetch_settings?(updated_at)
+        return if realtime_settings_updates_too_fast?
+
         if update_settings_from_runtime_config!(@api_client.fetch_runtime_config, reason: "after server-sent event")
           updated_settings!
 
@@ -237,6 +239,19 @@ module Aikido::Zen
       return true if last_updated_at.nil?
 
       updated_at > last_updated_at
+    end
+
+    def realtime_settings_updates_too_fast?
+      now = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
+
+      last_updated_at = @realtime_settings_updates_last_updated_at
+      if last_updated_at && now - last_updated_at < @config.realtime_settings_updates_min_time_between_events
+        return true
+      end
+
+      @realtime_settings_updates_last_updated_at = now
+
+      false
     end
 
     def heartbeats
