@@ -2,7 +2,7 @@
 
 module Aikido
   module Zen
-    VERSION = "1.7.2"
+    VERSION = "1.8.0"
 
     # The version of libzen_internals that we build against.
     LIBZEN_VERSION = "0.1.61"
