@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 require "forwardable"
+require "base64"
+require "json"
+require "cgi"
 
 require_relative "request"
 require_relative "payload"
@@ -104,10 +107,17 @@ module Aikido::Zen
     # @!visibility private
     def extract_payloads_from(data, source_type, prefix = nil)
       if data.is_a?(String)
-        [Payload.new(data, source_type, prefix.to_s)]
+        payloads = [Payload.new(data, source_type, prefix.to_s)]
+        payloads.concat(url_decoded_payloads(data, source_type, prefix))
+        payloads.concat(jwt_payloads(data, source_type, prefix))
+        payloads
       elsif data.respond_to?(:to_hash)
         data.to_hash.flat_map do |key, value|
-          extract_payloads_from(value, source_type, [prefix, key].compact.join("."))
+          key_prefix = [prefix, key].compact.join(".")
+          # Emit object keys as scannable payloads so attacks hidden in keys
+          # (rather than values) are still inspected by the scanners.
+          key_payloads = key.is_a?(String) ? [Payload.new(key, source_type, [prefix, "__key__"].compact.join("."))] : []
+          key_payloads + extract_payloads_from(value, source_type, key_prefix)
         end
       elsif data.respond_to?(:to_ary)
         array = data.to_ary
@@ -134,6 +144,61 @@ module Aikido::Zen
       else
         []
       end
+    end
+
+    # Emit URL-decoded variants of strings that contain percent-encoding, so
+    # payloads hidden behind (possibly repeated) URL-encoding are scanned.
+    def url_decoded_payloads(data, source_type, prefix)
+      payloads = []
+      current = data
+      5.times do
+        break if current.length < 3 || !current.include?("%")
+
+        decoded = begin
+          CGI.unescape(current)
+        rescue
+          nil
+        end
+        break if decoded.nil? || decoded == current
+
+        payloads << Payload.new(decoded, source_type, [prefix, "__url_decoded__"].compact.join("."))
+        current = decoded
+      end
+      payloads
+    end
+
+    # If the string is a JWT, decode its body and emit the claims as payloads so
+    # attacks hidden inside JWT claims are scanned.
+    def jwt_payloads(data, source_type, prefix)
+      object = decode_jwt(data)
+      return [] if object.nil?
+
+      # Drop the issuer, which is often a URL/domain and produces false positives.
+      object.delete("iss") if object.is_a?(Hash)
+
+      extract_payloads_from(object, source_type, [prefix, "__jwt__"].compact.join("."))
+    end
+
+    def decode_jwt(token)
+      parts = token.to_s.split(".")
+      return nil unless parts.length == 3
+
+      body = parts[1]
+      return nil if body.nil? || body.empty?
+
+      decoded = begin
+        Base64.urlsafe_decode64(body + "=" * (-body.length % 4))
+      rescue
+        return nil
+      end
+
+      begin
+        parsed = JSON.parse(decoded)
+      rescue
+        return nil
+      end
+
+      (parsed.is_a?(Hash) || parsed.is_a?(Array)) ? parsed : nil
     end
 
     def unsafe_path?(filepath)
