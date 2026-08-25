@@ -32,6 +32,40 @@ class Aikido::Zen::Sinks::HTTPClientTest < ActiveSupport::TestCase
       assert_not_requested :get, "https://localhost/safe"
     end
 
+    test "still detects an attack from the 'iss' query param when ignoring it is disabled" do
+      Aikido::Zen.config.ignore_iss_query_parameter = false
+      set_context_from_request_to "/?iss=localhost"
+
+      assert_attack Aikido::Zen::Attacks::SSRFAttack do
+        HTTPClient.get("https://localhost/safe")
+      end
+
+      assert_not_requested :get, "https://localhost/safe"
+    end
+
+    test "allows requests where only the 'iss' query param matches the host when ignoring it is enabled" do
+      Aikido::Zen.config.ignore_iss_query_parameter = true
+      set_context_from_request_to "/?iss=localhost"
+
+      refute_attack do
+        response = HTTPClient.get("https://localhost/safe")
+        assert_equal "OK", response.body
+      end
+
+      assert_requested :get, "https://localhost/safe"
+    end
+
+    test "still detects an attack from another payload even when 'iss' also matches and ignoring it is enabled" do
+      Aikido::Zen.config.ignore_iss_query_parameter = true
+      set_context_from_request_to "/?iss=localhost&host=localhost"
+
+      assert_attack Aikido::Zen::Attacks::SSRFAttack do
+        HTTPClient.get("https://localhost/safe")
+      end
+
+      assert_not_requested :get, "https://localhost/safe"
+    end
+
     test "does not fail if a context is not set" do
       Aikido::Zen.current_context = nil
 

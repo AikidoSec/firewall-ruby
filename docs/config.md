@@ -54,6 +54,19 @@ TypeError: Zen prevented implicit conversion of Array to String in hardened meth
 Only disable hardened mode if you are using code that relies on dangerous
 undocumented behavior and that code cannot be changed.
 
+## OAuth/OIDC "iss" query parameter
+
+RFC 9207 requires OpenID Connect providers to echo their own URL back in an
+`iss` query parameter on the callback, for the client to validate against.
+Zen's SSRF scanner can wrongly flag this as an attack when the provider is
+self-hosted on a private/internal address, because the `iss` value matches
+the host that your app connects to for configuration or token exchange.
+
+To prevent this, Zen can be configured to ignore the `iss` query parameter.
+This is disabled by default because it makes the scanner ignore `iss` on
+every request, not just your OAuth/OIDC callback route. To enable it, set
+`Aikido::Zen.config.ignore_iss_query_parameter = true`.
+
 ## Logger
 
 Zen logs to standard output by default. You can change this by changing the

@@ -44,6 +44,13 @@ module Aikido::Zen
         context["ssrf.redirects"] ||= RedirectChains.new
 
         context.payloads.each do |payload|
+          # RFC 9207 requires OAuth/OIDC providers to echo their own URL back
+          # in the "iss" query parameter, for the client to validate against;
+          # never to use as a destination. Ignoring the "iss" query parameter
+          # avoids wrongly flagging it as an SSRF attack.
+          next if Aikido::Zen.config.ignore_iss_query_parameter? &&
+            payload.source == :query && payload.path == "iss"
+
           scanner = new(request.uri, payload.value, context["ssrf.redirects"])
           next unless scanner.attack?
 

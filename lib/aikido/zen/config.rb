@@ -234,6 +234,13 @@ module Aikido::Zen
     #   Defaults to 9 seconds in milliseconds.
     attr_accessor :realtime_settings_updates_min_time_between_events
 
+    # @return [Boolean] whether the SSRF scanner should ignore the "iss" query
+    #   parameter when deciding whether an outbound request's destination was
+    #   attacker-controlled.
+    #   Defaults to false.
+    attr_accessor :ignore_iss_query_parameter
+    alias_method :ignore_iss_query_parameter?, :ignore_iss_query_parameter
+
     def initialize
       self.insert_middleware_after = ::ActionDispatch::RemoteIp
       self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLE", false)) || read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
@@ -283,6 +290,7 @@ module Aikido::Zen
       self.idor_max_cache_entries = 1000
       self.realtime_settings_updates_enabled = false
       self.realtime_settings_updates_min_time_between_events = 9 * 1000 # 9 sec (ms)
+      self.ignore_iss_query_parameter = false
     end
 
     # Set the base URL for API requests.
