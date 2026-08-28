@@ -103,6 +103,17 @@ class Aikido::Zen::Scanners::SSRF::PrivateIPCheckerTest < ActiveSupport::TestCas
     refute_private "+127.0.0.1"
   end
 
+  test "detects hexadecimal IPv4 addresses regardless of the case of the '0x' prefix or hex digits" do
+    assert_private "0x7f000001"
+    assert_private "0X7f000001"
+    assert_private "0x7F000001"
+    assert_private "0X7F000001"
+    assert_private "0X7f.0.0.1"
+
+    refute_private "0x01020304" # 1.2.3.4
+    refute_private "0X01020304" # 1.2.3.4
+  end
+
   test "detects _actually_ private (RFC 1918/RFC 4193) addresses" do
     # 10.0.0.0/8
     assert_private "10.0.0.0"

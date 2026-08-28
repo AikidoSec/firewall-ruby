@@ -87,7 +87,7 @@ module Aikido::Zen
         #
         # Hostnames are not expected to match, allowing `parse_address` to
         # skip the `Socket.getaddrinfo` call.
-        ADDRESS_REGEXP = /\A[0-9a-fA-Fx:.]+\z/
+        ADDRESS_REGEXP = /\A[0-9a-fx:.]+\z/i
 
         # Parses `address` as an IP address, in any form that is accepted
         # by `getaddrinfo`:
