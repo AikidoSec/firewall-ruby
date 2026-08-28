@@ -72,6 +72,38 @@ class Aikido::Zen::Scanners::PathTraversalScannerTest < ActiveSupport::TestCase
     assert_attack "/home/user/file.txt", "/home/user"
   end
 
+  test "common container/cloud directories" do
+    refute_attack "/app/file.txt", "/app/"
+    assert_attack "/app/file.txt", "/app/file.txt"
+    assert_attack "/app/../app/file.txt", "/app/../app/file.txt"
+    assert_attack "/app/user/file.txt", "/app/user"
+
+    refute_attack "/code/file.txt", "/code/"
+    assert_attack "/code/file.txt", "/code/file.txt"
+    assert_attack "/code/../code/file.txt", "/code/../code/file.txt"
+    assert_attack "/code/user/file.txt", "/code/user"
+
+    refute_attack "/data/file.txt", "/data/"
+    assert_attack "/data/file.txt", "/data/file.txt"
+    assert_attack "/data/../data/file.txt", "/data/../data/file.txt"
+    assert_attack "/data/user/file.txt", "/data/user"
+
+    refute_attack "/rails/file.txt", "/rails/"
+    assert_attack "/rails/file.txt", "/rails/file.txt"
+    assert_attack "/rails/../rails/file.txt", "/rails/../rails/file.txt"
+    assert_attack "/rails/app/file.txt", "/rails/app"
+
+    refute_attack "/workspace/file.txt", "/workspace/"
+    assert_attack "/workspace/file.txt", "/workspace/file.txt"
+    assert_attack "/workspace/../workspace/file.txt", "/workspace/../workspace/file.txt"
+    assert_attack "/workspace/project/file.txt", "/workspace/project"
+
+    refute_attack "/workspaces/file.txt", "/workspaces/"
+    assert_attack "/workspaces/file.txt", "/workspaces/file.txt"
+    assert_attack "/workspaces/../workspaces/file.txt", "/workspaces/../workspaces/file.txt"
+    assert_attack "/workspaces/project/file.txt", "/workspaces/project"
+  end
+
   test "possible bypasses" do
     assert_attack "/./etc/passwd", "/./etc/passwd"
     assert_attack "/./././root/file.txt", "/./././root/"

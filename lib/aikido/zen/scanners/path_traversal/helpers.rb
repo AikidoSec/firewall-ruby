@@ -27,7 +27,11 @@ module Aikido::Zen
         "/var/",
         # Common container/cloud directories
         "/app/",
-        "/code/"
+        "/code/",
+        "/data/",
+        "/rails/",
+        "/workspace/",
+        "/workspaces/"
       ]
 
       MACOS_PATH_STARTS = [
