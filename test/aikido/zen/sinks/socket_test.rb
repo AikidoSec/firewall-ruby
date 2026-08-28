@@ -82,4 +82,31 @@ class Aikido::Zen::Sinks::SocketTest < ActiveSupport::TestCase
       build_socket("google.com", 443)
     end
   end
+
+  def assert_real_connection_attack
+    TCPServer.open("127.0.0.1", 0) do |server|
+      port = server.addr[1]
+
+      set_context_from_request_to "/?host=127.0.0.1"
+      Aikido::Zen.current_context["ssrf.request"] =
+        build_request_to("http://127.0.0.1:#{port}/flag.txt")
+
+      socket = nil
+      begin
+        assert_attack Aikido::Zen::Attacks::SSRFAttack do
+          socket = yield(port)
+        end
+      ensure
+        socket&.close
+      end
+    end
+  end
+
+  test "a real TCPSocket.new connection to a private IP address is detected as an SSRF" do
+    assert_real_connection_attack { |port| TCPSocket.new("127.0.0.1", port) }
+  end
+
+  test "a real TCPSocket.open connection to a private IP address is detected as an SSRF" do
+    assert_real_connection_attack { |port| TCPSocket.open("127.0.0.1", port) }
+  end
 end
