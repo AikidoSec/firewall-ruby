@@ -66,12 +66,52 @@ class Aikido::Zen::Scanners::SSRF::PrivateIPCheckerTest < ActiveSupport::TestCas
   test "ignores invalid input without errors" do
     refute_private nil
     refute_private ""
-    refute_private "192"
+    refute_private "1.2.3.4.5"
+    refute_private "256.1.1.1"
+    refute_private "4294967296"
+    refute_private "08.0.0.1"
   end
 
   test "detects loopback addresses" do
     assert_private "127.0.0.1"
     assert_private "::1"
+  end
+
+  test "detects IPv4 addresses given as a plain integer (decimal, octal, or hexadecimal) or in shorthand-dotted notation" do
+    # Decimal, octal, and hexadecimal integer forms of 127.0.0.1
+    assert_private "2130706433"
+    assert_private "0x7f000001"
+    assert_private "017700000001"
+
+    # Shorthand dotted forms, where the last component fills the remaining bytes
+    assert_private "127.1"
+    assert_private "0x7f.0.0.1"
+    assert_private "0177.0.0.1"
+
+    # "192" alone is inet_aton's decimal form for 0.0.0.192, which is inside
+    # the reserved 0.0.0.0/8 range
+    assert_private "192"
+
+    # Non-private addresses in these forms should still be considered external
+    refute_private "16909060" # 1.2.3.4
+    refute_private "0x01020304" # 1.2.3.4
+    refute_private "1.2.3.4"
+
+    # Malformed integer-looking hosts aren't treated as addresses, and fall
+    # back to (failing) hostname resolution
+    refute_private "1_27.0.0.1"
+    refute_private "+127.0.0.1"
+  end
+
+  test "detects hexadecimal IPv4 addresses regardless of the case of the '0x' prefix or hex digits" do
+    assert_private "0x7f000001"
+    assert_private "0X7f000001"
+    assert_private "0x7F000001"
+    assert_private "0X7F000001"
+    assert_private "0X7f.0.0.1"
+
+    refute_private "0x01020304" # 1.2.3.4
+    refute_private "0X01020304" # 1.2.3.4
   end
 
   test "detects _actually_ private (RFC 1918/RFC 4193) addresses" do
