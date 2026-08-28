@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "digest"
+require "json"
+
 module Aikido::Zen
   class RuntimeSettings::IPList
     attr_reader :key
@@ -15,15 +18,21 @@ module Aikido::Zen
         key: data["key"],
         source: data["source"],
         description: data["description"],
-        ips: Array(data["ips"]).map { |ip| IPAddr.new(ip) }
+        ips: Array(data["ips"]).map { |ip| IPAddr.new(ip) },
+        source_fingerprint: fingerprint(data)
       )
     end
 
-    def initialize(key:, source:, description:, ips:)
+    def self.fingerprint(data)
+      Digest::SHA256.digest(JSON.generate(data))
+    end
+
+    def initialize(key:, source:, description:, ips:, source_fingerprint: nil)
       @key = key
       @source = source
       @description = description
       @ips = ips
+      @source_fingerprint = source_fingerprint
 
       @ipv4_ranges = []
       @ipv6_ranges = []
@@ -47,6 +56,10 @@ module Aikido::Zen
 
     def inspect
       "#<#{self.class} #{@key}>"
+    end
+
+    def unchanged?(data)
+      @source_fingerprint == self.class.fingerprint(data)
     end
 
     def include?(ip)

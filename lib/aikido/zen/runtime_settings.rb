@@ -151,25 +151,23 @@ module Aikido::Zen
         }
       end
 
-      self.blocked_ip_lists = []
-
-      data["blockedIPAddresses"]&.each do |ip_list|
-        blocked_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
-      end
-
-      self.allowed_ip_lists = []
-
-      data["allowedIPAddresses"]&.each do |ip_list|
-        allowed_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
-      end
-
-      self.monitored_ip_lists = []
-
-      data["monitoredIPAddresses"]&.each do |ip_list|
-        monitored_ip_lists << RuntimeSettings::IPList.from_json(ip_list)
-      end
+      self.blocked_ip_lists = update_ip_lists(data["blockedIPAddresses"], blocked_ip_lists)
+      self.allowed_ip_lists = update_ip_lists(data["allowedIPAddresses"], allowed_ip_lists)
+      self.monitored_ip_lists = update_ip_lists(data["monitoredIPAddresses"], monitored_ip_lists)
 
       true
+    end
+
+    private def update_ip_lists(data, existing_ip_lists)
+      existing_ip_lists_by_key = existing_ip_lists.group_by(&:key)
+
+      Array(data).map do |ip_list_data|
+        existing_ip_list = existing_ip_lists_by_key[ip_list_data["key"]]&.find do |ip_list|
+          ip_list.unchanged?(ip_list_data)
+        end
+
+        existing_ip_list || RuntimeSettings::IPList.from_json(ip_list_data)
+      end
     end
 
     # Construct a regular expression from the non-nil and non-empty string,

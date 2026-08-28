@@ -303,6 +303,80 @@ class Aikido::Zen::RuntimeSettingsTest < ActiveSupport::TestCase
     assert_equal [], @settings.user_agent_details
   end
 
+  test "#update_from_runtime_firewall_lists_json reuses unchanged IP lists" do
+    synced = {
+      "key" => "synced",
+      "source" => "source",
+      "description" => "description",
+      "ips" => ["192.0.2.0/24"]
+    }
+    playbook = {
+      "key" => "playbook",
+      "source" => "source",
+      "description" => "description",
+      "ips" => ["198.51.100.1"]
+    }
+
+    @settings.update_from_runtime_firewall_lists_json({"blockedIPAddresses" => [synced, playbook]})
+
+    synced_list = @settings.blocked_ip_lists.find { |ip_list| ip_list.key == "synced" }
+    playbook_list = @settings.blocked_ip_lists.find { |ip_list| ip_list.key == "playbook" }
+
+    updated_playbook = {
+      "key" => "playbook",
+      "source" => "source",
+      "description" => "description",
+      "ips" => ["198.51.100.2"]
+    }
+    @settings.update_from_runtime_firewall_lists_json({"blockedIPAddresses" => [updated_playbook, synced]})
+
+    updated_synced_list = @settings.blocked_ip_lists.find { |ip_list| ip_list.key == "synced" }
+    updated_playbook_list = @settings.blocked_ip_lists.find { |ip_list| ip_list.key == "playbook" }
+
+    assert_same synced_list, updated_synced_list
+    refute_same playbook_list, updated_playbook_list
+    assert updated_synced_list.include?("192.0.2.1")
+    refute updated_playbook_list.include?("198.51.100.1")
+    assert updated_playbook_list.include?("198.51.100.2")
+
+    @settings.update_from_runtime_firewall_lists_json({"blockedIPAddresses" => [synced]})
+
+    assert_equal [synced_list], @settings.blocked_ip_lists
+  end
+
+  test "#update_from_runtime_firewall_lists_json reuses unchanged lists in every category" do
+    {
+      "blockedIPAddresses" => :blocked_ip_lists,
+      "allowedIPAddresses" => :allowed_ip_lists,
+      "monitoredIPAddresses" => :monitored_ip_lists
+    }.each do |type, attribute|
+      initial_data = {
+        type => [{
+          "key" => "synced",
+          "source" => "source",
+          "description" => "description",
+          "ips" => ["192.0.2.0/24"]
+        }],
+        "blockedUserAgents" => "first"
+      }
+      updated_data = {
+        type => [{
+          "key" => "synced",
+          "source" => "source",
+          "description" => "description",
+          "ips" => ["192.0.2.0/24"]
+        }],
+        "blockedUserAgents" => "second"
+      }
+
+      @settings.update_from_runtime_firewall_lists_json(initial_data)
+      previous_ip_list = @settings.public_send(attribute).first
+      @settings.update_from_runtime_firewall_lists_json(updated_data)
+
+      assert_same previous_ip_list, @settings.public_send(attribute).first
+    end
+  end
+
   test "#update_from_runtime_firewall_lists_json from a JSON response" do
     @settings.update_from_runtime_firewall_lists_json({
       "blockedIPAddresses" => [
