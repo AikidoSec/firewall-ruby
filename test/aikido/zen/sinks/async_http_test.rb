@@ -43,6 +43,27 @@ class Aikido::Zen::Sinks::AsyncHTTPTest < ActiveSupport::TestCase
       end
     end
 
+    test "prevents requests to IPv4 addresses written as decimal or hexadecimal integers that come from user input" do
+      Sync do
+        stub_request(:get, "http://2130706433/").to_return(status: 200, body: "OK")
+        stub_request(:get, "http://0x7f000001/").to_return(status: 200, body: "OK")
+
+        set_context_from_request_to "/?host=2130706433"
+        assert_attack Aikido::Zen::Attacks::SSRFAttack do
+          client = Async::HTTP::Internet.new
+          client.get(URI("http://2130706433/"))
+        end
+        assert_not_requested :get, "http://2130706433/"
+
+        set_context_from_request_to "/?host=0x7f000001"
+        assert_attack Aikido::Zen::Attacks::SSRFAttack do
+          client = Async::HTTP::Internet.new
+          client.get(URI("http://0x7f000001/"))
+        end
+        assert_not_requested :get, "http://0x7f000001/"
+      end
+    end
+
     test "does not fail if a context is not set" do
       Sync do
         Aikido::Zen.current_context = nil

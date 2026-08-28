@@ -6,9 +6,9 @@ require_relative "../scanners/ssrf_scanner"
 
 module Aikido::Zen
   module Sinks
-    # We intercept IPSocket.open to hook our DNS checks around it, since
-    # there's no way to access the internal DNS resolution that happens in C
-    # when using the socket primitives.
+    # We intercept TCPSocket#initialize to hook our DNS checks around it,
+    # since there's no way to access the internal DNS resolution that
+    # happens in C when using the socket primitives.
     module Socket
       SINK = Sinks.add("socket", "outgoing_http_op", scanners: [
         Scanners::StoredSSRFScanner,
@@ -17,7 +17,7 @@ module Aikido::Zen
 
       module Helpers
         def self.scan(hostname, socket, operation)
-          # We're patching IPSocket.open(..) method.
+          # We're patching TCPSocket#initialize.
           # The IPSocket class hierarchy is:
           #             IPSocket
           #            /        \
@@ -59,20 +59,22 @@ module Aikido::Zen
       end
 
       def self.load_sinks!
-        ::IPSocket.singleton_class.class_eval do
+        ::TCPSocket.class_eval do
           extend Sinks::DSL
 
-          sink_after :open do |socket, remote_host|
+          # This sink method covers both the `open` and the `new` class methods,
+          # since these methods call `initialize`.
+          sink_after :initialize do |_result, remote_host, *|
             # Code coverage is disabled here because the tests are contrived and
             # intentionally do not call open.
             # :nocov:
-            Helpers.scan(remote_host, socket, "open")
+            Helpers.scan(remote_host, self, "open")
             # :nocov:
           rescue Aikido::Zen::UnderAttackError, Aikido::Zen::Sinks::DSL::PresafeError
             # If the scan raises an exception that will escape the safe block,
             # the open socket must be closed because it will not be returned,
             # so the user cannot close it.
-            socket.close
+            close
 
             raise
           end

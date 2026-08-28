@@ -2,6 +2,7 @@
 
 require "resolv"
 require "ipaddr"
+require "socket"
 
 module Aikido::Zen
   module Scanners
@@ -72,17 +73,51 @@ module Aikido::Zen
 
         PRIVATE_RANGES = PRIVATE_IPV4_RANGES + PRIVATE_IPV6_RANGES + PRIVATE_IPV4_RANGES.map(&:ipv4_mapped)
 
+        # DNS lookups already performed for this request, keyed by hostname.
+        #
+        # @return [Aikido::Zen::Scanners::SSRF::DNSLookups, nil] nil outside
+        #   of a request
         def resolved_in_current_context
           context = Aikido::Zen.current_context
           context && context["dns.lookups"]
         end
 
+        # Matches strings that contain only characters that appear in some
+        # form of IP address.
+        #
+        # Hostnames are not expected to match, allowing `parse_address` to
+        # skip the `Socket.getaddrinfo` call.
+        ADDRESS_REGEXP = /\A[0-9a-fA-Fx:.]+\z/
+
+        # Parses `address` as an IP address, in any form that is accepted
+        # by `getaddrinfo`:
+        #
+        # * Standard IPv4/IPv6 notation (e.g. "127.0.0.1", "::1")
+        # * Plain integer IPv4 notation, in decimal, octal, or hexadecimal
+        #   (e.g. "2130706433", "017700000001", "0x7f000001")
+        # * Shorthand dotted IPv4 notation (e.g. "127.1")
+        #
+        # Delegates to `Socket.getaddrinfo` with the `AI_NUMERICHOST` flag,
+        # which never performs a DNS lookup.
+        #
+        # @param address [String]
+        # @return [Array<IPAddr>, nil] nil if `address` is not an address
+        def parse_address(address)
+          return nil unless address.is_a?(String) && ADDRESS_REGEXP.match?(address)
+
+          Socket.getaddrinfo(address, nil, :UNSPEC, :STREAM, nil, Socket::AI_NUMERICHOST)
+            .map { |info| IPAddr.new(info[3]) }
+        rescue SocketError
+          nil
+        end
+
         def resolve(hostname_or_address)
           return [] if hostname_or_address.nil?
 
+          addresses = parse_address(hostname_or_address)
+          return addresses if addresses
+
           case hostname_or_address
-          when Resolv::AddressRegex
-            [IPAddr.new(hostname_or_address)]
           when resolved_in_current_context
             resolved_in_current_context[hostname_or_address]
               .map { |address| IPAddr.new(address) }
