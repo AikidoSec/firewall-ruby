@@ -24,7 +24,7 @@ end
 if __FILE__ == $0
   ip_ranges = random_ip_ranges.take(1000)
 
-  ip_list = Aikido::Zen::RuntimeSettings::IPList.from_json({
+  ip_list = Aikido::Zen::Firewall::IPList.from_json({
     "key" => "key",
     "source" => "source",
     "description" => "description",
