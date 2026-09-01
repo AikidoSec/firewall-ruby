@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Aikido::Zen::RuntimeSettings::IPListTest < ActiveSupport::TestCase
+class Aikido::Zen::Firewall::IPListTest < ActiveSupport::TestCase
   DEFAULT_IP_LIST = {
     "key" => "key",
     "source" => "source",
@@ -22,9 +22,9 @@ class Aikido::Zen::RuntimeSettings::IPListTest < ActiveSupport::TestCase
   }
 
   test "create IP list from JSON" do
-    ip_list = Aikido::Zen::RuntimeSettings::IPList.from_json(DEFAULT_IP_LIST)
+    ip_list = Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
 
-    assert_kind_of Aikido::Zen::RuntimeSettings::IPList, ip_list
+    assert_kind_of Aikido::Zen::Firewall::IPList, ip_list
 
     assert_equal "key", ip_list.key
     assert_equal "source", ip_list.source
@@ -40,7 +40,7 @@ class Aikido::Zen::RuntimeSettings::IPListTest < ActiveSupport::TestCase
   end
 
   test "#include? is true if the ip address is included" do
-    ip_list = Aikido::Zen::RuntimeSettings::IPList.from_json(DEFAULT_IP_LIST)
+    ip_list = Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
 
     [
       "192.168.0.1",
@@ -80,7 +80,7 @@ class Aikido::Zen::RuntimeSettings::IPListTest < ActiveSupport::TestCase
   end
 
   test "#include? is false if the ip address is not included" do
-    ip_list = Aikido::Zen::RuntimeSettings::IPList.from_json(DEFAULT_IP_LIST)
+    ip_list = Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
 
     [
       "1.1.1.1",

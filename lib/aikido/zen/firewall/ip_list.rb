@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Aikido::Zen
-  class RuntimeSettings::IPList
+  class Firewall::IPList
     attr_reader :key
     attr_reader :source
     attr_reader :description

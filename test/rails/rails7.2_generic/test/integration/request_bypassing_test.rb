@@ -2,7 +2,7 @@ require "test_helper"
 
 class RequestBypassingTest < ActionDispatch::IntegrationTest
   setup do
-    Aikido::Zen.runtime_settings.update_from_runtime_config_json(
+    Aikido::Zen.runtime_settings.update_from_json(
       "endpoints" => [{
         "method" => "GET",
         "route" => "/test/rate_limit(.:format)",
