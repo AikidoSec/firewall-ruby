@@ -44,6 +44,7 @@ jobs:
       env:
         COVERAGE_OUTPUT_LCOV: true
     - name: Upload coverage to Aikido
+      if: matrix.ruby != '2.7'
       uses: AikidoSec/code-coverage-github-action@c649d671735d625ec9d39bab5efae5921160ea63 # v0.1.0
       with:
         lcov-file-paths: ./coverage/lcov/firewall-ruby.lcov
