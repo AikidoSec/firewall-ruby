@@ -5,8 +5,8 @@ on:
   - workflow_call
 
 permissions:
-  id-token: write
   contents: read
+  id-token: write
 
 jobs:
   test:
