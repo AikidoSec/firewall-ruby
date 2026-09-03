@@ -22,7 +22,9 @@ class Aikido::Zen::Firewall::IPListTest < ActiveSupport::TestCase
   }
 
   test "create IP list from JSON" do
-    ip_list = Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
+    ip_list = Aikido::Zen::Internals.stub :ip_matcher_available?, false do
+      Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
+    end
 
     assert_kind_of Aikido::Zen::Firewall::IPList, ip_list
 
@@ -96,5 +98,12 @@ class Aikido::Zen::Firewall::IPListTest < ActiveSupport::TestCase
     ].each do |ip|
       refute ip_list.include?(ip)
     end
+  end
+
+  test "#include? matches IPv4-mapped IPv6 addresses against IPv4 networks" do
+    ip_list = Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
+
+    assert ip_list.include?("::ffff:192.168.0.1")
+    assert ip_list.include?(IPAddr.new("::ffff:192.168.0.1"))
   end
 end
