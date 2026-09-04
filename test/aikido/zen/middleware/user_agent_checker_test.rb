@@ -7,7 +7,7 @@ class Aikido::Zen::Middleware::UserAgentCheckerTest < ActiveSupport::TestCase
     extend ActiveSupport::Testing::Declarative
 
     def update_runtime_firewall_lists
-      @firewall.update_from_json({
+      @firewall.update_user_agents_from_json({
         "blockedUserAgents" => "Applebot-Extended|CCBot|ClaudeBot|Google-Extended|GPTBot|meta-externalagent|anthropic-ai|AdsBot-Google|Mediapartners-Google|Mediapartners \\(Googlebot\\)|Google-Adwords",
         "monitoredUserAgents" => "ChatGPT-User|Meta-ExternalFetcher|Claude-Web|GitHubCopilotChat|Claude-User",
         "userAgentDetails" => [

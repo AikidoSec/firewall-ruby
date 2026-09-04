@@ -58,6 +58,8 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 1000, @config.idor_max_cache_entries
     assert_equal false, @config.realtime_settings_updates_enabled?
     assert_equal 9_000, @config.realtime_settings_updates_min_time_between_events
+    assert_equal File.join(Dir.tmpdir, "aikido-zen-#{Process.pid}"), @config.tmp_dir
+    assert_equal File.join(Dir.tmpdir, "aikido-zen-#{Process.pid}", "ip_lists"), @config.ip_lists_dir
   end
 
   test "can set AIKIDO_DISABLE to configure if the agent should be turned off" do

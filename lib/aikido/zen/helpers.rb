@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "ipaddr"
+
 module Aikido
   module Zen
     # @api private
@@ -18,6 +20,28 @@ module Aikido
         normalized_path.squeeze!("/")
         normalized_path.chomp!("/") unless normalized_path == "/"
         normalized_path
+      end
+
+      # Converts an IP address to native IPAddr representation.
+      #
+      # @param ip [IPAddr, String, nil]
+      # @return [IPAddr, nil] `nil` if `ip` is `nil` or can not be parsed as an IP address
+      # @raise [ArgumentError] if `ip` is not an IPAddr, String, or nil
+      def self.nativize_ip(ip)
+        case ip
+        when IPAddr
+          ip.native
+        when String
+          begin
+            IPAddr.new(ip).native
+          rescue IPAddr::InvalidAddressError
+            nil
+          end
+        when nil
+          nil
+        else
+          raise ArgumentError, "expected an IPAddr, String, or nil, got #{ip.class}"
+        end
       end
 
       # Returns a copy of the regexp with the timeout set if timeout is supported.
