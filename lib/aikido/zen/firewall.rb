@@ -47,23 +47,19 @@ module Aikido::Zen
         }
       end
 
-      self.blocked_ip_lists = []
-
-      data["blockedIPAddresses"]&.each do |ip_list|
-        blocked_ip_lists << Firewall::IPList.from_json(ip_list)
+      new_blocked_ip_lists = Array(data["blockedIPAddresses"]).map do |ip_list|
+        Firewall::IPList.from_json(ip_list)
+      end
+      new_allowed_ip_lists = Array(data["allowedIPAddresses"]).map do |ip_list|
+        Firewall::IPList.from_json(ip_list)
+      end
+      new_monitored_ip_lists = Array(data["monitoredIPAddresses"]).map do |ip_list|
+        Firewall::IPList.from_json(ip_list)
       end
 
-      self.allowed_ip_lists = []
-
-      data["allowedIPAddresses"]&.each do |ip_list|
-        allowed_ip_lists << Firewall::IPList.from_json(ip_list)
-      end
-
-      self.monitored_ip_lists = []
-
-      data["monitoredIPAddresses"]&.each do |ip_list|
-        monitored_ip_lists << Firewall::IPList.from_json(ip_list)
-      end
+      self.blocked_ip_lists = new_blocked_ip_lists
+      self.allowed_ip_lists = new_allowed_ip_lists
+      self.monitored_ip_lists = new_monitored_ip_lists
 
       true
     end
