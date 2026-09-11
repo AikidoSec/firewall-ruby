@@ -155,17 +155,13 @@ module Aikido::Zen
       end
     end
 
-    # @param event [Aikido::Zen::Tracked]
+    # Reports a custom event tracked via Aikido::Zen.track_user_event, if
+    # reporting is enabled.
+    #
+    # @param event [Aikido::Zen::Events::Custom]
     # @return [void]
-    def send_user_event(event)
-      return unless @api_client.can_make_requests?
-
-      @worker.perform do
-        response = @api_client.send_user_event(event)
-        yield response if response && block_given?
-      rescue Aikido::Zen::APIError, Aikido::Zen::NetworkError => err
-        @config.logger.error(err.message)
-      end
+    def track_event(event)
+      report(event) if @api_client.can_make_requests?
     end
 
     # @api private

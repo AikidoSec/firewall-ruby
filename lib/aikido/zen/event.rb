@@ -95,21 +95,31 @@ module Aikido::Zen
         )
       end
     end
-  end
 
-  class UserEvent
-    def initialize(name:, user_id:, ip_address:)
-      @name = name
-      @user_id = user_id
-      @ip_address = ip_address
-    end
+    # Event sent by Aikido::Zen.track_user_event to record a custom,
+    # user-named event happening during an HTTP request.
+    class Custom < Event
+      # @param name [String] the name of the tracked event.
+      # @param request [Aikido::Zen::Request]
+      # @param user [Aikido::Zen::Actor, nil]
+      # @param opts [Hash<Symbol, Object>] any other options to pass to
+      #   the superclass initializer.
+      def initialize(name:, request:, user: nil, **opts)
+        super(type: "custom", **opts)
+        @name = name
+        @request = request
+        @user = user
+      end
 
-    def as_json
-      {
-        name: @name,
-        userId: @user_id,
-        ipAddress: @ip_address
-      }
+      def as_json
+        super.update(
+          {
+            name: @name,
+            request: @request.as_json,
+            user: @user && {id: @user.id, name: @user.name}.compact
+          }.compact
+        )
+      end
     end
   end
 end
