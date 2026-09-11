@@ -50,6 +50,6 @@ Use lowercase with dots to group related events:
 
 ## Things to know
 
-`Aikido::Zen.track_user_event` only works inside an HTTP request. If you call it in a background job or a script, nothing gets sent and you'll see a warning in the console.
+`Aikido::Zen.track_user_event` only works inside an HTTP request. If you call it in a background job or a script, nothing gets sent.
 
 If you haven't called `Aikido::Zen.set_user` yet, the event still goes through — it just won't have a user ID attached.
