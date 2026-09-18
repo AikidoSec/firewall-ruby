@@ -7,6 +7,12 @@ module Aikido::Zen
   module Internals
     extend FFI::Library
 
+    @ip_matcher_available = false
+
+    def self.ip_matcher_available?
+      @ip_matcher_available
+    end
+
     def self.libzen_names
       lib_name = "libzen-v#{LIBZEN_VERSION}"
       lib_ext = FFI::Platform::LIBSUFFIX
@@ -73,6 +79,12 @@ module Aikido::Zen
       attach_function :idor_analyze_sql_native, :idor_analyze_sql_ffi, [:pointer, :size_t, :int], :pointer
 
       attach_function :idor_free_string_native, :free_string, [:pointer], :void
+
+      attach_function :ip_matcher_create_native, :ip_matcher_create, [:pointer, :size_t], :pointer, blocking: true
+      attach_function :ip_matcher_has_native, :ip_matcher_has, [:pointer, :buffer_in, :size_t], :int
+      attach_function :ip_matcher_memory_size_native, :ip_matcher_memory_size, [:pointer], :size_t
+      attach_function :ip_matcher_free_native, :ip_matcher_free, [:pointer], :void
+      @ip_matcher_available = true
     rescue LoadError, FFI::NotFoundError => err # rubocop:disable Lint/ShadowedException
       # :nocov:
 
@@ -132,6 +144,70 @@ module Aikido::Zen
         idor_free_string_native(result_ptr)
 
         JSON.parse(result_json)
+      end
+    end
+
+    class IPMatcher
+      module RubyGC
+        extend FFI::Library
+        ffi_lib FFI::Library::CURRENT_PROCESS
+        attach_function :adjust_memory_usage, :rb_gc_adjust_memory_usage, [:ssize_t], :void
+      end
+      private_constant :RubyGC
+
+      class Input < FFI::Struct
+        layout :data, :pointer,
+          :length, :size_t
+      end
+      private_constant :Input
+
+      class Handle < FFI::AutoPointer
+        def initialize(pointer)
+          super
+          RubyGC.adjust_memory_usage(Internals.ip_matcher_memory_size_native(pointer))
+        end
+
+        def self.release(pointer)
+          memory_size = Internals.ip_matcher_memory_size_native(pointer)
+          Internals.ip_matcher_free_native(pointer)
+          RubyGC.adjust_memory_usage(-memory_size)
+        end
+      end
+      private_constant :Handle
+
+      def initialize(networks)
+        @handle = Handle.new(create(networks.map { |network| String(network) }))
+      end
+
+      def include?(network)
+        Internals.ip_matcher_has_native(@handle, network, network.bytesize) == 1
+      end
+
+      private
+
+      def create(networks)
+        network_buffer = FFI::MemoryPointer.from_string(networks.join)
+        unless networks.empty?
+          descriptor_buffer = FFI::MemoryPointer.new(Input, networks.length)
+          network_offset = 0
+
+          networks.each_with_index do |network, index|
+            descriptor_offset = Input.size * index
+            descriptor_buffer.put_pointer(descriptor_offset + Input.offset_of(:data), network_buffer + network_offset)
+            descriptor_buffer.put(:size_t, descriptor_offset + Input.offset_of(:length), network.bytesize)
+            network_offset += network.bytesize
+          end
+        end
+
+        handle = Internals.ip_matcher_create_native(descriptor_buffer || FFI::Pointer::NULL, networks.length)
+        if handle.null?
+          raise InternalsError.new("an IP matcher", "calling ip_matcher_create in", Internals.libzen_name)
+        end
+
+        handle
+      ensure
+        descriptor_buffer&.free
+        network_buffer&.free
       end
     end
 
