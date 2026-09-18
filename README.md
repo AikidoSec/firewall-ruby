@@ -39,6 +39,12 @@ Zen for Ruby 2.7+ is compatible with:
 
 * ✅ [Ruby on Rails](docs/rails.md) 7.x, 8.x
 
+### Application servers
+
+* ✅ [Puma](https://puma.io/)
+
+Our test suite only covers Puma. If you use another Rack server, [contact us](docs/troubleshooting.md#contact-support) and we'll help check whether Zen is compatible.
+
 ### Database drivers
 
 * ✅ [`sqlite3`](https://github.com/sparklemotion/sqlite3-ruby) 1.x, 2.x
