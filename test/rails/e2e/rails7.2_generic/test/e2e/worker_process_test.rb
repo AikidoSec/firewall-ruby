@@ -8,7 +8,7 @@ class WorkerProcessTest < ActiveSupport::TestCase
 
   parallelize(workers: 1)
 
-  # Mirrors config/puma.rb's worker count.
+  # Mirrors the application server worker count configured through WEB_CONCURRENCY.
   WORKER_COUNT = Integer(ENV.fetch("WEB_CONCURRENCY", 2))
 
   test "worker process blocks a path traversal attack" do
@@ -143,10 +143,13 @@ class WorkerProcessTest < ActiveSupport::TestCase
     responses_by_pid = {}
 
     poll_until(timeout: timeout) do
-      response = yield
-      next unless response
+      # Send requests concurrently because sequential requests may all hit the same worker.
+      responses = Array.new(count) { Thread.new { yield } }.map(&:value)
 
-      responses_by_pid[response["X-Worker-Pid"]] = response
+      responses.compact.each do |response|
+        responses_by_pid[response["X-Worker-Pid"]] = response
+      end
+
       responses_by_pid.size >= count
     end
 

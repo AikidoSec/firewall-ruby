@@ -12,6 +12,15 @@ namespace :ci do
 
     mock_port = Integer(ENV.fetch("MOCK_PORT", 4567))
     rails_port = Integer(ENV.fetch("PORT", 3000))
+    application_server = ENV.fetch("APPLICATION_SERVER", "puma")
+
+    application_server_commands = {
+      "puma" => %w[bundle exec rails server],
+      "unicorn" => %w[bundle exec unicorn -c config/unicorn.rb config.ru]
+    }
+    application_server_command = application_server_commands.fetch(application_server) do
+      raise ArgumentError, "Unsupported application server: #{application_server}"
+    end
 
     mock_uri = "http://127.0.0.1:#{mock_port}"
     rails_uri = "http://127.0.0.1:#{rails_port}"
@@ -30,7 +39,7 @@ namespace :ci do
       puts "Starting mock server on port #{mock_port}..."
 
       pids << spawn(
-        {"PORT" => mock_port.to_s, "BUNDLE_GEMFILE" => nil},
+        {"PORT" => mock_port.to_s, "BUNDLE_GEMFILE" => nil, "WEB_CONCURRENCY" => nil},
         "bundle exec ruby app.rb",
         chdir: server_dir,
         out: mock_log,
@@ -60,16 +69,17 @@ namespace :ci do
       config_req.body = {"heartbeatIntervalInMS" => 1_000}.to_json
       Net::HTTP.start(config_uri.host, config_uri.port) { |http| http.request(config_req) }
 
-      puts "Starting Rails server on port #{rails_port}..."
+      puts "Starting #{application_server} application server on port #{rails_port}..."
 
       pids << spawn(
         {
           "RAILS_ENV" => "test",
+          "RACK_ENV" => "test",
           "PORT" => rails_port.to_s,
           "AIKIDO_TOKEN" => mock_token,
           "AIKIDO_ENDPOINT" => mock_uri
         },
-        "bundle exec rails server",
+        *application_server_command,
         out: rails_log,
         err: rails_log
       )

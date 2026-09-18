@@ -14,7 +14,7 @@ require "action_view/railtie"
 # require "action_cable/engine"
 require "rails/test_unit/railtie"
 
-if defined?(Rails::Server)
+if ENV["AIKIDO_TOKEN"]
   require "aikido-zen"
   Aikido::Zen.protect!
 end
