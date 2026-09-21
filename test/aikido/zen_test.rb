@@ -432,5 +432,15 @@ class Aikido::ZenTest < ActiveSupport::TestCase
       assert_logged :warn, /expects a non-empty String/
       assert_not_requested :post, "https://guard.aikido.dev/api/runtime/events"
     end
+
+    test ".track_custom_event does nothing if there is no agent" do
+      Aikido::Zen.instance_variable_set(:@agent, nil)
+
+      assert_silent do
+        Aikido::Zen.track_custom_event("user.login_failed")
+      end
+
+      assert_not_requested :post, "https://guard.aikido.dev/api/runtime/events"
+    end
   end
 end

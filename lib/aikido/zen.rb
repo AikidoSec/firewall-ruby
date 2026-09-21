@@ -293,6 +293,8 @@ module Aikido
         return
       end
 
+      return unless agent
+
       context = current_context
       return unless context
 
