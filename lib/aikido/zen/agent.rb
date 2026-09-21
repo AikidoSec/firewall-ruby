@@ -155,12 +155,12 @@ module Aikido::Zen
       end
     end
 
-    # Reports a custom event tracked via Aikido::Zen.track_user_event, if
+    # Reports a custom event tracked via Aikido::Zen.track_custom_event, if
     # reporting is enabled.
     #
     # @param event [Aikido::Zen::Events::Custom]
     # @return [void]
-    def track_event(event)
+    def track_custom_event(event)
       report(event) if @api_client.can_make_requests?
     end
 
