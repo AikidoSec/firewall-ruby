@@ -240,7 +240,7 @@ module Aikido
         user: context.request.actor
       )
 
-      agent.track_custom_event(event)
+      agent.report_custom_event(event)
     end
 
     # @return [Aikido::Zen::AttackWave::Detector] the attack wave detector.

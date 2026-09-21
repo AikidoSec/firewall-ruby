@@ -160,7 +160,7 @@ module Aikido::Zen
     #
     # @param event [Aikido::Zen::Events::Custom]
     # @return [void]
-    def track_custom_event(event)
+    def report_custom_event(event)
       report(event) if @api_client.can_make_requests?
     end
 
