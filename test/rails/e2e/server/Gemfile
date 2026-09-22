@@ -8,3 +8,5 @@ group :development do
   gem "rerun"
   gem "standard", "~> 1.55", require: false
 end
+
+gem "json", ">= 2.21.2"
