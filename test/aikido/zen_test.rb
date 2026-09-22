@@ -345,6 +345,8 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     # IP address and user agent for the tracked custom event.
     def current_context
       @current_context ||= Aikido::Zen::Context.from_rack_env({
+        "rack.url_scheme" => "http",
+        "HTTP_HOST" => "example.org",
         "REQUEST_METHOD" => "POST",
         "PATH_INFO" => "/login",
         "QUERY_STRING" => "token=secret&email=user@example.com",
