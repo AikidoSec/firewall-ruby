@@ -112,10 +112,14 @@ module Aikido::Zen
       end
 
       def as_json
+        request = @request.as_json
+        # Custom events may be triggered during legitimate requests, so their URLs can contain sensitive query parameters.
+        request["url"] = request["url"].partition("?").first if request["url"]
+
         super.update(
           {
             name: @name,
-            request: @request.as_json,
+            request: request,
             user: @user && {id: @user.id, name: @user.name}.compact
           }.compact
         )

@@ -347,6 +347,7 @@ class Aikido::ZenTest < ActiveSupport::TestCase
       @current_context ||= Aikido::Zen::Context.from_rack_env({
         "REQUEST_METHOD" => "POST",
         "PATH_INFO" => "/login",
+        "QUERY_STRING" => "token=secret&email=user@example.com",
         "REMOTE_ADDR" => "1.2.3.4",
         "HTTP_USER_AGENT" => "Teapot/1.0"
       })
@@ -382,7 +383,8 @@ class Aikido::ZenTest < ActiveSupport::TestCase
             "name" => "user.login_failed",
             "request" => hash_including(
               "ipAddress" => "1.2.3.4",
-              "userAgent" => "Teapot/1.0"
+              "userAgent" => "Teapot/1.0",
+              "url" => "http://example.org/login"
             ),
             "user" => {"id" => "418", "name" => "I. A. Teapot"}
           ),
