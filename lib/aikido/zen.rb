@@ -278,6 +278,35 @@ module Aikido
       alias_method :set_user, :track_user
     end
 
+    # Track a custom event happening in your application, like a failed login or
+    # a password reset request. Zen automatically attaches the IP address, user
+    # agent, and current user (if you called .track_user) from the request.
+    #
+    # Only works inside an HTTP request; if called from a background job or
+    # script, nothing gets sent.
+    #
+    # @param name [String]
+    # @return [void]
+    def self.track_custom_event(name)
+      unless name.is_a?(String) && !name.empty?
+        config.logger.warn("track_custom_event expects a non-empty String as the event name")
+        return
+      end
+
+      return unless agent
+
+      context = current_context
+      return unless context
+
+      event = Events::Custom.new(
+        name: name,
+        request: context.request,
+        user: context.request.actor
+      )
+
+      agent.report_custom_event(event)
+    end
+
     # @return [Aikido::Zen::AttackWave::Detector] the attack wave detector.
     def self.attack_wave_detector
       @attack_wave_detector ||= AttackWave::Detector.new

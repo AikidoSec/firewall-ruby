@@ -133,6 +133,8 @@ module Aikido::Zen
         response = http.request(request)
 
         case response
+        when Net::HTTPNoContent
+          # empty
         when Net::HTTPSuccess
           begin
             body = decode(response.body, response["Content-Encoding"])

@@ -336,4 +336,111 @@ class Aikido::ZenTest < ActiveSupport::TestCase
   ensure
     Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
   end
+
+  class TrackCustomEvent < ActiveSupport::TestCase
+    include StubsCurrentContext
+    include WorkerHelpers
+
+    # Override StubCurrentContext#current_context to provide a request with the
+    # IP address and user agent for the tracked custom event.
+    def current_context
+      @current_context ||= Aikido::Zen::Context.from_rack_env({
+        "REQUEST_METHOD" => "POST",
+        "PATH_INFO" => "/login",
+        "REMOTE_ADDR" => "1.2.3.4",
+        "HTTP_USER_AGENT" => "Teapot/1.0"
+      })
+    end
+
+    class MockAPIStream < Aikido::Zen::APIStream
+      def work
+        nil
+      end
+    end
+
+    setup do
+      Aikido::Zen.config.api_token = "TOKEN"
+
+      # Replace the Aikido::Zen::Agent to prevent the agent from doing work.
+
+      @worker = MockWorker.new
+      @api_stream = Minitest::Mock.new(MockAPIStream.new)
+
+      @agent = Aikido::Zen::Agent.new(
+        worker: @worker,
+        api_stream: @api_stream
+      )
+
+      Aikido::Zen.instance_variable_set(:@agent, @agent)
+    end
+
+    test ".track_custom_event sends the named custom event to the reporting API" do
+      request = stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
+        .with(
+          body: hash_including(
+            "type" => "custom",
+            "name" => "user.login_failed",
+            "request" => hash_including(
+              "ipAddress" => "1.2.3.4",
+              "userAgent" => "Teapot/1.0"
+            ),
+            "user" => {"id" => "418", "name" => "I. A. Teapot"}
+          ),
+          headers: {
+            "Content-Type" => "application/json",
+            "Authorization" => "TOKEN",
+            "Accept" => "application/json"
+          }
+        )
+        .to_return(status: 204, body: "")
+
+      Aikido::Zen.set_user(
+        id: "418",
+        name: "I. A. Teapot"
+      )
+
+      Aikido::Zen.track_custom_event("user.login_failed")
+
+      assert_requested request
+    end
+
+    test ".track_custom_event sends the event without a user if none was set" do
+      request = stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
+        .with(body: hash_including("type" => "custom", "name" => "user.login_failed"))
+        .to_return(status: 204, body: "")
+
+      Aikido::Zen.track_custom_event("user.login_failed")
+
+      assert_requested request
+      refute_requested :post, "https://guard.aikido.dev/api/runtime/events",
+        body: hash_including("user")
+    end
+
+    test ".track_custom_event does nothing if called without a context" do
+      Aikido::Zen.current_context = nil
+
+      assert_silent do
+        Aikido::Zen.track_custom_event("user.login_failed")
+      end
+
+      assert_not_requested :post, "https://guard.aikido.dev/api/runtime/events"
+    end
+
+    test ".track_custom_event does nothing and logs a warning if the name is not a non-empty String" do
+      Aikido::Zen.track_custom_event("")
+
+      assert_logged :warn, /expects a non-empty String/
+      assert_not_requested :post, "https://guard.aikido.dev/api/runtime/events"
+    end
+
+    test ".track_custom_event does nothing if there is no agent" do
+      Aikido::Zen.instance_variable_set(:@agent, nil)
+
+      assert_silent do
+        Aikido::Zen.track_custom_event("user.login_failed")
+      end
+
+      assert_not_requested :post, "https://guard.aikido.dev/api/runtime/events"
+    end
+  end
 end
