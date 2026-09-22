@@ -123,7 +123,8 @@ See [Reporting to Aikido](#reporting-to-your-aikido-security-dashboard) to learn
 
 ## Additional configuration
 
-[Configure Zen using environment variables for authentication, mode settings, debugging, and more.](https://help.aikido.dev/doc/configuration-via-env-vars/docrSItUkeR9)
+* [Configure Zen using environment variables for authentication, mode settings, debugging, and more](https://help.aikido.dev/doc/configuration-via-env-vars/docrSItUkeR9)
+* [Track custom events](docs/custom-event-tracking.md): trigger events that Playbooks can act on
 
 ## License
 

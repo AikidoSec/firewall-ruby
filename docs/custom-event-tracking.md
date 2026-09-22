@@ -1,6 +1,6 @@
-# Custom Event Tracking
+# Track custom events
 
-`Aikido::Zen.track_custom_event` lets you record things happening in your app — like failed logins, signups, or password resets. Zen sends these to Aikido so patterns can be detected, like someone failing to log in 50 times in a minute.
+Use `Aikido::Zen.track_custom_event` to report events that only your application knows about, such as failed logins. [Playbooks](https://help.aikido.dev/zen-firewall/zen-features/playbooks) can act when an event occurs repeatedly, for example by blocking an IP after three failed logins in five minutes.
 
 ```ruby
 # app/controllers/application_controller.rb
@@ -26,30 +26,8 @@ class ApplicationController < ActionController::Base
 end
 ```
 
-Zen automatically picks up the IP address, user agent, and current user (if you called `Aikido::Zen.set_user`) from the request — you don't need to pass those yourself.
+After adding `Aikido::Zen.track_custom_event`, trigger the event at least once. It will then appear on the Playbooks page in the Aikido dashboard. From there, you can create a playbook and choose what should happen when the event occurs. Calling `Aikido::Zen.track_custom_event` by itself does not create a playbook or block anything.
 
-## More examples
+Call `Aikido::Zen.track_custom_event` while handling an HTTP request. Zen associates the event with the request's IP address. Playbook counts are per IP, not across your whole app. If you call [`Aikido::Zen.set_user`](./rails.md#rate-limiting-and-user-blocking) before tracking the event, Zen also includes the current user. `Aikido::Zen.set_user` is optional. Events without a user are still tracked.
 
-```ruby
-Aikido::Zen.track_custom_event("user.signed_up")
-Aikido::Zen.track_custom_event("user.password_reset_requested")
-Aikido::Zen.track_custom_event("plan.invite_sent")
-Aikido::Zen.track_custom_event("payment.failed")
-```
-
-## Naming events
-
-Use lowercase with dots to group related events:
-
-- `user.login_failed`
-- `user.login_succeeded`
-- `user.signed_up`
-- `user.password_reset_requested`
-- `payment.failed`
-- `plan.invite_sent`
-
-## Things to know
-
-`Aikido::Zen.track_custom_event` only works inside an HTTP request. If you call it in a background job or a script, nothing gets sent.
-
-If you haven't called `Aikido::Zen.set_user` yet, the event still goes through — it just won't have a user ID attached.
+Event names can use any format. We recommend lowercase, dot-separated names such as `user.login_failed`.
