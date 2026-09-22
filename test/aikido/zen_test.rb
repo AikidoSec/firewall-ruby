@@ -337,6 +337,87 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
   end
 
+  test ".fork! in direct mode starts a new agent and drops the worker process server, closing any existing server and client" do
+    Aikido::Zen.config.direct_mode = true
+
+    old_server = Minitest::Mock.new
+    old_server.expect(:close, nil)
+
+    old_client = Minitest::Mock.new
+    old_client.expect(:close, nil)
+
+    Aikido::Zen.instance_variable_set(:@agent, Object.new)
+    Aikido::Zen.instance_variable_set(:@worker_process_server, old_server)
+    Aikido::Zen.instance_variable_set(:@worker_process_client, old_client)
+
+    Aikido::Zen.fork!
+
+    assert_mock old_server
+    assert_mock old_client
+    assert_nil Aikido::Zen.worker_process_server
+    assert_nil Aikido::Zen.instance_variable_get(:@worker_process_client)
+    assert_kind_of Aikido::Zen::Agent, Aikido::Zen.agent
+    assert Aikido::Zen.agent.started?
+  end
+
+  test ".fork! in direct mode is a no-op when the agent was never started" do
+    Aikido::Zen.config.direct_mode = true
+
+    Aikido::Zen.fork!
+
+    assert_nil Aikido::Zen.agent
+  end
+
+  test ".fork! in indirect mode closes the existing server and client, and connects a new client to the still-running parent" do
+    parent = Aikido::Zen::WorkerProcess::Agent::Server.new
+    parent.start
+
+    old_server = Minitest::Mock.new
+    old_server.expect(:host, parent.host)
+    old_server.expect(:port, parent.port)
+    old_server.expect(:close, nil)
+
+    old_client = Minitest::Mock.new
+    old_client.expect(:close, nil)
+
+    Aikido::Zen.instance_variable_set(:@worker_process_server, old_server)
+    Aikido::Zen.instance_variable_set(:@worker_process_client, old_client)
+
+    Aikido::Zen.fork!
+
+    assert_mock old_server
+    assert_mock old_client
+    assert_nil Aikido::Zen.worker_process_server
+    assert_kind_of Aikido::Zen::WorkerProcess::Agent::Client, Aikido::Zen.instance_variable_get(:@worker_process_client)
+  ensure
+    parent.close
+  end
+
+  test ".fork! in indirect mode is a no-op when there is no worker process server to reconnect to" do
+    Aikido::Zen.fork!
+
+    assert_nil Aikido::Zen.instance_variable_get(:@worker_process_client)
+  end
+
+  test ".fork! logs and swallows any error raised while starting" do
+    Aikido::Zen.config.direct_mode = true
+
+    agent = Object.new
+    def agent.stop!
+    end
+    Aikido::Zen.instance_variable_set(:@agent, agent)
+
+    logged = []
+    Aikido::Zen.config.logger.define_singleton_method(:error) { |msg| logged << msg }
+
+    Aikido::Zen::Agent.stub(:start, -> { raise "boom" }) do
+      Aikido::Zen.fork!
+    end
+
+    assert_equal 1, logged.size
+    assert_match(/failed to start/, logged.first)
+  end
+
   class TrackCustomEvent < ActiveSupport::TestCase
     include StubsCurrentContext
     include WorkerHelpers

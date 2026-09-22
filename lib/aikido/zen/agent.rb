@@ -68,22 +68,17 @@ module Aikido::Zen
       # :nocov:
 
       report(Events::Started.new(time: @started_at)) do |response|
-        if update_settings_from_runtime_config!(response, reason: "after start")
-          updated_settings!
+        update_settings_from_runtime_config!(response, reason: "after start")
+        updated_settings!
 
-          if @config.realtime_settings_updates_enabled? || @settings.realtime_settings_updates_enabled?
-            @api_stream.handle("config-updated") do |event|
-              @config.logger.debug("Received server-sent event: config-updated")
-              settings_updated(event)
-            end
-
-            @api_stream.start!
+        if @config.realtime_settings_updates_enabled? || @settings.realtime_settings_updates_enabled?
+          @api_stream.handle("config-updated") do |event|
+            @config.logger.debug("Received server-sent event: config-updated")
+            settings_updated(event)
           end
-        # :nocov:
-        else
-          # empty
+
+          @api_stream.start!
         end
-        # :nocov:
       rescue => err
         @config.logger.error(err.message)
       end

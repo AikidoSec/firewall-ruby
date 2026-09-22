@@ -56,6 +56,12 @@ module Aikido::Zen
     #   each initial heartbeat event.
     attr_accessor :initial_heartbeat_delays
 
+    # @return [Boolean] whether Aikido should start an independent agent in each
+    #   forked worker process. Defaults to false. Can be set via the AIKIDO_DIRECT
+    #   environment variable.
+    attr_accessor :direct_mode
+    alias_method :direct_mode?, :direct_mode
+
     # @return [Integer] the interval in seconds at which forked worker processes
     #   poll the parent process for updated runtime settings. Defaults to 10 seconds.
     attr_accessor :worker_process_polling_interval
@@ -245,6 +251,7 @@ module Aikido::Zen
       self.api_timeouts = 10
       self.polling_interval = 60 # 1 min
       self.initial_heartbeat_delays = [30, 60 * 2] # 30 sec, 2 min
+      self.direct_mode = read_boolean_from_env(ENV.fetch("AIKIDO_DIRECT", false))
       self.worker_process_polling_interval = 10
       self.worker_process_polling_jitter = 10
       self.worker_process_heartbeat_interval = 10

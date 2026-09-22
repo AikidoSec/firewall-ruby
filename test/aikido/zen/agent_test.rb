@@ -238,13 +238,15 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert_mock @api_client
   end
 
-  test "#start! does not start the api_stream until the initial settings update actually applies changes" do
-    @agent.stub :update_settings_from_runtime_config!, ->(*) { false } do
-      @agent.start!
+  test "#start! starts heartbeats and the api_stream even if the initial settings update reports no change" do
+    assert_difference "@worker.jobs.size", +1 do
+      @agent.stub :update_settings_from_runtime_config!, ->(*) { false } do
+        @agent.start!
+      end
     end
 
-    refute @api_stream.started?
-    assert_empty @api_stream.instance_variable_get(:@handlers)
+    assert @api_stream.started?
+    refute_empty @api_stream.instance_variable_get(:@handlers)
   end
 
   test "#start! starts polling for setting updates every minute" do
