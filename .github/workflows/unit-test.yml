@@ -52,7 +52,7 @@ jobs:
         slug: AikidoSec/firewall-ruby
     - name: Upload coverage to Aikido
       if: matrix.ruby != '2.7'
-      uses: AikidoSec/code-coverage-github-action@18138c9866f45cb159779a167d6e1330c967fe28 # v0.1.1
+      uses: AikidoSec/code-coverage-github-action@0ff927b71e21fab272b1ea628629dcb6a53cbd23 # v1.1.0
       with:
         lcov-file-paths: ./coverage/lcov/firewall-ruby.lcov
         fail-on-error: true
