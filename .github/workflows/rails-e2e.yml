@@ -11,7 +11,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    name: Ruby ${{ matrix.ruby }}
+    name: Ruby ${{ matrix.ruby }} / ${{ matrix.application_server }}
     strategy:
       fail-fast: false
       matrix:
@@ -19,15 +19,14 @@ jobs:
           - "3.3"
           - "3.2"
           - "3.1"
-          - "3.0"
-          - "2.7"
         app:
           - "rails7.2_generic"
-        exclude:
-          - ruby: "3.0"
-            app: "rails7.2_generic"
-          - ruby: "2.7"
-            app: "rails7.2_generic"
+        application_server:
+          - puma
+          - unicorn
+    env:
+      APPLICATION_SERVER: ${{ matrix.application_server }}
+      WEB_CONCURRENCY: 2
 
     steps:
     - uses: actions/checkout@v4
