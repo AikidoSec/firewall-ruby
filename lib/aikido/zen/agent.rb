@@ -83,7 +83,7 @@ module Aikido::Zen
         @config.logger.error(err.message)
       end
 
-      begin
+      @worker.perform do
         update_settings_from_runtime_firewall_lists!(@api_client.fetch_runtime_firewall_lists, reason: "after start")
       rescue => err
         @config.logger.error(err.message)
