@@ -337,6 +337,32 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
   end
 
+  test ".stop! stops and clears the agent, worker process server and client, and marks Zen as no longer running" do
+    agent = Minitest::Mock.new
+    agent.expect(:stop!, nil)
+
+    server = Minitest::Mock.new
+    server.expect(:stop, nil)
+
+    client = Minitest::Mock.new
+    client.expect(:stop, nil)
+
+    Aikido::Zen.instance_variable_set(:@agent, agent)
+    Aikido::Zen.instance_variable_set(:@worker_process_server, server)
+    Aikido::Zen.instance_variable_set(:@worker_process_client, client)
+    Aikido::Zen.instance_variable_set(:@running, Concurrent::AtomicBoolean.new(true))
+
+    Aikido::Zen.stop!
+
+    assert_mock agent
+    assert_mock server
+    assert_mock client
+    assert_nil Aikido::Zen.agent
+    assert_nil Aikido::Zen.worker_process_server
+    assert_nil Aikido::Zen.instance_variable_get(:@worker_process_client)
+    assert_equal false, Aikido::Zen.instance_variable_get(:@running).true?
+  end
+
   test ".fork! in direct mode starts a new agent and drops the worker process server, closing any existing server and client" do
     Aikido::Zen.config.direct_mode = true
 
@@ -346,14 +372,19 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     old_client = Minitest::Mock.new
     old_client.expect(:close, nil)
 
-    Aikido::Zen.instance_variable_set(:@agent, Object.new)
+    old_agent = Minitest::Mock.new
+    old_agent.expect(:stop!, nil)
+
+    Aikido::Zen.instance_variable_set(:@agent, old_agent)
     Aikido::Zen.instance_variable_set(:@worker_process_server, old_server)
     Aikido::Zen.instance_variable_set(:@worker_process_client, old_client)
+    Aikido::Zen.instance_variable_set(:@running, Concurrent::AtomicBoolean.new(true))
 
     Aikido::Zen.fork!
 
     assert_mock old_server
     assert_mock old_client
+    assert_mock old_agent
     assert_nil Aikido::Zen.worker_process_server
     assert_nil Aikido::Zen.instance_variable_get(:@worker_process_client)
     assert_kind_of Aikido::Zen::Agent, Aikido::Zen.agent
@@ -382,6 +413,7 @@ class Aikido::ZenTest < ActiveSupport::TestCase
 
     Aikido::Zen.instance_variable_set(:@worker_process_server, old_server)
     Aikido::Zen.instance_variable_set(:@worker_process_client, old_client)
+    Aikido::Zen.instance_variable_set(:@running, Concurrent::AtomicBoolean.new(true))
 
     Aikido::Zen.fork!
 
@@ -393,7 +425,7 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     parent.close
   end
 
-  test ".fork! in indirect mode is a no-op when there is no worker process server to reconnect to" do
+  test ".fork! in indirect mode is a no-op when the agent was never started" do
     Aikido::Zen.fork!
 
     assert_nil Aikido::Zen.instance_variable_get(:@worker_process_client)
@@ -406,6 +438,7 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     def agent.stop!
     end
     Aikido::Zen.instance_variable_set(:@agent, agent)
+    Aikido::Zen.instance_variable_set(:@running, Concurrent::AtomicBoolean.new(true))
 
     logged = []
     Aikido::Zen.config.logger.define_singleton_method(:error) { |msg| logged << msg }

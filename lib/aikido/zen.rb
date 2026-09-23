@@ -449,10 +449,19 @@ module Aikido
     # @!visibility private
     # Stop any background threads.
     def self.stop!
-      @agent&.stop!
-      @worker_process_server&.stop
+      agent = @agent
+      @agent = nil
+      agent&.stop!
 
-      @worker_process_client&.stop
+      server = @worker_process_server
+      @worker_process_server = nil
+      server&.stop
+
+      client = @worker_process_client
+      @worker_process_client = nil
+      client&.stop
+
+      @running.make_false
     end
 
     def self.agent
@@ -463,13 +472,13 @@ module Aikido
       @worker_process_server
     end
 
-    @has_started = Concurrent::AtomicBoolean.new(false)
+    @running = Concurrent::AtomicBoolean.new(false)
 
     class << self
       def start!
         return unless start?
 
-        return unless @has_started.make_true
+        return unless @running.make_true
 
         @worker_process_server = WorkerProcess::Agent::Server.new
         @worker_process_server.start
@@ -484,10 +493,20 @@ module Aikido
       end
 
       def fork!
+        return unless @running.true?
+
+        server = @worker_process_server
+        @worker_process_server = nil
+        server.close
+
+        client = @worker_process_client
+        @worker_process_client = nil
+        client&.close
+
         if config.direct_mode?
           start_direct_mode!
         else
-          start_indirect_mode!
+          start_indirect_mode!(server)
         end
       rescue => err
         config.logger.error("Forked worker process #{Process.pid}: failed to start: #{err.message}")
@@ -496,30 +515,14 @@ module Aikido
       private
 
       def start_direct_mode!
-        return unless @agent
-
-        server = @worker_process_server
-        @worker_process_server = nil
-        server&.close
-
-        client = @worker_process_client
-        @worker_process_client = nil
-        client&.close
+        agent = @agent
+        @agent = nil
+        agent&.stop!
 
         @agent = Agent.start
       end
 
-      def start_indirect_mode!
-        server = @worker_process_server
-        return unless server
-
-        @worker_process_server = nil
-        server.close
-
-        client = @worker_process_client
-        @worker_process_client = nil
-        client&.close
-
+      def start_indirect_mode!(server)
         client = WorkerProcess::Agent::Client.new(server.host, server.port)
         client.start
         @worker_process_client = client
