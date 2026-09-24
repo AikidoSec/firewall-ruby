@@ -21,18 +21,19 @@ module Aikido::Zen
           return @config.blocked_responder.call(request, :ip_allowed_list)
         end
 
-        monitored_ip_list_keys = @firewall.monitored_ip_list_keys(client_ip)
-        @zen.track_ip_list(monitored_ip_list_keys)
+        matching_monitored_ip_lists = @firewall.matching_monitored_ip_lists(client_ip)
 
-        blocked_ip_lists = @firewall.blocked_ip_lists.filter { |ip_list| ip_list.include?(client_ip) }
+        @zen.track_ip_list(matching_monitored_ip_lists.map(&:key))
 
-        if !blocked_ip_lists.empty?
-          @zen.track_ip_list(blocked_ip_lists.map(&:key))
+        matching_blocked_ip_lists = @firewall.matching_blocked_ip_lists(client_ip)
+
+        if !matching_blocked_ip_lists.empty?
+          @zen.track_ip_list(matching_blocked_ip_lists.map(&:key))
 
           return @config.blocked_responder.call(
             request,
             :ip_blocked_list,
-            blocked_ip_lists.first.description
+            matching_blocked_ip_lists.first.description
           )
         end
 

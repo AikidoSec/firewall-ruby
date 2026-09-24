@@ -4,8 +4,15 @@ require "uri"
 require "json"
 require "logger"
 require "digest"
+require "tmpdir"
 
 require_relative "context"
+
+# Create this alias before Config exists, so that Config can join paths safely
+# whether or not sinks have loaded yet.
+class << File
+  alias_method :join__internal_for_aikido_zen, :join
+end
 
 module Aikido::Zen
   class Config
@@ -238,6 +245,16 @@ module Aikido::Zen
     #   Defaults to 9 seconds in milliseconds.
     attr_accessor :realtime_settings_updates_min_time_between_events
 
+    # @return [String] a scratch directory this app instance can write to.
+    #   Defaults to a directory under the system temp dir, scoped to the
+    #   main process's pid.
+    attr_accessor :tmp_dir
+
+    # @return [String] the directory where the on-disk IP lists are written
+    #   by the main process, and read from by forked workers.
+    #   Defaults to an "ip_lists" subdirectory of `tmp_dir`.
+    attr_accessor :ip_lists_dir
+
     def initialize
       self.insert_middleware_after = ::ActionDispatch::RemoteIp
       self.disabled = read_boolean_from_env(ENV.fetch("AIKIDO_DISABLE", false)) || read_boolean_from_env(ENV.fetch("AIKIDO_DISABLED", false))
@@ -288,6 +305,8 @@ module Aikido::Zen
       self.idor_max_cache_entries = 1000
       self.realtime_settings_updates_enabled = false
       self.realtime_settings_updates_min_time_between_events = 9 * 1000 # 9 sec (ms)
+      self.tmp_dir = File.join__internal_for_aikido_zen(Dir.tmpdir, "aikido-zen-#{Process.pid}")
+      self.ip_lists_dir = File.join__internal_for_aikido_zen(tmp_dir, "ip_lists")
     end
 
     # Set the base URL for API requests.

@@ -4,21 +4,36 @@ require "test_helper"
 
 class Aikido::Zen::FirewallTest < ActiveSupport::TestCase
   setup do
+    @ip_lists_directory = Dir.mktmpdir("firewall_test_ip_lists")
+    Aikido::Zen.config.ip_lists_dir = @ip_lists_directory
     @firewall = Aikido::Zen::Firewall.new
   end
 
-  test "#update_from_json from an empty JSON response" do
-    @firewall.update_from_json({})
+  teardown do
+    FileUtils.remove_entry(@ip_lists_directory)
+  end
 
-    assert_equal [], @firewall.allowed_ip_lists
-    assert_equal [], @firewall.blocked_ip_lists
+  test "#initialize creates ip_lists_dir if it does not exist yet" do
+    nested_dir = File.join(@ip_lists_directory, "nested")
+
+    Aikido::Zen::Firewall.new(ip_lists_dir: nested_dir)
+
+    assert Dir.exist?(nested_dir)
+  end
+
+  test "#update_user_agents_from_json and #update_ip_lists_from_json handle an empty JSON response" do
+    @firewall.update_user_agents_from_json({})
+    @firewall.update_ip_lists_from_json({})
+
+    assert @firewall.allowed_ip_lists.empty?
+    assert @firewall.blocked_ip_lists.empty?
     assert_nil @firewall.blocked_user_agent_regexp
     assert_nil @firewall.monitored_user_agent_regexp
     assert_equal [], @firewall.user_agent_details
   end
 
-  test "#update_from_json from a JSON response" do
-    @firewall.update_from_json({
+  test "#update_user_agents_from_json and #update_ip_lists_from_json handle a JSON response" do
+    data = {
       "blockedIPAddresses" => [
         {
           "key" => "key1",
@@ -84,23 +99,25 @@ class Aikido::Zen::FirewallTest < ActiveSupport::TestCase
         {"key" => "mediapartners_googlebot", "pattern" => "Mediapartners \\(Googlebot\\)"},
         {"key" => "google_adwords", "pattern" => "Google-Adwords"}
       ]
-    })
+    }
 
-    assert_kind_of Array, @firewall.blocked_ip_lists
-    assert_equal 1, @firewall.blocked_ip_lists.size
-    @firewall.blocked_ip_lists.each_index do |index|
-      assert_equal "key#{index + 1}", @firewall.blocked_ip_lists[index].key
-      assert_equal "source#{index + 1}", @firewall.blocked_ip_lists[index].source
-      assert_equal "description#{index + 1}", @firewall.blocked_ip_lists[index].description
-    end
+    @firewall.update_user_agents_from_json(data)
+    @firewall.update_ip_lists_from_json(data)
 
-    assert_kind_of Array, @firewall.allowed_ip_lists
-    assert_equal 2, @firewall.allowed_ip_lists.size
-    @firewall.allowed_ip_lists.each_index do |index|
-      assert_equal "key#{index + 2}", @firewall.allowed_ip_lists[index].key
-      assert_equal "source#{index + 2}", @firewall.allowed_ip_lists[index].source
-      assert_equal "description#{index + 2}", @firewall.allowed_ip_lists[index].description
-    end
+    assert_kind_of Aikido::Zen::Firewall::IPLists, @firewall.blocked_ip_lists
+    refute @firewall.blocked_ip_lists.empty?
+
+    blocked_matches = @firewall.matching_blocked_ip_lists("1.4.9.1")
+    assert_equal 1, blocked_matches.size
+    assert_equal "key1", blocked_matches.first.key
+    assert_equal "source1", blocked_matches.first.source
+    assert_equal "description1", blocked_matches.first.description
+
+    assert_kind_of Aikido::Zen::Firewall::IPLists, @firewall.allowed_ip_lists
+    refute @firewall.allowed_ip_lists.empty?
+    assert @firewall.allowed_ip?("2.63.192.1")
+    assert @firewall.allowed_ip?("5.8.8.1")
+    refute @firewall.allowed_ip?("8.8.8.8")
 
     assert_kind_of Regexp, @firewall.blocked_user_agent_regexp
     assert_kind_of Regexp, @firewall.monitored_user_agent_regexp
@@ -113,7 +130,90 @@ class Aikido::Zen::FirewallTest < ActiveSupport::TestCase
     end
   end
 
+  test "#monitored_ip? and #matching_monitored_ip_lists reflect monitored IP lists" do
+    @firewall.update_ip_lists_from_json({
+      "monitoredIPAddresses" => [
+        {"key" => "key1", "source" => "source1", "description" => "description1", "ips" => ["1.4.9.0/24"]}
+      ]
+    })
+
+    assert @firewall.monitored_ip?("1.4.9.1")
+    refute @firewall.monitored_ip?("8.8.8.8")
+
+    matches = @firewall.matching_monitored_ip_lists("1.4.9.1")
+    assert_equal 1, matches.size
+    assert_equal "key1", matches.first.key
+  end
+
   test "#user_agent_keys returns an empty array when the user agent is nil" do
     assert_equal [], @firewall.user_agent_keys(nil)
+  end
+
+  test "#reload_ip_lists never writes to disk" do
+    data = {
+      "blockedUserAgents" => "AdsBot-Google",
+      "userAgentDetails" => [{"key" => "adsbot_google", "pattern" => "AdsBot-Google"}],
+      "blockedIPAddresses" => [
+        {"key" => "key1", "source" => "source1", "description" => "description1", "ips" => ["1.4.9.0/24"]}
+      ]
+    }
+
+    @firewall.update_user_agents_from_json(data)
+    @firewall.reload_ip_lists
+
+    assert_kind_of Regexp, @firewall.blocked_user_agent_regexp
+    assert_equal [{key: "adsbot_google", pattern: /AdsBot-Google/i}], @firewall.user_agent_details
+
+    refute File.exist?(File.join(@ip_lists_directory, "blocked.ipls")),
+      "expected IP lists not to be written to disk without calling #update_ip_lists_from_json"
+    assert_nil @firewall.blocked_ip_lists
+  end
+
+  test "#reload_ip_lists picks up IP lists another instance already wrote to disk" do
+    @firewall.update_ip_lists_from_json({
+      "blockedIPAddresses" => [
+        {"key" => "key1", "source" => "source1", "description" => "description1", "ips" => ["1.4.9.0/24"]}
+      ]
+    })
+
+    other_firewall = Aikido::Zen::Firewall.new
+    other_firewall.update_user_agents_from_json({"blockedUserAgents" => "AdsBot-Google"})
+    other_firewall.reload_ip_lists
+
+    assert_kind_of Aikido::Zen::Firewall::IPLists, other_firewall.blocked_ip_lists
+    assert other_firewall.blocked_ip?("1.4.9.1")
+  end
+
+  test "#reload_ip_lists keeps the previous IPLists when the file on disk goes missing" do
+    @firewall.update_ip_lists_from_json({
+      "blockedIPAddresses" => [
+        {"key" => "key1", "source" => "source1", "description" => "description1", "ips" => ["1.4.9.0/24"]}
+      ]
+    })
+    previous = @firewall.blocked_ip_lists
+
+    File.delete(File.join(@ip_lists_directory, "blocked.ipls"))
+    @firewall.reload_ip_lists
+
+    assert_same previous, @firewall.blocked_ip_lists
+  end
+
+  test "#reload_ip_lists closes the previous IPLists and returns a fresh one reflecting what is now on disk" do
+    @firewall.update_ip_lists_from_json({
+      "blockedIPAddresses" => [
+        {"key" => "key1", "source" => "source1", "description" => "description1", "ips" => ["1.4.9.0/24"]}
+      ]
+    })
+    previous = @firewall.blocked_ip_lists
+
+    @firewall.update_ip_lists_from_json({
+      "blockedIPAddresses" => [
+        {"key" => "key2", "source" => "source2", "description" => "description2", "ips" => ["5.6.7.8"]}
+      ]
+    })
+
+    refute_same previous, @firewall.blocked_ip_lists
+    assert @firewall.blocked_ip?("5.6.7.8")
+    refute @firewall.blocked_ip?("1.4.9.1")
   end
 end

@@ -39,6 +39,7 @@ require_relative "support/rate_limiting_assertions"
 require_relative "support/sink_attack_helpers"
 require_relative "support/worker_helpers"
 require_relative "support/wait_helpers"
+require_relative "support/stringio_pwrite"
 
 # Utility proc that does nothing.
 NOOP = ->(*args, **opts) {}
@@ -96,6 +97,8 @@ class ActiveSupport::TestCase
     Aikido::Zen.stop!
 
     Aikido::Zen::Sinks.registry.replace(@_old_sinks_registry)
+
+    Aikido::Zen.current_context = nil
   end
 
   # Reset the routes in the test app defined in test/support/fake_rails_app to

@@ -23,7 +23,9 @@ module Aikido::Zen::WorkerProcess
         polling_interval: config.worker_process_polling_interval,
         polling_jitter: config.worker_process_polling_jitter,
         heartbeat_interval: config.worker_process_heartbeat_interval,
-        collector: Aikido::Zen.collector
+        collector: Aikido::Zen.collector,
+        settings: Aikido::Zen.runtime_settings,
+        firewall: Aikido::Zen.firewall
       )
         @config = config
         @worker = worker
@@ -32,6 +34,8 @@ module Aikido::Zen::WorkerProcess
         @polling_jitter = polling_jitter
         @heartbeat_interval = heartbeat_interval
         @collector = collector
+        @settings = settings
+        @firewall = firewall
 
         @rpc_client = Aikido::Zen::RPC::Client.new(secret, host, port, reconnect: true)
 
@@ -107,15 +111,22 @@ module Aikido::Zen::WorkerProcess
 
         if settings["config"]
           @config.logger.debug("Forked worker process #{Process.pid}: starting config update")
-          Aikido::Zen.runtime_settings.update_from_json(settings["config"])
+
+          @settings.update_from_json(settings["config"])
+
           @known_config_generation = settings["config_generation"]
+
           @config.logger.debug("Forked worker process #{Process.pid}: finished config update")
         end
 
         if settings["firewall_lists"]
           @config.logger.debug("Forked worker process #{Process.pid}: starting firewall_lists update")
-          Aikido::Zen.firewall.update_from_json(settings["firewall_lists"])
+
+          @firewall.update_user_agents_from_json(settings["firewall_lists"])
+          @firewall.reload_ip_lists
+
           @known_firewall_lists_generation = settings["firewall_lists_generation"]
+
           @config.logger.debug("Forked worker process #{Process.pid}: finished firewall_lists update")
         end
 

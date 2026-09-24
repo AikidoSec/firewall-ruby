@@ -672,14 +672,4 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
 
     refute_logged :info, /updated runtime firewall list/i
   end
-
-  test "#update_settings_from_runtime_firewall_lists! does not log when the update did not change any settings" do
-    firewall_data = {"blockedIPAddresses" => []}
-
-    Aikido::Zen.firewall.stub :update_from_json, false do
-      refute @agent.send(:update_settings_from_runtime_firewall_lists!, firewall_data, reason: "for some reason")
-    end
-
-    refute_logged :info, /updated runtime firewall list/i
-  end
 end
