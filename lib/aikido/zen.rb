@@ -287,9 +287,9 @@ module Aikido
     #
     # @param name [String]
     # @return [void]
-    def self.track_custom_event(name)
+    def self.track(name)
       unless name.is_a?(String) && !name.empty?
-        config.logger.warn("track_custom_event expects a non-empty String as the event name")
+        config.logger.warn("track expects a non-empty String as the event name")
         return
       end
 

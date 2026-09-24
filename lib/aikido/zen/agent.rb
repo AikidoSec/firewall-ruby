@@ -160,7 +160,7 @@ module Aikido::Zen
       end
     end
 
-    # Reports a custom event tracked via Aikido::Zen.track_custom_event, if
+    # Reports a custom event tracked via Aikido::Zen.track, if
     # reporting is enabled.
     #
     # @param event [Aikido::Zen::Events::Custom]

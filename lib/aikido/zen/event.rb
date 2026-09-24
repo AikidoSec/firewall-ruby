@@ -96,7 +96,7 @@ module Aikido::Zen
       end
     end
 
-    # Event sent by Aikido::Zen.track_custom_event to record a custom,
+    # Event sent by Aikido::Zen.track to record a custom,
     # user-named event happening during an HTTP request.
     class Custom < Event
       # @param name [String] the name of the tracked event.
