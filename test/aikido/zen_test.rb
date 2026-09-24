@@ -540,6 +540,16 @@ class Aikido::ZenTest < ActiveSupport::TestCase
       assert_not_requested :post, "https://guard.aikido.dev/api/runtime/events"
     end
 
+    test ".track does nothing if the request is bypassed" do
+      Aikido::Zen.request_bypassed!
+
+      assert_silent do
+        Aikido::Zen.track("user.login_failed")
+      end
+
+      assert_not_requested :post, "https://guard.aikido.dev/api/runtime/events"
+    end
+
     test ".track does nothing and logs a warning if the name is not a non-empty String" do
       Aikido::Zen.track("")
 

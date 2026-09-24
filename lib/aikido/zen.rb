@@ -282,8 +282,8 @@ module Aikido
     # a password reset request. Zen automatically attaches the IP address, user
     # agent, and current user (if you called .track_user) from the request.
     #
-    # Only works inside an HTTP request; if called from a background job or
-    # script, nothing gets sent.
+    # Only works inside an HTTP request; the custom event is not reported if
+    # called from a background job or script, or if the request is bypassed.
     #
     # @param name [String]
     # @return [void]
@@ -297,6 +297,8 @@ module Aikido
 
       context = current_context
       return unless context
+
+      return if request_bypassed?
 
       event = Events::Custom.new(
         name: name,
