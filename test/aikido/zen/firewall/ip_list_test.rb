@@ -29,14 +29,7 @@ class Aikido::Zen::Firewall::IPListTest < ActiveSupport::TestCase
     assert_equal "key", ip_list.key
     assert_equal "source", ip_list.source
     assert_equal "description", ip_list.description
-    assert_equal 10, ip_list.ips.size
-    assert_equal 5, ip_list.ipv4_ranges.size
-    assert_equal 5, ip_list.ipv6_ranges.size
-
-    assert_kind_of Integer, ip_list.ipv4_ranges.first.begin
-    assert_kind_of Integer, ip_list.ipv4_ranges.first.end
-    assert_kind_of Integer, ip_list.ipv6_ranges.first.begin
-    assert_kind_of Integer, ip_list.ipv6_ranges.first.end
+    assert_equal 8, ip_list.size
   end
 
   test "#include? is true if the ip address is included" do
@@ -96,5 +89,13 @@ class Aikido::Zen::Firewall::IPListTest < ActiveSupport::TestCase
     ].each do |ip|
       refute ip_list.include?(ip)
     end
+  end
+
+  test "#include? matches IPv4-mapped IPv6 addresses against IPv4 networks" do
+    ip_list = Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
+
+    assert ip_list.include?("::ffff:192.168.0.1")
+    assert ip_list.include?(IPAddr.new("::ffff:192.168.0.1"))
+    refute ip_list.include?("::ffff:192.168.1.1")
   end
 end

@@ -113,6 +113,33 @@ class Aikido::Zen::FirewallTest < ActiveSupport::TestCase
     end
   end
 
+  test "#update_from_json keeps existing IP lists active while replacements are built" do
+    @firewall.update_from_json({
+      "blockedIPAddresses" => [
+        {"key" => "old", "ips" => ["192.0.2.1"]}
+      ]
+    })
+
+    old_list_was_active = false
+    original_from_json = Aikido::Zen::Firewall::IPList.method(:from_json)
+    replacement = lambda do |data|
+      old_list_was_active = @firewall.blocked_ip?("192.0.2.1")
+      original_from_json.call(data)
+    end
+
+    Aikido::Zen::Firewall::IPList.stub(:from_json, replacement) do
+      @firewall.update_from_json({
+        "blockedIPAddresses" => [
+          {"key" => "new", "ips" => ["198.51.100.1"]}
+        ]
+      })
+    end
+
+    assert old_list_was_active
+    refute @firewall.blocked_ip?("192.0.2.1")
+    assert @firewall.blocked_ip?("198.51.100.1")
+  end
+
   test "#user_agent_keys returns an empty array when the user agent is nil" do
     assert_equal [], @firewall.user_agent_keys(nil)
   end
