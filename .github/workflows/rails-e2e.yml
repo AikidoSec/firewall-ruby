@@ -48,6 +48,6 @@ jobs:
       run: |
         bin/setup
         bundle exec rake ci:e2e
-    - name: Run the Rails tests (direct mode)
+    - name: Run the Rails tests (per_worker mode)
       working-directory: test/rails/e2e/${{ matrix.app }}
-      run: AIKIDO_DIRECT=true bundle exec rake ci:e2e
+      run: AIKIDO_AGENT_MODE=per_worker bundle exec rake ci:e2e

@@ -363,8 +363,8 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     assert_equal false, Aikido::Zen.instance_variable_get(:@running).true?
   end
 
-  test ".fork! in direct mode starts a new agent and drops the worker process server, closing any existing server and client" do
-    Aikido::Zen.config.direct_mode = true
+  test ".fork! in per worker agent mode starts a new agent and drops the worker process server, closing any existing server and client" do
+    Aikido::Zen.config.agent_mode = :per_worker
 
     old_server = Minitest::Mock.new
     old_server.expect(:close, nil)
@@ -391,15 +391,15 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     assert Aikido::Zen.agent.started?
   end
 
-  test ".fork! in direct mode is a no-op when the agent was never started" do
-    Aikido::Zen.config.direct_mode = true
+  test ".fork! in per worker agent mode is a no-op when the agent was never started" do
+    Aikido::Zen.config.agent_mode = :per_worker
 
     Aikido::Zen.fork!
 
     assert_nil Aikido::Zen.agent
   end
 
-  test ".fork! in indirect mode closes the existing server and client, and connects a new client to the still-running parent" do
+  test ".fork! in shared agent mode closes the existing server and client, and connects a new client to the still-running parent" do
     parent = Aikido::Zen::WorkerProcess::Agent::Server.new
     parent.start
 
@@ -425,14 +425,14 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     parent.close
   end
 
-  test ".fork! in indirect mode is a no-op when the agent was never started" do
+  test ".fork! in shared agent mode is a no-op when the agent was never started" do
     Aikido::Zen.fork!
 
     assert_nil Aikido::Zen.instance_variable_get(:@worker_process_client)
   end
 
   test ".fork! logs and swallows any error raised while starting" do
-    Aikido::Zen.config.direct_mode = true
+    Aikido::Zen.config.agent_mode = :per_worker
 
     agent = Object.new
     def agent.stop!

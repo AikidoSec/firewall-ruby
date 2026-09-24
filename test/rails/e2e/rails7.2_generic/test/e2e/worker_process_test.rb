@@ -97,14 +97,14 @@ class WorkerProcessTest < ActiveSupport::TestCase
     end
   end
 
-  class IndirectModeTest < ActiveSupport::TestCase
+  class SharedModeTest < ActiveSupport::TestCase
     include RailsServerHelpers
     include MockServerHelpers
     include GenericTests
 
     parallelize(workers: 1)
 
-    setup { skip if ENV["AIKIDO_DIRECT"] == "true" }
+    setup { skip if ENV["AIKIDO_AGENT_MODE"] == "per_worker" }
 
     test "worker IPC connection stays alive across keepalive intervals" do
       # Wait for at least one keepalive event.
@@ -163,14 +163,14 @@ class WorkerProcessTest < ActiveSupport::TestCase
     end
   end
 
-  class DirectModeTest < ActiveSupport::TestCase
+  class PerWorkerModeTest < ActiveSupport::TestCase
     include RailsServerHelpers
     include MockServerHelpers
     include GenericTests
 
     parallelize(workers: 1)
 
-    setup { skip unless ENV["AIKIDO_DIRECT"] == "true" }
+    setup { skip unless ENV["AIKIDO_AGENT_MODE"] == "per_worker" }
 
     test "worker collector events are reported via each worker's own heartbeat" do
       # Trigger both workers to fork now, so heartbeats fire predictably.

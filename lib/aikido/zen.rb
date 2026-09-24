@@ -503,10 +503,11 @@ module Aikido
         @worker_process_client = nil
         client&.close
 
-        if config.direct_mode?
-          start_direct_mode!
-        else
-          start_indirect_mode!(server)
+        case config.agent_mode
+        when :per_worker
+          start_per_worker_mode
+        when :shared
+          start_shared_mode(server)
         end
       rescue => err
         config.logger.error("Forked worker process #{Process.pid}: failed to start: #{err.message}")
@@ -514,7 +515,7 @@ module Aikido
 
       private
 
-      def start_direct_mode!
+      def start_per_worker_mode
         agent = @agent
         @agent = nil
         agent&.stop!
@@ -522,7 +523,7 @@ module Aikido
         @agent = Agent.start
       end
 
-      def start_indirect_mode!(server)
+      def start_shared_mode(server)
         client = WorkerProcess::Agent::Client.new(server.host, server.port)
         client.start
         @worker_process_client = client
