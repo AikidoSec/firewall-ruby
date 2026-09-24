@@ -20,6 +20,7 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 10, @config.api_timeouts[:write_timeout]
     assert_equal 60, @config.polling_interval
     assert_equal [30, 120], @config.initial_heartbeat_delays
+    assert_equal :shared, @config.agent_mode
     assert_equal 10, @config.worker_process_polling_interval
     assert_equal 10, @config.worker_process_polling_jitter
     assert_equal 10, @config.worker_process_heartbeat_interval
@@ -132,6 +133,22 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal true, @config.blocking_mode
   end
 
+  test "can overwrite agent_mode" do
+    @config.agent_mode = :per_worker
+
+    assert_equal :per_worker, @config.agent_mode
+  end
+
+  test "agent_mode accepts a String and coerces it to a Symbol" do
+    @config.agent_mode = "per_worker"
+
+    assert_equal :per_worker, @config.agent_mode
+  end
+
+  test "agent_mode raises on an invalid value" do
+    assert_raises(ArgumentError) { @config.agent_mode = :bogus }
+  end
+
   test "can set the token from an ENV variable" do
     with_env "AIKIDO_TOKEN" => "S3CR3T" do
       config = Aikido::Zen::Config.new
@@ -208,6 +225,22 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   test "can set blocking_mode via an ENV variable" do
     assert_boolean_env_var "AIKIDO_BLOCK" do |config|
       config.blocking_mode
+    end
+  end
+
+  test "can set agent_mode via an ENV variable" do
+    with_env "AIKIDO_AGENT_MODE" => "per_worker" do
+      assert_equal :per_worker, Aikido::Zen::Config.new.agent_mode
+    end
+
+    with_env "AIKIDO_AGENT_MODE" => "shared" do
+      assert_equal :shared, Aikido::Zen::Config.new.agent_mode
+    end
+  end
+
+  test "defaults agent_mode to :shared when AIKIDO_AGENT_MODE is not set" do
+    with_env "AIKIDO_AGENT_MODE" => nil do
+      assert_equal :shared, Aikido::Zen::Config.new.agent_mode
     end
   end
 

@@ -337,6 +337,120 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
   end
 
+  test ".stop! stops and clears the agent, worker process server and client, and marks Zen as no longer running" do
+    agent = Minitest::Mock.new
+    agent.expect(:stop!, nil)
+
+    server = Minitest::Mock.new
+    server.expect(:stop, nil)
+
+    client = Minitest::Mock.new
+    client.expect(:stop, nil)
+
+    Aikido::Zen.instance_variable_set(:@agent, agent)
+    Aikido::Zen.instance_variable_set(:@worker_process_server, server)
+    Aikido::Zen.instance_variable_set(:@worker_process_client, client)
+    Aikido::Zen.instance_variable_set(:@running, Concurrent::AtomicBoolean.new(true))
+
+    Aikido::Zen.stop!
+
+    assert_mock agent
+    assert_mock server
+    assert_mock client
+    assert_nil Aikido::Zen.agent
+    assert_nil Aikido::Zen.worker_process_server
+    assert_nil Aikido::Zen.instance_variable_get(:@worker_process_client)
+    assert_equal false, Aikido::Zen.instance_variable_get(:@running).true?
+  end
+
+  test ".fork! in per worker agent mode starts a new agent and drops the worker process server, closing any existing server and client" do
+    Aikido::Zen.config.agent_mode = :per_worker
+
+    old_server = Minitest::Mock.new
+    old_server.expect(:close, nil)
+
+    old_client = Minitest::Mock.new
+    old_client.expect(:close, nil)
+
+    old_agent = Minitest::Mock.new
+    old_agent.expect(:stop!, nil)
+
+    Aikido::Zen.instance_variable_set(:@agent, old_agent)
+    Aikido::Zen.instance_variable_set(:@worker_process_server, old_server)
+    Aikido::Zen.instance_variable_set(:@worker_process_client, old_client)
+    Aikido::Zen.instance_variable_set(:@running, Concurrent::AtomicBoolean.new(true))
+
+    Aikido::Zen.fork!
+
+    assert_mock old_server
+    assert_mock old_client
+    assert_mock old_agent
+    assert_nil Aikido::Zen.worker_process_server
+    assert_nil Aikido::Zen.instance_variable_get(:@worker_process_client)
+    assert_kind_of Aikido::Zen::Agent, Aikido::Zen.agent
+    assert Aikido::Zen.agent.started?
+  end
+
+  test ".fork! in per worker agent mode is a no-op when the agent was never started" do
+    Aikido::Zen.config.agent_mode = :per_worker
+
+    Aikido::Zen.fork!
+
+    assert_nil Aikido::Zen.agent
+  end
+
+  test ".fork! in shared agent mode closes the existing server and client, and connects a new client to the still-running parent" do
+    parent = Aikido::Zen::WorkerProcess::Agent::Server.new
+    parent.start
+
+    old_server = Minitest::Mock.new
+    old_server.expect(:host, parent.host)
+    old_server.expect(:port, parent.port)
+    old_server.expect(:close, nil)
+
+    old_client = Minitest::Mock.new
+    old_client.expect(:close, nil)
+
+    Aikido::Zen.instance_variable_set(:@worker_process_server, old_server)
+    Aikido::Zen.instance_variable_set(:@worker_process_client, old_client)
+    Aikido::Zen.instance_variable_set(:@running, Concurrent::AtomicBoolean.new(true))
+
+    Aikido::Zen.fork!
+
+    assert_mock old_server
+    assert_mock old_client
+    assert_nil Aikido::Zen.worker_process_server
+    assert_kind_of Aikido::Zen::WorkerProcess::Agent::Client, Aikido::Zen.instance_variable_get(:@worker_process_client)
+  ensure
+    parent.close
+  end
+
+  test ".fork! in shared agent mode is a no-op when the agent was never started" do
+    Aikido::Zen.fork!
+
+    assert_nil Aikido::Zen.instance_variable_get(:@worker_process_client)
+  end
+
+  test ".fork! logs and swallows any error raised while starting" do
+    Aikido::Zen.config.agent_mode = :per_worker
+
+    agent = Object.new
+    def agent.stop!
+    end
+    Aikido::Zen.instance_variable_set(:@agent, agent)
+    Aikido::Zen.instance_variable_set(:@running, Concurrent::AtomicBoolean.new(true))
+
+    logged = []
+    Aikido::Zen.config.logger.define_singleton_method(:error) { |msg| logged << msg }
+
+    Aikido::Zen::Agent.stub(:start, -> { raise "boom" }) do
+      Aikido::Zen.fork!
+    end
+
+    assert_equal 1, logged.size
+    assert_match(/failed to start/, logged.first)
+  end
+
   class TrackCustomEvent < ActiveSupport::TestCase
     include StubsCurrentContext
     include WorkerHelpers

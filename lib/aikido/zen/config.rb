@@ -56,6 +56,10 @@ module Aikido::Zen
     #   each initial heartbeat event.
     attr_accessor :initial_heartbeat_delays
 
+    # @return [Symbol] the agent mode for forked worker processes. Can be set
+    #   through the AIKIDO_AGENT_MODE environment variable.
+    attr_reader :agent_mode
+
     # @return [Integer] the interval in seconds at which forked worker processes
     #   poll the parent process for updated runtime settings. Defaults to 10 seconds.
     attr_accessor :worker_process_polling_interval
@@ -245,6 +249,7 @@ module Aikido::Zen
       self.api_timeouts = 10
       self.polling_interval = 60 # 1 min
       self.initial_heartbeat_delays = [30, 60 * 2] # 30 sec, 2 min
+      self.agent_mode = ENV.fetch("AIKIDO_AGENT_MODE", "shared")
       self.worker_process_polling_interval = 10
       self.worker_process_polling_jitter = 10
       self.worker_process_heartbeat_interval = 10
@@ -297,6 +302,17 @@ module Aikido::Zen
     # @param url [String, URI]
     def realtime_endpoint=(url)
       @realtime_endpoint = URI(url)
+    end
+
+    # @param mode [Symbol, String] a supported agent mode.
+    # @raise [ArgumentError]
+    def agent_mode=(mode)
+      mode = mode.to_sym
+      unless AGENT_MODES.include?(mode)
+        raise ArgumentError, "agent_mode must be one of #{AGENT_MODES.join(", ")}, got #{mode}"
+      end
+
+      @agent_mode = mode
     end
 
     # Set the logger and configure its severity level according to agent's debug mode
@@ -369,6 +385,9 @@ module Aikido::Zen
         true
       end
     end
+
+    # @!visibility private
+    AGENT_MODES = [:shared, :per_worker].freeze
 
     # @!visibility private
     DEFAULT_AIKIDO_ENDPOINT = "https://guard.aikido.dev"

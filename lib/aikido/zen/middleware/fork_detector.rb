@@ -11,14 +11,20 @@ module Aikido
           @app = app
 
           @pid = Concurrent::AtomicFixnum.new(Process.pid)
+          @fork_mutex = Mutex.new
         end
 
         def call(env)
-          new_pid = Process.pid
-          old_pid = @pid.value
+          pid = Process.pid
 
-          if new_pid != old_pid && @pid.compare_and_set(old_pid, new_pid)
-            Aikido::Zen.fork!
+          if pid != @pid.value
+            @fork_mutex.synchronize do
+              if pid != @pid.value
+                Aikido::Zen.fork!
+
+                @pid.value = pid
+              end
+            end
           end
 
           @app.call(env)
