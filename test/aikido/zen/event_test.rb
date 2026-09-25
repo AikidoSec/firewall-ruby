@@ -276,11 +276,14 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
       assert_equal "user.login_failed", event.as_json["name"]
     end
 
-    test "includes the request's JSON representation" do
+    test "includes the request's JSON representation without the url" do
       request = stub_context.request
       event = Aikido::Zen::Events::Custom.new(name: "user.login_failed", request: request)
 
-      assert_equal request.as_json, event.as_json["request"]
+      expected = request.as_json.except("url")
+
+      assert_equal expected, event.as_json["request"]
+      refute event.as_json["request"].key?("url")
     end
 
     test "includes the user if one is given" do

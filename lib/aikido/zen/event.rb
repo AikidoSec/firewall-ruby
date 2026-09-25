@@ -112,10 +112,13 @@ module Aikido::Zen
       end
 
       def as_json
+        request_json = @request.as_json
+        request_json.delete("url")
+
         super.update(
           {
             "name" => @name,
-            "request" => @request.as_json,
+            "request" => request_json,
             "user" => @user && {"id" => @user.id, "name" => @user.name}.compact
           }.compact
         )
