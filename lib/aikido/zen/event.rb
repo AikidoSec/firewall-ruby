@@ -114,9 +114,9 @@ module Aikido::Zen
       def as_json
         super.update(
           {
-            name: @name,
-            request: @request.as_json,
-            user: @user && {id: @user.id, name: @user.name}.compact
+            "name" => @name,
+            "request" => @request.as_json,
+            "user" => @user && {"id" => @user.id, "name" => @user.name}.compact
           }.compact
         )
       end
