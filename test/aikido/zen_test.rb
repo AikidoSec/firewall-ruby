@@ -488,7 +488,7 @@ class Aikido::ZenTest < ActiveSupport::TestCase
       Aikido::Zen.instance_variable_set(:@agent, @agent)
     end
 
-    test ".track_custom_event sends the named custom event to the reporting API" do
+    test ".track sends the named custom event to the reporting API" do
       request = stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
         .with(
           body: hash_including(
@@ -513,45 +513,55 @@ class Aikido::ZenTest < ActiveSupport::TestCase
         name: "I. A. Teapot"
       )
 
-      Aikido::Zen.track_custom_event("user.login_failed")
+      Aikido::Zen.track("user.login_failed")
 
       assert_requested request
     end
 
-    test ".track_custom_event sends the event without a user if none was set" do
+    test ".track sends the event without a user if none was set" do
       request = stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
         .with(body: hash_including("type" => "custom", "name" => "user.login_failed"))
         .to_return(status: 204, body: "")
 
-      Aikido::Zen.track_custom_event("user.login_failed")
+      Aikido::Zen.track("user.login_failed")
 
       assert_requested request
       refute_requested :post, "https://guard.aikido.dev/api/runtime/events",
         body: hash_including("user")
     end
 
-    test ".track_custom_event does nothing if called without a context" do
+    test ".track does nothing if called without a context" do
       Aikido::Zen.current_context = nil
 
       assert_silent do
-        Aikido::Zen.track_custom_event("user.login_failed")
+        Aikido::Zen.track("user.login_failed")
       end
 
       assert_not_requested :post, "https://guard.aikido.dev/api/runtime/events"
     end
 
-    test ".track_custom_event does nothing and logs a warning if the name is not a non-empty String" do
-      Aikido::Zen.track_custom_event("")
+    test ".track does nothing if the request is bypassed" do
+      Aikido::Zen.request_bypassed!
+
+      assert_silent do
+        Aikido::Zen.track("user.login_failed")
+      end
+
+      assert_not_requested :post, "https://guard.aikido.dev/api/runtime/events"
+    end
+
+    test ".track does nothing and logs a warning if the name is not a non-empty String" do
+      Aikido::Zen.track("")
 
       assert_logged :warn, /expects a non-empty String/
       assert_not_requested :post, "https://guard.aikido.dev/api/runtime/events"
     end
 
-    test ".track_custom_event does nothing if there is no agent" do
+    test ".track does nothing if there is no agent" do
       Aikido::Zen.instance_variable_set(:@agent, nil)
 
       assert_silent do
-        Aikido::Zen.track_custom_event("user.login_failed")
+        Aikido::Zen.track("user.login_failed")
       end
 
       assert_not_requested :post, "https://guard.aikido.dev/api/runtime/events"

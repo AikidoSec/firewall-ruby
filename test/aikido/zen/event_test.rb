@@ -256,6 +256,52 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
     StubRequest = Struct.new(:route, :schema)
   end
 
+  class CustomTest < ActiveSupport::TestCase
+    def stub_context(**options)
+      env = Rack::MockRequest.env_for("/test", **options)
+      Aikido::Zen::Context.from_rack_env(env)
+    end
+
+    test "sets type to custom" do
+      request = stub_context.request
+      event = Aikido::Zen::Events::Custom.new(name: "user.login_failed", request: request)
+
+      assert_equal "custom", event.type
+    end
+
+    test "includes the event name" do
+      request = stub_context.request
+      event = Aikido::Zen::Events::Custom.new(name: "user.login_failed", request: request)
+
+      assert_equal "user.login_failed", event.as_json["name"]
+    end
+
+    test "includes the request's JSON representation without the url" do
+      request = stub_context.request
+      event = Aikido::Zen::Events::Custom.new(name: "user.login_failed", request: request)
+
+      expected = request.as_json.except("url")
+
+      assert_equal expected, event.as_json["request"]
+      refute event.as_json["request"].key?("url")
+    end
+
+    test "includes the user if one is given" do
+      request = stub_context.request
+      user = Aikido::Zen::Actor.new(id: "1", name: "Alice")
+      event = Aikido::Zen::Events::Custom.new(name: "user.login_failed", request: request, user: user)
+
+      assert_equal({"id" => "1", "name" => "Alice"}, event.as_json["user"])
+    end
+
+    test "omits the user if none is given" do
+      request = stub_context.request
+      event = Aikido::Zen::Events::Custom.new(name: "user.login_failed", request: request)
+
+      refute event.as_json.key?("user")
+    end
+  end
+
   class AttackWaveTest < ActiveSupport::TestCase
     def env_for(path, env = {})
       env = Rack::MockRequest.env_for(path, env)
