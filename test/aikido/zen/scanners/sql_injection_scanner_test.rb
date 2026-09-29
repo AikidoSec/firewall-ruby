@@ -220,7 +220,7 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
 
   test "detects injection when user input has trailing spaces" do
     assert_attack(
-      "INSERT INTO pets (name, owner) VALUES ('x', 'dummy'), ('injected', 'hacker'); --', 'owner')",
+      "INSERT INTO pets (name, owner) VALUES ('x', 'dummy'), ('injected', 'hacker'); -- ', 'owner')",
       "x', 'dummy'), ('injected', 'hacker'); --    "
     )
   end
@@ -295,7 +295,7 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
   end
 
   test "attacks are not prevented if libzen can't be loaded" do
-    assert_attack "SELECT * FROM users WHERE id = '' OR true; --'", "' OR true; --'"
+    assert_attack "SELECT * FROM users WHERE id = '' OR true; -- '", "' OR true; -- '"
 
     fail_to_load_error = ->(query, *) {
       err = format("%p for SQL injection", query)
@@ -304,11 +304,11 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
 
     err = assert_raise Aikido::Zen::InternalsError do
       Aikido::Zen::Internals.stub(:detect_sql_injection, fail_to_load_error) do
-        refute_attack "SELECT * FROM users WHERE id = '' OR true; --'", "' OR true; --'"
+        refute_attack "SELECT * FROM users WHERE id = '' OR true; -- '", "' OR true; -- '"
       end
     end
 
-    assert_equal %(Zen could not scan "select * from users where id = '' or true; --'" for SQL injection due to a problem loading the library `libzen.dylib'), err.message
+    assert_equal %(Zen could not scan "select * from users where id = '' or true; -- '" for SQL injection due to a problem loading the library `libzen.dylib'), err.message
   end
 
   test "internal errors are raised as InternalError" do
