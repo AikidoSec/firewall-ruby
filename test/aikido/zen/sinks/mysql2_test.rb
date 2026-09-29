@@ -37,10 +37,10 @@ class Aikido::Zen::Sinks::Mysql2Test < ActiveSupport::TestCase
   end
 
   test "fails when detecting an injection" do
-    set_context_from_request_to "/?q=1'%20OR%20''='';--"
+    set_context_from_request_to "/?q=1'%20OR%20''='';--%20"
 
     assert_attack Aikido::Zen::Attacks::SQLInjectionAttack do
-      @db.query "SELECT 1 WHERE 1 = '1' OR ''='';--'"
+      @db.query "SELECT 1 WHERE 1 = '1' OR ''='';-- '"
     end
   end
 
