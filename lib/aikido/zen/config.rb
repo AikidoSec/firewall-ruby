@@ -56,6 +56,10 @@ module Aikido::Zen
     #   each initial heartbeat event.
     attr_accessor :initial_heartbeat_delays
 
+    # @return [Integer] the maximum number of levels deep we want to traverse
+    #   when extracting payloads from a nested request property. Defaults to 64.
+    attr_accessor :extract_payloads_max_depth
+
     # @return [Symbol] the agent mode for forked worker processes. Can be set
     #   through the AIKIDO_AGENT_MODE environment variable.
     attr_reader :agent_mode
@@ -249,6 +253,7 @@ module Aikido::Zen
       self.api_timeouts = 10
       self.polling_interval = 60 # 1 min
       self.initial_heartbeat_delays = [30, 60 * 2] # 30 sec, 2 min
+      self.extract_payloads_max_depth = 64
       self.agent_mode = ENV.fetch("AIKIDO_AGENT_MODE", "shared")
       self.worker_process_polling_interval = 10
       self.worker_process_polling_jitter = 10

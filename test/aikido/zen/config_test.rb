@@ -20,6 +20,7 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 10, @config.api_timeouts[:write_timeout]
     assert_equal 60, @config.polling_interval
     assert_equal [30, 120], @config.initial_heartbeat_delays
+    assert_equal 64, @config.extract_payloads_max_depth
     assert_equal :shared, @config.agent_mode
     assert_equal 10, @config.worker_process_polling_interval
     assert_equal 10, @config.worker_process_polling_jitter

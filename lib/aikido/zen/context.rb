@@ -45,10 +45,13 @@ module Aikido::Zen
     # @yieldparam request [Rack::Request] the given request object.
     # @yieldreturn [Hash<Symbol, #flat_map>] map of payload source types
     #   to the actual data from the request to populate them.
-    def initialize(request, settings: Aikido::Zen.runtime_settings, &sources)
+    def initialize(request, zen: Aikido::Zen, config: zen.config, settings: zen.runtime_settings, &sources)
       @request = request
+      @config = config
       @settings = settings
       @payload_sources = sources
+
+      @max_depth = @config.extract_payloads_max_depth
 
       @metadata = {}
       @scanning = false
@@ -102,19 +105,21 @@ module Aikido::Zen
     private
 
     # @!visibility private
-    def extract_payloads_from(data, source_type, prefix = nil)
+    def extract_payloads_from(data, source_type, prefix = nil, depth = 0)
+      return [] if depth > @max_depth
+
       if data.is_a?(String)
         [Payload.new(data, source_type, prefix.to_s)]
       elsif data.respond_to?(:to_hash)
         data.to_hash.flat_map do |key, value|
-          extract_payloads_from(value, source_type, [prefix, key].compact.join("."))
+          extract_payloads_from(value, source_type, [prefix, key].compact.join("."), depth + 1)
         end
       elsif data.respond_to?(:to_ary)
         array = data.to_ary
         return array if array.empty?
 
         payloads = array.flat_map.with_index do |value, index|
-          extract_payloads_from(value, source_type, [prefix, index].compact.join("."))
+          extract_payloads_from(value, source_type, [prefix, index].compact.join("."), depth + 1)
         end
 
         unless Aikido::Zen.config.harden?
