@@ -124,6 +124,31 @@ class Aikido::Zen::RequestTest < ActiveSupport::TestCase
       Aikido::Zen.config.client_ip_header = nil
     end
 
+    test "#client_ip returns the custom client IP header when there is no remote address" do
+      Aikido::Zen.config.client_ip_header = "HTTP_CUSTOM_CLIENT_IP"
+
+      env = Rack::MockRequest.env_for("/test", "HTTP_CUSTOM_CLIENT_IP" => "4.3.2.1")
+      req = build_request(env)
+
+      assert_equal "4.3.2.1", req.client_ip
+
+      Aikido::Zen.config.client_ip_header = nil
+    end
+
+    test "#client_ip is nil when the request has no remote address" do
+      env = Rack::MockRequest.env_for("/test")
+      req = build_request(env)
+
+      assert_nil req.client_ip
+    end
+
+    test "#client_ip is nil when the remote address is empty" do
+      env = Rack::MockRequest.env_for("/test", "REMOTE_ADDR" => "")
+      req = build_request(env)
+
+      assert_nil req.client_ip
+    end
+
     test "#schema builds the request schema" do
       env = Rack::MockRequest.env_for("/test")
       req = build_request(env)

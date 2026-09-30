@@ -144,6 +144,55 @@ class Aikido::Zen::FirewallTest < ActiveSupport::TestCase
     assert_equal ["new-monitored"], @firewall.monitored_ip_lists.map(&:key)
   end
 
+  test "#update_from_json leaves user agents and IP lists unchanged if building an IP list fails" do
+    ip_list = Struct.new(:key)
+    old_blocked = [ip_list.new("old-blocked")]
+    old_details = [{key: "old", pattern: /old/i}]
+    @firewall.blocked_ip_lists = old_blocked
+    @firewall.blocked_user_agent_regexp = /old/i
+    @firewall.monitored_user_agent_regexp = /old-monitored/i
+    @firewall.user_agent_details = old_details
+
+    raise_error = ->(_data) { raise Aikido::Zen::InternalsError.new("create an IP matcher", "loading", "libzen") }
+
+    Aikido::Zen::Firewall::IPList.stub(:from_json, raise_error) do
+      refute @firewall.update_from_json({
+        "blockedUserAgents" => "new",
+        "monitoredUserAgents" => "new-monitored",
+        "userAgentDetails" => [{"key" => "new", "pattern" => "new"}],
+        "blockedIPAddresses" => [{"key" => "new-blocked"}]
+      })
+    end
+
+    assert_logged :error, /Zen failed to update the firewall lists: Zen could not create an IP matcher/
+
+    assert_same old_blocked, @firewall.blocked_ip_lists
+    assert_equal(/old/i, @firewall.blocked_user_agent_regexp)
+    assert_equal(/old-monitored/i, @firewall.monitored_user_agent_regexp)
+    assert_same old_details, @firewall.user_agent_details
+  end
+
+  test "#update_from_json leaves user agents and IP lists unchanged if an IP list has an invalid network" do
+    ip_list = Struct.new(:key)
+    old_blocked = [ip_list.new("old-blocked")]
+    old_details = [{key: "old", pattern: /old/i}]
+    @firewall.blocked_ip_lists = old_blocked
+    @firewall.blocked_user_agent_regexp = /old/i
+    @firewall.user_agent_details = old_details
+
+    refute @firewall.update_from_json({
+      "blockedUserAgents" => "new",
+      "userAgentDetails" => [{"key" => "new", "pattern" => "new"}],
+      "blockedIPAddresses" => [{"key" => "new-blocked", "ips" => ["10.0.0.0/8", "not-a-network"]}]
+    })
+
+    assert_logged :error, /Zen failed to update the firewall lists: IP list "new-blocked" has 1 invalid network/
+
+    assert_same old_blocked, @firewall.blocked_ip_lists
+    assert_equal(/old/i, @firewall.blocked_user_agent_regexp)
+    assert_same old_details, @firewall.user_agent_details
+  end
+
   test "#user_agent_keys returns an empty array when the user agent is nil" do
     assert_equal [], @firewall.user_agent_keys(nil)
   end

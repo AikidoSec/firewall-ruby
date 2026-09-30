@@ -102,7 +102,7 @@ module Aikido
       # @param libname [String] the name of the file (including the arch).
       def initialize(attempt, problem, libname)
         super(format(<<~MSG.chomp, attempt, problem, libname))
-          Zen could not scan %s due to a problem %s the library `%s'
+          Zen could not %s due to a problem %s the library `%s'
         MSG
       end
     end

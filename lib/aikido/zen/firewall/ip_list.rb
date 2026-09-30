@@ -7,10 +7,6 @@ module Aikido::Zen
     attr_reader :key
     attr_reader :source
     attr_reader :description
-    attr_reader :ips
-
-    attr_reader :ipv4_ranges
-    attr_reader :ipv6_ranges
 
     def self.from_json(data)
       new(
@@ -21,99 +17,31 @@ module Aikido::Zen
       )
     end
 
-    def initialize(key:, source:, description:, ips:)
+    # @param ips [Array<String>] IP addresses or networks in CIDR notation.
+    # @param max_rejected_count [Integer] how many invalid networks to tolerate.
+    #   By default any invalid network is an error.
+    # @raise [ArgumentError] if more than +max_rejected_count+ networks are invalid.
+    def initialize(key:, source:, description:, ips:, max_rejected_count: 0)
       @key = key
       @source = source
       @description = description
+      @ips = Internals::IPMatcher.new(ips)
 
-      if Internals.ip_matcher_available?
-        @matcher = Internals::IPMatcher.new(ips)
-        return
+      if @ips.rejected_count > max_rejected_count
+        raise ArgumentError, "IP list #{key.inspect} has #{@ips.rejected_count} invalid network(s), more than the #{max_rejected_count} allowed"
       end
-
-      @ips = ips.map { |ip| IPAddr.new(ip) }
-      @ipv4_ranges = []
-      @ipv6_ranges = []
-
-      @ips.each do |ip|
-        range = ip.to_range
-        ip_int_range = (range.begin.to_i..range.end.to_i)
-
-        if ip.ipv4?
-          @ipv4_ranges << ip_int_range
-        elsif ip.ipv6?
-          @ipv6_ranges << ip_int_range
-        else
-          raise ArgumentError, "Unsupported IP address family: #{ip.inspect}"
-        end
-      end
-
-      @ipv4_ranges.sort_by!(&:begin)
-      @ipv6_ranges.sort_by!(&:begin)
     end
 
     def inspect
       "#<#{self.class} #{@key}>"
     end
 
+    # @param ip [String, nil] an IP address.
+    # @return [Boolean] whether the address is in any of the covered networks.
     def include?(ip)
-      return native_match?(ip) if @matcher
-
-      native_ip = nativize_ip(ip)
-      return false if native_ip.nil?
-
-      ip_int = native_ip.to_i
-
-      if native_ip.ipv4?
-        ranges_cover?(@ipv4_ranges, ip_int)
-      elsif native_ip.ipv6?
-        ranges_cover?(@ipv6_ranges, ip_int)
-      else
-        raise ArgumentError, "Unsupported IP address family: #{ip.inspect}"
-      end
-    end
-
-    private
-
-    def native_match?(ip)
       return false if ip.nil?
-      unless ip.is_a?(String) || ip.is_a?(IPAddr)
-        raise ArgumentError, "no explicit conversion of #{ip.class} to IPAddr"
-      end
 
-      network = ip.to_s
-      return true if @matcher.include?(network)
-      return false unless network.include?(":")
-
-      parsed_ip = ip.is_a?(IPAddr) ? ip : IPAddr.new(ip)
-      parsed_ip.ipv4_mapped? && @matcher.include?(parsed_ip.native.to_s)
-    rescue IPAddr::InvalidAddressError
-      false
-    end
-
-    def nativize_ip(ip)
-      case ip
-      when IPAddr
-        ip.native
-      when String
-        begin
-          IPAddr.new(ip).native
-        rescue IPAddr::InvalidAddressError
-          nil
-        end
-      when nil
-        nil
-      else
-        raise ArgumentError, "no explicit conversion of #{ip.class} to IPAddr"
-      end
-    end
-
-    def ranges_cover?(ranges, ip_int)
-      index = ranges.bsearch_index { |range| range.begin > ip_int }
-      index = index ? index - 1 : ranges.size - 1
-      return false if index < 0
-
-      ranges[index].cover?(ip_int)
+      @ips.include?(ip)
     end
   end
 end

@@ -439,25 +439,16 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     end
   end
 
-  test "the scheduled polling task does not request a firewall_lists payload again after it fails to apply" do
-    firewall_data = {
-      "blockedUserAgents" => nil,
-      "monitoredUserAgents" => nil,
-      "userAgentDetails" => [],
-      "blockedIPAddresses" => [
-        {"key" => "key", "source" => "source", "description" => "description", "ips" => ["not-a-network"]}
-      ],
-      "allowedIPAddresses" => [],
-      "monitoredIPAddresses" => []
-    }
-
+  test "the scheduled polling task does not request a firewall_lists payload again if applying it raises" do
     build_agent("updated_settings" => {
-      "firewall_lists" => firewall_data,
+      "firewall_lists" => {},
       "firewall_lists_generation" => 9
     }) do |agent, worker, collector, client|
-      worker.jobs[0].task.call
+      Aikido::Zen.firewall.stub :update_from_json, ->(*) { raise "boom" } do
+        worker.jobs[0].task.call
+      end
 
-      assert_logged :error, /failed to get settings from parent: IP list "key" has 1 invalid network/
+      assert_logged :error, /failed to get settings from parent: boom/
 
       _name, args = client.invoke_calls.last
       assert_equal [KEEPALIVE_INTERVAL, nil, 9], args
