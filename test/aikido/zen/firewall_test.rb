@@ -113,6 +113,37 @@ class Aikido::Zen::FirewallTest < ActiveSupport::TestCase
     end
   end
 
+  test "#update_from_json keeps previous IP lists available while replacements are built" do
+    ip_list = Struct.new(:key)
+    @firewall.blocked_ip_lists = [ip_list.new("old-blocked")]
+    @firewall.allowed_ip_lists = [ip_list.new("old-allowed")]
+    @firewall.monitored_ip_lists = [ip_list.new("old-monitored")]
+
+    observed_lists = []
+    build_ip_list = lambda do |data|
+      observed_lists << [
+        @firewall.blocked_ip_lists.map(&:key),
+        @firewall.allowed_ip_lists.map(&:key),
+        @firewall.monitored_ip_lists.map(&:key)
+      ]
+      ip_list.new(data.fetch("key"))
+    end
+
+    Aikido::Zen::Firewall::IPList.stub(:from_json, build_ip_list) do
+      @firewall.update_from_json({
+        "blockedIPAddresses" => [{"key" => "new-blocked"}],
+        "allowedIPAddresses" => [{"key" => "new-allowed"}],
+        "monitoredIPAddresses" => [{"key" => "new-monitored"}]
+      })
+    end
+
+    expected_previous_lists = [["old-blocked"], ["old-allowed"], ["old-monitored"]]
+    assert_equal [expected_previous_lists] * 3, observed_lists
+    assert_equal ["new-blocked"], @firewall.blocked_ip_lists.map(&:key)
+    assert_equal ["new-allowed"], @firewall.allowed_ip_lists.map(&:key)
+    assert_equal ["new-monitored"], @firewall.monitored_ip_lists.map(&:key)
+  end
+
   test "#user_agent_keys returns an empty array when the user agent is nil" do
     assert_equal [], @firewall.user_agent_keys(nil)
   end

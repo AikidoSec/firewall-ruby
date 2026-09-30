@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../internals"
+
 module Aikido::Zen
   class Firewall::IPList
     attr_reader :key
@@ -15,7 +17,7 @@ module Aikido::Zen
         key: data["key"],
         source: data["source"],
         description: data["description"],
-        ips: Array(data["ips"]).map { |ip| IPAddr.new(ip) }
+        ips: Array(data["ips"])
       )
     end
 
@@ -23,12 +25,17 @@ module Aikido::Zen
       @key = key
       @source = source
       @description = description
-      @ips = ips
 
+      if Internals.ip_matcher_available?
+        @matcher = Internals::IPMatcher.new(ips)
+        return
+      end
+
+      @ips = ips.map { |ip| IPAddr.new(ip) }
       @ipv4_ranges = []
       @ipv6_ranges = []
 
-      ips.each do |ip|
+      @ips.each do |ip|
         range = ip.to_range
         ip_int_range = (range.begin.to_i..range.end.to_i)
 
@@ -50,6 +57,8 @@ module Aikido::Zen
     end
 
     def include?(ip)
+      return native_match?(ip) if @matcher
+
       native_ip = nativize_ip(ip)
       return false if native_ip.nil?
 
@@ -65,6 +74,22 @@ module Aikido::Zen
     end
 
     private
+
+    def native_match?(ip)
+      return false if ip.nil?
+      unless ip.is_a?(String) || ip.is_a?(IPAddr)
+        raise ArgumentError, "no explicit conversion of #{ip.class} to IPAddr"
+      end
+
+      network = ip.to_s
+      return true if @matcher.include?(network)
+      return false unless network.include?(":")
+
+      parsed_ip = ip.is_a?(IPAddr) ? ip : IPAddr.new(ip)
+      parsed_ip.ipv4_mapped? && @matcher.include?(parsed_ip.native.to_s)
+    rescue IPAddr::InvalidAddressError
+      false
+    end
 
     def nativize_ip(ip)
       case ip

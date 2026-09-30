@@ -13,6 +13,10 @@ class Aikido::InternalsTest < ActiveSupport::TestCase
     assert Internals.singleton_methods.include?(:detect_sql_injection_native)
   end
 
+  test "native IP matcher is available" do
+    assert Internals.ip_matcher_available?
+  end
+
   test ".detect_sql_injection is defined" do
     assert Internals.methods.include?(:detect_sql_injection)
   end
