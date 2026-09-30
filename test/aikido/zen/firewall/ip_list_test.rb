@@ -22,23 +22,52 @@ class Aikido::Zen::Firewall::IPListTest < ActiveSupport::TestCase
   }
 
   test "create IP list from JSON" do
-    ip_list = Aikido::Zen::Internals.stub :ip_matcher_available?, false do
-      Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
-    end
+    ip_list = Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
 
     assert_kind_of Aikido::Zen::Firewall::IPList, ip_list
 
     assert_equal "key", ip_list.key
     assert_equal "source", ip_list.source
     assert_equal "description", ip_list.description
-    assert_equal 10, ip_list.ips.size
-    assert_equal 5, ip_list.ipv4_ranges.size
-    assert_equal 5, ip_list.ipv6_ranges.size
+  end
 
-    assert_kind_of Integer, ip_list.ipv4_ranges.first.begin
-    assert_kind_of Integer, ip_list.ipv4_ranges.first.end
-    assert_kind_of Integer, ip_list.ipv6_ranges.first.begin
-    assert_kind_of Integer, ip_list.ipv6_ranges.first.end
+  test "#inspect includes the key" do
+    ip_list = Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
+
+    assert_equal "#<Aikido::Zen::Firewall::IPList key>", ip_list.inspect
+  end
+
+  test "creating an IP list raises InternalsError if the native matcher cannot be created" do
+    Aikido::Zen::Internals.stub :ip_matcher_create_native, FFI::Pointer::NULL do
+      err = assert_raises Aikido::Zen::InternalsError do
+        Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
+      end
+
+      assert_equal %(Zen could not create an IP matcher due to a problem calling ip_matcher_create in the library `#{Aikido::Zen::Internals.libzen_name}'), err.message
+    end
+  end
+
+  test "creating an IP list raises ArgumentError if any network is invalid" do
+    data = DEFAULT_IP_LIST.merge("ips" => ["10.0.0.0/8", "not-a-network", "10.0.0.0/33"])
+
+    error = assert_raises ArgumentError do
+      Aikido::Zen::Firewall::IPList.from_json(data)
+    end
+
+    assert_equal %(IP list "key" has 2 invalid network(s), more than the 0 allowed), error.message
+  end
+
+  test "creating an IP list tolerates up to max_rejected_count invalid networks" do
+    args = {key: "key", source: "source", description: "description", ips: ["10.0.0.0/8", "not-a-network", "10.0.0.0/33"]}
+
+    ip_list = Aikido::Zen::Firewall::IPList.new(**args, max_rejected_count: 2)
+    assert ip_list.include?("10.1.2.3")
+
+    error = assert_raises ArgumentError do
+      Aikido::Zen::Firewall::IPList.new(**args, max_rejected_count: 1)
+    end
+
+    assert_equal %(IP list "key" has 2 invalid network(s), more than the 1 allowed), error.message
   end
 
   test "#include? is true if the ip address is included" do
@@ -77,7 +106,6 @@ class Aikido::Zen::Firewall::IPListTest < ActiveSupport::TestCase
       "fe80::ffff:ffff:ffff:ffff"
     ].each do |ip|
       assert ip_list.include?(ip)
-      assert ip_list.include?(IPAddr.new(ip))
     end
   end
 
@@ -104,6 +132,25 @@ class Aikido::Zen::Firewall::IPListTest < ActiveSupport::TestCase
     ip_list = Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
 
     assert ip_list.include?("::ffff:192.168.0.1")
-    assert ip_list.include?(IPAddr.new("::ffff:192.168.0.1"))
+  end
+
+  test "#include? does not match IPv4-mapped IPv6 addresses of IPv4 addresses outside the networks" do
+    ip_list = Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
+
+    refute ip_list.include?("::ffff:8.8.8.8")
+  end
+
+  test "#include? is false for nil" do
+    ip_list = Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
+
+    refute ip_list.include?(nil)
+  end
+
+  test "#include? is false for strings that are not IP addresses" do
+    ip_list = Aikido::Zen::Firewall::IPList.from_json(DEFAULT_IP_LIST)
+
+    ["", "not-an-ip", "::zzz", "999.1.1.1", "1.2.3.4:80"].each do |ip|
+      refute ip_list.include?(ip), "expected #{ip.inspect} not to be included"
+    end
   end
 end

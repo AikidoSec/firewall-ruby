@@ -27,26 +27,9 @@ module Aikido::Zen
     end
 
     # @param data [Hash] the decoded JSON payload from /api/runtime/firewall/lists
-    # @return [Boolean]
+    # @return [Boolean] whether the firewall was updated. Nothing is replaced
+    #   unless all IP lists are created.
     def update_from_json(data)
-      self.blocked_user_agent_regexp = pattern(data["blockedUserAgents"])
-
-      self.monitored_user_agent_regexp = pattern(data["monitoredUserAgents"])
-
-      self.user_agent_details = []
-
-      data["userAgentDetails"]&.each do |record|
-        key = record["key"]
-        pattern = pattern(record["pattern"])
-
-        next if key.nil? || pattern.nil?
-
-        user_agent_details << {
-          key: key,
-          pattern: pattern
-        }
-      end
-
       new_blocked_ip_lists = []
 
       data["blockedIPAddresses"]&.each do |ip_list|
@@ -65,12 +48,33 @@ module Aikido::Zen
         new_monitored_ip_lists << Firewall::IPList.from_json(ip_list)
       end
 
-      # Keep old lists active so requests stay protected while matchers are built.
+      new_user_agent_details = []
+
+      data["userAgentDetails"]&.each do |record|
+        key = record["key"]
+        pattern = pattern(record["pattern"])
+
+        next if key.nil? || pattern.nil?
+
+        new_user_agent_details << {
+          key: key,
+          pattern: pattern
+        }
+      end
+
+      # Nothing is replaced unless every IP matcher was built successfully,
+      # so requests stay protected by the current rule set.
+      self.blocked_user_agent_regexp = pattern(data["blockedUserAgents"])
+      self.monitored_user_agent_regexp = pattern(data["monitoredUserAgents"])
       self.blocked_ip_lists = new_blocked_ip_lists
       self.allowed_ip_lists = new_allowed_ip_lists
       self.monitored_ip_lists = new_monitored_ip_lists
+      self.user_agent_details = new_user_agent_details
 
       true
+    rescue ArgumentError, InternalsError => err
+      Aikido::Zen.config.logger.error("Zen failed to update the firewall lists: #{err.message}")
+      false
     end
 
     # Construct a regular expression from the non-nil and non-empty string,
