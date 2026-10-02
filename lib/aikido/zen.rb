@@ -300,6 +300,13 @@ module Aikido
 
       return if request_bypassed?
 
+      if context.custom_events >= config.max_custom_events
+        config.logger.warn("Dropped custom event #{name}: too many custom events were tracked for this request")
+        return
+      end
+
+      context.custom_events += 1
+
       event = Events::Custom.new(
         name: name,
         request: context.request,

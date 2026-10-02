@@ -566,5 +566,17 @@ class Aikido::ZenTest < ActiveSupport::TestCase
 
       assert_not_requested :post, "https://guard.aikido.dev/api/runtime/events"
     end
+
+    test ".track drops events past the configured per-request limit, logging a warning" do
+      stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
+        .to_return(status: 204, body: "")
+
+      Aikido::Zen.config.max_custom_events.times { |i| Aikido::Zen.track("event.#{i}") }
+      Aikido::Zen.track("event.over_the_limit")
+
+      assert_requested :post, "https://guard.aikido.dev/api/runtime/events",
+        times: Aikido::Zen.config.max_custom_events
+      assert_logged :warn, /Dropped custom event event\.over_the_limit/
+    end
   end
 end
