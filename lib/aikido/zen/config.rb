@@ -111,6 +111,10 @@ module Aikido::Zen
     #   the oldest seen users.
     attr_accessor :max_users_tracked
 
+    # @return [Integer] the maximum number of custom events tracked per request.
+    #   Defaults to 25.
+    attr_accessor :max_custom_events
+
     # @return [Proc{(Aikido::Zen::Request, Symbol, reason: String=nil) => Array(Integer, Hash, #each)}]
     #   Rack handler used to respond to requests from IPs, users or others blocked in the Aikido
     #   dashboard.
@@ -266,6 +270,7 @@ module Aikido::Zen
       self.max_compressed_stats = 100
       self.max_outbound_connections = 200
       self.max_users_tracked = 1000
+      self.max_custom_events = 25
       self.blocked_responder = DEFAULT_BLOCKED_RESPONDER
       self.rate_limited_responder = DEFAULT_RATE_LIMITED_RESPONDER
       self.rate_limiting_discriminator = DEFAULT_RATE_LIMITING_DISCRIMINATOR

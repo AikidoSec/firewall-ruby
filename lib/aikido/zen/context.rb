@@ -38,6 +38,9 @@ module Aikido::Zen
     attr_accessor :idor_protection_enabled
     alias_method :idor_protection_enabled?, :idor_protection_enabled
 
+    # @return [Integer]
+    attr_accessor :custom_events
+
     # @param request [Rack::Request] a Request object that implements the
     #   Rack::Request API, to which we will delegate behavior.
     # @param settings [Aikido::Zen::RuntimeSettings]
@@ -58,6 +61,7 @@ module Aikido::Zen
       @request_bypassed = nil
       @protection_disabled = false
       @idor_protection_enabled = false
+      @custom_events = 0
     end
 
     # Fetch some metadata stored in the Context.
