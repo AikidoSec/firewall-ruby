@@ -35,6 +35,18 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     assert_nothing_raised { context.payloads }
   end
 
+  test "the File.join special case for arrays does not stack overflow on deeply nested arrays" do
+    Aikido::Zen.config.harden = false
+
+    data = "leaf"
+    200_000.times { data = [data] }
+
+    request = DummyRequest.new({})
+    context = Aikido::Zen::Context.new(request) { {query: data} }
+
+    assert_nothing_raised { context.payloads }
+  end
+
   module GenericTests
     extend ActiveSupport::Testing::Declarative
 

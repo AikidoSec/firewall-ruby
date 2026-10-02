@@ -125,13 +125,26 @@ module Aikido::Zen
         unless Aikido::Zen.config.harden?
           # Special case for File.join given a possibly nested array of strings,
           # as might occur when a query parameter is an array.
-          begin
-            string = File.join__internal_for_aikido_zen(*array)
-            if unsafe_path?(string)
-              payloads << Payload.new(string, source_type, [prefix, "__File.join__"].compact.join("."))
+
+          # File.join recursively joins nested string arrays, and can overflow
+          # the stack given deeply nested arrays.
+          #
+          # Flatten array to max depth and check that the flattened array is an
+          # array of strings before calling File.join__internal_for_aikido_zen,
+          # only if the array was fully flattened, to prevent a stack overflow.
+          #
+          # Checking that all values are Strings handily prevents a TypeError
+          # from being raised.
+          flattened_array = array.flatten(@max_depth)
+          if flattened_array.all? { |string| string.is_a?(String) }
+            begin
+              string = File.join__internal_for_aikido_zen(*flattened_array)
+              if unsafe_path?(string)
+                payloads << Payload.new(string, source_type, [prefix, "__File.join__"].compact.join("."))
+              end
+            rescue
+              # Could not create special payload for File.join.
             end
-          rescue
-            # Could not create special payload for File.join.
           end
         end
 
