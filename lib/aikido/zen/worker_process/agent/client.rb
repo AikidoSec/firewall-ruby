@@ -64,7 +64,10 @@ module Aikido::Zen::WorkerProcess
       def calculate_rate_limits(request)
         result = @rpc_client.invoke(
           "calculate_rate_limits", Aikido::Zen::IPC::READ_TIMEOUT,
-          request.route.as_json, request.client_ip, request.actor&.as_json
+          request.route.as_json,
+          request.client_ip,
+          request.actor&.as_json,
+          request.rate_limiting_group
         )
 
         Aikido::Zen::RateLimiter::Result.from_json(result) if result

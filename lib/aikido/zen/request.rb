@@ -17,6 +17,11 @@ module Aikido::Zen
     # @see Aikido::Zen.track_user
     attr_accessor :actor
 
+    # The current rate limiting group, if set by the host app.
+    #
+    # @return [String, nil]
+    attr_accessor :rate_limiting_group
+
     # The current tenant, if set by the host app.
     #
     # @return [Integer, String, nil]

@@ -294,17 +294,35 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
   end
 
   test "the default rate limiting discriminator returns the request IP" do
-    request = OpenStruct.new(client_ip: "1.2.3.4", actor: nil)
+    request = OpenStruct.new(client_ip: "1.2.3.4", actor: nil, rate_limiting_group: nil)
     value = @config.rate_limiting_discriminator.call(request)
 
     assert_equal "1.2.3.4", value
   end
 
   test "the default rate limiting discriminator returns the actor id if set" do
-    request = OpenStruct.new(actor: Aikido::Zen::Actor(id: 123))
+    request = OpenStruct.new(actor: Aikido::Zen::Actor(id: 123), rate_limiting_group: nil)
     value = @config.rate_limiting_discriminator.call(request)
 
     assert_equal "actor:123", value
+  end
+
+  test "the default rate limiting discriminator returns the rate limiting group if set" do
+    request = OpenStruct.new(client_ip: "1.2.3.4", actor: nil, rate_limiting_group: "group1")
+    value = @config.rate_limiting_discriminator.call(request)
+
+    assert_equal "group:group1", value
+  end
+
+  test "the default rate limiting discriminator prefers the rate limiting group over the actor" do
+    request = OpenStruct.new(
+      client_ip: "1.2.3.4",
+      actor: Aikido::Zen::Actor(id: 123),
+      rate_limiting_group: "group1"
+    )
+    value = @config.rate_limiting_discriminator.call(request)
+
+    assert_equal "group:group1", value
   end
 
   def assert_boolean_env_var(env_var, &block)
