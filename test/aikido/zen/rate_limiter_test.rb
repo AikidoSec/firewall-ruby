@@ -97,6 +97,24 @@ class Aikido::Zen::RateLimiterTest < ActiveSupport::TestCase
       current: 3, discriminator: "actor:123"
   end
 
+  test "requests from different actors and IPs sharing a rate limiting group are throttled together" do
+    configure "GET", "/", max_requests: 3, period: 10
+
+    refute_throttled \
+      build_request("GET", "/", ip: "1.2.3.4", user: {id: "123"}, group: "shared"),
+      current: 1, discriminator: "group:shared"
+    refute_throttled \
+      build_request("GET", "/", ip: "2.3.4.5", user: {id: "456"}, group: "shared"),
+      current: 2, discriminator: "group:shared"
+    refute_throttled \
+      build_request("GET", "/", ip: "3.4.5.6", group: "shared"),
+      current: 3, discriminator: "group:shared"
+
+    assert_throttled \
+      build_request("GET", "/", ip: "4.5.6.7", user: {id: "789"}, group: "shared"),
+      current: 3, discriminator: "group:shared"
+  end
+
   test "requests to different endpoints are not throttled" do
     configure "GET", "/", max_requests: 3, period: 1
 
@@ -199,10 +217,11 @@ class Aikido::Zen::RateLimiterTest < ActiveSupport::TestCase
     assert_throttled build_request("GET", "/foo", ip: "1.2.3.4"), current: 3
   end
 
-  def build_request(method, path, extra_env = {}, ip: nil, user: nil)
+  def build_request(method, path, extra_env = {}, ip: nil, user: nil, group: nil)
     env = Rack::MockRequest.env_for(path, {"REMOTE_ADDR" => ip, :method => method}.merge(extra_env))
     ctx = Aikido::Zen::Context.from_rack_env(env)
     ctx.request.actor = Aikido::Zen::Actor(user) if user
+    ctx.request.rate_limiting_group = group if group
     ctx.request
   end
 
