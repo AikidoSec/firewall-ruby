@@ -14,6 +14,39 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     assert_equal framework_request, context.request
   end
 
+  test "payload extraction does not recurse past the configured maximum depth" do
+    Aikido::Zen.config.extract_payloads_max_depth = 2
+
+    request = DummyRequest.new({})
+    data = {"a" => {"b" => "kept at the depth limit", "c" => {"d" => "dropped past the depth limit"}}}
+    context = Aikido::Zen::Context.new(request) { {body: data} }
+
+    assert_includes context.payloads, Aikido::Zen::Payload.new("kept at the depth limit", :body, "a.b")
+    refute_includes context.payloads, Aikido::Zen::Payload.new("dropped past the depth limit", :body, "a.c.d")
+  end
+
+  test "payload extraction caps recursion depth to prevent a stack overflow" do
+    data = "leaf"
+    10_000.times { data = {"k" => data} }
+
+    request = DummyRequest.new({})
+    context = Aikido::Zen::Context.new(request) { {body: data} }
+
+    assert_nothing_raised { context.payloads }
+  end
+
+  test "the File.join special case for arrays does not stack overflow on deeply nested arrays" do
+    Aikido::Zen.config.harden = false
+
+    data = "leaf"
+    200_000.times { data = [data] }
+
+    request = DummyRequest.new({})
+    context = Aikido::Zen::Context.new(request) { {query: data} }
+
+    assert_nothing_raised { context.payloads }
+  end
+
   module GenericTests
     extend ActiveSupport::Testing::Declarative
 

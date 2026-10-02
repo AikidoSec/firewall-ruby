@@ -45,10 +45,13 @@ module Aikido::Zen
     # @yieldparam request [Rack::Request] the given request object.
     # @yieldreturn [Hash<Symbol, #flat_map>] map of payload source types
     #   to the actual data from the request to populate them.
-    def initialize(request, settings: Aikido::Zen.runtime_settings, &sources)
+    def initialize(request, zen: Aikido::Zen, config: zen.config, settings: zen.runtime_settings, &sources)
       @request = request
+      @config = config
       @settings = settings
       @payload_sources = sources
+
+      @max_depth = @config.extract_payloads_max_depth
 
       @metadata = {}
       @scanning = false
@@ -102,31 +105,46 @@ module Aikido::Zen
     private
 
     # @!visibility private
-    def extract_payloads_from(data, source_type, prefix = nil)
+    def extract_payloads_from(data, source_type, prefix = nil, depth = 0)
+      return [] if depth > @max_depth
+
       if data.is_a?(String)
         [Payload.new(data, source_type, prefix.to_s)]
       elsif data.respond_to?(:to_hash)
         data.to_hash.flat_map do |key, value|
-          extract_payloads_from(value, source_type, [prefix, key].compact.join("."))
+          extract_payloads_from(value, source_type, [prefix, key].compact.join("."), depth + 1)
         end
       elsif data.respond_to?(:to_ary)
         array = data.to_ary
         return array if array.empty?
 
         payloads = array.flat_map.with_index do |value, index|
-          extract_payloads_from(value, source_type, [prefix, index].compact.join("."))
+          extract_payloads_from(value, source_type, [prefix, index].compact.join("."), depth + 1)
         end
 
         unless Aikido::Zen.config.harden?
           # Special case for File.join given a possibly nested array of strings,
           # as might occur when a query parameter is an array.
-          begin
-            string = File.join__internal_for_aikido_zen(*array)
-            if unsafe_path?(string)
-              payloads << Payload.new(string, source_type, [prefix, "__File.join__"].compact.join("."))
+
+          # File.join recursively joins nested string arrays, and can overflow
+          # the stack given deeply nested arrays.
+          #
+          # Flatten array to max depth and check that the flattened array is an
+          # array of strings before calling File.join__internal_for_aikido_zen,
+          # only if the array was fully flattened, to prevent a stack overflow.
+          #
+          # Checking that all values are Strings handily prevents a TypeError
+          # from being raised.
+          flattened_array = array.flatten(@max_depth)
+          if flattened_array.all? { |string| string.is_a?(String) }
+            begin
+              string = File.join__internal_for_aikido_zen(*flattened_array)
+              if unsafe_path?(string)
+                payloads << Payload.new(string, source_type, [prefix, "__File.join__"].compact.join("."))
+              end
+            rescue
+              # Could not create special payload for File.join.
             end
-          rescue
-            # Could not create special payload for File.join.
           end
         end
 
