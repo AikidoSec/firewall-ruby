@@ -205,7 +205,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     end
   end
 
-  MockRequest = Struct.new(:route, :client_ip, :actor)
+  MockRequest = Struct.new(:route, :client_ip, :actor, :rate_limiting_group)
 
   test "#calculate_rate_limits returns nil when the parent returns no result" do
     build_agent("updated_settings" => {}, "calculate_rate_limits" => nil) do |agent|
@@ -228,6 +228,40 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       )
 
       assert_nil agent.calculate_rate_limits(request)
+    end
+  end
+
+  test "#calculate_rate_limits sends the rate limiting group when one is present" do
+    build_agent("updated_settings" => {}, "calculate_rate_limits" => nil) do |agent, worker, collector, client|
+      request = MockRequest.new(
+        Aikido::Zen::Route.new(verb: "GET", path: "/test"),
+        "1.2.3.4",
+        nil,
+        "123"
+      )
+
+      agent.calculate_rate_limits(request)
+
+      name, args = client.invoke_calls.find { |call_name, _| call_name == "calculate_rate_limits" }
+      assert_equal "calculate_rate_limits", name
+      assert_equal "123", args.last
+    end
+  end
+
+  test "#calculate_rate_limits sends a nil rate limiting group when none is present" do
+    build_agent("updated_settings" => {}, "calculate_rate_limits" => nil) do |agent, worker, collector, client|
+      request = MockRequest.new(
+        Aikido::Zen::Route.new(verb: "GET", path: "/test"),
+        "1.2.3.4",
+        nil,
+        nil
+      )
+
+      agent.calculate_rate_limits(request)
+
+      name, args = client.invoke_calls.find { |call_name, _| call_name == "calculate_rate_limits" }
+      assert_equal "calculate_rate_limits", name
+      assert_nil args.last
     end
   end
 
@@ -548,7 +582,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientIntegrationTest < ActiveSupport::
     )
   end
 
-  MockRequest = Struct.new(:route, :client_ip, :actor)
+  MockRequest = Struct.new(:route, :client_ip, :actor, :rate_limiting_group)
 
   test "client receives initial runtime settings from the server on startup" do
     Aikido::Zen.api_cache.runtime_config = {
@@ -597,6 +631,36 @@ class Aikido::Zen::WorkerProcess::Agent::ClientIntegrationTest < ActiveSupport::
         nil
       ))
       raise "expected nil with no rate limit rules, got #{result.inspect}" unless result.nil?
+    end
+  end
+
+  test "client delegates rate-limit calculation with a rate limiting group to the server" do
+    route = Aikido::Zen::Route.new(verb: "GET", path: "/test")
+
+    endpoints = Aikido::Zen.runtime_settings.endpoints.send(:to_h)
+    endpoints[route] = Aikido::Zen::RuntimeSettings::ProtectionSettings.from_json(
+      "forceProtectionOff" => false,
+      "allowedIPAddresses" => [],
+      "rateLimiting" => {"enabled" => true, "maxRequests" => 2, "windowSizeInMS" => 60_000}
+    )
+
+    in_forked_worker do
+      client = build_client
+      client.start
+
+      # Different actors and IPs sharing a rate limiting group are throttled
+      # together, as a single bucket.
+      request = ->(actor_id, ip) {
+        MockRequest.new(route, ip, Aikido::Zen::Actor(id: actor_id), "shared")
+      }
+
+      r1 = client.calculate_rate_limits(request.call("user1", "1.1.1.1"))
+      r2 = client.calculate_rate_limits(request.call("user2", "2.2.2.2"))
+      r3 = client.calculate_rate_limits(request.call("user3", "3.3.3.3"))
+
+      raise "expected request 1 not to be throttled, got #{r1.inspect}" if r1.throttled?
+      raise "expected request 2 not to be throttled, got #{r2.inspect}" if r2.throttled?
+      raise "expected request 3 to be throttled, got #{r3.inspect}" unless r3.throttled?
     end
   end
 

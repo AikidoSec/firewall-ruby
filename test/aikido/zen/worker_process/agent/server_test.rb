@@ -274,10 +274,33 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
     client.stop
   end
 
-  test "#calculate_rate_limits works without an actor" do
+  test "calculate_rate_limits handler returns the serialized result when rate limiting is enabled for a rate limiting group" do
+    route = Aikido::Zen::Route.new(verb: "GET", path: "/test")
+
+    endpoints = Aikido::Zen.runtime_settings.endpoints.send(:to_h)
+    endpoints[route] = Aikido::Zen::RuntimeSettings::ProtectionSettings.from_json(
+      "forceProtectionOff" => false,
+      "allowedIPAddresses" => [],
+      "rateLimiting" => {"enabled" => true, "maxRequests" => 3, "windowSizeInMS" => 5000}
+    )
+
+    @server.start
+    client = Aikido::Zen::RPC::Client.start(Aikido::Zen.secret, @server.host, @server.port)
+
+    route_data = {"method" => "GET", "path" => "/test"}
+    result = client.invoke("calculate_rate_limits", 2.0, route_data, "1.2.3.4", nil, "123")
+
+    refute_nil result
+    assert_equal false, result["throttled"]
+    assert_equal "group:123", result["discriminator"]
+  ensure
+    client.stop
+  end
+
+  test "#calculate_rate_limits works without an actor or rate limiting group" do
     route_data = {"method" => "GET", "path" => "/test"}
 
-    assert_nil @server.calculate_rate_limits(route_data, "1.2.3.4", nil)
+    assert_nil @server.calculate_rate_limits(route_data, "1.2.3.4", nil, nil)
   end
 
   test "#calculate_rate_limits works with an actor" do
@@ -285,10 +308,16 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
     now_ms = Time.now.to_i * 1000
     actor_data = {"id" => "user1", "name" => "Test User", "firstSeenAt" => now_ms, "lastSeenAt" => now_ms}
 
-    assert_nil @server.calculate_rate_limits(route_data, "1.2.3.4", actor_data)
+    assert_nil @server.calculate_rate_limits(route_data, "1.2.3.4", actor_data, nil)
   end
 
-  test "#calculate_rate_limits passes the deserialized route, ip, and actor to the rate limiter" do
+  test "#calculate_rate_limits works with a rate limiting group" do
+    route_data = {"method" => "GET", "path" => "/test"}
+
+    assert_nil @server.calculate_rate_limits(route_data, "1.2.3.4", nil, "123")
+  end
+
+  test "#calculate_rate_limits passes the deserialized route, ip, actor and rate_limiting_group to the rate limiter" do
     route_data = {"method" => "GET", "path" => "/test"}
     now_ms = Time.now.to_i * 1000
     actor_data = {"id" => "user1", "name" => "Test User", "firstSeenAt" => now_ms, "lastSeenAt" => now_ms}
@@ -300,7 +329,7 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
     }
 
     Aikido::Zen.rate_limiter.stub(:calculate_rate_limits, capture_request) do
-      @server.calculate_rate_limits(route_data, "1.2.3.4", actor_data)
+      @server.calculate_rate_limits(route_data, "1.2.3.4", actor_data, "123")
     end
 
     assert_instance_of Aikido::Zen::Route, received_request.route
@@ -309,6 +338,7 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
     assert_equal "1.2.3.4", received_request.client_ip
     assert_instance_of Aikido::Zen::Actor, received_request.actor
     assert_equal "user1", received_request.actor.id
+    assert_equal "123", received_request.rate_limiting_group
   end
 
   test "#calculate_rate_limits passes nil as the actor to the rate limiter when none is given" do
@@ -321,10 +351,44 @@ class Aikido::Zen::WorkerProcess::Agent::ServerTest < ActiveSupport::TestCase
     }
 
     Aikido::Zen.rate_limiter.stub(:calculate_rate_limits, capture_actor) do
-      @server.calculate_rate_limits(route_data, "1.2.3.4", nil)
+      @server.calculate_rate_limits(route_data, "1.2.3.4", nil, nil)
     end
 
     assert_nil received_actor
+  end
+
+  test "#calculate_rate_limits passes the rate limiting group to the rate limiter" do
+    route_data = {"method" => "GET", "path" => "/test"}
+
+    received_group = :not_set
+    capture_group = ->(request) {
+      received_group = request.rate_limiting_group
+      nil
+    }
+
+    Aikido::Zen.rate_limiter.stub(:calculate_rate_limits, capture_group) do
+      @server.calculate_rate_limits(route_data, "1.2.3.4", nil, "123")
+    end
+
+    assert_equal "123", received_group
+  end
+
+  test "#calculate_rate_limits passes nil as the rate limiting group to the rate limiter when none is given" do
+    route_data = {"method" => "GET", "path" => "/test"}
+    now_ms = Time.now.to_i * 1000
+    actor_data = {"id" => "user1", "name" => "Test User", "firstSeenAt" => now_ms, "lastSeenAt" => now_ms}
+
+    received_group = :not_set
+    capture_group = ->(request) {
+      received_group = request.rate_limiting_group
+      nil
+    }
+
+    Aikido::Zen.rate_limiter.stub(:calculate_rate_limits, capture_group) do
+      @server.calculate_rate_limits(route_data, "1.2.3.4", actor_data, nil)
+    end
+
+    assert_nil received_group
   end
 
   test "record_attack_wave handler returns false when the threshold has not been reached" do

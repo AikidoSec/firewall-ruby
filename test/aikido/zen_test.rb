@@ -117,6 +117,131 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     end
   end
 
+  test ".set_rate_limiting_group sets the rate limiting group on the request" do
+    context = Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+      Rack::MockRequest.env_for("/")
+    )
+
+    assert_nil context.request.rate_limiting_group
+
+    Aikido::Zen.set_rate_limiting_group("123")
+
+    assert_equal "123", context.request.rate_limiting_group
+  end
+
+  test ".set_rate_limiting_group coerces the group to a String" do
+    context = Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+      Rack::MockRequest.env_for("/")
+    )
+
+    Aikido::Zen.set_rate_limiting_group(123)
+
+    assert_equal "123", context.request.rate_limiting_group
+  end
+
+  test ".set_rate_limiting_group warns if context is not set" do
+    assert_nil Aikido::Zen.current_context
+
+    Aikido::Zen.set_rate_limiting_group("123")
+
+    assert_logged :warn, /set_rate_limiting_group was called without a context/
+  end
+
+  test ".set_rate_limiting_group does not set the group when given an empty string" do
+    context = Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+      Rack::MockRequest.env_for("/")
+    )
+
+    Aikido::Zen.set_rate_limiting_group("")
+
+    assert_nil context.request.rate_limiting_group
+    assert_logged :warn, /set_rate_limiting_group expects a non-empty group/
+  end
+
+  test ".set_rate_limiting_group does not set the group when given something other than a String or Integer" do
+    context = Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+      Rack::MockRequest.env_for("/")
+    )
+
+    [{"a" => "b"}, ["a"], 1.5, true, :group].each do |group|
+      Aikido::Zen.set_rate_limiting_group(group)
+
+      assert_nil context.request.rate_limiting_group, "expected #{group.inspect} to be rejected"
+    end
+
+    assert_logged :warn, /set_rate_limiting_group expects a String or Integer group, got Hash/
+  end
+
+  test ".set_rate_limiting_group accepts 0 as a group" do
+    context = Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+      Rack::MockRequest.env_for("/")
+    )
+
+    Aikido::Zen.set_rate_limiting_group(0)
+
+    assert_equal "0", context.request.rate_limiting_group
+  end
+
+  test ".set_rate_limiting_group does not clear an existing group when given nil" do
+    context = Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+      Rack::MockRequest.env_for("/")
+    )
+
+    Aikido::Zen.set_rate_limiting_group("123")
+    Aikido::Zen.set_rate_limiting_group(nil)
+
+    assert_equal "123", context.request.rate_limiting_group
+    assert_logged :warn, /set_rate_limiting_group expects a non-empty group/
+  end
+
+  test ".set_rate_limiting_group leaves the request ungrouped when given nil and none was set" do
+    context = Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+      Rack::MockRequest.env_for("/")
+    )
+
+    Aikido::Zen.set_rate_limiting_group(nil)
+
+    assert_nil context.request.rate_limiting_group
+    refute_match(/\Agroup:/, Aikido::Zen.config.rate_limiting_discriminator.call(context.request))
+    assert_logged :warn, /set_rate_limiting_group expects a non-empty group/
+  end
+
+  test ".set_rate_limiting_group does not warn when a group is given" do
+    Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+      Rack::MockRequest.env_for("/")
+    )
+
+    Aikido::Zen.set_rate_limiting_group("123")
+
+    refute_logged :warn, /set_rate_limiting_group/
+  end
+
+  test ".set_rate_limiting_group does not warn about a nil group if Zen is disabled" do
+    Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+      Rack::MockRequest.env_for("/")
+    )
+    Aikido::Zen.config.disabled = true
+
+    Aikido::Zen.set_rate_limiting_group(nil)
+
+    refute_logged :warn, /set_rate_limiting_group/
+  ensure
+    Aikido::Zen.config.disabled = false
+  end
+
+  test ".set_rate_limiting_group does nothing if Zen is disabled" do
+    context = Aikido::Zen.current_context = Aikido::Zen::Context.from_rack_env(
+      Rack::MockRequest.env_for("/")
+    )
+    Aikido::Zen.config.disabled = true
+
+    Aikido::Zen.set_rate_limiting_group("123")
+
+    assert_nil context.request.rate_limiting_group
+  ensure
+    Aikido::Zen.config.disabled = false
+  end
+
   test ".idor_protect does not fail if context is not set" do
     assert_nil Aikido::Zen.current_context
 

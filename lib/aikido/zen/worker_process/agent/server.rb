@@ -22,8 +22,8 @@ module Aikido::Zen::WorkerProcess
           send_collector_events(events_data)
         end
 
-        @rpc_server.handle("calculate_rate_limits") do |respond, route_data, ip, actor_data|
-          result = calculate_rate_limits(route_data, ip, actor_data)
+        @rpc_server.handle("calculate_rate_limits") do |respond, route_data, ip, actor_data, rate_limiting_group|
+          result = calculate_rate_limits(route_data, ip, actor_data, rate_limiting_group)
           respond.call(result&.as_json)
         end
 
@@ -66,7 +66,7 @@ module Aikido::Zen::WorkerProcess
 
       # @api private
       # @note Visible for testing.
-      RequestKind = Struct.new(:route, :schema, :client_ip, :actor)
+      RequestKind = Struct.new(:route, :schema, :client_ip, :actor, :rate_limiting_group)
 
       def updated_settings(known_config_generation = nil, known_firewall_lists_generation = nil)
         result = {}
@@ -91,10 +91,10 @@ module Aikido::Zen::WorkerProcess
         end
       end
 
-      def calculate_rate_limits(route_data, ip, actor_data)
+      def calculate_rate_limits(route_data, ip, actor_data, rate_limiting_group)
         actor = Aikido::Zen::Actor.from_json(actor_data) if actor_data
         route = Aikido::Zen::Route.from_json(route_data)
-        Aikido::Zen.rate_limiter.calculate_rate_limits(RequestKind.new(route, nil, ip, actor))
+        Aikido::Zen.rate_limiter.calculate_rate_limits(RequestKind.new(route, nil, ip, actor, rate_limiting_group))
       end
 
       # @return [Array<Hash>, nil]

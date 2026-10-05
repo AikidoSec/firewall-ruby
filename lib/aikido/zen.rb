@@ -278,6 +278,37 @@ module Aikido
       alias_method :set_user, :track_user
     end
 
+    # Set the rate limiting group.
+    #
+    # @param group [String, Integer] the rate limiting group id
+    # @return [void]
+    def self.set_rate_limiting_group(group)
+      return if config.disabled?
+
+      if group.nil? || group == ""
+        config.logger.warn("set_rate_limiting_group expects a non-empty group")
+        return
+      end
+
+      unless group.is_a?(String) || group.is_a?(Integer)
+        config.logger.warn("set_rate_limiting_group expects a String or Integer group, got #{group.class}")
+        return
+      end
+
+      context = current_context
+      if context.nil?
+        config.logger.warn("set_rate_limiting_group was called without a context")
+        return
+      end
+
+      context.request.rate_limiting_group = group.to_s
+    end
+
+    # Align with other Zen implementations, while keeping internal consistency.
+    class << self
+      alias_method :set_rate_limit_group, :set_rate_limiting_group
+    end
+
     # Track a custom event happening in your application, like a failed login or
     # a password reset request. Zen automatically attaches the IP address, user
     # agent, and current user (if you called .track_user) from the request.
