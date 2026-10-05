@@ -75,6 +75,20 @@ class ApplicationController < ActionController::Base
 end
 ```
 
+### Rate limiting groups
+
+To limit the number of requests for a group of users, you can use the
+`Aikido::Zen.set_rate_limit_group` method. For example, this is useful if you
+want to limit the number of requests per team or company.
+
+```ruby
+Aikido::Zen.set_rate_limit_group(current_user.team_id)
+```
+
+> [!NOTE]
+> If a rate limiting group is set, the configured rate limits are only applied
+> to the group and not to individual users or IP addresses.
+
 ## Configuration
 
 Zen exposes its configuration object to the Rails configuration, which you can
