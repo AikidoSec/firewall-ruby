@@ -29,6 +29,14 @@ module Aikido
 
         Regexp.new(regexp.source, regexp.options, timeout: timeout)
       end
+
+      # Safely encodes the given string.
+      #
+      # @param string [String] the string
+      # @return [String] the safely encoded string
+      def self.encode_safely(string)
+        string.encode("UTF-8", invalid: :replace, undef: :replace)
+      end
     end
   end
 end
