@@ -53,8 +53,8 @@ module Aikido::Zen
       attr_reader :failed_to_tokenize
 
       def initialize(query, input, dialect)
-        @query = query.downcase
-        @input = input.downcase.strip
+        @query = Aikido::Zen::Helpers.encode_safely(query).downcase
+        @input = Aikido::Zen::Helpers.encode_safely(input).downcase.strip
         @dialect = dialect
       end
 
