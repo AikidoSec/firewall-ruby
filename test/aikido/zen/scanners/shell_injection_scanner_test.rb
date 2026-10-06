@@ -336,6 +336,21 @@ class Aikido::Zen::Scanners::ShellInjectionScannerTest < ActiveSupport::TestCase
     assert_attack "rm -rf", "rm -rf"
   end
 
+  test "it flags attacks when the input contains invalid UTF-8 bytes" do
+    input = (+"\xFF; ls").force_encoding("UTF-8")
+    refute input.valid_encoding?
+
+    assert_attack "echo #{input}", input
+  end
+
+  test "it flags attacks when another input contains invalid UTF-8 bytes" do
+    other_input = (+"\xFF").force_encoding("UTF-8")
+    input = "; ls"
+    refute other_input.valid_encoding?
+
+    assert_attack "echo #{other_input} #{input}", input
+  end
+
   class RailsRequestTest < ActiveSupport::TestCase
     setup do
       Aikido::Zen.config.request_builder = Aikido::Zen::Context::RAILS_REQUEST_BUILDER
