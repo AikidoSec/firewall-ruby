@@ -69,8 +69,10 @@ module Aikido::Zen
       end
 
       def metadata
+        safe_filepath = Aikido::Zen::Helpers.encode_safely(filepath)
+
         {
-          "filename" => filepath
+          "filename" => safe_filepath
         }
       end
 
@@ -106,8 +108,10 @@ module Aikido::Zen
       end
 
       def metadata
+        safe_command = Aikido::Zen::Helpers.encode_safely(@command)
+
         {
-          "command" => @command
+          "command" => safe_command
         }
       end
 
@@ -138,8 +142,10 @@ module Aikido::Zen
       end
 
       def metadata
+        safe_query = Aikido::Zen::Helpers.encode_safely(@query)
+
         {
-          "sql" => @query,
+          "sql" => safe_query,
           "dialect" => @dialect.name,
           "failedToTokenize" => @failed_to_tokenize || nil
         }.compact

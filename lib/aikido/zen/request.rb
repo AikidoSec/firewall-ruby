@@ -91,13 +91,17 @@ module Aikido::Zen
     end
 
     def as_json
+      safe_url = Aikido::Zen::Helpers.encode_safely(url)
+      safe_user_agent = Aikido::Zen::Helpers.encode_safely(user_agent) if user_agent
+      safe_route_path = Aikido::Zen::Helpers.encode_safely(route.path) if route&.path
+
       {
         "method" => request_method.upcase,
-        "url" => url,
+        "url" => safe_url,
         "ipAddress" => client_ip,
-        "userAgent" => user_agent,
+        "userAgent" => safe_user_agent,
         "source" => framework,
-        "route" => route&.path
+        "route" => safe_route_path
       }
     end
 
