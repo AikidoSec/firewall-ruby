@@ -348,6 +348,12 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     assert_attack "SELECT * FROM users WHERE name = '#{other_input}' AND id = #{input}", input
   end
 
+  test "it flags attacks when the input is a binary string with valid UTF-8" do
+    input = "é1 OR 1=1--".b
+
+    assert_attack "SELECT * FROM users WHERE token = é1 OR 1=1--", input
+  end
+
   class TestMySQLDialect < ActiveSupport::TestCase
     include Assertions
 

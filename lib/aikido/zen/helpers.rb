@@ -30,12 +30,20 @@ module Aikido
         Regexp.new(regexp.source, regexp.options, timeout: timeout)
       end
 
-      # Safely encodes the given string.
+      # Returns a copy of the string safely encoded as UTF-8.
+      #
+      # Web servers may deliver request data as binary strings. These strings
+      # are relabeled as UTF-8 instead of being converted, because conversion
+      # would replace every non-ASCII byte with U+FFFD, even in valid UTF-8.
       #
       # @param string [String] the string
-      # @return [String] the safely encoded string
+      # @return [String] the valid UTF-8 string
       def self.encode_safely(string)
-        string.encode("UTF-8", invalid: :replace, undef: :replace)
+        if string.encoding == Encoding::BINARY
+          string.dup.force_encoding(Encoding::UTF_8).scrub
+        else
+          string.encode("UTF-8", invalid: :replace, undef: :replace)
+        end
       end
     end
   end

@@ -473,5 +473,15 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
       assert_requested :post, "https://guard.aikido.dev/api/runtime/events",
         body: hash_including(type: "detected_attack")
     end
+
+    test "it reports a User-Agent keeping its valid UTF-8 and replacing its invalid bytes" do
+      env = Rack::MockRequest.env_for("/users", "HTTP_USER_AGENT" => "Mozilla é bad\xFF".b)
+      context = Aikido::Zen::Context.from_rack_env(env)
+
+      @client.report(Aikido::Zen::Events::Attack.new(attack: sql_injection_attack("1 OR 1=1--", context: context)))
+
+      assert_requested :post, "https://guard.aikido.dev/api/runtime/events",
+        body: hash_including(request: hash_including(userAgent: "Mozilla é bad�"))
+    end
   end
 end
