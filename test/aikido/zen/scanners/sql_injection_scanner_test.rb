@@ -333,6 +333,21 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     refute_attack "SELECT * FROM comments WHERE comment = 'I'm writting you'"
   end
 
+  test "it flags attacks when the input contains invalid UTF-8 bytes" do
+    input = (+"\xFF1 OR 1=1--").force_encoding("UTF-8")
+    refute input.valid_encoding?
+
+    assert_attack "SELECT * FROM users WHERE token = #{input}", input
+  end
+
+  test "it flags attacks when another input contains invalid UTF-8 bytes" do
+    other_input = (+"\xFF").force_encoding("UTF-8")
+    input = "1 OR 1=1--"
+    refute other_input.valid_encoding?
+
+    assert_attack "SELECT * FROM users WHERE name = '#{other_input}' AND id = #{input}", input
+  end
+
   class TestMySQLDialect < ActiveSupport::TestCase
     include Assertions
 

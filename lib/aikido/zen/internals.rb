@@ -103,8 +103,8 @@ module Aikido::Zen
       # @raise [Aikido::Zen::InternalsError] if there's a problem loading or
       #   calling libzen.
       def self.detect_sql_injection(query, input, dialect)
-        query_bytes = encode_safely(query)
-        input_bytes = encode_safely(input)
+        query_bytes = Aikido::Zen::Helpers.encode_safely(query)
+        input_bytes = Aikido::Zen::Helpers.encode_safely(input)
 
         query_ptr = FFI::MemoryPointer.new(:uint8, query_bytes.bytesize)
         input_ptr = FFI::MemoryPointer.new(:uint8, input_bytes.bytesize)
@@ -123,7 +123,7 @@ module Aikido::Zen
       end
 
       def self.idor_analyze_sql(query, dialect)
-        query_bytes = encode_safely(query)
+        query_bytes = Aikido::Zen::Helpers.encode_safely(query)
         query_ptr = FFI::MemoryPointer.new(:uint8, query_bytes.bytesize)
         query_ptr.put_bytes(0, query_bytes)
 
@@ -132,14 +132,6 @@ module Aikido::Zen
         idor_free_string_native(result_ptr)
 
         JSON.parse(result_json)
-      end
-    end
-
-    class << self
-      private
-
-      def encode_safely(string)
-        string.encode("UTF-8", invalid: :replace, undef: :replace)
       end
     end
   end

@@ -682,4 +682,31 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
 
     refute_logged :info, /updated runtime firewall list/i
   end
+
+  class InvalidEncodingTest < ActiveSupport::TestCase
+    setup do
+      Aikido::Zen.config.blocking_mode = true
+
+      @agent = Aikido::Zen::Agent.new
+      @sink = Aikido::Zen::Sink.new("test", "test_op", scanners: [NOOP])
+    end
+
+    test "#handle_attack still raises when the attack has invalid UTF-8 bytes" do
+      input = (+"\xFF1 OR 1=1--").force_encoding("UTF-8")
+
+      attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
+        query: "SELECT * FROM users WHERE token = #{input}",
+        input: Aikido::Zen::Payload.new(input, :query, "token"),
+        dialect: Aikido::Zen::SQL::Dialects.fetch(:mysql),
+        failed_to_tokenize: false,
+        context: nil,
+        sink: @sink,
+        operation: "test"
+      )
+
+      assert_raises Aikido::Zen::UnderAttackError do
+        @agent.handle_attack(attack)
+      end
+    end
+  end
 end
