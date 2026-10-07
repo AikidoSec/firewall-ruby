@@ -37,8 +37,8 @@ module Aikido::Zen
       # @param command [String]
       # @param input [String]
       def initialize(command, input)
-        @command = command
-        @input = input
+        @command = Aikido::Zen::Helpers.encode_safely(command)
+        @input = Aikido::Zen::Helpers.encode_safely(input)
       end
 
       def attack?
