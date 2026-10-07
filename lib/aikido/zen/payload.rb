@@ -24,10 +24,13 @@ module Aikido::Zen
     end
 
     def as_json
+      safe_value = Aikido::Zen::Helpers.encode_safely(value.to_s)
+      safe_path = Aikido::Zen::Helpers.encode_safely(path.to_s)
+
       {
-        "payload" => value.to_s,
+        "payload" => safe_value,
         "source" => SOURCE_SERIALIZATIONS[source],
-        "path" => ".#{path}"
+        "path" => ".#{safe_path}"
       }
     end
 
