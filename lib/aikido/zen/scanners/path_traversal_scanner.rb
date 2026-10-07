@@ -40,8 +40,8 @@ module Aikido::Zen
       end
 
       def initialize(filepath, input)
-        @filepath = filepath.downcase
-        @input = input.downcase
+        @filepath = Aikido::Zen::Helpers.encode_safely(filepath).downcase
+        @input = Aikido::Zen::Helpers.encode_safely(input).downcase
       end
 
       def attack?

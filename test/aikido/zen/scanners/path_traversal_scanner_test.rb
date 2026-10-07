@@ -201,6 +201,21 @@ class Aikido::Zen::Scanners::PathTraversalScannerTest < ActiveSupport::TestCase
     assert_attack "/var/a/b/test.txt", "/var/a"
   end
 
+  test "it flags attacks when the input contains invalid UTF-8 bytes" do
+    input = (+"\xFF../../etc/passwd").force_encoding("UTF-8")
+    refute input.valid_encoding?
+
+    assert_attack "/app/uploads/#{input}", input
+  end
+
+  test "it flags attacks when another input contains invalid UTF-8 bytes" do
+    other_input = (+"\xFF").force_encoding("UTF-8")
+    input = "../../etc/passwd"
+    refute other_input.valid_encoding?
+
+    assert_attack "/app/uploads/#{other_input}/#{input}", input
+  end
+
   class RailsRequestTest < ActiveSupport::TestCase
     setup do
       Aikido::Zen.config.request_builder = Aikido::Zen::Context::RAILS_REQUEST_BUILDER
