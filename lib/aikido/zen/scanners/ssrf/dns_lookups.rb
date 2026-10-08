@@ -15,11 +15,30 @@ module Aikido::Zen
         end
 
         def add(hostname, addresses)
-          self[hostname].concat(Array(addresses))
+          self[normalize_hostname(hostname)].concat(Array(addresses))
         end
 
         def ===(hostname)
-          key?(hostname)
+          key?(normalize_hostname(hostname))
+        end
+
+        def [](hostname)
+          super(normalize_hostname(hostname))
+        end
+
+        private
+
+        # Normalizes a hostname to ensure DNS-equivalent spellings match.
+        # DNS hostnames are case-insensitive and trailing dots are equivalent.
+        #
+        # @param hostname [String, nil]
+        # @return [String, nil]
+        def normalize_hostname(hostname)
+          return hostname if hostname.nil?
+
+          normalized = hostname.to_s.downcase
+          normalized = normalized.chomp(".") if normalized.end_with?(".")
+          normalized
         end
       end
     end
