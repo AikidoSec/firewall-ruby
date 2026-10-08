@@ -400,4 +400,28 @@ class Aikido::Zen::Scanners::ShellInjectionScannerTest < ActiveSupport::TestCase
       assert_equal "ls /app/users/user; rm -rf /app/users", attack.command
     end
   end
+
+  test "detects shell injection with empty quote pairs (CVE fix)" do
+    # Test case from vulnerability report: printf '';id #''
+    # The input ;id # is placed between empty quote pairs
+    assert_attack "printf '';id #''", ";id #"
+  end
+
+  test "detects shell injection with escaped quotes (CVE fix)" do
+    # Test case from vulnerability report: echo \";id;echo\"
+    # The quotes are escaped, so they're literal characters, not delimiters
+    assert_attack 'echo \";id;echo\"', ";id;echo"
+  end
+
+  test "detects shell injection when input is between adjacent quotes" do
+    # Additional test cases for the vulnerability
+    assert_attack "echo '';rm -rf /;''", ";rm -rf /;"
+    assert_attack "printf '';whoami;''", ";whoami;"
+  end
+
+  test "detects shell injection with escaped double quotes" do
+    # More test cases with escaped quotes
+    assert_attack 'ls \";cat /etc/passwd;\"', ";cat /etc/passwd;"
+    assert_attack 'echo \";id;\"', ";id;"
+  end
 end

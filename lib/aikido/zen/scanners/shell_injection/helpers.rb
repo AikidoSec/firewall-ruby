@@ -22,53 +22,110 @@ module Aikido::Zen::Scanners::ShellInjection
     # @param command [string]
     # @param user_input [string]
     def self.is_safely_encapsulated(command, user_input)
-      segments = command.split(user_input)
+      # Return false if user input is not in the command
+      return true unless command.include?(user_input)
 
-      # The next condition is merely here to be compliant with what javascript does when splitting strings:
-      # From js doc https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split
-      #   > If separator appears at the beginning (or end) of the string, it still has the effect of splitting,
-      #   > resulting in an empty (i.e. zero length) string appearing at the first (or last) position of
-      #   > the returned array.
-      # This is necessary because this code is ported form the firewall-node code.
-      if user_input.length > 1
-        if command.start_with? user_input
-          segments.unshift ""
-        end
-
-        if command.end_with? user_input
-          segments << ""
-        end
+      # Find all occurrences of user_input in command
+      occurrences = []
+      start_pos = 0
+      while (pos = command.index(user_input, start_pos))
+        occurrences << pos
+        start_pos = pos + 1
       end
 
-      # Call the helper function to get current and next segments
-      get_current_and_next_segments(segments).all? do |segments_pair|
-        char_before_user_input = segments_pair[:current_segment][-1]
-        char_after_user_input = segments_pair[:next_segment][0]
-
-        # Check if the character before is an escape character
-        is_escape_char = ESCAPE_CHARS.include?(char_before_user_input)
-
-        unless is_escape_char
-          next false
-        end
-
-        # If characters before and after the user input do not match, return false
-        next false if char_before_user_input != char_after_user_input
-
-        # If user input contains the escape character, return false
-        next false if user_input.include?(char_before_user_input)
-
-        # Handle dangerous characters inside double quotes
-        if char_before_user_input == '"' && DANGEROUS_CHARS_INSIDE_DOUBLE_QUOTES.any? { |char| user_input.include?(char) }
-          next false
-        end
-
-        next true
+      # Check if all occurrences are safely encapsulated
+      occurrences.all? do |occurrence_index|
+        is_occurrence_safely_encapsulated(command, user_input, occurrence_index)
       end
     end
 
-    def self.get_current_and_next_segments(segments)
-      segments.each_cons(2).map { |current_segment, next_segment| {current_segment: current_segment, next_segment: next_segment} }
+    # Check if a specific occurrence of user_input in command is safely encapsulated
+    # by parsing shell quote state from the beginning of the command
+    def self.is_occurrence_safely_encapsulated(command, user_input, occurrence_index)
+      quote_state = nil  # nil = unquoted, "'" = single-quoted, '"' = double-quoted
+      i = 0
+      
+      while i < occurrence_index
+        char = command[i]
+        
+        if quote_state.nil?
+          # We're in unquoted context
+          if char == '\\'
+            # Backslash escapes the next character in unquoted context
+            i += 1
+          elsif char == "'"
+            quote_state = "'"
+          elsif char == '"'
+            quote_state = '"'
+          end
+        elsif quote_state == "'"
+          # We're in single-quoted context
+          # In single quotes, nothing is special except the closing single quote
+          if char == "'"
+            quote_state = nil
+          end
+        elsif quote_state == '"'
+          # We're in double-quoted context
+          if char == '\\'
+            # Skip the next character (it's escaped)
+            i += 1
+          elsif char == '"'
+            quote_state = nil
+          end
+        end
+        
+        i += 1
+      end
+
+      # Now check the quote state at the start of user_input
+      start_quote_state = quote_state
+
+      # Parse through the user_input to see what the quote state would be at the end
+      user_input.each_char do |char|
+        if quote_state.nil?
+          # If we start unquoted, user input is not safely encapsulated
+          return false
+        elsif quote_state == "'"
+          # In single quotes, check if user input contains a single quote
+          if char == "'"
+            # User input contains the quote character that would close the encapsulation
+            return false
+          end
+        elsif quote_state == '"'
+          # In double quotes, check for dangerous characters
+          if char == '"'
+            # User input contains the quote character that would close the encapsulation
+            return false
+          elsif char == '\\'
+            # Backslash in double quotes is dangerous
+            return false
+          elsif DANGEROUS_CHARS_INSIDE_DOUBLE_QUOTES.any? { |dangerous| char == dangerous }
+            return false
+          end
+        end
+      end
+
+      # Verify that after the user_input, we're still in the same quote state
+      # by checking the character immediately after
+      end_index = occurrence_index + user_input.length
+      if end_index < command.length
+        # Continue parsing to verify the quote is properly closed
+        char_after = command[end_index]
+        
+        if quote_state == "'" && char_after == "'"
+          # Good: single quote is closed
+          return true
+        elsif quote_state == '"' && char_after == '"'
+          # Good: double quote is closed
+          return true
+        else
+          # The quote is not properly closed immediately after
+          return false
+        end
+      else
+        # User input is at the end of command, not properly closed
+        return false
+      end
     end
 
     # Helper function for sorting commands by length (longer commands first)

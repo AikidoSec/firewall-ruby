@@ -153,4 +153,32 @@ class Aikido::Zen::Scanners::ShellInjection::HelpersTest < ActiveSupport::TestCa
     assert_contains_shell_syntax "command -disable-update-check -target https://examplx.com|curl+https://cde-123.abc.domain.com+%23 -json-export /tmp/5891/8526757.json -tags microsoft,windows,exchange,iis,gitlab,oracle,cisco,joomla -stats -stats-interval 3 -retries 3 -no-stdin",
       "https://examplx.com|curl+https://cde-123.abc.domain.com+%23"
   end
+
+  test "rejects input between empty quote pairs (CVE fix)" do
+    # Test case from vulnerability report: printf '';id #''
+    # The semicolon is between empty quotes, not inside quotes
+    refute_is_safely_encapsulated "printf '';id #''", ";id #"
+  end
+
+  test "rejects input with escaped quotes (CVE fix)" do
+    # Test case from vulnerability report: echo \";id;echo\"
+    # The quotes are escaped (literal), not active delimiters
+    refute_is_safely_encapsulated 'echo \";id;echo\"', ";id;echo"
+  end
+
+  test "rejects input between adjacent empty quotes" do
+    refute_is_safely_encapsulated "echo '';rm -rf''", ";rm -rf"
+    refute_is_safely_encapsulated "printf '';whoami''", ";whoami"
+  end
+
+  test "rejects input with escaped double quotes around it" do
+    refute_is_safely_encapsulated 'ls \";cat /etc/passwd;\"', ";cat /etc/passwd;"
+    refute_is_safely_encapsulated 'echo \";id;\"', ";id;"
+  end
+
+  test "properly handles backslash escaping in double quotes" do
+    # In double quotes, backslash escapes the next character
+    # echo "test\";id;echo\"more" - the quotes after backslashes are literal
+    refute_is_safely_encapsulated 'echo "test\";id;echo\"more"', ";id;echo"
+  end
 end
