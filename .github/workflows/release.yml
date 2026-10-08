@@ -10,6 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify tag points to commit on main branch
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          # Get the commit SHA that the tag points to
+          tag_commit=$(git rev-list -n 1 "$TAG")
+          echo "Tag '$TAG' points to commit: $tag_commit"
+          
+          # Verify the commit exists in main branch history
+          if ! git merge-base --is-ancestor "$tag_commit" origin/main; then
+            echo "::error::Release tag '$TAG' (commit $tag_commit) is not an ancestor of the main branch."
+            echo "::error::Only commits that have been merged to main can be released."
+            exit 1
+          fi
+          echo "✓ Tag commit is in main branch history"
       - name: Check tag against Aikido::Zen::VERSION
         env:
           TAG: ${{ github.event.release.tag_name }}
@@ -20,7 +37,7 @@ jobs:
             echo "::error::Release tag '$TAG' does not match Aikido::Zen::VERSION ('$gem_version'). Expected tag '$expected'."
             exit 1
           fi
-          echo "Tag '$TAG' matches Aikido::Zen::VERSION ('$gem_version')."
+          echo "✓ Tag '$TAG' matches Aikido::Zen::VERSION ('$gem_version')."
   unit-tests:
     name: 🧪 Unit tests
     needs: verify-version
