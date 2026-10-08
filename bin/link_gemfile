@@ -18,9 +18,14 @@ link_gemfile_in_dir() {
   dir="$2"
 
   if [ -f "$dir/$gemfile" ]; then
+    if [ ! -f "$dir/${gemfile}.lock" ]; then
+      echo "No lockfile found for ruby $1 in $dir/${gemfile}.lock" >&2
+      echo "Lockfiles are required to prevent dependency supply-chain attacks." >&2
+      exit 1
+    fi
     pushd "$dir" >/dev/null
     ln -nfs "$gemfile" "Gemfile"
-    ln -nfs "${gemfile}.lock" "Gemfile.lock" &>/dev/null || :
+    ln -nfs "${gemfile}.lock" "Gemfile.lock"
     popd >/dev/null
   else
     echo "No gemfile found for ruby $1 in $dir/$gemfile" >&2
