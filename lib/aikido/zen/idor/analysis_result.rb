@@ -37,7 +37,8 @@ module Aikido::Zen
           name: data["column"],
           value: data["value"],
           is_placeholder: data["is_placeholder"],
-          placeholder_number: data["placeholder_number"]
+          placeholder_number: data["placeholder_number"],
+          is_where: data["is_where"]
         )
       end
 
@@ -46,12 +47,14 @@ module Aikido::Zen
       # @param value [String]
       # @param is_placeholder [Boolean]
       # @param placeholder_number [Integer, nil]
-      def initialize(table_qualifier:, name:, value:, is_placeholder:, placeholder_number: nil)
+      # @param is_where [Boolean, nil] Whether this equality originates from a WHERE clause (row-restricting context)
+      def initialize(table_qualifier:, name:, value:, is_placeholder:, placeholder_number: nil, is_where: nil)
         @table_qualifier = table_qualifier
         @name = name
         @value = value
         @is_placeholder = is_placeholder
         @placeholder_number = placeholder_number
+        @is_where = is_where
       end
 
       # @return [String, nil]
@@ -69,13 +72,18 @@ module Aikido::Zen
       # @return [Integer, nil]
       attr_accessor :placeholder_number
 
+      # @return [Boolean, nil] Whether this equality originates from a WHERE clause (row-restricting context).
+      #   nil indicates the native analyzer does not provide this information (older version).
+      attr_accessor :is_where
+
       def ==(other)
         other.is_a?(self.class) &&
           other.table_qualifier == table_qualifier &&
           other.name == name &&
           other.value == value &&
           other.is_placeholder == is_placeholder &&
-          other.placeholder_number == placeholder_number
+          other.placeholder_number == placeholder_number &&
+          other.is_where == is_where
       end
       alias_method :eql?, :==
     end

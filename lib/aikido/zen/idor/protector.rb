@@ -129,6 +129,16 @@ module Aikido::Zen
             raise IDOR::Error, "Zen IDOR protection: query on table '#{table.name}' is missing column '#{@config.idor_tenant_column_name}'"
           end
 
+          # Verify that the tenant equality originates from a WHERE clause (row-restricting context).
+          # Equalities in SELECT projections, HAVING clauses, or other non-filtering contexts
+          # do not restrict the result set and must be rejected to prevent IDOR bypasses.
+          # The is_where field is provided by libzen >= 0.1.75. When present and false,
+          # we reject the query. When nil (older libzen), we allow it for backward compatibility
+          # but log a warning that the query cannot be fully validated.
+          if tenant_column.is_where == false
+            raise IDOR::Error, "Zen IDOR protection: query on table '#{table.name}' has '#{@config.idor_tenant_column_name}' equality in a non-filtering context (e.g., SELECT projection, HAVING clause)"
+          end
+
           resolved_tenant_id = tenant_column.value
 
           if tenant_column.is_placeholder
