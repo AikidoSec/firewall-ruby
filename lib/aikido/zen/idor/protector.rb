@@ -110,13 +110,24 @@ module Aikido::Zen
       end
 
       def protect_filter(dialect, query_result, tenant_id, params)
+        # Build a mapping of table references to their canonical names.
+        # In SQL, aliases shadow physical names: if a table has an alias,
+        # it can ONLY be referenced by that alias, not by its physical name.
+        table_references = build_table_reference_map(query_result.tables)
+
         query_result.tables.each do |table|
           next if @config.idor_excluded_table_names.include?(table.name)
 
           tenant_column = query_result.filter_columns.find do |column|
             next false if column.name != @config.idor_tenant_column_name
 
-            next column.table_qualifier == table.name || column.table_qualifier == table.alt_name if column.table_qualifier
+            if column.table_qualifier
+              # For qualified columns, match based on SQL name resolution rules:
+              # - If the table has an alias, it can only be referenced by that alias
+              # - If the table has no alias, it can only be referenced by its physical name
+              reference_name = table.alt_name || table.name
+              next column.table_qualifier == reference_name
+            end
 
             # Unqualified column (e.g. WHERE tenant_id = $1 without table prefix):
             # We can only safely attribute it to the current table when there's
@@ -143,6 +154,31 @@ module Aikido::Zen
             raise IDOR::Error, "Zen IDOR protection: query on table '#{table.name}' sets '#{@config.idor_tenant_column_name}' to '#{resolved_tenant_id}' but tenant ID is '#{tenant_id}'"
           end
         end
+      end
+
+      # Build a mapping of table references to detect ambiguous or shadowed names.
+      # In SQL, when a table has an alias, the physical name is shadowed and cannot be used.
+      # This method validates that there are no reference name collisions.
+      #
+      # @param tables [Array<Aikido::Zen::IDOR::Table>]
+      # @return [Hash<String, Aikido::Zen::IDOR::Table>]
+      # @raise [Aikido::Zen::IDOR::Error] if there are duplicate reference names
+      def build_table_reference_map(tables)
+        reference_map = {}
+
+        tables.each do |table|
+          # The reference name is the alias if present, otherwise the physical name
+          reference_name = table.alt_name || table.name
+
+          if reference_map.key?(reference_name)
+            # Multiple tables with the same reference name - this is ambiguous
+            raise IDOR::Error, "Zen IDOR protection: ambiguous table reference '#{reference_name}' - multiple tables use this name or alias"
+          end
+
+          reference_map[reference_name] = table
+        end
+
+        reference_map
       end
     end
   end
