@@ -146,7 +146,9 @@ module Aikido::Zen
       #
       # @return [Array<URI>] a list of unique URIs based on the above criteria.
       def uris_from_input
-        input = @input.to_s
+        # Percent-encode input so URI() can parse it, as an app may do before
+        # making the request.
+        input = percent_encode(@input.to_s)
 
         # If you build a URI manually and set the hostname to an IPv6 string,
         # the URI library will be helpful to wrap it in brackets so it's a
@@ -165,6 +167,17 @@ module Aikido::Zen
         URI(string)
       rescue URI::InvalidURIError
         nil
+      end
+
+      # Matches bytes not allowed in a URI (RFC 3986): any byte other than
+      # the unreserved and reserved characters, and any "%" that does not
+      # start a percent-encoded byte.
+      NOT_ALLOWED_IN_URI = /%(?![0-9A-Fa-f]{2})|[^A-Za-z0-9\-._~:\/?#\[\]@!$&'()*+,;=%]/n
+
+      # Percent-encodes characters not allowed in a URI, preserving existing
+      # percent-encoding.
+      def percent_encode(string)
+        string.b.gsub(NOT_ALLOWED_IN_URI) { |byte| format("%%%02X", byte.ord) }
       end
 
       # Check if the input is an IPv6 that is not surrounded by square brackets.

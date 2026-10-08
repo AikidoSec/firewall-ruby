@@ -42,6 +42,34 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
     refute_attack "http://", "localhost"
   end
 
+  test "it detects input with non-ASCII characters in the path" do
+    # The app may percent-encode the input before making the request.
+    assert_attack "http://localhost/%C3%A9", "http://localhost/é"
+  end
+
+  test "it detects input with invalid UTF-8 bytes in the path" do
+    input = (+"http://localhost/\xFF").force_encoding("UTF-8")
+    refute input.valid_encoding?
+
+    assert_attack "http://localhost/%FF", input
+  end
+
+  test "it detects input without a scheme with non-ASCII characters in the path" do
+    assert_attack "http://localhost/%C3%A9", "localhost/é"
+  end
+
+  test "it ignores input with non-ASCII characters for other hosts" do
+    refute_attack "http://localhost/", "http://example.com/é"
+  end
+
+  test "it detects input with characters that are not allowed in a URI" do
+    # The app may percent-encode the input before making the request.
+    assert_attack "http://localhost/a%20b", "http://localhost/a b"
+    assert_attack "http://localhost/a%22b", "http://localhost/a\"b"
+    assert_attack "http://localhost/%7Ba%7C%5Eb%7D", "http://localhost/{a|^b}"
+    assert_attack "http://localhost/100%25", "http://localhost/100%"
+  end
+
   test "detects when the input is the request hostname" do
     assert_attack "http://localhost/", "localhost"
     assert_attack "https://localhost/", "localhost"
