@@ -80,6 +80,28 @@ module Aikido::Zen
 
               Aikido::Zen.idor_protect(sql, :sqlite, bind_vars)
             end
+
+            presafe_sink_before :step do
+              sql = aikido_idor_sql
+
+              Sinks::DSL.safe do
+                Helpers.scan(sql, "statement.step")
+              end
+
+              # step() does not accept bind vars; they must be set via bind_param(s) beforehand
+              # We cannot access the bound values, but we can still check the SQL structure
+              Aikido::Zen.idor_protect(sql, :sqlite)
+            end
+
+            presafe_sink_before :each do |*bind_vars|
+              sql = aikido_idor_sql
+
+              Sinks::DSL.safe do
+                Helpers.scan(sql, "statement.each")
+              end
+
+              Aikido::Zen.idor_protect(sql, :sqlite, bind_vars)
+            end
           end
         end
       end
