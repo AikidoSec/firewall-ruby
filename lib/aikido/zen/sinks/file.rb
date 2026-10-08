@@ -125,16 +125,19 @@ module Aikido::Zen
             result
           end
 
-          sink_before :expand_path do |file_name|
+          sink_before :expand_path do |file_name, dir_string = nil|
             Helpers.scan(file_name, "expand_path")
+            Helpers.scan(dir_string, "expand_path") if dir_string
           end
 
-          sink_before :realpath do |file_name|
+          sink_before :realpath do |file_name, dir_string = nil|
             Helpers.scan(file_name, "realpath")
+            Helpers.scan(dir_string, "realpath") if dir_string
           end
 
-          sink_before :realdirpath do |file_name|
+          sink_before :realdirpath do |file_name, dir_string = nil|
             Helpers.scan(file_name, "realdirpath")
+            Helpers.scan(dir_string, "realdirpath") if dir_string
           end
         end
 
