@@ -176,10 +176,6 @@ module Aikido::Zen
     attr_accessor :stored_ssrf
     alias_method :stored_ssrf?, :stored_ssrf
 
-    # @return [Array<String>] when checking for stored SSRF attacks, we want to
-    #   allow known hosts that should be able to resolve to the IMDS service.
-    attr_accessor :imds_allowed_hosts
-
     # @return [Boolean] whether Aikido Zen should harden methods where possible.
     #   Defaults to true. Can be set through AIKIDO_HARDEN environment variable.
     attr_accessor :harden
@@ -283,7 +279,6 @@ module Aikido::Zen
       self.client_rate_limit_max_events = 100
       self.server_rate_limit_deadline = 30 * 60 # 30 min
       self.stored_ssrf = read_boolean_from_env(ENV.fetch("AIKIDO_FEATURE_STORED_SSRF", true))
-      self.imds_allowed_hosts = ["metadata.google.internal", "metadata.goog"]
       self.harden = read_boolean_from_env(ENV.fetch("AIKIDO_HARDEN", true))
       self.block_invalid_sql = read_boolean_from_env(ENV.fetch("AIKIDO_BLOCK_INVALID_SQL", false))
       self.attack_wave_threshold = 15

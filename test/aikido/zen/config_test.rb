@@ -45,7 +45,6 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal 100, @config.client_rate_limit_max_events
     assert_equal 1800, @config.server_rate_limit_deadline
     assert_equal true, @config.stored_ssrf?
-    assert_equal ["metadata.google.internal", "metadata.goog"], @config.imds_allowed_hosts
     assert_equal true, @config.harden
     assert_equal false, @config.block_invalid_sql
     assert_equal 15, @config.attack_wave_threshold

@@ -36,14 +36,8 @@ module Aikido::Zen
       def attack?
         return unless @config.stored_ssrf? # Feature flag
 
-        return if @config.imds_allowed_hosts.include?(@hostname.chomp("."))
-
         @addresses.find do |address|
           DANGEROUS_ADDRESSES.any? do |dangerous_address|
-            # Addresses are not considered stored IMDS addresses if the address
-            # is the same as the hostname. (These are valid IMDS requests, not spoofed ones)
-            next if address == @hostname
-
             # True if the dangerous address is address or includes the address.
             dangerous_address === address
           end
