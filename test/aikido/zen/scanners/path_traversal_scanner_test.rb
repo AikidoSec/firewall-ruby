@@ -45,7 +45,7 @@ class Aikido::Zen::Scanners::PathTraversalScannerTest < ActiveSupport::TestCase
     refute_attack "directory/file.txt", "directory/file.txt"
   end
 
-  test "it flags bad inputs" do
+  test \"it flags bad inputs\" do
     # inputs with ../
     assert_attack "../file.txt", "../"
     assert_attack "../file.txt", "../file.txt"
@@ -63,6 +63,18 @@ class Aikido::Zen::Scanners::PathTraversalScannerTest < ActiveSupport::TestCase
     assert_attack "./../file.txt", "./../file.txt"
     assert_attack "./../../file.txt", "./../../"
     assert_attack "./../../file.txt", "./../../file.txt"
+  end
+
+  test "it flags terminal .. components used in path composition" do
+    # Terminal ".." without trailing separator (e.g., from File.join(base, "..", "file"))
+    assert_attack "/srv/app/uploads/../secret", ".."
+    assert_attack "/base/path/../file.txt", ".."
+    assert_attack "c:\\base\\path\\..\\file.txt", ".."
+    
+    # Terminal ".." at end of path segments
+    assert_attack "/srv/app/uploads/..", "uploads/.."
+    assert_attack "/srv/app/uploads/..", "app/uploads/.."
+    assert_attack "c:\\base\\path\\..", "path\\.."
   end
 
   test "linux paths" do

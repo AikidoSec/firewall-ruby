@@ -159,6 +159,14 @@ module Aikido::Zen
     end
 
     def unsafe_path?(filepath)
+      # Check for terminal ".." components before normalization
+      # to catch cases like File.join(base, "..", "file") where cleanpath
+      # would normalize away the traversal
+      downcase_filepath = filepath.to_s.downcase
+      return true if downcase_filepath == ".."
+      return true if downcase_filepath.end_with?("/..")
+      return true if downcase_filepath.end_with?("\\..")
+
       normalized_filepath = Pathname.new(filepath).cleanpath.to_s.downcase
 
       Scanners::PathTraversal::DANGEROUS_PATH_PARTS.each do |dangerous_path_part|

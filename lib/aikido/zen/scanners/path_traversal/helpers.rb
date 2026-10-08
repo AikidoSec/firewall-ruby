@@ -54,6 +54,14 @@ module Aikido::Zen
             return true if filepath.include?(dangerous_part)
           end
 
+          # Check for terminal ".." components that could be used in path traversal
+          # when combined with other path components (e.g., File.join(base, "..", "file"))
+          # This catches cases where the input is exactly ".." or ends with "/.." or "\.."
+          # without a trailing separator, which would bypass the DANGEROUS_PATH_PARTS check
+          return true if filepath == ".."
+          return true if filepath.end_with?("/..")
+          return true if filepath.end_with?("\\..")
+
           false
         end
 

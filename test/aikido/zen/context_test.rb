@@ -311,6 +311,19 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path3.__File.join__")
     end
 
+    test "terminal .. component in arrays is detected for File.join" do
+      # Test the bypass scenario where an array contains exactly ".."
+      # which would be composed with other path components
+      context = build_context_for("/example", {
+        :method => "POST",
+        :input => %({"path1": ["uploads", "..", "secret"], "path2": ["..", "secret"]}),
+        "CONTENT_TYPE" => "application/json"
+      })
+
+      assert_includes context.payloads, stub_payload(:body, "uploads/../secret", "path1.__File.join__")
+      assert_includes context.payloads, stub_payload(:body, "../secret", "path2.__File.join__")
+    end
+
     test "route payloads are read from the data extracted by the router" do
       router = MockedRailsRouter.build do
         match "/example/:resource(/:id)(.:format)",

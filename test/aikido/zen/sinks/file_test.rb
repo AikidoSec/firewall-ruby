@@ -437,6 +437,20 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
         File.realdirpath OFFENDER_PATH
       end
     end
+
+    test "terminal .. component bypass is detected" do
+      # Test the specific bypass scenario where input is exactly ".."
+      # and gets composed with File.join(base, "..", "file")
+      set_context_from_request_to "/?dir=.."
+
+      error = assert_attack Aikido::Zen::Attacks::PathTraversalAttack do
+        # Simulating: File.join("/srv/app/uploads", params[:dir], "secret")
+        path = File.join("/srv/app/uploads", "..", "secret")
+        File.read(path) rescue nil
+      end
+
+      assert_equal error.attack.operation, "File.read"
+    end
   end
 
   module Helpers
