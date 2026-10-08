@@ -10,6 +10,39 @@ module Aikido::Zen
       ])
 
       module Helpers
+        # Domain allowlist for SSRF protection against native libcurl requests.
+        # libcurl performs DNS resolution in native code, bypassing Ruby's DNS
+        # instrumentation, so we must validate domains before native execution.
+        ALLOWED_DOMAINS = ['example.com'].freeze # add your allowed domains here
+
+        def self.validate_url_domain(url_string)
+          uri = URI(url_string)
+          
+          # Only allow http and https protocols
+          unless uri.scheme == 'http' || uri.scheme == 'https'
+            raise OutboundConnectionBlockedError.new(
+              OutboundConnection.from_uri(uri),
+              "Invalid URL"
+            )
+          end
+          
+          # Validate domain against allowlist
+          hostname = uri.hostname
+          unless hostname && ALLOWED_DOMAINS.include?(hostname)
+            raise OutboundConnectionBlockedError.new(
+              OutboundConnection.from_uri(uri),
+              "Invalid URL"
+            )
+          end
+          
+          url_string
+        rescue URI::InvalidURIError
+          raise OutboundConnectionBlockedError.new(
+            OutboundConnection.from_uri(URI(url_string)),
+            "Invalid URL"
+          )
+        end
+
         def self.wrap_request(curl, url: curl.url)
           Scanners::SSRFScanner::Request.new(
             verb: nil, # Curb hides this by directly setting an option in C
@@ -51,6 +84,9 @@ module Aikido::Zen
             extend Sinks::DSL
 
             sink_around :perform do |original_call|
+              # Validate URL domain before native libcurl execution
+              Helpers.validate_url_domain(url)
+              
               wrapped_request = Helpers.wrap_request(self)
 
               # Store the request information so the DNS sinks can pick it up.
@@ -90,6 +126,9 @@ module Aikido::Zen
               # stop the response from being exposed to the user. This downgrades
               # the SSRF into a blind SSRF, which is better than doing nothing.
               if url != last_effective_url
+                # Validate the redirect destination domain
+                Helpers.validate_url_domain(last_effective_url)
+                
                 last_effective_request = Helpers.wrap_request(self, url: last_effective_url)
 
                 # Code coverage is disabled here because the else clause is a no-op,

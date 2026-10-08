@@ -9,7 +9,45 @@ module Aikido::Zen
         Aikido::Zen::Scanners::SSRFScanner
       ])
 
+      module Helpers
+        # Domain allowlist for SSRF protection against native libcurl requests.
+        # libcurl performs DNS resolution in native code, bypassing Ruby's DNS
+        # instrumentation, so we must validate domains before native execution.
+        ALLOWED_DOMAINS = ['example.com'].freeze # add your allowed domains here
+
+        def self.validate_url_domain(url_string)
+          uri = URI(url_string)
+          
+          # Only allow http and https protocols
+          unless uri.scheme == 'http' || uri.scheme == 'https'
+            raise OutboundConnectionBlockedError.new(
+              OutboundConnection.from_uri(uri),
+              "Invalid URL"
+            )
+          end
+          
+          # Validate domain against allowlist
+          hostname = uri.hostname
+          unless hostname && ALLOWED_DOMAINS.include?(hostname)
+            raise OutboundConnectionBlockedError.new(
+              OutboundConnection.from_uri(uri),
+              "Invalid URL"
+            )
+          end
+          
+          url_string
+        rescue URI::InvalidURIError
+          raise OutboundConnectionBlockedError.new(
+            OutboundConnection.from_uri(URI(url_string)),
+            "Invalid URL"
+          )
+        end
+      end
+
       before_callback = ->(request) {
+        # Validate URL domain before native libcurl execution
+        Helpers.validate_url_domain(request.url)
+        
         wrapped_request = Aikido::Zen::Scanners::SSRFScanner::Request.new(
           verb: request.options[:method],
           uri: URI(request.url),
@@ -56,6 +94,9 @@ module Aikido::Zen
         # redirect that was followed.
         request.on_complete do |response|
           break if response.effective_url == request.url
+
+          # Validate the redirect destination domain
+          Helpers.validate_url_domain(response.effective_url)
 
           last_effective_request = Aikido::Zen::Scanners::SSRFScanner::Request.new(
             verb: request.options[:method],

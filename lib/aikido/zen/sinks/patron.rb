@@ -10,6 +10,39 @@ module Aikido::Zen
       ])
 
       module Helpers
+        # Domain allowlist for SSRF protection against native libcurl requests.
+        # libcurl performs DNS resolution in native code, bypassing Ruby's DNS
+        # instrumentation, so we must validate domains before native execution.
+        ALLOWED_DOMAINS = ['example.com'].freeze # add your allowed domains here
+
+        def self.validate_url_domain(url_string)
+          uri = URI(url_string)
+          
+          # Only allow http and https protocols
+          unless uri.scheme == 'http' || uri.scheme == 'https'
+            raise OutboundConnectionBlockedError.new(
+              OutboundConnection.from_uri(uri),
+              "Invalid URL"
+            )
+          end
+          
+          # Validate domain against allowlist
+          hostname = uri.hostname
+          unless hostname && ALLOWED_DOMAINS.include?(hostname)
+            raise OutboundConnectionBlockedError.new(
+              OutboundConnection.from_uri(uri),
+              "Invalid URL"
+            )
+          end
+          
+          url_string
+        rescue URI::InvalidURIError
+          raise OutboundConnectionBlockedError.new(
+            OutboundConnection.from_uri(URI(url_string)),
+            "Invalid URL"
+          )
+        end
+
         def self.wrap_response(request, response)
           # In this case, automatic redirection happened inside libcurl.
           if response.url != request.url && !response.url.to_s.empty?
@@ -42,6 +75,9 @@ module Aikido::Zen
             extend Sinks::DSL
 
             sink_around :handle_request do |original_call, request|
+              # Validate URL domain before native libcurl execution
+              Helpers.validate_url_domain(request.url)
+              
               wrapped_request = Scanners::SSRFScanner::Request.new(
                 verb: request.action,
                 uri: URI(request.url),
@@ -85,6 +121,9 @@ module Aikido::Zen
               # stop the response from being exposed to the user. This downgrades
               # the SSRF into a blind SSRF, which is better than doing nothing.
               if request.url != response.url && !response.url.to_s.empty?
+                # Validate the redirect destination domain
+                Helpers.validate_url_domain(response.url)
+                
                 last_effective_request = Scanners::SSRFScanner::Request.new(
                   verb: request.action,
                   uri: URI(response.url),
