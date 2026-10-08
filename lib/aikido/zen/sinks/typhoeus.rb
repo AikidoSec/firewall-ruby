@@ -1,13 +1,24 @@
 # frozen_string_literal: true
 
 require_relative "../sink"
+require_relative "../scanners/stored_ssrf_scanner"
 
 module Aikido::Zen
   module Sinks
     module Typhoeus
       SINK = Sinks.add("typhoeus", "outgoing_http_op", scanners: [
+        Aikido::Zen::Scanners::StoredSSRFScanner,
         Aikido::Zen::Scanners::SSRFScanner
       ])
+
+      module Helpers
+        def self.resolve_hostname(hostname)
+          require "resolv"
+          Resolv.getaddresses(hostname)
+        rescue => _error
+          []
+        end
+      end
 
       before_callback = ->(request) {
         wrapped_request = Aikido::Zen::Scanners::SSRFScanner::Request.new(
@@ -32,10 +43,17 @@ module Aikido::Zen
           end
         end
 
+        # Resolve the hostname to get IP addresses for StoredSSRFScanner
+        uri = URI(request.url)
+        hostname = uri.hostname
+        addresses = hostname ? Helpers.resolve_hostname(hostname) : []
+
         SINK.scan(
           connection: connection,
           request: wrapped_request,
-          operation: "request"
+          operation: "request",
+          hostname: hostname,
+          addresses: addresses
         )
 
         request.on_headers do |response|
@@ -66,6 +84,11 @@ module Aikido::Zen
 
           connection = Aikido::Zen::OutboundConnection.from_uri(URI(response.effective_url))
 
+          # Resolve the redirect target hostname for StoredSSRFScanner
+          redirect_uri = URI(response.effective_url)
+          redirect_hostname = redirect_uri.hostname
+          redirect_addresses = redirect_hostname ? Helpers.resolve_hostname(redirect_hostname) : []
+
           # In this case, we can't actually stop the request from happening, but
           # we can scan again (now that we know another request happened), to
           # stop the response from being exposed to the user. This downgrades
@@ -73,7 +96,9 @@ module Aikido::Zen
           SINK.scan(
             connection: connection,
             request: last_effective_request,
-            operation: "request"
+            operation: "request",
+            hostname: redirect_hostname,
+            addresses: redirect_addresses
           )
         ensure
           context["ssrf.request"] = nil if context

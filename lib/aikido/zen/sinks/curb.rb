@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
+require_relative "../scanners/stored_ssrf_scanner"
 require_relative "../scanners/ssrf_scanner"
 
 module Aikido::Zen
   module Sinks
     module Curl
       SINK = Sinks.add("curb", "outgoing_http_op", scanners: [
+        Scanners::StoredSSRFScanner,
         Scanners::SSRFScanner
       ])
 
@@ -34,11 +36,20 @@ module Aikido::Zen
           Scanners::SSRFScanner::Response.new(status: status, headers: headers)
         end
 
-        def self.scan(request, connection, operation)
+        def self.resolve_hostname(hostname)
+          require "resolv"
+          Resolv.getaddresses(hostname)
+        rescue => _error
+          []
+        end
+
+        def self.scan(request, connection, operation, hostname: nil, addresses: nil)
           SINK.scan(
             request: request,
             connection: connection,
-            operation: operation
+            operation: operation,
+            hostname: hostname,
+            addresses: addresses
           )
         end
       end
@@ -72,7 +83,12 @@ module Aikido::Zen
                 end
               end
 
-              Helpers.scan(wrapped_request, connection, "request")
+              # Resolve the hostname to get IP addresses for StoredSSRFScanner
+              uri = URI(url)
+              hostname = uri.hostname
+              addresses = hostname ? Helpers.resolve_hostname(hostname) : []
+
+              Helpers.scan(wrapped_request, connection, "request", hostname: hostname, addresses: addresses)
 
               response = original_call.call
 
@@ -104,7 +120,12 @@ module Aikido::Zen
 
                 connection = OutboundConnection.from_uri(URI(last_effective_url))
 
-                Helpers.scan(last_effective_request, connection, "request")
+                # Resolve the redirect target hostname for StoredSSRFScanner
+                redirect_uri = URI(last_effective_url)
+                redirect_hostname = redirect_uri.hostname
+                redirect_addresses = redirect_hostname ? Helpers.resolve_hostname(redirect_hostname) : []
+
+                Helpers.scan(last_effective_request, connection, "request", hostname: redirect_hostname, addresses: redirect_addresses)
               end
 
               response
