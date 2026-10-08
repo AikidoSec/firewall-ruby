@@ -66,39 +66,39 @@ class Aikido::Zen::Scanners::PathTraversalScannerTest < ActiveSupport::TestCase
   end
 
   test "linux paths" do
-    refute_attack "/etc/passwd", "/etc/"
+    assert_attack "/etc/passwd", "/etc/"
     assert_attack "/etc/passwd", "/etc/passwd"
     assert_attack "/etc/../etc/passwd", "/etc/../etc/passwd"
     assert_attack "/home/user/file.txt", "/home/user"
   end
 
   test "common container/cloud directories" do
-    refute_attack "/app/file.txt", "/app/"
+    assert_attack "/app/file.txt", "/app/"
     assert_attack "/app/file.txt", "/app/file.txt"
     assert_attack "/app/../app/file.txt", "/app/../app/file.txt"
     assert_attack "/app/user/file.txt", "/app/user"
 
-    refute_attack "/code/file.txt", "/code/"
+    assert_attack "/code/file.txt", "/code/"
     assert_attack "/code/file.txt", "/code/file.txt"
     assert_attack "/code/../code/file.txt", "/code/../code/file.txt"
     assert_attack "/code/user/file.txt", "/code/user"
 
-    refute_attack "/data/file.txt", "/data/"
+    assert_attack "/data/file.txt", "/data/"
     assert_attack "/data/file.txt", "/data/file.txt"
     assert_attack "/data/../data/file.txt", "/data/../data/file.txt"
     assert_attack "/data/user/file.txt", "/data/user"
 
-    refute_attack "/rails/file.txt", "/rails/"
+    assert_attack "/rails/file.txt", "/rails/"
     assert_attack "/rails/file.txt", "/rails/file.txt"
     assert_attack "/rails/../rails/file.txt", "/rails/../rails/file.txt"
     assert_attack "/rails/app/file.txt", "/rails/app"
 
-    refute_attack "/workspace/file.txt", "/workspace/"
+    assert_attack "/workspace/file.txt", "/workspace/"
     assert_attack "/workspace/file.txt", "/workspace/file.txt"
     assert_attack "/workspace/../workspace/file.txt", "/workspace/../workspace/file.txt"
     assert_attack "/workspace/project/file.txt", "/workspace/project"
 
-    refute_attack "/workspaces/file.txt", "/workspaces/"
+    assert_attack "/workspaces/file.txt", "/workspaces/"
     assert_attack "/workspaces/file.txt", "/workspaces/file.txt"
     assert_attack "/workspaces/../workspaces/file.txt", "/workspaces/../workspaces/file.txt"
     assert_attack "/workspaces/project/file.txt", "/workspaces/project"
@@ -159,13 +159,20 @@ class Aikido::Zen::Scanners::PathTraversalScannerTest < ActiveSupport::TestCase
     refute_attack "./~root/file.txt/some-file", "~root/file.txt"
   end
 
-  test "does not detect if user input path contains no filename or subfolder" do
-    refute_attack "/etc/app/test.txt", "/etc/"
-    refute_attack "/etc/app/", "/etc/"
-    refute_attack "/etc/app/", "/etc"
+  test "does not detect if user input path equals the filepath" do
     refute_attack "/etc/", "/etc/"
     refute_attack "/etc", "/etc"
-    refute_attack "/var/a", "/var/"
+    refute_attack "/var/a", "/var/a"
+  end
+
+  test "detects attack if user input is a dangerous directory and filepath is a descendant" do
+    assert_attack "/etc/app/test.txt", "/etc/"
+    assert_attack "/etc/app/", "/etc/"
+    assert_attack "/etc/app/", "/etc"
+    assert_attack "/var/a", "/var/"
+  end
+
+  test "does not detect if user input is not a prefix of filepath" do
     refute_attack "/var/a", "/var/b"
     refute_attack "/var/a", "/var/b/test.txt"
   end
@@ -185,10 +192,16 @@ class Aikido::Zen::Scanners::PathTraversalScannerTest < ActiveSupport::TestCase
     assert_attack "///.///etc/passwd", "///.///etc/passwd"
   end
 
-  test "normalized paths still trigger false positive prevention for bare root dirs" do
-    # User input that resolves to just a root dir should still be safe
-    refute_attack "/etc/./passwd", "/etc"
-    refute_attack "//etc//passwd", "/etc"
+  test "normalized paths still trigger false positive prevention for exact matches only" do
+    # User input that resolves to exactly the same path as filepath should still be safe
+    refute_attack "/etc", "/etc"
+    refute_attack "//etc//", "/etc"
+  end
+
+  test "normalized paths detect attacks when filepath is a descendant" do
+    # User input that resolves to a parent directory should be flagged when filepath is a descendant
+    assert_attack "/etc/./passwd", "/etc"
+    assert_attack "//etc//passwd", "/etc"
   end
 
   test "it does dected if user input path contains a filename or subfolder" do

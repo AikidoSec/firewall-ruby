@@ -67,11 +67,11 @@ module Aikido::Zen
 
           DANGEROUS_PATH_STARTS.each do |dangerous_start|
             if normalized_path.start_with?(dangerous_start) && normalized_path.start_with?(normalized_user_input)
-              # If the user input is the same as the dangerous start, we don't want to flag it
-              # to prevent false positives.
-              # e.g., if user input is /etc/ and the path is /etc/passwd, we don't want to flag it,
-              # as long as the user input does not contain a subdirectory or filename
-              return false if user_input == dangerous_start || user_input == dangerous_start.chomp("/")
+              # If the normalized filepath equals the normalized user input, we don't want to flag it
+              # to prevent false positives when accessing exactly the dangerous directory itself.
+              # e.g., if user input is /etc and the path is /etc, we don't want to flag it.
+              # However, if the path is /etc/passwd and user input is /etc, this should be flagged.
+              return false if normalized_path == normalized_user_input
 
               return true
             end
