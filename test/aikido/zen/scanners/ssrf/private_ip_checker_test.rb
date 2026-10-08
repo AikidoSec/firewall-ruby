@@ -114,6 +114,18 @@ class Aikido::Zen::Scanners::SSRF::PrivateIPCheckerTest < ActiveSupport::TestCas
     refute_private "0X01020304" # 1.2.3.4
   end
 
+  test "detects link-local IPv6 addresses with a numeric zone ID" do
+    assert_private "fe80::1%1"
+  end
+
+  test "detects link-local IPv6 addresses with a named zone ID" do
+    interface_names = Socket.getifaddrs.map(&:name)
+    loopback = %w[lo lo0].find { |name| interface_names.include?(name) }
+    skip "no loopback interface found" unless loopback
+
+    assert_private "fe80::1%#{loopback}"
+  end
+
   test "detects _actually_ private (RFC 1918/RFC 4193) addresses" do
     # 10.0.0.0/8
     assert_private "10.0.0.0"
