@@ -65,16 +65,20 @@ module Aikido::Zen
           normalized_path = File.expand_path__internal_for_aikido_zen(filepath).downcase.squeeze("/")
           normalized_user_input = File.expand_path__internal_for_aikido_zen(user_input).downcase.squeeze("/")
 
-          DANGEROUS_PATH_STARTS.each do |dangerous_start|
-            if normalized_path.start_with?(dangerous_start) && normalized_path.start_with?(normalized_user_input)
-              # If the user input is the same as the dangerous start, we don't want to flag it
-              # to prevent false positives.
-              # e.g., if user input is /etc/ and the path is /etc/passwd, we don't want to flag it,
-              # as long as the user input does not contain a subdirectory or filename
-              return false if user_input == dangerous_start || user_input == dangerous_start.chomp("/")
-
-              return true
+          # Check if the normalized path starts with the normalized user input
+          # This catches absolute path traversal attacks regardless of the specific directory
+          if normalized_path.start_with?(normalized_user_input)
+            # Check if user input is a bare root directory to prevent false positives
+            # e.g., if user input is /etc/ and the path is /etc/passwd, we don't want to flag it
+            DANGEROUS_PATH_STARTS.each do |dangerous_start|
+              if normalized_user_input == dangerous_start.downcase || normalized_user_input == dangerous_start.downcase.chomp("/")
+                return false
+              end
             end
+
+            # If the user input specifies more than just a root directory, it's an attack
+            # This catches cases like /secret/file, /custom/path, etc.
+            return true
           end
 
           false
