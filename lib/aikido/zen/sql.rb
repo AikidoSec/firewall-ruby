@@ -16,8 +16,9 @@ module Aikido::Zen
       # @param value [String]
       # @param placeholder_number [Integer, nil]
       # @param params [Array<Object>, nil]
+      # @param sql [String, nil]
       # @return [Object]
-      def self.common_placeholder_resolver(value, placeholder_number, params)
+      def self.common_placeholder_resolver(value, placeholder_number, params, sql: nil)
         return nil unless params
 
         params[placeholder_number] unless placeholder_number.nil?
@@ -26,8 +27,9 @@ module Aikido::Zen
       # @param value [String]
       # @param placeholder_number [Integer, nil]
       # @param params [Array<Object>, nil]
+      # @param sql [String, nil]
       # @return [Object]
-      def self.postgresql_placeholder_resolver(value, placeholder_number, params)
+      def self.postgresql_placeholder_resolver(value, placeholder_number, params, sql: nil)
         return nil unless params
 
         match = value.match(/^\$(\d+)$/)
@@ -42,10 +44,33 @@ module Aikido::Zen
       # @param value [String]
       # @param placeholder_number [Integer, nil]
       # @param params [Array<Object>, nil]
+      # @param sql [String, nil]
       # @return [Object]
-      def self.sqlite_placeholder_resolver(value, placeholder_number, params)
+      def self.sqlite_placeholder_resolver(value, placeholder_number, params, sql: nil)
         return nil unless params
 
+        # For bare `?` placeholders, the analyzer provides a placeholder_number
+        # that represents the ordinal among bare `?` tokens only. However, SQLite's
+        # parameter binding treats `?NNN` and `?` differently:
+        # - `?NNN` binds to params[NNN - 1]
+        # - Bare `?` binds sequentially starting after the highest `?NNN`
+        #
+        # The analyzer only tracks bare `?` and assigns ordinals (0, 1, 2...),
+        # but it doesn't account for explicit `?NNN` placeholders. This creates
+        # a mismatch when both forms are mixed in the same query.
+        #
+        # To prevent this bypass, we detect if the query contains any numbered
+        # placeholders. If it does, we cannot trust the placeholder_number for
+        # bare `?` placeholders and must fail safe by returning nil.
+        if !placeholder_number.nil? && sql && sql.match?(/\?\d+/)
+          # Mixed placeholders detected: the query contains both bare `?` and
+          # numbered `?NNN` placeholders. We cannot reliably determine the correct
+          # binding for bare `?` in this case, so we fail safe.
+          return nil
+        end
+
+        # For queries with only bare `?` placeholders, the analyzer's ordinal
+        # matches SQLite's sequential binding, so we can trust placeholder_number.
         return params[placeholder_number] unless placeholder_number.nil?
 
         case value

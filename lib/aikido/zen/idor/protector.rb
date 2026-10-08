@@ -36,9 +36,9 @@ module Aikido::Zen
 
         analysis.each do |query_result|
           if query_result.kind == :insert
-            protect_insert(dialect, query_result, tenant_id, params)
+            protect_insert(sql, dialect, query_result, tenant_id, params)
           else
-            protect_filter(dialect, query_result, tenant_id, params)
+            protect_filter(sql, dialect, query_result, tenant_id, params)
           end
         end
       end
@@ -76,7 +76,7 @@ module Aikido::Zen
         result
       end
 
-      def protect_insert(dialect, query_result, tenant_id, params)
+      def protect_insert(sql, dialect, query_result, tenant_id, params)
         query_result.tables.each do |table|
           next if @config.idor_excluded_table_names.include?(table.name)
 
@@ -95,7 +95,7 @@ module Aikido::Zen
             resolved_tenant_id = tenant_column.value
 
             if tenant_column.is_placeholder
-              resolved_tenant_id = dialect.resolve_placeholder(tenant_column.value, tenant_column.placeholder_number, params)
+              resolved_tenant_id = dialect.resolve_placeholder(tenant_column.value, tenant_column.placeholder_number, params, sql: sql)
 
               unless resolved_tenant_id
                 raise IDOR::Error, "Zen IDOR protection: INSERT on table '#{table.name}' has a placeholder for '#{@config.idor_tenant_column_name}' that could not be resolved"
@@ -109,7 +109,7 @@ module Aikido::Zen
         end
       end
 
-      def protect_filter(dialect, query_result, tenant_id, params)
+      def protect_filter(sql, dialect, query_result, tenant_id, params)
         query_result.tables.each do |table|
           next if @config.idor_excluded_table_names.include?(table.name)
 
@@ -132,7 +132,7 @@ module Aikido::Zen
           resolved_tenant_id = tenant_column.value
 
           if tenant_column.is_placeholder
-            resolved_tenant_id = dialect.resolve_placeholder(tenant_column.value, tenant_column.placeholder_number, params)
+            resolved_tenant_id = dialect.resolve_placeholder(tenant_column.value, tenant_column.placeholder_number, params, sql: sql)
 
             unless resolved_tenant_id
               raise IDOR::Error, "Zen IDOR protection: query on table '#{table.name}' has a placeholder for '#{@config.idor_tenant_column_name}' that could not be resolved"
