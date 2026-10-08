@@ -5,6 +5,7 @@ require "open-uri"
 require "rubygems/package_task"
 
 require_relative "../lib/aikido/zen/version"
+require_relative "libzen_checksums"
 
 class LibZen
   attr_reader :platform, :suffix, :artifact
@@ -55,7 +56,14 @@ class LibZen
   end
 
   def verify
-    expected = URI(url + ".sha256sum").read.split(/\s+/).first
+    # Retrieve the expected checksum from version-controlled trusted source
+    expected = LibZenChecksums.get(artifact)
+    
+    if expected.nil?
+      abort "No trusted checksum found for #{artifact}. " \
+            "Checksums must be added to tasklib/libzen_checksums.rb before downloading artifacts."
+    end
+    
     actual = Digest::SHA256.file(path).to_s
 
     if expected != actual
@@ -129,5 +137,22 @@ namespace :libzen do
 
     # Invoke the most specific task
     Rake::Task["libzen:#{platform}"].invoke
+  end
+
+  desc "Display SHA-256 checksums for all downloaded libzen artifacts"
+  task "checksums:show" do
+    puts "# SHA-256 checksums for libzen artifacts:"
+    puts "# Add these to tasklib/libzen_checksums.rb"
+    puts
+    LIBZENS.each do |lib|
+      next unless lib.downloadable?
+      
+      if File.exist?(lib.path)
+        checksum = Digest::SHA256.file(lib.path).to_s
+        puts "\"#{lib.artifact}\" => \"#{checksum}\","
+      else
+        puts "# #{lib.artifact} - file not found at #{lib.path}"
+      end
+    end
   end
 end
