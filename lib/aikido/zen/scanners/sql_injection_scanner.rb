@@ -68,9 +68,6 @@ module Aikido::Zen
         # If the input is not included in the query at all, then we are safe
         return false unless @query.include?(@input)
 
-        # If the input is solely alphanumeric, we can ignore it
-        return false if Aikido::Zen::Helpers.regexp_with_timeout(/\A[[:alnum:]_]+\z/i).match?(@input)
-
         # If the input is a comma-separated list of numbers, ignore it.
         return false if Aikido::Zen::Helpers.regexp_with_timeout(/\A[ ,]*\d[ ,\d]*\z/).match?(@input)
 
