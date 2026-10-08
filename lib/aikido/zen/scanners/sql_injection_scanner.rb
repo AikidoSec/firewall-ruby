@@ -53,6 +53,8 @@ module Aikido::Zen
       attr_reader :failed_to_tokenize
 
       def initialize(query, input, dialect)
+        @original_query = query
+        @original_input = input
         @query = Aikido::Zen::Helpers.encode_safely(query).downcase
         @input = Aikido::Zen::Helpers.encode_safely(input).downcase.strip
         @dialect = dialect
@@ -74,6 +76,14 @@ module Aikido::Zen
         # If the input is a comma-separated list of numbers, ignore it.
         return false if Aikido::Zen::Helpers.regexp_with_timeout(/\A[ ,]*\d[ ,\d]*\z/).match?(@input)
 
+        # Check if the query or input contains invalid UTF-8 or binary data that could
+        # be interpreted differently by the database under a multibyte encoding (e.g., GBK).
+        # If lossy encoding occurred, block the query to prevent encoding-based SQL injection bypasses.
+        if encoding_mismatch_detected?
+          @failed_to_tokenize = true
+          return Aikido::Zen.config.block_invalid_sql?
+        end
+
         result = Internals.detect_sql_injection(@query, @input, @dialect)
 
         case result
@@ -89,6 +99,41 @@ module Aikido::Zen
         return true if defined?(Regexp::TimeoutError) && err.is_a?(Regexp::TimeoutError)
 
         raise err
+      end
+
+      private
+
+      # Detects if the query or input underwent lossy encoding transformation that could
+      # lead to a parser differential between the scanner and the database.
+      #
+      # This prevents attacks where multibyte database encodings (e.g., GBK) interpret
+      # byte sequences differently than UTF-8, allowing SQL injection to bypass detection.
+      # For example, the byte sequence BF 5C 27 under GBK has BF 5C as one multibyte
+      # character followed by 27 (quote), but after UTF-8 scrubbing, BF becomes U+FFFD
+      # and 5C appears as a backslash that seems to escape the quote.
+      #
+      # @return [Boolean] true if encoding mismatch is detected
+      def encoding_mismatch_detected?
+        # Check if the input had invalid UTF-8 or was binary
+        # We focus on input because that's what contains user-controlled data
+        input_is_binary = @original_input.encoding == Encoding::BINARY
+        input_has_invalid_utf8 = !@original_input.valid_encoding?
+
+        # If the input is binary or has invalid UTF-8, check if transformation was lossy
+        if input_is_binary || input_has_invalid_utf8
+          # Encode the input to see what the scanner will analyze
+          encoded_input = Aikido::Zen::Helpers.encode_safely(@original_input)
+          
+          # Compare the binary representations to detect lossy transformation
+          # If bytes changed, the scanner sees different data than what the database executes
+          input_bytes_changed = @original_input.b != encoded_input.b
+          
+          # Flag as suspicious if the transformation was lossy
+          # This indicates a potential parser differential between scanner and database
+          return true if input_bytes_changed
+        end
+
+        false
       end
     end
   end
