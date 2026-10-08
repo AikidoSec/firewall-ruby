@@ -220,6 +220,56 @@ class Aikido::Zen::IDOR::ProtectorTest < ActiveSupport::TestCase
 
       assert_equal "Zen IDOR protection: query on table 'users' has a placeholder for 'tenant_id' that could not be resolved", err.message
     end
+
+    # IDOR protection is triggered for UPSERT statements
+
+    test "IDOR protection is triggered for PostgreSQL UPSERT with ON CONFLICT DO UPDATE" do
+      err = assert_idor do
+        exec("INSERT INTO users (id, name, tenant_id) VALUES (1, 'John', 1) ON CONFLICT (id) DO UPDATE SET name = 'Jane'")
+      end
+
+      assert_match(/UPSERT statements.*are not supported with IDOR protection/, err.message)
+    end
+
+    test "IDOR protection is triggered for PostgreSQL UPSERT with ON CONFLICT DO UPDATE even with correct tenant_id" do
+      err = assert_idor do
+        exec("INSERT INTO users (id, name, tenant_id) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name", [1, "John", 1])
+      end
+
+      assert_match(/UPSERT statements.*are not supported with IDOR protection/, err.message)
+    end
+
+    test "IDOR protection is triggered for MySQL UPSERT with ON DUPLICATE KEY UPDATE" do
+      err = assert_idor do
+        exec("INSERT INTO users (id, name, tenant_id) VALUES (1, 'John', 1) ON DUPLICATE KEY UPDATE name = 'Jane'")
+      end
+
+      assert_match(/UPSERT statements.*are not supported with IDOR protection/, err.message)
+    end
+
+    test "IDOR protection is triggered for MySQL UPSERT with ON DUPLICATE KEY UPDATE even with correct tenant_id" do
+      err = assert_idor do
+        exec("INSERT INTO users (id, name, tenant_id) VALUES ($1, $2, $3) ON DUPLICATE KEY UPDATE name = VALUES(name)", [1, "John", 1])
+      end
+
+      assert_match(/UPSERT statements.*are not supported with IDOR protection/, err.message)
+    end
+
+    test "IDOR protection is triggered for UPSERT with case variations" do
+      err = assert_idor do
+        exec("INSERT INTO users (id, name, tenant_id) VALUES (1, 'John', 1) on conflict (id) do update SET name = 'Jane'")
+      end
+
+      assert_match(/UPSERT statements.*are not supported with IDOR protection/, err.message)
+    end
+
+    test "IDOR protection is triggered for UPSERT with extra whitespace" do
+      err = assert_idor do
+        exec("INSERT INTO users (id, name, tenant_id) VALUES (1, 'John', 1)   ON   CONFLICT   (id)   DO   UPDATE   SET name = 'Jane'")
+      end
+
+      assert_match(/UPSERT statements.*are not supported with IDOR protection/, err.message)
+    end
   end
 
   class MySQLSQLDialectTest < ActiveSupport::TestCase

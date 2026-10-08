@@ -36,7 +36,7 @@ module Aikido::Zen
 
         analysis.each do |query_result|
           if query_result.kind == :insert
-            protect_insert(dialect, query_result, tenant_id, params)
+            protect_insert(dialect, query_result, tenant_id, params, sql)
           else
             protect_filter(dialect, query_result, tenant_id, params)
           end
@@ -76,7 +76,13 @@ module Aikido::Zen
         result
       end
 
-      def protect_insert(dialect, query_result, tenant_id, params)
+      def protect_insert(dialect, query_result, tenant_id, params, sql)
+        # Check for UPSERT statements which cannot be properly validated
+        # because the analyzer only provides INSERT columns, not conflict targets or UPDATE assignments
+        if contains_upsert_syntax?(sql)
+          raise IDOR::Error, "Zen IDOR protection: UPSERT statements (INSERT ... ON CONFLICT DO UPDATE or INSERT ... ON DUPLICATE KEY UPDATE) are not supported with IDOR protection because they may update existing rows belonging to other tenants"
+        end
+
         query_result.tables.each do |table|
           next if @config.idor_excluded_table_names.include?(table.name)
 
@@ -107,6 +113,22 @@ module Aikido::Zen
             end
           end
         end
+      end
+
+      # Detects if SQL contains UPSERT syntax that could bypass tenant isolation
+      # @param sql [String]
+      # @return [Boolean]
+      def contains_upsert_syntax?(sql)
+        # Normalize SQL to handle case-insensitive matching and remove extra whitespace
+        normalized_sql = sql.upcase.gsub(/\s+/, " ")
+        
+        # PostgreSQL: INSERT ... ON CONFLICT ... DO UPDATE
+        return true if normalized_sql.match?(/\bINSERT\b.*\bON\s+CONFLICT\b.*\bDO\s+UPDATE\b/)
+        
+        # MySQL: INSERT ... ON DUPLICATE KEY UPDATE
+        return true if normalized_sql.match?(/\bINSERT\b.*\bON\s+DUPLICATE\s+KEY\s+UPDATE\b/)
+        
+        false
       end
 
       def protect_filter(dialect, query_result, tenant_id, params)
