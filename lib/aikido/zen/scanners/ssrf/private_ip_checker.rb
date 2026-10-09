@@ -85,9 +85,11 @@ module Aikido::Zen
         # Matches strings that contain only characters that appear in some
         # form of IP address.
         #
+        # An IPv6 zone ID (e.g. "%eth0") may follow the address.
+        #
         # Hostnames are not expected to match, allowing `parse_address` to
         # skip the `Socket.getaddrinfo` call.
-        ADDRESS_REGEXP = /\A[0-9a-fx:.]+\z/i
+        ADDRESS_REGEXP = /\A[0-9a-fx:.]+(?:%[^%\s]+)?\z/i
 
         # Parses `address` as an IP address, in any form that is accepted
         # by `getaddrinfo`:
@@ -96,6 +98,7 @@ module Aikido::Zen
         # * Plain integer IPv4 notation, in decimal, octal, or hexadecimal
         #   (e.g. "2130706433", "017700000001", "0x7f000001")
         # * Shorthand dotted IPv4 notation (e.g. "127.1")
+        # * IPv6 notation with zone ID (e.g. "fe80::1%eth0")
         #
         # Delegates to `Socket.getaddrinfo` with the `AI_NUMERICHOST` flag,
         # which never performs a DNS lookup.
@@ -105,8 +108,10 @@ module Aikido::Zen
         def parse_address(address)
           return nil unless address.is_a?(String) && ADDRESS_REGEXP.match?(address)
 
-          Socket.getaddrinfo(address, nil, :UNSPEC, :STREAM, nil, Socket::AI_NUMERICHOST)
-            .map { |info| IPAddr.new(info[3]) }
+          Socket.getaddrinfo(address, nil, :UNSPEC, :STREAM, nil, Socket::AI_NUMERICHOST).map do |info|
+            # `IPAddr.new` only accepts a zone ID on Ruby 3.1+.
+            IPAddr.new(info[3].partition("%").first)
+          end
         rescue SocketError
           nil
         end
