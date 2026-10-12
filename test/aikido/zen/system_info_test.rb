@@ -31,6 +31,24 @@ class Aikido::Zen::InfoTest < ActiveSupport::TestCase
     assert_equal RUBY_VERSION, @info.platform_version
   end
 
+  test "#session_id is a UUID that is stable per instance and unique across instances" do
+    assert_match(/\A\h{8}-\h{4}-\h{4}-\h{4}-\h{12}\z/, @info.session_id)
+    assert_equal @info.session_id, @info.session_id
+    refute_equal @info.session_id, Aikido::Zen::SystemInfo.new.session_id
+  end
+
+  test "#hostname is 'unknown' when the lookup fails" do
+    Socket.stub :gethostname, -> { raise Errno::ENOENT } do
+      assert_equal "unknown", Aikido::Zen::SystemInfo.new.hostname
+    end
+  end
+
+  test "#hostname is 'unknown' when the lookup returns an empty name" do
+    Socket.stub :gethostname, "" do
+      assert_equal "unknown", Aikido::Zen::SystemInfo.new.hostname
+    end
+  end
+
   test "#ip_address returns the first non-loopback address reported" do
     addresses = [
       Addrinfo.ip("::1"),
@@ -65,6 +83,29 @@ class Aikido::Zen::InfoTest < ActiveSupport::TestCase
     Socket.stub(:ip_address_list, addresses) do
       assert_equal "2a02:a018:14b:fe00:1823:e142:94cc:f088", @info.ip_address
     end
+  end
+
+  test "#ip_address is 'unknown' when the lookup fails" do
+    Socket.stub :ip_address_list, -> { raise Errno::ENOENT } do
+      assert_equal "unknown", Aikido::Zen::SystemInfo.new.ip_address
+    end
+  end
+
+  test "#ip_address is 'unknown' when the lookup returns no usable address" do
+    Socket.stub :ip_address_list, [] do
+      assert_equal "unknown", Aikido::Zen::SystemInfo.new.ip_address
+    end
+  end
+
+  test "#agent_headers includes all the agent identification headers" do
+    assert_equal({
+      "X-Agent-Platform" => "ruby",
+      "X-Agent-Library" => "firewall-ruby",
+      "X-Agent-Version" => Aikido::Zen::VERSION,
+      "X-Agent-Hostname" => @info.hostname,
+      "X-Agent-IP-Address" => @info.ip_address,
+      "X-Agent-Session-Id" => @info.session_id
+    }, @info.agent_headers)
   end
 
   test "#packages maps the list of supported loaded gems into a list of Package instances" do

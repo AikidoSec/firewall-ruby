@@ -7,7 +7,9 @@ require "json"
 module Aikido::Zen
   class APIStream
     def initialize(
-      config: Aikido::Zen.config,
+      zen: Aikido::Zen,
+      config: zen.config,
+      system_info: zen.system_info,
       min_backoff: 5,
       max_backoff: 60,
       backoff_reset: 30,
@@ -16,6 +18,7 @@ module Aikido::Zen
       read_timeout: 70
     )
       @config = config
+      @system_info = system_info
       @min_backoff = min_backoff
       @max_backoff = max_backoff
       @backoff_reset = backoff_reset
@@ -123,8 +126,7 @@ module Aikido::Zen
       request["Authorization"] = @token
       request["Accept"] = "text/event-stream"
       request["Cache-Control"] = "no-cache"
-      request["X-Agent-Platform"] = "ruby"
-      request["X-Agent-Version"] = Aikido::Zen::VERSION
+      @system_info.agent_headers.each { |name, value| request[name] = value }
       # Working around Net::HTTP cleverness; auto-negotiates gzip and buffers
       # decompressed output internally.
       request["Accept-Encoding"] = "identity"
