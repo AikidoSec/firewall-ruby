@@ -45,8 +45,15 @@ module Aikido::Zen
     #   +https://guard.aikido.dev+.
     attr_reader :realtime_endpoint
 
-    # @return [Hash] HTTP timeouts for communicating with the API.
-    attr_reader :api_timeouts
+    # @return [Numeric] the timeout in seconds for reporting events to the
+    #   API (+POST /api/runtime/events+). Applied to each connect, read and
+    #   write wait. Defaults to 60 seconds.
+    attr_accessor :api_events_timeout
+
+    # @return [Numeric] the timeout in seconds for fetching config, runtime
+    #   config and firewall lists from the API. Applied to each connect, read
+    #   and write wait. Defaults to 30 seconds.
+    attr_accessor :api_config_timeout
 
     # @return [Integer] the interval in seconds to poll the runtime API for
     #   settings changes. Defaults to evey 60 seconds.
@@ -254,7 +261,8 @@ module Aikido::Zen
       self.api_token = ENV.fetch("AIKIDO_TOKEN", nil)
       self.api_endpoint = ENV.fetch("AIKIDO_ENDPOINT") { regional_api_endpoint(api_token) }
       self.realtime_endpoint = api_endpoint
-      self.api_timeouts = 10
+      self.api_events_timeout = 60 # sec
+      self.api_config_timeout = 30 # sec
       self.polling_interval = 60 # 1 min
       self.initial_heartbeat_delays = [30, 60 * 2] # 30 sec, 2 min
       self.extract_payloads_max_depth = 64
@@ -330,25 +338,6 @@ module Aikido::Zen
     def logger=(logger)
       @logger = logger
       @logger.level = Logger::DEBUG if debugging
-    end
-
-    # @overload def api_timeouts=(timeouts)
-    #   Configure granular connection timeouts for the Aikido Zen API. You
-    #   can set any of these per call.
-    #   @param timeouts [Hash]
-    #   @option timeouts [Integer] :open_timeout Duration in seconds.
-    #   @option timeouts [Integer] :read_timeout Duration in seconds.
-    #   @option timeouts [Integer] :write_timeout Duration in seconds.
-    #
-    # @overload def api_timeouts=(duration)
-    #   Configure the connection timeouts for the Aikido Zen API.
-    #   @param duration [Integer] Duration in seconds to set for all three
-    #     timeouts (open, read, and write).
-    def api_timeouts=(value)
-      value = {open_timeout: value, read_timeout: value, write_timeout: value} if value.respond_to?(:to_int)
-
-      @api_timeouts ||= {}
-      @api_timeouts.update(value)
     end
 
     def api_token_hash

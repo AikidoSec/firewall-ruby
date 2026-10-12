@@ -280,6 +280,113 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
     end
   end
 
+  class RequestTimeoutsTest < ActiveSupport::TestCase
+    include DisableAgentReporting
+
+    API_HOST = "api.zen.test"
+    REALTIME_HOST = "realtime.zen.test"
+
+    setup do
+      Aikido::Zen.config.api_token = "TOKEN"
+      Aikido::Zen.config.api_endpoint = "https://#{API_HOST}"
+      Aikido::Zen.config.realtime_endpoint = "https://#{REALTIME_HOST}"
+      Aikido::Zen.runtime_settings.updated_at = Time.at(0)
+      @client = Aikido::Zen::APIClient.new
+    end
+
+    def assert_request_timeouts(verb, path, host:, timeout:)
+      actual_host = actual_options = actual_request = nil
+
+      connection = Object.new
+      connection.define_singleton_method(:request) do |request|
+        actual_request = request
+        raise Net::ReadTimeout
+      end
+
+      Net::HTTP.stub(:start, ->(connected_host, _port, options, &block) {
+        actual_host = connected_host
+        actual_options = options
+        block.call(connection)
+      }) do
+        yield
+      rescue Aikido::Zen::NetworkError
+        # expected
+      end
+
+      assert_equal verb, actual_request.method
+      assert_equal path, actual_request.path
+      assert_equal host, actual_host
+      assert_equal timeout, actual_options[:open_timeout]
+      assert_equal timeout, actual_options[:read_timeout]
+      assert_equal timeout, actual_options[:write_timeout]
+      assert_equal 0, actual_options[:max_retries]
+    end
+
+    test "defaults to 60 seconds for events" do
+      assert_equal 60, Aikido::Zen.config.api_events_timeout
+    end
+
+    test "defaults to 30 seconds for config" do
+      assert_equal 30, Aikido::Zen.config.api_config_timeout
+    end
+
+    test "#report uses the events timeout to POST /api/runtime/events" do
+      assert_request_timeouts("POST", "/api/runtime/events", host: API_HOST, timeout: 60) do
+        @client.report(Aikido::Zen::Events::Started.new)
+      end
+    end
+
+    test "#should_fetch_settings? uses the config timeout to GET /config" do
+      assert_request_timeouts("GET", "/config", host: REALTIME_HOST, timeout: 30) do
+        @client.should_fetch_settings?
+      end
+    end
+
+    test "#fetch_runtime_config uses the config timeout to GET /api/runtime/config" do
+      assert_request_timeouts("GET", "/api/runtime/config", host: API_HOST, timeout: 30) do
+        @client.fetch_runtime_config
+      end
+    end
+
+    test "#fetch_runtime_firewall_lists uses the config timeout to GET /api/runtime/firewall/lists" do
+      assert_request_timeouts("GET", "/api/runtime/firewall/lists", host: API_HOST, timeout: 30) do
+        @client.fetch_runtime_firewall_lists
+      end
+    end
+
+    test "#report uses the configured events timeout" do
+      Aikido::Zen.config.api_events_timeout = 5
+
+      assert_request_timeouts("POST", "/api/runtime/events", host: API_HOST, timeout: 5) do
+        @client.report(Aikido::Zen::Events::Started.new)
+      end
+    end
+
+    test "#should_fetch_settings? uses the configured config timeout" do
+      Aikido::Zen.config.api_config_timeout = 7
+
+      assert_request_timeouts("GET", "/config", host: REALTIME_HOST, timeout: 7) do
+        @client.should_fetch_settings?
+      end
+    end
+
+    test "#fetch_runtime_config uses the configured config timeout" do
+      Aikido::Zen.config.api_config_timeout = 7
+
+      assert_request_timeouts("GET", "/api/runtime/config", host: API_HOST, timeout: 7) do
+        @client.fetch_runtime_config
+      end
+    end
+
+    test "#fetch_runtime_firewall_lists uses the configured config timeout" do
+      Aikido::Zen.config.api_config_timeout = 7
+
+      assert_request_timeouts("GET", "/api/runtime/firewall/lists", host: API_HOST, timeout: 7) do
+        @client.fetch_runtime_firewall_lists
+      end
+    end
+  end
+
   class ReportStartedEvent < ActiveSupport::TestCase
     include DisableAgentReporting
 
