@@ -55,7 +55,7 @@ module Aikido::Zen
     def fetch_runtime_config
       @config.logger.debug("Fetching new runtime config")
 
-      request(Net::HTTP::Get.new("/api/runtime/config", default_headers))
+      request(Net::HTTP::Get.new("/api/runtime/config", default_headers), base_url: @config.api_endpoint)
     end
 
     def fetch_runtime_firewall_lists
@@ -65,7 +65,7 @@ module Aikido::Zen
         "Accept-Encoding" => "gzip"
       })
 
-      request(Net::HTTP::Get.new("/api/runtime/firewall/lists", headers))
+      request(Net::HTTP::Get.new("/api/runtime/firewall/lists", headers), base_url: @config.api_endpoint)
     end
 
     # @overload report(event)
@@ -105,7 +105,7 @@ module Aikido::Zen
         @config.json_encoder.call(event)
       end
 
-      request(req)
+      request(req, base_url: @config.api_endpoint)
     rescue Aikido::Zen::RateLimitedError
       @rate_limiter.open!
       raise
@@ -115,14 +115,14 @@ module Aikido::Zen
     # response.
     #
     # @param request [Net::HTTPRequest]
-    # @param base_url [URI] which API to use. Defaults to +Config#api_endpoint+.
+    # @param base_url [URI] which API to use.
     #
     # @return [Object] the result of decoding the JSON response from the server.
     #
     # @raise [Aikido::Zen::APIError] in case of a 4XX or 5XX response.
     # @raise [Aikido::Zen::NetworkError] if an error occurs trying to make the
     #   request.
-    private def request(request, base_url: @config.api_endpoint)
+    private def request(request, base_url:)
       Net::HTTP.start(base_url.host, base_url.port, http_settings(base_url)) do |http|
         response = http.request(request)
 
