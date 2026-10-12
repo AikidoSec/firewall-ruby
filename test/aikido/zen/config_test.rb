@@ -15,9 +15,8 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_nil @config.api_token
     assert_equal URI("https://guard.aikido.dev"), @config.api_endpoint
     assert_equal URI("https://guard.aikido.dev"), @config.realtime_endpoint
-    assert_equal 10, @config.api_timeouts[:open_timeout]
-    assert_equal 10, @config.api_timeouts[:read_timeout]
-    assert_equal 10, @config.api_timeouts[:write_timeout]
+    assert_equal 60, @config.api_events_timeout
+    assert_equal 30, @config.api_config_timeout
     assert_equal 60, @config.polling_interval
     assert_equal [30, 120], @config.initial_heartbeat_delays
     assert_equal 64, @config.extract_payloads_max_depth
@@ -98,28 +97,16 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal URI("http://localhost:3000"), @config.realtime_endpoint
   end
 
-  test "can set granular timeouts" do
-    @config.api_timeouts = {open_timeout: 1, read_timeout: 2, write_timeout: 3}
+  test "can overwrite the api_events_timeout" do
+    @config.api_events_timeout = 5
 
-    assert_equal 1, @config.api_timeouts[:open_timeout]
-    assert_equal 2, @config.api_timeouts[:read_timeout]
-    assert_equal 3, @config.api_timeouts[:write_timeout]
+    assert_equal 5, @config.api_events_timeout
   end
 
-  test "can overwrite only some timeouts" do
-    @config.api_timeouts = {open_timeout: 5}
+  test "can overwrite the api_config_timeout" do
+    @config.api_config_timeout = 7
 
-    assert_equal 5, @config.api_timeouts[:open_timeout]
-    assert_equal 10, @config.api_timeouts[:read_timeout]
-    assert_equal 10, @config.api_timeouts[:write_timeout]
-  end
-
-  test "can set all timeouts to a single value" do
-    @config.api_timeouts = 5
-
-    assert_equal 5, @config.api_timeouts[:open_timeout]
-    assert_equal 5, @config.api_timeouts[:read_timeout]
-    assert_equal 5, @config.api_timeouts[:write_timeout]
+    assert_equal 7, @config.api_config_timeout
   end
 
   test "can set the token" do

@@ -38,16 +38,16 @@ module Aikido::Zen
 
       response = request(
         Net::HTTP::Get.new("/config", default_headers),
-        base_url: @config.realtime_endpoint
+        base_url: @config.realtime_endpoint,
+        timeout: @config.api_config_timeout
       )
 
       new_updated_at = Time.at(response["configUpdatedAt"].to_i)
       new_updated_at > last_updated_at
     end
 
-    # Fetches the runtime config from the server. In case of a timeout or
-    # other low-lever error, the request will be automatically retried up to two
-    # times, after which it will raise an error.
+    # Fetches the runtime config from the server. Requests are never retried;
+    # on a timeout or other low-level error this raises an error.
     #
     # @return [Hash] decoded JSON response from the server with the runtime
     #   settings.
@@ -55,7 +55,11 @@ module Aikido::Zen
     def fetch_runtime_config
       @config.logger.debug("Fetching new runtime config")
 
-      request(Net::HTTP::Get.new("/api/runtime/config", default_headers), base_url: @config.api_endpoint)
+      request(
+        Net::HTTP::Get.new("/api/runtime/config", default_headers),
+        base_url: @config.api_endpoint,
+        timeout: @config.api_config_timeout
+      )
     end
 
     def fetch_runtime_firewall_lists
@@ -65,7 +69,11 @@ module Aikido::Zen
         "Accept-Encoding" => "gzip"
       })
 
-      request(Net::HTTP::Get.new("/api/runtime/firewall/lists", headers), base_url: @config.api_endpoint)
+      request(
+        Net::HTTP::Get.new("/api/runtime/firewall/lists", headers),
+        base_url: @config.api_endpoint,
+        timeout: @config.api_config_timeout
+      )
     end
 
     # @overload report(event)
@@ -105,7 +113,7 @@ module Aikido::Zen
         @config.json_encoder.call(event)
       end
 
-      request(req, base_url: @config.api_endpoint)
+      request(req, base_url: @config.api_endpoint, timeout: @config.api_events_timeout)
     rescue Aikido::Zen::RateLimitedError
       @rate_limiter.open!
       raise
@@ -116,14 +124,15 @@ module Aikido::Zen
     #
     # @param request [Net::HTTPRequest]
     # @param base_url [URI] which API to use.
+    # @param timeout [Numeric] seconds to wait on each connect, read and write.
     #
     # @return [Object] the result of decoding the JSON response from the server.
     #
     # @raise [Aikido::Zen::APIError] in case of a 4XX or 5XX response.
     # @raise [Aikido::Zen::NetworkError] if an error occurs trying to make the
     #   request.
-    private def request(request, base_url:)
-      Net::HTTP.start(base_url.host, base_url.port, http_settings(base_url)) do |http|
+    private def request(request, base_url:, timeout:)
+      Net::HTTP.start(base_url.host, base_url.port, http_settings(base_url, timeout)) do |http|
         response = http.request(request)
 
         case response
@@ -162,11 +171,14 @@ module Aikido::Zen
       end
     end
 
-    private def http_settings(base_url)
-      @http_settings ||= {
+    private def http_settings(base_url, timeout)
+      {
         use_ssl: base_url.scheme == "https",
-        max_retries: 2
-      }.merge(@config.api_timeouts)
+        max_retries: 0,
+        open_timeout: timeout,
+        read_timeout: timeout,
+        write_timeout: timeout
+      }
     end
 
     private def default_headers
