@@ -110,6 +110,16 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
         headers: {"User-Agent" => "firewall-ruby v#{Aikido::Zen::VERSION}"}
     end
 
+    test "sets the agent headers on the request" do
+      stub_request(:get, "https://guard.aikido.dev/config")
+        .to_return(status: 200, body: JSON.dump(configUpdatedAt: 1234567890))
+
+      @client.should_fetch_settings?
+
+      assert_requested :get, "https://guard.aikido.dev/config",
+        headers: Aikido::Zen.system_info.agent_headers
+    end
+
     test "raises Aikido::Zen::APIError on 4XX requests" do
       stub_request(:get, "https://guard.aikido.dev/config")
         .to_return(status: 401, body: "")
@@ -203,6 +213,16 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
         headers: {"User-Agent" => "firewall-ruby v#{Aikido::Zen::VERSION}"}
     end
 
+    test "sets the agent headers on the request" do
+      stub_request(:get, "https://guard.aikido.dev/api/runtime/config")
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_runtime_config.success.json"))
+
+      @client.fetch_runtime_config
+
+      assert_requested :get, "https://guard.aikido.dev/api/runtime/config",
+        headers: Aikido::Zen.system_info.agent_headers
+    end
+
     test "raises Aikido::Zen::APIError on 4XX requests" do
       stub_request(:get, "https://guard.aikido.dev/api/runtime/config")
         .to_return(status: 401, body: "")
@@ -277,6 +297,23 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
           "Authorization" => "TOKEN",
           "User-Agent" => "firewall-ruby v#{Aikido::Zen::VERSION}"
         }
+    end
+
+    test "sets the agent headers on the request" do
+      stub_request(:get, "https://guard.aikido.dev/api/runtime/firewall/lists")
+        .to_return(
+          status: 200,
+          body: file_fixture("api_responses/fetch_runtime_firewall_lists.success.json.gz").binread,
+          headers: {
+            "Content-Type" => "application/json",
+            "Content-Encoding" => "gzip"
+          }
+        )
+
+      @client.fetch_runtime_firewall_lists
+
+      assert_requested :get, "https://guard.aikido.dev/api/runtime/firewall/lists",
+        headers: Aikido::Zen.system_info.agent_headers
     end
   end
 
@@ -462,6 +499,17 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
 
       assert_requested :post, "https://guard.aikido.dev/api/runtime/events",
         headers: {"User-Agent" => "firewall-ruby v#{Aikido::Zen::VERSION}"}
+    end
+
+    test "sets the agent headers on the request" do
+      stub_request(:post, "https://guard.aikido.dev/api/runtime/events")
+        .with(body: hash_including(type: "started"))
+        .to_return(status: 200, body: file_fixture("api_responses/fetch_runtime_config.success.json"))
+
+      @client.report(Aikido::Zen::Events::Started.new)
+
+      assert_requested :post, "https://guard.aikido.dev/api/runtime/events",
+        headers: Aikido::Zen.system_info.agent_headers
     end
 
     test "logs an error and skips making a request if the rate limiter decides to throttle" do

@@ -1,13 +1,21 @@
 # frozen_string_literal: true
 
 require "socket"
+require "securerandom"
 require "rubygems"
 
 require_relative "package"
 
 module Aikido::Zen
-  # Provides information about the currently running Agent.
+  # Provides information about the currently running agent.
   class SystemInfo
+    # @return [String] a unique identifier for the currently running agent.
+    attr_reader :session_id
+
+    def initialize
+      @session_id = generate_session_id
+    end
+
     def attacks_block_requests?
       !!Aikido::Zen.blocking_mode?
     end
@@ -28,8 +36,29 @@ module Aikido::Zen
       RUBY_VERSION
     end
 
+    # @return [String, nil] the hostname, or nil if it cannot be determined.
     def hostname
-      @hostname ||= Socket.gethostname
+      @hostname ||= begin
+        name = Socket.gethostname.to_s
+        name unless name.empty?
+      rescue SystemCallError
+        nil
+      end
+    end
+
+    # Headers sent with every request to the Aikido server to describe and
+    # identify the currently running agent.
+    #
+    # @return [Hash{String => String}] the agent headers, keyed by header name.
+    def agent_headers
+      {
+        "X-Agent-Platform" => "ruby",
+        "X-Agent-Library" => library_name,
+        "X-Agent-Version" => library_version,
+        "X-Agent-Hostname" => hostname || "unknown",
+        "X-Agent-IP-Address" => ip_address || "unknown",
+        "X-Agent-Session-Id" => session_id
+      }
     end
 
     # @return [Array<Aikido::Zen::Package>] a list of loaded rubygems that are
@@ -41,14 +70,18 @@ module Aikido::Zen
         .select(&:supported?)
     end
 
-    # @return [String] the first non-loopback IPv4 address that we can use
-    #   to identify this host. If the machine is solely identified by IPv6
-    #   addresses, then this will instead return an IPv6 address.
+    # Find the first non-loopback IP address, preferring IPv4.
+    #
+    # @return [String, nil] the IP address, or nil if it cannot be determined.
     def ip_address
-      @ip_address ||= Socket.ip_address_list
-        .reject { |ip| ip.ipv4_loopback? || ip.ipv6_loopback? || ip.unix? }
-        .min_by { |ip| ip.ipv4? ? 0 : 1 }
-        .ip_address
+      @ip_address ||= begin
+        address = Socket.ip_address_list
+          .reject { |ip| ip.ipv4_loopback? || ip.ipv6_loopback? || ip.unix? }
+          .min_by { |ip| ip.ipv4? ? 0 : 1 }
+        address&.ip_address
+      rescue SystemCallError
+        nil
+      end
     end
 
     def os_name
@@ -75,6 +108,18 @@ module Aikido::Zen
         "nodeEnv" => "",
         "preventedPrototypePollution" => false
       }
+    end
+
+    private def generate_session_id
+      # Code coverage is disabled here because `SecureRandom.uuid_v7` is only
+      # defined in Ruby 3.3+.
+      # :nocov:
+      if SecureRandom.respond_to?(:uuid_v7)
+        SecureRandom.uuid_v7
+      else
+        SecureRandom.uuid
+      end
+      # :nocov:
     end
   end
 end

@@ -186,7 +186,7 @@ module Aikido::Zen
         "Authorization" => @config.api_token,
         "Accept" => "application/json",
         "User-Agent" => "#{@system_info.library_name} v#{@system_info.library_version}"
-      }
+      }.merge(@system_info.agent_headers)
     end
   end
 end

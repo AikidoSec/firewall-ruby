@@ -560,6 +560,7 @@ module Aikido
         @agent = nil
         agent&.stop!
 
+        @system_info = nil
         @agent = Agent.start
       end
 

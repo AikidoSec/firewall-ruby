@@ -516,6 +516,27 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     assert Aikido::Zen.agent.started?
   end
 
+  test ".fork! in per worker agent mode gives the new agent its own system info and session ID" do
+    Aikido::Zen.config.agent_mode = :per_worker
+
+    old_server = Minitest::Mock.new
+    old_server.expect(:close, nil)
+
+    old_agent = Minitest::Mock.new
+    old_agent.expect(:stop!, nil)
+
+    Aikido::Zen.instance_variable_set(:@agent, old_agent)
+    Aikido::Zen.instance_variable_set(:@worker_process_server, old_server)
+    Aikido::Zen.instance_variable_set(:@running, Concurrent::AtomicBoolean.new(true))
+
+    parent_system_info = Aikido::Zen.system_info
+
+    Aikido::Zen.fork!
+
+    refute_same parent_system_info, Aikido::Zen.system_info
+    refute_equal parent_system_info.session_id, Aikido::Zen.system_info.session_id
+  end
+
   test ".fork! in per worker agent mode is a no-op when the agent was never started" do
     Aikido::Zen.config.agent_mode = :per_worker
 
@@ -546,6 +567,27 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     assert_mock old_client
     assert_nil Aikido::Zen.worker_process_server
     assert_kind_of Aikido::Zen::WorkerProcess::Agent::Client, Aikido::Zen.instance_variable_get(:@worker_process_client)
+  ensure
+    parent.close
+  end
+
+  test ".fork! in shared agent mode keeps the system info and session ID of the parent" do
+    parent = Aikido::Zen::WorkerProcess::Agent::Server.new
+    parent.start
+
+    old_server = Minitest::Mock.new
+    old_server.expect(:host, parent.host)
+    old_server.expect(:port, parent.port)
+    old_server.expect(:close, nil)
+
+    Aikido::Zen.instance_variable_set(:@worker_process_server, old_server)
+    Aikido::Zen.instance_variable_set(:@running, Concurrent::AtomicBoolean.new(true))
+
+    parent_system_info = Aikido::Zen.system_info
+
+    Aikido::Zen.fork!
+
+    assert_same parent_system_info, Aikido::Zen.system_info
   ensure
     parent.close
   end

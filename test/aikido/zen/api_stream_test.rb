@@ -52,10 +52,8 @@ class Aikido::Zen::StreamTest < ActiveSupport::TestCase
         headers: {
           "Authorization" => "TOKEN",
           "Accept" => "text/event-stream",
-          "Cache-Control" => "no-cache",
-          "X-Agent-Platform" => "ruby",
-          "X-Agent-Version" => Aikido::Zen::VERSION
-        }
+          "Cache-Control" => "no-cache"
+        }.merge(Aikido::Zen.system_info.agent_headers)
       )
       .to_return(status: 200, body: "", headers: {})
 
