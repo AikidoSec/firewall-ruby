@@ -9,8 +9,6 @@ require_relative "package"
 module Aikido::Zen
   # Provides information about the currently running agent.
   class SystemInfo
-    UNKNOWN = "unknown"
-
     # @return [String] a unique identifier for the currently running agent.
     attr_reader :session_id
 
@@ -38,13 +36,13 @@ module Aikido::Zen
       RUBY_VERSION
     end
 
-    # @return [String] the hostname, or "unknown" if it cannot be determined.
+    # @return [String, nil] the hostname, or nil if it cannot be determined.
     def hostname
       @hostname ||= begin
         name = Socket.gethostname.to_s
-        name.empty? ? UNKNOWN : name
+        name unless name.empty?
       rescue SystemCallError
-        UNKNOWN
+        nil
       end
     end
 
@@ -57,8 +55,8 @@ module Aikido::Zen
         "X-Agent-Platform" => "ruby",
         "X-Agent-Library" => library_name,
         "X-Agent-Version" => library_version,
-        "X-Agent-Hostname" => hostname,
-        "X-Agent-IP-Address" => ip_address,
+        "X-Agent-Hostname" => hostname || "unknown",
+        "X-Agent-IP-Address" => ip_address || "unknown",
         "X-Agent-Session-Id" => session_id
       }
     end
@@ -74,15 +72,15 @@ module Aikido::Zen
 
     # Find the first non-loopback IP address, preferring IPv4.
     #
-    # @return [String] the IP address, or "unknown" if it cannot be determined.
+    # @return [String, nil] the IP address, or nil if it cannot be determined.
     def ip_address
       @ip_address ||= begin
         address = Socket.ip_address_list
           .reject { |ip| ip.ipv4_loopback? || ip.ipv6_loopback? || ip.unix? }
           .min_by { |ip| ip.ipv4? ? 0 : 1 }
-        address ? address.ip_address : UNKNOWN
+        address&.ip_address
       rescue SystemCallError
-        UNKNOWN
+        nil
       end
     end
 

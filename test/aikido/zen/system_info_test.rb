@@ -37,15 +37,15 @@ class Aikido::Zen::InfoTest < ActiveSupport::TestCase
     refute_equal @info.session_id, Aikido::Zen::SystemInfo.new.session_id
   end
 
-  test "#hostname is 'unknown' when the lookup fails" do
+  test "#hostname is nil when the lookup fails" do
     Socket.stub :gethostname, -> { raise Errno::ENOENT } do
-      assert_equal "unknown", Aikido::Zen::SystemInfo.new.hostname
+      assert_nil Aikido::Zen::SystemInfo.new.hostname
     end
   end
 
-  test "#hostname is 'unknown' when the lookup returns an empty name" do
+  test "#hostname is nil when the lookup returns an empty name" do
     Socket.stub :gethostname, "" do
-      assert_equal "unknown", Aikido::Zen::SystemInfo.new.hostname
+      assert_nil Aikido::Zen::SystemInfo.new.hostname
     end
   end
 
@@ -85,15 +85,31 @@ class Aikido::Zen::InfoTest < ActiveSupport::TestCase
     end
   end
 
-  test "#ip_address is 'unknown' when the lookup fails" do
+  test "#ip_address is nil when the lookup fails" do
     Socket.stub :ip_address_list, -> { raise Errno::ENOENT } do
-      assert_equal "unknown", Aikido::Zen::SystemInfo.new.ip_address
+      assert_nil Aikido::Zen::SystemInfo.new.ip_address
     end
   end
 
-  test "#ip_address is 'unknown' when the lookup returns no usable address" do
+  test "#ip_address is nil when the lookup returns no usable address" do
     Socket.stub :ip_address_list, [] do
-      assert_equal "unknown", Aikido::Zen::SystemInfo.new.ip_address
+      assert_nil Aikido::Zen::SystemInfo.new.ip_address
+    end
+  end
+
+  test "#agent_headers uses 'unknown' for the hostname when it cannot be determined" do
+    Socket.stub :gethostname, "" do
+      headers = Aikido::Zen::SystemInfo.new.agent_headers
+
+      assert_equal "unknown", headers["X-Agent-Hostname"]
+    end
+  end
+
+  test "#agent_headers uses 'unknown' for the IP address when it cannot be determined" do
+    Socket.stub :ip_address_list, [] do
+      headers = Aikido::Zen::SystemInfo.new.agent_headers
+
+      assert_equal "unknown", headers["X-Agent-IP-Address"]
     end
   end
 
