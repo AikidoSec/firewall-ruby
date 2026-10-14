@@ -140,7 +140,7 @@ module Aikido::Zen
           format("Zen has %s a %s: %s", attack.blocked? ? "blocked" : "detected", attack.humanized_name, attack.as_json.to_json)
         )
 
-        report(Events::Attack.new(attack: attack)) if @api_client.can_make_requests?
+        report(Events::Attack.new(attack: attack, user: attack.context&.request&.actor)) if @api_client.can_make_requests?
 
         @collector.track_attack(attack)
       rescue => err

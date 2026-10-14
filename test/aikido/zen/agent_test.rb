@@ -294,6 +294,19 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert_mock @api_client
   end
 
+  test "#handle_attack reports the user of the request" do
+    context = Aikido::Zen::Context.from_rack_env(Rack::MockRequest.env_for("/test"))
+    context.request.actor = Aikido::Zen::Actor.new(id: "1", name: "Alice")
+
+    @api_client.expect :report, {} do |event|
+      assert_equal({"id" => "1", "name" => "Alice"}, event.as_json["attack"]["user"])
+    end
+
+    @agent.handle_attack(TestAttack.new(sink: @test_sink, context: context))
+
+    assert_mock @api_client
+  end
+
   test "#handle_attack does not report an event if the API can't make requests" do
     @config.api_token = nil
 
