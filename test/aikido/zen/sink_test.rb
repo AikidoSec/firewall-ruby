@@ -136,6 +136,26 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
   end
   # rubocop:enable Lint/RaiseException
 
+  test "#scan keeps the context marked as scanning after a nested scan is skipped" do
+    context = Aikido::Zen::Context.from_rack_env({})
+    scanning_after_nested = []
+
+    sink = Aikido::Zen::Sink.new("test", "test_op", reporter: NOOP, scanners: [
+      FakeScanner.new do |sink:, context:, **|
+        2.times do
+          sink.scan(context: context)
+          scanning_after_nested << context.scanning?
+        end
+        nil
+      end
+    ])
+
+    sink.scan(context: context)
+
+    assert_equal [true, true], scanning_after_nested
+    refute context.scanning?
+  end
+
   # rubocop:disable Lint/RaiseException
   test "#scan stops after the first Attack is detected" do
     attack = Aikido::Zen::Attack.new(context: nil, sink: nil, operation: nil)
