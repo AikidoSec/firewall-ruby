@@ -287,7 +287,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#handle_attack reports an ATTACK event" do
-    @api_client.expect :report, {}, [Aikido::Zen::Events::Attack]
+    @api_client.expect :report, nil, [Aikido::Zen::Events::Attack]
 
     @agent.handle_attack(TestAttack.new(sink: @test_sink))
 
@@ -298,7 +298,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     context = Aikido::Zen::Context.from_rack_env(Rack::MockRequest.env_for("/test"))
     context.request.actor = Aikido::Zen::Actor.new(id: "1", name: "Alice")
 
-    @api_client.expect :report, {} do |event|
+    @api_client.expect(:report, nil) do |event|
       assert_equal({"id" => "1", "name" => "Alice"}, event.as_json["attack"]["user"])
     end
 
@@ -331,7 +331,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     @config.blocking_mode = true
 
     agent = Minitest::Mock.new(@agent)
-    agent.expect :report, {} do |event|
+    agent.expect :report, nil do |event|
       assert event.attack.blocked?
     end
 
@@ -355,7 +355,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     @config.blocking_mode = false
 
     agent = Minitest::Mock.new(@agent)
-    agent.expect :report, {} do |event|
+    agent.expect :report, nil do |event|
       refute event.attack.blocked?
     end
 
