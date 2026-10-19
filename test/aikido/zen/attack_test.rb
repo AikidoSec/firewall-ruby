@@ -91,6 +91,32 @@ module Aikido::Zen
 
       assert_equal expected, attack.as_json
     end
+
+    test "#as_json includes the user in the attack" do
+      @context.request.actor = Aikido::Zen::Actor.new(id: "1", name: "Alice")
+      attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
+        query: @query, input: @input, dialect: @dialect, failed_to_tokenize: false, sink: @sink, context: @context, operation: @op
+      )
+
+      assert_equal({"id" => "1", "name" => "Alice"}, attack.as_json["user"])
+    end
+
+    test "#as_json does not include the name of the user in the attack when there is none" do
+      @context.request.actor = Aikido::Zen::Actor.new(id: "1")
+      attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
+        query: @query, input: @input, dialect: @dialect, failed_to_tokenize: false, sink: @sink, context: @context, operation: @op
+      )
+
+      assert_equal({"id" => "1"}, attack.as_json["user"])
+    end
+
+    test "#as_json does not include the user in the attack when the request has none" do
+      attack = Aikido::Zen::Attacks::SQLInjectionAttack.new(
+        query: @query, input: @input, dialect: @dialect, failed_to_tokenize: false, sink: @sink, context: @context, operation: @op
+      )
+
+      refute attack.as_json.key?("user")
+    end
   end
 
   class SSRFAttackTest < ActiveSupport::TestCase

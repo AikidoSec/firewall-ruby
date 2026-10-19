@@ -136,9 +136,7 @@ module Aikido::Zen
 
       # Recording the attack must never prevent us from blocking it.
       begin
-        @config.logger.error(
-          format("Zen has %s a %s: %s", attack.blocked? ? "blocked" : "detected", attack.humanized_name, attack.as_json.to_json)
-        )
+        @config.logger.error(attack_log_message(attack))
 
         report(Events::Attack.new(attack: attack)) if @api_client.can_make_requests?
 
@@ -226,6 +224,21 @@ module Aikido::Zen
     end
 
     private
+
+    def attack_log_message(attack)
+      input = attack.as_json
+
+      format(
+        "Zen has %s a %s: %s(...) originating from %s%s",
+        attack.blocked? ? "blocked" : "detected",
+        attack.humanized_name,
+        attack.operation,
+        input["source"],
+        # The path is built from names in the request, so it can't be trusted
+        # not to split the log line.
+        input["path"].to_s.gsub(/[\r\n]/, " ")
+      )
+    end
 
     def settings_updated(event)
       updated_at = Time.at(event[:data]["configUpdatedAt"].to_i)

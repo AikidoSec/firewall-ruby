@@ -43,13 +43,19 @@ module Aikido::Zen
     end
 
     def as_json
-      {
+      attack_json = {
         "kind" => kind,
         "blocked" => blocked?,
         "metadata" => metadata,
         "operation" => @operation,
         "stack" => @stack
       }.compact.merge(input.as_json)
+
+      if (actor = @context&.request&.actor)
+        attack_json["user"] = {"id" => actor.id, "name" => actor.name}.compact
+      end
+
+      attack_json
     end
 
     def exception(*)
