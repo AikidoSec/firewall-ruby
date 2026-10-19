@@ -283,7 +283,27 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     @agent.handle_attack(attack)
 
     assert_logged :error,
-      'Zen has detected a humanized test attack name: {"kind":"test_attack","blocked":false,"metadata":{"extra_metadata":"value"},"operation":"test","payload":"value","source":null,"path":".path"}'
+      /Zen has detected a humanized test attack name: test\(\.\.\.\) originating from \.path\z/
+  end
+
+  test "#handle_attack does not log the client IP, payload, stack or user of the attack" do
+    context = Aikido::Zen::Context.from_rack_env(Rack::MockRequest.env_for("/test", "REMOTE_ADDR" => "1.2.3.4"))
+    context.request.actor = Aikido::Zen::Actor.new(id: "1", name: "Alice")
+
+    @agent.handle_attack(TestAttack.new(sink: @test_sink, context: context))
+
+    assert_logged :error,
+      /Zen has detected a humanized test attack name: test\(\.\.\.\) originating from \.path\z/
+  end
+
+  test "#handle_attack does not let the path of the attack break the log line" do
+    attack = TestAttack.new(sink: @test_sink)
+    attack.define_singleton_method(:input) { Aikido::Zen::Payload.new("value", :query, "a\r\nb") }
+
+    @agent.handle_attack(attack)
+
+    assert_logged :error,
+      /Zen has detected a humanized test attack name: test\(\.\.\.\) originating from query\.a  b\z/
   end
 
   test "#handle_attack reports an ATTACK event" do
