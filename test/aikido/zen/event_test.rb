@@ -88,26 +88,6 @@ class Aikido::Zen::EventTest < ActiveSupport::TestCase
       refute event.as_json.key?("request")
     end
 
-    test "includes the user in the attack" do
-      user = Aikido::Zen::Actor.new(id: "1", name: "Alice")
-      event = Aikido::Zen::Events::Attack.new(attack: TestAttack.new, user: user)
-
-      assert_equal({"some" => "info", "user" => {"id" => "1", "name" => "Alice"}}, event.as_json["attack"])
-    end
-
-    test "omits the name of the user when there is none" do
-      user = Aikido::Zen::Actor.new(id: "1")
-      event = Aikido::Zen::Events::Attack.new(attack: TestAttack.new, user: user)
-
-      assert_equal({"id" => "1"}, event.as_json["attack"]["user"])
-    end
-
-    test "omits the user when none is given" do
-      event = Aikido::Zen::Events::Attack.new(attack: TestAttack.new)
-
-      refute event.as_json["attack"].key?("user")
-    end
-
     def stub_context(**options)
       env = Rack::MockRequest.env_for("/test", **options)
       Aikido::Zen::Context.from_rack_env(env)

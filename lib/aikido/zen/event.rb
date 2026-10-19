@@ -34,21 +34,15 @@ module Aikido::Zen
     class Attack < Event
       attr_reader :attack
 
-      # @param attack [Aikido::Zen::Attack]
-      # @param user [Aikido::Zen::Actor, nil]
-      def initialize(attack:, user: nil, **opts)
+      def initialize(attack:, **opts)
         @attack = attack
-        @user = user
         super(type: "detected_attack", **opts)
       end
 
       def as_json
-        attack_json = @attack.as_json
-        attack_json["user"] = {"id" => @user.id, "name" => @user.name}.compact if @user
-
         super.update(
           {
-            "attack" => attack_json,
+            "attack" => @attack.as_json,
             "request" => @attack.context&.request&.as_json
           }.compact
         )
