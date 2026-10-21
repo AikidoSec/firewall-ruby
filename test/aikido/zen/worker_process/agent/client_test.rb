@@ -439,6 +439,22 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     end
   end
 
+  test "the scheduled polling task does not request a firewall_lists payload again if applying it raises" do
+    build_agent("updated_settings" => {
+      "firewall_lists" => {},
+      "firewall_lists_generation" => 9
+    }) do |agent, worker, collector, client|
+      Aikido::Zen.firewall.stub :update_from_json, ->(*) { raise "boom" } do
+        worker.jobs[0].task.call
+      end
+
+      assert_logged :error, /failed to get settings from parent: boom/
+
+      _name, args = client.invoke_calls.last
+      assert_equal [KEEPALIVE_INTERVAL, nil, 9], args
+    end
+  end
+
   test "the scheduled polling task applies config without firewall_lists" do
     config_data = {
       "configUpdatedAt" => 0,
