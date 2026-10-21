@@ -7,7 +7,7 @@ on:
 jobs:
   verify-version:
     name: 🔖 Verify tag matches gem version
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Check tag against Aikido::Zen::VERSION
@@ -38,7 +38,7 @@ jobs:
     needs: verify-version
     uses: ./.github/workflows/e2e.yml
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: release-gem
 
     permissions:
