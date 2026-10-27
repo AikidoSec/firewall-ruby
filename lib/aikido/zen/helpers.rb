@@ -45,6 +45,17 @@ module Aikido
           string.encode("UTF-8", invalid: :replace, undef: :replace)
         end
       end
+
+      # Rack 3 no longer requires rack.input to respond to #rewind. Returns the
+      # input if it does, or wrapped in Rack::RewindableInput if not.
+      #
+      # @param input [#read, nil] the Rack input stream.
+      # @return [#rewind, nil]
+      def self.rewindable(input)
+        return input if input.nil? || input.respond_to?(:rewind)
+
+        Rack::RewindableInput.new(input)
+      end
     end
   end
 end

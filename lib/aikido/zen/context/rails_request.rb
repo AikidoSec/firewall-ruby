@@ -40,10 +40,17 @@ module Aikido::Zen
         {}
       end
 
+      # Parsing the request body reads rack.input and caches the result on env.
+      # Ensure that rack.input can be rewound, create a copy of env and rewind
+      # the rack.input stream so that the application can still read the full
+      # request body and env does not cache the parsed result.
       body = begin
-        req.request_parameters
+        env["rack.input"] = Helpers.rewindable(env["rack.input"])
+        ActionDispatch::Request.new(env.dup).request_parameters
       rescue
         {}
+      ensure
+        env["rack.input"]&.rewind
       end
 
       route = begin
