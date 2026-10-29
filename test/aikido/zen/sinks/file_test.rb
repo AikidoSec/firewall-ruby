@@ -437,6 +437,74 @@ class Aikido::Zen::Sinks::FileTest < ActiveSupport::TestCase
         File.realdirpath OFFENDER_PATH
       end
     end
+
+    test "attacks are detected when the path is a Pathname" do
+      path = Pathname.new(OFFENDER_PATH)
+
+      assert_path_traversal_attack "File.new" do
+        File.new path
+      end
+
+      assert_path_traversal_attack "File.open" do
+        File.open path
+      end
+
+      assert_path_traversal_attack "File.read" do
+        File.read path
+      end
+
+      assert_path_traversal_attack "File.write" do
+        File.write path, "content"
+      end
+
+      assert_path_traversal_attack "File.join" do
+        File.join "some", path
+      end
+
+      assert_path_traversal_attack "File.chmod" do
+        File.chmod 0o755, path
+      end
+
+      assert_path_traversal_attack "File.chown" do
+        File.chown 1, 1, path
+      end
+
+      assert_path_traversal_attack "File.rename" do
+        File.rename path, "some-path"
+      end
+
+      assert_path_traversal_attack "File.symlink" do
+        File.symlink "some-path", path
+      end
+
+      assert_path_traversal_attack "File.truncate" do
+        File.truncate path, 1
+      end
+
+      assert_path_traversal_attack "File.unlink" do
+        File.unlink "path-ok", path
+      end
+
+      assert_path_traversal_attack "File.delete" do
+        File.delete "path-ok", path
+      end
+
+      assert_path_traversal_attack "File.utime" do
+        File.utime Time.new, Time.new, "path-ok", path
+      end
+
+      assert_path_traversal_attack "File.expand_path" do
+        File.expand_path path
+      end
+
+      assert_path_traversal_attack "File.realpath" do
+        File.realpath path
+      end
+
+      assert_path_traversal_attack "File.realdirpath" do
+        File.realdirpath path
+      end
+    end
   end
 
   module Helpers
