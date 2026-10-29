@@ -11,6 +11,10 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       @io = StringIO.new(string)
     end
 
+    def set_encoding(*args)
+      @io.set_encoding(*args)
+    end
+
     def read(*args)
       @io.read(*args)
     end
