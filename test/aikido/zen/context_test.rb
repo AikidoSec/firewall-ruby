@@ -5,6 +5,33 @@ require "test_helper"
 class Aikido::Zen::ContextTest < ActiveSupport::TestCase
   DummyRequest = Struct.new(:env)
 
+  # Rack 3 does not require rack.input to respond to #rewind.
+  class NonRewindableInput
+    def initialize(string)
+      @io = StringIO.new(string)
+    end
+
+    def set_encoding(*args)
+      @io.set_encoding(*args)
+    end
+
+    def read(*args)
+      @io.read(*args)
+    end
+
+    def gets(*args)
+      @io.gets(*args)
+    end
+
+    def each(&block)
+      @io.each(&block)
+    end
+
+    def close
+      @io.close
+    end
+  end
+
   test "context links to a framework-specific request object" do
     env = {}
 
@@ -66,6 +93,56 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
 
       assert_includes context.payloads, stub_payload(:body, "2", "b")
       assert_includes context.payloads, stub_payload(:body, "3", "c")
+    end
+
+    test "form bodies are extracted without consuming the request body" do
+      input = StringIO.new("username=mallory&role=admin")
+      context = build_context_for("/example/path", {
+        :method => "POST",
+        :input => input,
+        "CONTENT_TYPE" => "application/x-www-form-urlencoded"
+      })
+
+      assert_includes context.payloads, stub_payload(:body, "admin", "role")
+      assert_equal "username=mallory&role=admin", input.read
+    end
+
+    test "form bodies are extracted without consuming a request body that cannot be rewound" do
+      env = env_for("/example/path", {
+        :method => "POST",
+        :input => NonRewindableInput.new("username=mallory&role=admin"),
+        "CONTENT_TYPE" => "application/x-www-form-urlencoded"
+      })
+      context = Aikido::Zen::Context.from_rack_env(env)
+
+      assert_includes context.payloads, stub_payload(:body, "admin", "role")
+      assert_equal "username=mallory&role=admin", env["rack.input"].read
+    end
+
+    test "form bodies are extracted without consuming a replacement request body that cannot be rewound" do
+      env = env_for("/example/path", {
+        :method => "POST",
+        :input => "username=mallory",
+        "CONTENT_TYPE" => "application/x-www-form-urlencoded"
+      })
+      context = Aikido::Zen::Context.from_rack_env(env)
+      env["rack.input"] = NonRewindableInput.new("username=mallory&role=admin")
+
+      assert_includes context.payloads, stub_payload(:body, "admin", "role")
+      assert_equal "username=mallory&role=admin", env["rack.input"].read
+    end
+
+    test "form bodies are extracted without caching the parsed form on the request env" do
+      env = env_for("/example/path", {
+        :method => "POST",
+        :input => "username=mallory&role=admin",
+        "CONTENT_TYPE" => "application/x-www-form-urlencoded"
+      })
+      context = Aikido::Zen::Context.from_rack_env(env)
+      context.payloads
+
+      assert_nil context.request.env["rack.request.form_hash"]
+      assert_nil context.request.env["rack.request.form_pairs"]
     end
 
     test "header params are sourced from the normalized headers" do
@@ -172,8 +249,12 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       Aikido::Zen.config.harden = false
     end
 
+    def env_for(path, env = {})
+      Rack::MockRequest.env_for(path, env)
+    end
+
     def build_context_for(path, env = {})
-      env = Rack::MockRequest.env_for(path, env)
+      env = env_for(path, env)
       Aikido::Zen::Context.from_rack_env(env)
     end
 
@@ -195,6 +276,19 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       })
 
       assert_empty context.payloads.select { |payload| payload.source == :body }
+    end
+
+    test "form bodies are extracted without overriding a later replacement of the body by middleware" do
+      env = Rack::MockRequest.env_for("/path", {
+        :method => "POST",
+        :input => "username=mallory&role=admin",
+        "CONTENT_TYPE" => "application/x-www-form-urlencoded"
+      })
+      Aikido::Zen::Context.from_rack_env(env).payloads
+
+      env["rack.input"] = StringIO.new("username=mallory")
+
+      assert_equal({"username" => "mallory"}, Rack::Request.new(env).POST)
     end
 
     test "route params are empty on the base case as they are framework dependent" do
