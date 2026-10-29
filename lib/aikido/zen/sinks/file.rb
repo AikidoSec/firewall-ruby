@@ -8,7 +8,9 @@ module Aikido::Zen
       module Helpers
         def self.scan(filepath, operation)
           SINK.scan(
-            filepath: filepath,
+            # File.path returns the string representation of the path for any
+            # object that responds to #to_path.
+            filepath: ::File.path(filepath),
             operation: operation
           )
         end
