@@ -50,7 +50,9 @@ module Aikido::Zen
       @schema ||= Aikido::Zen::Request::Schema.build
     end
 
-    # @return [String] the IP address of the client making the request.
+    # @return [String, nil] the IP address of the client making the request,
+    #   or +nil+ if the underlying request has no IP address. This IP address
+    #   is not validated.
     def client_ip
       return @client_ip if @client_ip
 
@@ -59,7 +61,7 @@ module Aikido::Zen
 
         if value
           if Resolv::AddressRegex.match?(value)
-            @client_ip = value
+            return @client_ip = value
           else
             @config.logger.warn("Invalid IP address in custom client IP header `#{@config.client_ip_header}`: `#{value}`")
           end
@@ -68,7 +70,9 @@ module Aikido::Zen
         end
       end
 
-      @client_ip ||= respond_to?(:remote_ip) ? remote_ip : ip
+      value = respond_to?(:remote_ip) ? remote_ip : ip.to_s
+
+      @client_ip = value unless value.empty?
     end
 
     # Map the CGI-style env Hash into "pretty-looking" headers, preserving the

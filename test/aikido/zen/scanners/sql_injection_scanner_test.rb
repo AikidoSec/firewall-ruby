@@ -298,7 +298,7 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     assert_attack "SELECT * FROM users WHERE id = '' OR true; -- '", "' OR true; -- '"
 
     fail_to_load_error = ->(query, *) {
-      err = format("%p for SQL injection", query)
+      err = format("scan %p for SQL injection", query)
       raise Aikido::Zen::InternalsError.new(err, "loading", "libzen.dylib")
     }
 

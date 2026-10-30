@@ -117,8 +117,11 @@ module Aikido::Zen::WorkerProcess
 
         if settings["firewall_lists"]
           @config.logger.debug("Forked worker process #{Process.pid}: starting firewall_lists update")
-          Aikido::Zen.firewall.update_from_json(settings["firewall_lists"])
+          # A payload update that fails is expected to fail again if retried.
+          # Record the generation before updating so that the parent process
+          # does not send the payload again if the update fails.
           @known_firewall_lists_generation = settings["firewall_lists_generation"]
+          Aikido::Zen.firewall.update_from_json(settings["firewall_lists"])
           @config.logger.debug("Forked worker process #{Process.pid}: finished firewall_lists update")
         end
 
