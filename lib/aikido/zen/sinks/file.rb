@@ -24,8 +24,8 @@ module Aikido::Zen
           # recursion in PathTraversalScanner.
           #
           # IMPORTANT: The aliases must be created before the method is overridden.
-          alias_method :expand_path__internal_for_aikido_zen, :expand_path
-          alias_method :join__internal_for_aikido_zen, :join
+          alias_original_method :expand_path__internal_for_aikido_zen, :expand_path
+          alias_original_method :join__internal_for_aikido_zen, :join
 
           sink_before :open do |path|
             Helpers.scan(path, "open")

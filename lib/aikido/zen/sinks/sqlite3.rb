@@ -44,7 +44,7 @@ module Aikido::Zen
               Aikido::Zen.idor_protect(sql, :sqlite)
             end
 
-            alias_method :prepare__internal_for_aikido_zen, :prepare
+            alias_original_method :prepare__internal_for_aikido_zen, :prepare
 
             def prepare(*args, **kwargs, &blk)
               sql, = args
