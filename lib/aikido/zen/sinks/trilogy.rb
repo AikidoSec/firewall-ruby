@@ -10,6 +10,15 @@ module Aikido::Zen
           SINK.scan(query: query, dialect: :mysql, operation: operation)
         end
 
+        # Scans the query for SQL injection and checks it for IDOR protection.
+        def self.safe_query(sql)
+          Sinks::DSL.safe do
+            scan(sql, "query")
+          end
+
+          Aikido::Zen.idor_protect(sql, :mysql)
+        end
+
         # Raises when the string is in an encoding where escaping and querying
         # cannot be done safely.
         #
@@ -82,20 +91,15 @@ module Aikido::Zen
               presafe_sink_before :query do |sql|
                 Helpers.check_string(sql) if Aikido::Zen.config.harden?
 
-                Sinks::DSL.safe do
-                  Helpers.scan(sql, "query")
-                end
-
-                Aikido::Zen.idor_protect(sql, :mysql)
+                Helpers.safe_query(sql)
               end
             else
+              # Code coverage is disabled here because this is environment-specific.
+              # :nocov:
               presafe_sink_before :query do |sql|
-                Sinks::DSL.safe do
-                  Helpers.scan(sql, "query")
-                end
-
-                Aikido::Zen.idor_protect(sql, :mysql)
+                Helpers.safe_query(sql)
               end
+              # :nocov:
             end
           end
         end
