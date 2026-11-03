@@ -495,4 +495,336 @@ class Aikido::Zen::SinksDSLTest < ActiveSupport::TestCase
       end
     end
   end
+
+  module GreeterHelpers
+    def build_greeter
+      Class.new do
+        extend Aikido::Zen::Sinks::DSL
+
+        def greet(name)
+          "hello #{name}"
+        end
+      end
+    end
+
+    def prepend_wrapper(klass, label)
+      klass.prepend(Module.new do
+        define_method(:greet) { |name| "#{label}(#{super(name)})" }
+      end)
+    end
+
+    def alias_wrapper(klass, label)
+      original = :"#{label}_original_greet"
+
+      klass.class_eval do
+        alias_method original, :greet
+
+        define_method(:greet) { |name| "#{label}(#{send(original, name)})" }
+      end
+    end
+  end
+
+  class OriginalInstanceMethodTest < ActiveSupport::TestCase
+    include GreeterHelpers
+
+    test "patches a method when a module is prepended" do
+      klass = build_greeter
+      prepend_wrapper(klass, "prepended")
+
+      original = klass.original_instance_method(:greet)
+      klass.class_eval do
+        define_method(:greet) { |name| "patched(#{original.bind_call(self, name)})" }
+      end
+
+      assert_equal "prepended(patched(hello Zen))", klass.new.greet("Zen")
+    end
+
+    test "aliases the original method when a module is prepended" do
+      klass = build_greeter
+      prepend_wrapper(klass, "prepended")
+
+      klass.alias_original_method(:original_greet, :greet)
+      klass.class_eval do
+        define_method(:greet) { |name| "patched(#{original_greet(name)})" }
+      end
+
+      assert_equal "prepended(patched(hello Zen))", klass.new.greet("Zen")
+    end
+
+    test "patches an inherited method when a module is prepended" do
+      klass = Class.new(build_greeter)
+      prepend_wrapper(klass, "prepended")
+
+      original = klass.original_instance_method(:greet)
+      klass.class_eval do
+        define_method(:greet) { |name| "patched(#{original.bind_call(self, name)})" }
+      end
+
+      assert_equal "prepended(patched(hello Zen))", klass.new.greet("Zen")
+    end
+
+    test "aliases an inherited method when a module is prepended" do
+      klass = Class.new(build_greeter)
+      prepend_wrapper(klass, "prepended")
+
+      klass.alias_original_method(:original_greet, :greet)
+      klass.class_eval do
+        define_method(:greet) { |name| "patched(#{original_greet(name)})" }
+      end
+
+      assert_equal "prepended(patched(hello Zen))", klass.new.greet("Zen")
+    end
+  end
+
+  class PrependedModuleTest < ActiveSupport::TestCase
+    include GreeterHelpers
+
+    test "presafe sink before runs once when a module is prepended before the sink method is defined" do
+      klass = build_greeter
+      prepend_wrapper(klass, "prepended")
+      calls = []
+      klass.presafe_sink_before(:greet) { |name| calls << name }
+
+      assert_equal "prepended(hello Zen)", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink after runs once when a module is prepended before the sink method is defined" do
+      klass = build_greeter
+      prepend_wrapper(klass, "prepended")
+      calls = []
+      klass.presafe_sink_after(:greet) { |_result, name| calls << name }
+
+      assert_equal "prepended(hello Zen)", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink around runs once when a module is prepended before the sink method is defined" do
+      klass = build_greeter
+      prepend_wrapper(klass, "prepended")
+      calls = []
+      klass.presafe_sink_around(:greet) do |original_call, name|
+        calls << name
+        original_call.call
+      end
+
+      assert_equal "prepended(hello Zen)", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink before runs once when a module is prepended after the sink method is defined" do
+      klass = build_greeter
+      calls = []
+      klass.presafe_sink_before(:greet) { |name| calls << name }
+      prepend_wrapper(klass, "prepended")
+
+      assert_equal "prepended(hello Zen)", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink after runs once when a module is prepended after the sink method is defined" do
+      klass = build_greeter
+      calls = []
+      klass.presafe_sink_after(:greet) { |_result, name| calls << name }
+      prepend_wrapper(klass, "prepended")
+
+      assert_equal "prepended(hello Zen)", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink around runs once when a module is prepended after the sink method is defined" do
+      klass = build_greeter
+      calls = []
+      klass.presafe_sink_around(:greet) do |original_call, name|
+        calls << name
+        original_call.call
+      end
+      prepend_wrapper(klass, "prepended")
+
+      assert_equal "prepended(hello Zen)", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink before runs once when several modules are prepended" do
+      klass = build_greeter
+      prepend_wrapper(klass, "inner")
+      prepend_wrapper(klass, "outer")
+      calls = []
+      klass.presafe_sink_before(:greet) { |name| calls << name }
+
+      assert_equal "outer(inner(hello Zen))", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink after runs once when several modules are prepended" do
+      klass = build_greeter
+      prepend_wrapper(klass, "inner")
+      prepend_wrapper(klass, "outer")
+      calls = []
+      klass.presafe_sink_after(:greet) { |_result, name| calls << name }
+
+      assert_equal "outer(inner(hello Zen))", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink around runs once when several modules are prepended" do
+      klass = build_greeter
+      prepend_wrapper(klass, "inner")
+      prepend_wrapper(klass, "outer")
+      calls = []
+      klass.presafe_sink_around(:greet) do |original_call, name|
+        calls << name
+        original_call.call
+      end
+
+      assert_equal "outer(inner(hello Zen))", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+  end
+
+  class AliasedMethodTest < ActiveSupport::TestCase
+    include GreeterHelpers
+
+    test "presafe sink before runs once when the method was aliased before the sink method is defined" do
+      klass = build_greeter
+      alias_wrapper(klass, "aliased")
+      calls = []
+      klass.presafe_sink_before(:greet) { |name| calls << name }
+
+      assert_equal "aliased(hello Zen)", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink after runs once when the method was aliased before the sink method is defined" do
+      klass = build_greeter
+      alias_wrapper(klass, "aliased")
+      calls = []
+      klass.presafe_sink_after(:greet) { |_result, name| calls << name }
+
+      assert_equal "aliased(hello Zen)", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink around runs once when the method was aliased before the sink method is defined" do
+      klass = build_greeter
+      alias_wrapper(klass, "aliased")
+      calls = []
+      klass.presafe_sink_around(:greet) do |original_call, name|
+        calls << name
+        original_call.call
+      end
+
+      assert_equal "aliased(hello Zen)", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink before runs once when the method is aliased after the sink method is defined" do
+      klass = build_greeter
+      calls = []
+      klass.presafe_sink_before(:greet) { |name| calls << name }
+      alias_wrapper(klass, "aliased")
+
+      assert_equal "aliased(hello Zen)", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink after runs once when the method is aliased after the sink method is defined" do
+      klass = build_greeter
+      calls = []
+      klass.presafe_sink_after(:greet) { |_result, name| calls << name }
+      alias_wrapper(klass, "aliased")
+
+      assert_equal "aliased(hello Zen)", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink around runs once when the method is aliased after the sink method is defined" do
+      klass = build_greeter
+      calls = []
+      klass.presafe_sink_around(:greet) do |original_call, name|
+        calls << name
+        original_call.call
+      end
+      alias_wrapper(klass, "aliased")
+
+      assert_equal "aliased(hello Zen)", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink before runs once when the method is aliased several times" do
+      klass = build_greeter
+      alias_wrapper(klass, "inner")
+      alias_wrapper(klass, "outer")
+      calls = []
+      klass.presafe_sink_before(:greet) { |name| calls << name }
+
+      assert_equal "outer(inner(hello Zen))", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink after runs once when the method is aliased several times" do
+      klass = build_greeter
+      alias_wrapper(klass, "inner")
+      alias_wrapper(klass, "outer")
+      calls = []
+      klass.presafe_sink_after(:greet) { |_result, name| calls << name }
+
+      assert_equal "outer(inner(hello Zen))", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink around runs once when the method is aliased several times" do
+      klass = build_greeter
+      alias_wrapper(klass, "inner")
+      alias_wrapper(klass, "outer")
+      calls = []
+      klass.presafe_sink_around(:greet) do |original_call, name|
+        calls << name
+        original_call.call
+      end
+
+      assert_equal "outer(inner(hello Zen))", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+  end
+
+  class AliasedAndPrependedMethodTest < ActiveSupport::TestCase
+    include GreeterHelpers
+
+    test "presafe sink before runs once when the method was aliased and a module prepended before the sink method is defined" do
+      klass = build_greeter
+      alias_wrapper(klass, "aliased")
+      prepend_wrapper(klass, "prepended")
+      calls = []
+      klass.presafe_sink_before(:greet) { |name| calls << name }
+
+      assert_equal "prepended(aliased(hello Zen))", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink after runs once when the method was aliased and a module prepended before the sink method is defined" do
+      klass = build_greeter
+      alias_wrapper(klass, "aliased")
+      prepend_wrapper(klass, "prepended")
+      calls = []
+      klass.presafe_sink_after(:greet) { |_result, name| calls << name }
+
+      assert_equal "prepended(aliased(hello Zen))", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+
+    test "presafe sink around runs once when the method was aliased and a module prepended before the sink method is defined" do
+      klass = build_greeter
+      alias_wrapper(klass, "aliased")
+      prepend_wrapper(klass, "prepended")
+      calls = []
+      klass.presafe_sink_around(:greet) do |original_call, name|
+        calls << name
+        original_call.call
+      end
+
+      assert_equal "prepended(aliased(hello Zen))", klass.new.greet("Zen")
+      assert_equal ["Zen"], calls
+    end
+  end
 end

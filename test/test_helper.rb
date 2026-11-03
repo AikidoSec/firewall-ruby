@@ -1,5 +1,14 @@
 # frozen_string_literal: true
 
+# Sinks redefine methods on purpose, and so do the tests that exercise them.
+module QuietRedefinition
+  def warn(message, **kwargs)
+    super unless message.match?(/method redefined|previous definition of/)
+  end
+end
+
+Warning.singleton_class.prepend(QuietRedefinition)
+
 require "bundler"
 Bundler.setup
 

@@ -99,6 +99,31 @@ module Aikido::Zen
         raise PresafeError, cause: err
       end
 
+      # Returns the original method that the class itself defines or inherits,
+      # skipping modules prepended to the class.
+      #
+      # @param method_name [Symbol, String] the name of the method
+      #
+      # @return [UnboundMethod] the original method
+      def original_instance_method(method_name)
+        prepended_ancestors = ancestors.take_while { |ancestor| ancestor != self }
+
+        method = instance_method(method_name)
+        method = method.super_method while prepended_ancestors.include?(method.owner)
+        method
+      end
+
+      # Defines a method `new_method_name` as a copy of the original instance method,
+      # which is what `alias_method` does when no module is prepended to the class.
+      #
+      # @param new_method_name [Symbol, String] the name of the method
+      # @param old_method_name [Symbol, String] the name of the method to copy
+      #
+      # @return [Symbol] the name of the new method
+      def alias_original_method(new_method_name, old_method_name)
+        define_method(new_method_name, original_instance_method(old_method_name))
+      end
+
       # Define a method `method_name` that presafely executes the given block before
       # the original method.
       #
@@ -111,7 +136,7 @@ module Aikido::Zen
       def presafe_sink_before(method_name, &block)
         raise ArgumentError, "block required" unless block
 
-        original = instance_method(method_name)
+        original = original_instance_method(method_name)
 
         define_method(method_name) do |*args, **kwargs, &blk|
           instance_exec(*args, **kwargs, &block)
@@ -155,7 +180,7 @@ module Aikido::Zen
       def presafe_sink_after(method_name, &block)
         raise ArgumentError, "block required" unless block
 
-        original = instance_method(method_name)
+        original = original_instance_method(method_name)
 
         define_method(method_name) do |*args, **kwargs, &blk|
           result = original.bind_call(self, *args, **kwargs, &blk)
@@ -201,7 +226,7 @@ module Aikido::Zen
       def presafe_sink_around(method_name, &block)
         raise ArgumentError, "block required" unless block
 
-        original = instance_method(method_name)
+        original = original_instance_method(method_name)
 
         define_method(method_name) do |*args, **kwargs, &blk|
           result = nil
