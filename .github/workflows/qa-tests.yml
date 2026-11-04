@@ -11,16 +11,18 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout zen-demo-ruby
-        uses: actions/checkout@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: Aikido-demo-apps/zen-demo-ruby
           path: zen-demo-ruby
           submodules: true
+          persist-credentials: false
       
       - name: Checkout firewall-ruby
-        uses: actions/checkout@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: zen-demo-ruby/firewall-ruby
+          persist-credentials: false
 
       # We need Ruby + Bundler on the runner to regenerate Gemfile.lock
       - name: Set up Ruby (same as zen-demo-ruby)

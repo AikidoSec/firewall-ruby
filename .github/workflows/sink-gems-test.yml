@@ -1,0 +1,59 @@
+name: 🔌 Sink gem tests
+
+on:
+  - push
+  - workflow_call
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    name: ${{ matrix.gem }} ${{ matrix.version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Trilogy
+          #
+          # 2.5.0: The oldest version that accepts the String port used by the tests.
+          # 2.8.1: The version locked for most Ruby versions.
+          # 2.11.0: The first version with Trilogy::Synchronization.
+          # 2.13.1: The last version with the multibyte escaping vulnerability.
+          # 2.13.2: The first version without it.
+          - {gem: trilogy, version: "2.5.0"}
+          - {gem: trilogy, version: "2.8.1"}
+          - {gem: trilogy, version: "2.11.0"}
+          - {gem: trilogy, version: "2.13.1"}
+          - {gem: trilogy, version: "2.13.2"}
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - name: Setup databases
+      uses: ./.github/actions/setup-databases
+    - name: Install system dependencies
+      run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
+    - name: Link the Gemfile for Ruby 3.3
+      run: bin/link_gemfile "3.3"
+    - name: Pin ${{ matrix.gem }} ${{ matrix.version }}
+      run: sed -i 's/^gem "${{ matrix.gem }}".*/gem "${{ matrix.gem }}", "= ${{ matrix.version }}"/' Gemfile
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1
+      with:
+        ruby-version: "3.3"
+    - name: Install the gems
+      run: bundle install --jobs 4
+    - name: Check the installed version of ${{ matrix.gem }}
+      run: |
+        bundle exec ruby -e 'abort "#{ARGV[0]} #{Gem.loaded_specs[ARGV[0]].version}" unless Gem.loaded_specs[ARGV[0]].version.to_s == ARGV[1]' "${{ matrix.gem }}" "${{ matrix.version }}"
+    - name: Download libzen
+      run: bundle exec rake libzen:download:current
+    # The test file is named after the gem, unless the row has a `sink`.
+    - name: Run the ${{ matrix.sink || matrix.gem }} tests
+      run: bundle exec ruby -Itest -Ilib test/aikido/zen/sinks/${{ matrix.sink || matrix.gem }}_test.rb
+      env:
+        DISABLE_COVERAGE: "true"
