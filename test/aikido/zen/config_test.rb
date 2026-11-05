@@ -28,8 +28,6 @@ class Aikido::Zen::ConfigTest < ActiveSupport::TestCase
     assert_equal Aikido::Zen::Config::DEFAULT_JSON_DECODER, @config.json_decoder
     assert_kind_of ::Logger, @config.logger
     assert_nil @config.client_ip_header
-    assert_equal 5000, @config.max_performance_samples
-    assert_equal 100, @config.max_compressed_stats
     assert_equal 200, @config.max_outbound_connections
     assert_equal 1000, @config.max_users_tracked
     assert_equal Aikido::Zen::Config::DEFAULT_BLOCKED_RESPONDER, @config.blocked_responder

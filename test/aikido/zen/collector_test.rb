@@ -328,14 +328,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
             "attacksDetected" => {
               "total" => 0,
               "blocked" => 0
-            },
-            "compressedTimings" => [
-              {
-                "averageInMs" => 1000,
-                "percentiles" => {50 => 1000, 75 => 1000, 90 => 1000, 95 => 1000, 99 => 1000},
-                "compressedAt" => 1234577890000
-              }
-            ]
+            }
           },
           "another" => {
             "kind" => "test_op",
@@ -345,14 +338,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
             "attacksDetected" => {
               "total" => 0,
               "blocked" => 0
-            },
-            "compressedTimings" => [
-              {
-                "averageInMs" => 1000,
-                "percentiles" => {50 => 1000, 75 => 1000, 90 => 1000, 95 => 1000, 99 => 1000},
-                "compressedAt" => 1234577890000
-              }
-            ]
+            }
           }
         }
       },
@@ -396,14 +382,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
             "attacksDetected" => {
               "total" => 1,
               "blocked" => 1
-            },
-            "compressedTimings" => [
-              {
-                "averageInMs" => 1000,
-                "percentiles" => {50 => 1000, 75 => 1000, 90 => 1000, 95 => 1000, 99 => 1000},
-                "compressedAt" => 1234577890000
-              }
-            ]
+            }
           },
           "another" => {
             "kind" => "test_op",
@@ -413,14 +392,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
             "attacksDetected" => {
               "total" => 1,
               "blocked" => 1
-            },
-            "compressedTimings" => [
-              {
-                "averageInMs" => 1000,
-                "percentiles" => {50 => 1000, 75 => 1000, 90 => 1000, 95 => 1000, 99 => 1000},
-                "compressedAt" => 1234577890000
-              }
-            ]
+            }
           }
         },
         "requests" => {
@@ -476,9 +448,9 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
       id: "234", ip: "5.6.7.8", first_seen_at: Time.at(12334567890)
     ))
 
-    @collector.track_scan(stub_scan(sink: @sink, duration: 2))
-    @collector.track_scan(stub_scan(sink: @sink, duration: 3))
-    @collector.track_scan(stub_scan(sink: @sink, duration: 1))
+    @collector.track_scan(stub_scan(sink: @sink))
+    @collector.track_scan(stub_scan(sink: @sink))
+    @collector.track_scan(stub_scan(sink: @sink))
     @collector.track_attack(stub_attack(sink: @sink, blocked: true))
 
     @collector.track_attack_wave(being_blocked: false)
@@ -504,18 +476,7 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
             "attacksDetected" => {
               "total" => 1,
               "blocked" => 1
-            },
-            "compressedTimings" => [{
-              "averageInMs" => 2000,
-              "percentiles" => {
-                50 => 2000,
-                75 => 3000,
-                90 => 3000,
-                95 => 3000,
-                99 => 3000
-              },
-              "compressedAt" => 1234577890000
-            }]
+            }
           }
         },
         "requests" => {
@@ -568,12 +529,11 @@ class Aikido::Zen::CollectorTest < ActiveSupport::TestCase
     Aikido::Zen::Sink.new(name, kind, operation: "test", scanners: [NOOP])
   end
 
-  def stub_scan(sink: @sink, context: stub_context, duration: 1, attack: nil, errors: [])
+  def stub_scan(sink: @sink, context: stub_context, attack: nil, errors: [])
     Aikido::Zen::Scan.new(sink: sink, context: context).tap do |scan|
       scan.instance_variable_set(:@performed, true)
       scan.instance_variable_set(:@attack, attack)
       scan.instance_variable_set(:@errors, errors)
-      scan.instance_variable_set(:@duration, duration)
     end
   end
 

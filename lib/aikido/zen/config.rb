@@ -97,15 +97,6 @@ module Aikido::Zen
     # @return [String] environment specific HTTP header providing the client IP.
     attr_accessor :client_ip_header
 
-    # @return [Integer] maximum number of timing measurements to keep in memory
-    #   before compressing them.
-    attr_accessor :max_performance_samples
-
-    # @return [Integer] maximum number of compressed performance samples to keep
-    #   in memory. If we take more than this before reporting them to Aikido, we
-    #   will discard the oldest samples.
-    attr_accessor :max_compressed_stats
-
     # @return [Integer] maximum number of connections to outbound hosts to keep
     #   in memory in order to report them in the next heartbeat event. If new
     #   connections are added to the set before reporting them to Aikido, we
@@ -274,8 +265,6 @@ module Aikido::Zen
       self.json_decoder = DEFAULT_JSON_DECODER
       self.logger = Logger.new($stdout, progname: "aikido", level: debugging ? Logger::DEBUG : Logger::INFO)
       self.client_ip_header = ENV.fetch("AIKIDO_CLIENT_IP_HEADER", nil)
-      self.max_performance_samples = 5000
-      self.max_compressed_stats = 100
       self.max_outbound_connections = 200
       self.max_users_tracked = 1000
       self.max_custom_events = 25
