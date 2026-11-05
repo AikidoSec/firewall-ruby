@@ -77,6 +77,19 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
   module GenericTests
     extend ActiveSupport::Testing::Declarative
 
+    def multipart_env(fields)
+      boundary = "AaB03x"
+      parts = fields.flat_map do |name, value|
+        ["--#{boundary}", %(Content-Disposition: form-data; name="#{name}"), "", value]
+      end
+
+      {
+        :method => "POST",
+        :input => [*parts, "--#{boundary}--", ""].join("\r\n"),
+        "CONTENT_TYPE" => "multipart/form-data; boundary=#{boundary}"
+      }
+    end
+
     test "query payloads are read from the query string" do
       context = build_context_for("/path?a=1&b=2&c=3")
 
@@ -145,6 +158,13 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       assert_nil context.request.env["rack.request.form_pairs"]
     end
 
+    test "body payloads are read from multipart-encoded bodies" do
+      context = build_context_for("/example/path", multipart_env("username" => "mallory", "role" => "admin"))
+
+      assert_includes context.payloads, stub_payload(:body, "mallory", "username")
+      assert_includes context.payloads, stub_payload(:body, "admin", "role")
+    end
+
     test "header params are sourced from the normalized headers" do
       context = build_context_for("/path", {
         "HTTP_ACCEPT" => "application/json",
@@ -211,6 +231,65 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path4.__File.join__")
       assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path5.__File.join__")
       assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path6.__File.join__")
+    end
+
+    test "query parameter names are extracted as payloads" do
+      context = build_context_for("/path?a=1&b=2&c=3")
+
+      assert_includes context.payloads, stub_payload(:query, "a", "a")
+      assert_includes context.payloads, stub_payload(:query, "b", "b")
+      assert_includes context.payloads, stub_payload(:query, "c", "c")
+    end
+
+    test "header names are extracted as payloads" do
+      context = build_context_for("/path", {
+        "HTTP_ACCEPT" => "application/json",
+        "HTTP_USER_AGENT" => "Test/UA"
+      })
+
+      assert_includes context.payloads, stub_payload(:header, "Accept", "Accept")
+      assert_includes context.payloads, stub_payload(:header, "User-Agent", "User-Agent")
+    end
+
+    test "cookie names are extracted as payloads" do
+      context = build_context_for("/path", {
+        "HTTP_COOKIE" => "c1=foo; c2=bar; c3=baz"
+      })
+
+      assert_includes context.payloads, stub_payload(:cookie, "c1", "c1")
+      assert_includes context.payloads, stub_payload(:cookie, "c2", "c2")
+      assert_includes context.payloads, stub_payload(:cookie, "c3", "c3")
+    end
+
+    test "body keys are extracted as payloads from form-encoded bodies" do
+      context = build_context_for("/example/path", {
+        :method => "POST",
+        :input => "username=mallory&role=admin",
+        "CONTENT_TYPE" => "application/x-www-form-urlencoded"
+      })
+
+      assert_includes context.payloads, stub_payload(:body, "username", "username")
+      assert_includes context.payloads, stub_payload(:body, "role", "role")
+    end
+
+    test "body keys are extracted as payloads from multipart-encoded bodies" do
+      context = build_context_for("/example/path", multipart_env("username" => "mallory", "role" => "admin"))
+
+      assert_includes context.payloads, stub_payload(:body, "username", "username")
+      assert_includes context.payloads, stub_payload(:body, "role", "role")
+    end
+
+    test "nested keys are extracted as payloads at every level" do
+      context = build_context_for("/path?a[n]=1", {
+        method: "POST",
+        params: {y: {w: {i: "6"}}}
+      })
+
+      assert_includes context.payloads, stub_payload(:query, "a", "a")
+      assert_includes context.payloads, stub_payload(:query, "n", "a.n")
+      assert_includes context.payloads, stub_payload(:body, "y", "y")
+      assert_includes context.payloads, stub_payload(:body, "w", "y.w")
+      assert_includes context.payloads, stub_payload(:body, "i", "y.w.i")
     end
 
     test "the context can store metadata" do
@@ -359,6 +438,20 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
 
       # Values must be strings to be extracted
       refute_includes context.payloads, stub_payload(:body, 3, "array.2")
+    end
+
+    test "body keys are extracted as payloads from JSON-encoded bodies" do
+      context = build_context_for("/example", {
+        :method => "POST",
+        :input => %({"key":"value","hash":{"first":0,"inner":"value"},"array":["1"]}),
+        "CONTENT_TYPE" => "application/json"
+      })
+
+      assert_includes context.payloads, stub_payload(:body, "key", "key")
+      assert_includes context.payloads, stub_payload(:body, "hash", "hash")
+      assert_includes context.payloads, stub_payload(:body, "first", "hash.first")
+      assert_includes context.payloads, stub_payload(:body, "inner", "hash.inner")
+      assert_includes context.payloads, stub_payload(:body, "array", "array")
     end
 
     test "body payloads are not read from JSON-encoded bodies that cannot be parsed" do
