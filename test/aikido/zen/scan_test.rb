@@ -34,15 +34,6 @@ class Aikido::Zen::ScanTest < ActiveSupport::TestCase
     assert_equal attack, @scan.attack
   end
 
-  test "#perform measures the duration of the block using the system's monotonic clock" do
-    times = [1, 4]
-    Process.stub :clock_gettime, ->(_) { times.shift } do
-      @scan.perform { nil }
-
-      assert_equal 3, @scan.duration
-    end
-  end
-
   test "#track_error collects the scanner object and the error for future analysis" do
     scanner = ->(**data) {}
     error = RuntimeError.new("oops")

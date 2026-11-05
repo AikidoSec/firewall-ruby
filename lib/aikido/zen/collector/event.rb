@@ -158,16 +158,14 @@ module Aikido::Zen
           new(
             data["sink_name"],
             data["sink_kind"],
-            data["duration"],
             has_errors: data["has_errors"]
           )
         end
 
-        def initialize(sink_name, sink_kind, duration, has_errors:)
+        def initialize(sink_name, sink_kind, has_errors:)
           super()
           @sink_name = sink_name
           @sink_kind = sink_kind
-          @duration = duration
           @has_errors = has_errors
         end
 
@@ -175,17 +173,16 @@ module Aikido::Zen
           super.update({
             "sink_name" => @sink_name,
             "sink_kind" => @sink_kind,
-            "duration" => @duration,
             "has_errors" => @has_errors
           })
         end
 
         def handle(collector)
-          collector.handle_track_scan(@sink_name, @sink_kind, @duration, has_errors: @has_errors)
+          collector.handle_track_scan(@sink_name, @sink_kind, has_errors: @has_errors)
         end
 
         def inspect
-          "#<#{self.class.name} #{@sink_name} #{@sink_kind} #{format "%0.6f", @duration} #{@has_errors}>"
+          "#<#{self.class.name} #{@sink_name} #{@sink_kind} #{@has_errors}>"
         end
       end
 

@@ -203,15 +203,6 @@ class Aikido::Zen::SinkTest < ActiveSupport::TestCase
     assert scanner.called?
   end
 
-  test "#scan tracks how long it takes to run the scanners" do
-    scanner = FakeScanner.new { sleep 0.001 and nil }
-    sink = Aikido::Zen::Sink.new("test", "test_op", scanners: [scanner])
-
-    scan = sink.scan(foo: 1, bar: 2)
-    assert scan.duration > 0.001
-    assert scanner.called?
-  end
-
   class TestRegistry < ActiveSupport::TestCase
     Sinks = Aikido::Zen::Sinks
 

@@ -11,7 +11,7 @@ module Aikido::Zen
 
       @events = Queue.new
 
-      @stats = Concurrent::AtomicReference.new(Stats.new(@config))
+      @stats = Concurrent::AtomicReference.new(Stats.new)
       @users = Concurrent::AtomicReference.new(Users.new(@config))
       @hosts = Concurrent::AtomicReference.new(Hosts.new(@config))
       @routes = Concurrent::AtomicReference.new(Routes.new(@config))
@@ -56,7 +56,7 @@ module Aikido::Zen
     def flush(at: Time.now.utc)
       handle
 
-      stats = @stats.get_and_set(Stats.new(@config))
+      stats = @stats.get_and_set(Stats.new)
       users = @users.get_and_set(Users.new(@config))
       hosts = @hosts.get_and_set(Hosts.new(@config))
       routes = @routes.get_and_set(Routes.new(@config))
@@ -146,12 +146,12 @@ module Aikido::Zen
     # @param scan [Aikido::Zen::Scan]
     # @return [void]
     def track_scan(scan)
-      add_event(Events::TrackScan.new(scan.sink.name, scan.sink.kind, scan.duration, has_errors: scan.errors?))
+      add_event(Events::TrackScan.new(scan.sink.name, scan.sink.kind, has_errors: scan.errors?))
     end
 
-    def handle_track_scan(sink_name, sink_kind, duration, has_errors:)
+    def handle_track_scan(sink_name, sink_kind, has_errors:)
       synchronize(@stats) do |stats|
-        stats.add_scan(sink_name, sink_kind, duration, has_errors: has_errors)
+        stats.add_scan(sink_name, sink_kind, has_errors: has_errors)
       end
     end
 

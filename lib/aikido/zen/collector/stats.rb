@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "../capped_collections"
-
 module Aikido::Zen
   # @api private
   #
@@ -13,10 +11,7 @@ module Aikido::Zen
     # @!visibility private
     attr_writer :ended_at
 
-    def initialize(config = Aikido::Zen.config)
-      super()
-      @config = config
-
+    def initialize
       @started_at = @ended_at = nil
       @requests = 0
       @aborted_requests = 0
@@ -25,7 +20,7 @@ module Aikido::Zen
       @ip_lists = Hash.new { |h, k| h[k] = 0 }
       @attack_waves = 0
       @blocked_attack_waves = 0
-      @sinks = Hash.new { |h, k| h[k] = Collector::SinkStats.new(k, @config) }
+      @sinks = Hash.new { |h, k| h[k] = Collector::SinkStats.new(k) }
     end
 
     # @return [Boolean]
@@ -50,16 +45,12 @@ module Aikido::Zen
     end
 
     # Sets the end time for these stats block, freezes it to avoid any more
-    # writing to them, and compresses the timing stats in anticipation of
-    # sending these to the Aikido servers.
+    # writing to them.
     #
     # @param at [Time] the time at which we're resetting, which is set as the
     #   ending time for the returned copy.
     # @return [void]
     def flush(at: Time.now.utc)
-      # Make sure the timing stats are compressed before copying, since we
-      # need these compressed when we serialize this for the API.
-      @sinks.each_value { |sink| sink.compress_timings(at: at) }
       @ended_at = at
       freeze
     end
@@ -95,15 +86,13 @@ module Aikido::Zen
 
     # @param sink_name [String] the name of the sink
     # @param sink_kind [String] the category of operation the sink represents
-    # @param duration [Float] the length the scan in seconds
     # @param has_errors [Boolean] whether errors occurred during the scan
     # @return [void]
-    def add_scan(sink_name, sink_kind, duration, has_errors:)
+    def add_scan(sink_name, sink_kind, has_errors:)
       stats = @sinks[sink_name]
       stats.kind = sink_kind
       stats.scans += 1
       stats.errors += 1 if has_errors
-      stats.add_timing(duration)
     end
 
     # @param sink_name [String] the name of the sink

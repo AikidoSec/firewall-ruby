@@ -46,7 +46,7 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
   end
 
   def stub_track_scan_event
-    TrackScan.new("test", "test_op", 1.0, has_errors: false)
+    TrackScan.new("test", "test_op", has_errors: false)
   end
 
   def stub_track_scan_event_from_json(data)
@@ -333,7 +333,6 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
       "type" => "track_scan",
       "sink_name" => "test",
       "sink_kind" => "test_op",
-      "duration" => 1.0,
       "has_errors" => false
     }
   end
@@ -359,7 +358,7 @@ class Aikido::Zen::Collector::EventTests < ActiveSupport::TestCase
     event = stub_track_scan_event
 
     collector = Minitest::Mock.new
-    collector.expect(:handle_track_scan, nil, ["test", "test_op", 1.0], has_errors: false)
+    collector.expect(:handle_track_scan, nil, ["test", "test_op"], has_errors: false)
 
     event.handle(collector)
 
