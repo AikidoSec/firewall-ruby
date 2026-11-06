@@ -52,6 +52,16 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     refute_includes context.payloads, Aikido::Zen::Payload.new("dropped past the depth limit", :body, "a.c.d")
   end
 
+  test "payload extraction does not URL-decode past the configured maximum" do
+    Aikido::Zen.config.extract_payloads_max_url_decoded_variants = 1
+
+    request = DummyRequest.new({})
+    context = Aikido::Zen::Context.new(request) { {body: {"a" => "x%252520y"}} }
+
+    assert_includes context.payloads, Aikido::Zen::Payload.new("x%2520y", :body, "a")
+    refute_includes context.payloads, Aikido::Zen::Payload.new("x%20y", :body, "a")
+  end
+
   test "payload extraction caps recursion depth to prevent a stack overflow" do
     data = "leaf"
     10_000.times { data = {"k" => data} }
@@ -185,6 +195,76 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       assert_includes context.payloads, stub_payload(:cookie, "foo", "c1")
       assert_includes context.payloads, stub_payload(:cookie, "bar", "c2")
       assert_includes context.payloads, stub_payload(:cookie, "baz", "c3")
+    end
+
+    test "URL-decoded variants of double-encoded query values are extracted" do
+      context = build_context_for("/path?q=%2527+OR+1")
+
+      assert_includes context.payloads, stub_payload(:query, "%27 OR 1", "q")
+      assert_includes context.payloads, stub_payload(:query, "' OR 1", "q")
+    end
+
+    test "URL-decoded variants of header values are extracted" do
+      context = build_context_for("/path", {"HTTP_X_TEST" => "%27+OR+1"})
+
+      assert_includes context.payloads, stub_payload(:header, "%27+OR+1", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "'+OR+1", "X-Test")
+    end
+
+    test "undecoded values are extracted alongside their URL-decoded variants" do
+      context = build_context_for("/path", {"HTTP_X_TEST" => "a%2520b"})
+
+      assert_includes context.payloads, stub_payload(:header, "a%2520b", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "a%20b", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "a b", "X-Test")
+    end
+
+    test "strings without percent-encoding are extracted once" do
+      context = build_context_for("/path", {"HTTP_X_TEST" => "plain"})
+
+      assert_equal 1, context.payloads.count { |payload| payload.source == :header && payload.value == "plain" }
+    end
+
+    test "values are URL-decoded repeatedly" do
+      context = build_context_for("/path", {"HTTP_X_TEST" => "a%252520b"})
+
+      assert_includes context.payloads, stub_payload(:header, "a%2520b", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "a%20b", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "a b", "X-Test")
+    end
+
+    test "values are URL-decoded at most five times" do
+      context = build_context_for("/path", {"HTTP_X_TEST" => "a%252525252520b"})
+
+      assert_includes context.payloads, stub_payload(:header, "a%20b", "X-Test")
+      refute_includes context.payloads, stub_payload(:header, "a b", "X-Test")
+    end
+
+    test "URL-decoding does not turn plus signs into spaces" do
+      context = build_context_for("/path", {"HTTP_X_TEST" => "a+b%20c"})
+
+      assert_includes context.payloads, stub_payload(:header, "a+b c", "X-Test")
+      refute_includes context.payloads, stub_payload(:header, "a b c", "X-Test")
+    end
+
+    test "invalid percent-encoded sequences are left as they are" do
+      context = build_context_for("/path", {"HTTP_X_TEST" => "%27%zz%2"})
+
+      assert_includes context.payloads, stub_payload(:header, "%27%zz%2", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "'%zz%2", "X-Test")
+    end
+
+    test "URL-decoded variants that are not valid UTF-8 are extracted as they are" do
+      context = build_context_for("/path", {"HTTP_X_TEST" => "a%ffb"})
+
+      assert_includes context.payloads, stub_payload(:header, "a%ffb", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "a\xFFb", "X-Test")
+    end
+
+    test "keys are not URL-decoded" do
+      context = build_context_for("/path", {"HTTP_COOKIE" => "a%2520b=1"})
+
+      refute context.payloads.any? { |payload| payload.source == :cookie && payload.value == "a b" }
     end
 
     test "the path for complex parameter structures is tracked correctly" do

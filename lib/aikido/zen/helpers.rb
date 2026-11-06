@@ -46,6 +46,23 @@ module Aikido
         end
       end
 
+      # Percent-decodes a string. Unlike CGI.unescape, plus signs and invalid
+      # percent-encodings are left unchanged. The result is not guaranteed to
+      # be valid UTF-8 because the decoded bytes may not form valid characters.
+      #
+      # @param string [String] the string
+      # @return [String, nil] the decoded string, or nil if unchanged.
+      def self.url_decode(string)
+        return unless string.include?("%")
+
+        bytes = string.b
+
+        decoded = bytes.gsub(/%(\h\h)/) { $1.hex.chr }
+        return if decoded == bytes
+
+        decoded.force_encoding(Encoding::UTF_8)
+      end
+
       # Rack 3 no longer requires rack.input to respond to #rewind. Returns the
       # input if it does, or wrapped in Rack::RewindableInput if not.
       #
