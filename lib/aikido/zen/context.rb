@@ -116,7 +116,10 @@ module Aikido::Zen
         [Payload.new(data, source_type, prefix.to_s)]
       elsif data.respond_to?(:to_hash)
         data.to_hash.flat_map do |key, value|
-          extract_payloads_from(value, source_type, [prefix, key].compact.join("."), depth + 1)
+          path = [prefix, key].compact.join(".")
+
+          [Payload.new(key.to_s, source_type, path)] +
+            extract_payloads_from(value, source_type, path, depth + 1)
         end
       elsif data.respond_to?(:to_ary)
         array = data.to_ary
