@@ -67,6 +67,11 @@ module Aikido::Zen
     #   when extracting payloads from a nested request property. Defaults to 64.
     attr_accessor :extract_payloads_max_depth
 
+    # @return [Integer] the maximum number of times we URL-decode a string
+    #   when extracting payloads from it, as applications may decode input
+    #   more than once. Defaults to 5.
+    attr_accessor :extract_payloads_max_url_decoded_variants
+
     # @return [Symbol] the agent mode for forked worker processes. Can be set
     #   through the AIKIDO_AGENT_MODE environment variable.
     attr_reader :agent_mode
@@ -257,6 +262,7 @@ module Aikido::Zen
       self.polling_interval = 60 # 1 min
       self.initial_heartbeat_delays = [30, 60 * 2] # 30 sec, 2 min
       self.extract_payloads_max_depth = 64
+      self.extract_payloads_max_url_decoded_variants = 5
       self.agent_mode = ENV.fetch("AIKIDO_AGENT_MODE", "shared")
       self.worker_process_polling_interval = 10
       self.worker_process_polling_jitter = 10

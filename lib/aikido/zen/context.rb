@@ -55,6 +55,7 @@ module Aikido::Zen
       @payload_sources = sources
 
       @max_depth = @config.extract_payloads_max_depth
+      @max_url_decoded_variants = @config.extract_payloads_max_url_decoded_variants
 
       @metadata = {}
       @scanning = false
@@ -108,12 +109,30 @@ module Aikido::Zen
 
     private
 
+    # Applications may decode input again, so a payload can reach a sink as
+    # any of its successive URL-decoded variants.
+    #
+    # @return [Array<String>] the string, followed by each of its successive
+    #   URL-decoded variants.
+    def url_decoded_variants(string)
+      variants = [string]
+
+      @max_url_decoded_variants.times do
+        decoded = Helpers.url_decode(variants.last)
+        break unless decoded
+
+        variants << decoded
+      end
+
+      variants
+    end
+
     # @!visibility private
     def extract_payloads_from(data, source_type, prefix = nil, depth = 0)
       return [] if depth > @max_depth
 
       if data.is_a?(String)
-        [Payload.new(data, source_type, prefix.to_s)]
+        url_decoded_variants(data).map { |value| Payload.new(value, source_type, prefix.to_s) }
       elsif data.respond_to?(:to_hash)
         data.to_hash.flat_map do |key, value|
           path = [prefix, key].compact.join(".")
