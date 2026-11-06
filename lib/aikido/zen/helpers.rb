@@ -53,14 +53,13 @@ module Aikido
       # @param string [String] the string
       # @return [String, nil] the decoded string, or nil if unchanged.
       def self.url_decode(string)
-        return unless string.include?("%")
+        return unless string.bytesize >= 3 && string.include?("%")
 
         bytes = string.b
 
-        decoded = bytes.gsub(/%(\h\h)/) { $1.hex.chr }
-        return if decoded == bytes
+        return unless bytes.gsub!(/%(\h\h)/) { $1.hex.chr }
 
-        decoded.force_encoding(Encoding::UTF_8)
+        bytes.force_encoding(Encoding::UTF_8)
       end
 
       # Rack 3 no longer requires rack.input to respond to #rewind. Returns the
