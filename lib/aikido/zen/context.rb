@@ -109,19 +109,21 @@ module Aikido::Zen
 
     private
 
-    # Applications may decode input again, so a payload can reach a sink as
+    # Applications may decode input again, so a value can reach a sink as
     # any of its successive URL-decoded variants.
     #
-    # @return [Array<String>] the string, followed by each of its successive
-    #   URL-decoded variants.
+    # @param string [String] the string.
+    # @return [Array<String>] the successive URL-decoded variants of string.
     def url_decoded_variants(string)
-      variants = [string]
+      variants = []
+
+      current = string
 
       @max_url_decoded_variants.times do
-        decoded = Helpers.url_decode(variants.last)
-        break unless decoded
+        current = Helpers.url_decode(current)
+        break unless current
 
-        variants << decoded
+        variants << current
       end
 
       variants
@@ -132,7 +134,18 @@ module Aikido::Zen
       return [] if depth > @max_depth
 
       if data.is_a?(String)
-        url_decoded_variants(data).map { |value| Payload.new(value, source_type, prefix.to_s) }
+        payloads = [Payload.new(data, source_type, prefix.to_s)]
+
+        url_decoded_variants(data).each do |value|
+          payloads << Payload.new(value, source_type, prefix.to_s)
+        end
+
+        jwt_payload = Helpers.decode_jwt_payload(data)
+        if jwt_payload
+          payloads += extract_payloads_from(jwt_payload, source_type, "#{prefix}<jwt>", depth + 1)
+        end
+
+        payloads
       elsif data.respond_to?(:to_hash)
         data.to_hash.flat_map do |key, value|
           path = [prefix, key].compact.join(".")

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "json"
+
 module Aikido
   module Zen
     # @api private
@@ -60,6 +62,22 @@ module Aikido
         return unless bytes.gsub!(/%(\h\h)/) { $1.hex.chr }
 
         bytes.force_encoding(Encoding::UTF_8)
+      end
+
+      # Decodes only the payload part of a JWT. Decoding is intentionally lenient.
+      # The signature of a JWT is not verified.
+      #
+      # @param string [String] the string.
+      # @return [Object, nil] the base64 decoded and JSON parsed payload part of
+      #   the JWT, or nil if string is not a JWT.
+      def self.decode_jwt_payload(string)
+        # Work on bytes: splitting a string that is not valid UTF-8 raises.
+        parts = string.b.split(".", -1)
+        return unless parts.size == 3
+
+        JSON.parse(parts[1].tr("-_", "+/").unpack1("m"))
+      rescue JSON::ParserError
+        nil
       end
 
       # Rack 3 no longer requires rack.input to respond to #rewind. Returns the

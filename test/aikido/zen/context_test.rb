@@ -3,6 +3,8 @@
 require "test_helper"
 
 class Aikido::Zen::ContextTest < ActiveSupport::TestCase
+  include JWTHelpers
+
   DummyRequest = Struct.new(:env)
 
   # Rack 3 does not require rack.input to respond to #rewind.
@@ -30,6 +32,11 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     def close
       @io.close
     end
+  end
+
+  def jwt_payloads(value, source: :body)
+    request = DummyRequest.new({})
+    Aikido::Zen::Context.new(request) { {source => {"token" => value}} }.payloads
   end
 
   test "context links to a framework-specific request object" do
@@ -82,6 +89,45 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     context = Aikido::Zen::Context.new(request) { {query: data} }
 
     assert_nothing_raised { context.payloads }
+  end
+
+  test "payload extraction adds the JWT payload keys and values under the <jwt> path" do
+    jwt = encode_jwt({"sub" => "../../etc/passwd", "nested" => {"role" => "admin"}, "list" => ["a", "b"]})
+
+    payloads = jwt_payloads(jwt)
+
+    assert_includes payloads, Aikido::Zen::Payload.new(jwt, :body, "token")
+    assert_includes payloads, Aikido::Zen::Payload.new("sub", :body, "token<jwt>.sub")
+    assert_includes payloads, Aikido::Zen::Payload.new("../../etc/passwd", :body, "token<jwt>.sub")
+    assert_includes payloads, Aikido::Zen::Payload.new("admin", :body, "token<jwt>.nested.role")
+    assert_includes payloads, Aikido::Zen::Payload.new("a", :body, "token<jwt>.list.0")
+    assert_includes payloads, Aikido::Zen::Payload.new("b", :body, "token<jwt>.list.1")
+  end
+
+  test "payload extraction places JWT claims under the path of the string that holds the JWT" do
+    jwt = encode_jwt({"sub" => "top"})
+
+    request = DummyRequest.new({})
+    context = Aikido::Zen::Context.new(request) { {body: {"user" => {"session" => jwt}}} }
+
+    assert_includes context.payloads, Aikido::Zen::Payload.new("top", :body, "user.session<jwt>.sub")
+  end
+
+  test "payload extraction does not extract JWT claims past the configured maximum depth" do
+    Aikido::Zen.config.extract_payloads_max_depth = 2
+
+    jwt = encode_jwt({"sub" => "too deep"})
+
+    refute_includes jwt_payloads(jwt).map(&:value), "too deep"
+  end
+
+  test "payload extraction treats a dotted string that is not a JWT as a plain string" do
+    payloads = jwt_payloads("a.b.c")
+
+    assert_equal [
+      Aikido::Zen::Payload.new("token", :body, "token"),
+      Aikido::Zen::Payload.new("a.b.c", :body, "token")
+    ], payloads
   end
 
   module GenericTests
