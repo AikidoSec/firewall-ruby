@@ -339,9 +339,9 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         params: {path2: ["..", "..", "..", "etc", "passwd"]}
       })
 
-      assert_includes context.payloads, stub_payload(:query, "../../../etc/passwd", "path1.__File.join__")
+      assert_includes context.payloads, stub_payload(:query, "../../../etc/passwd", "path1<File.join>")
 
-      assert_includes context.payloads, stub_payload(:body, "../../../etc/passwd", "path2.__File.join__")
+      assert_includes context.payloads, stub_payload(:body, "../../../etc/passwd", "path2<File.join>")
     end
 
     test "absolute path arrays in complex parameter structures are joined for File.join" do
@@ -350,13 +350,13 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         params: {path4: ["/", "etc", "passwd"], path5: ["", "etc", "passwd"], path6: ["/etc", "passwd"]}
       })
 
-      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path1.__File.join__")
-      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path2.__File.join__")
-      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path3.__File.join__")
+      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path1<File.join>")
+      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path2<File.join>")
+      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path3<File.join>")
 
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path4.__File.join__")
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path5.__File.join__")
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path6.__File.join__")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path4<File.join>")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path5<File.join>")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path6<File.join>")
     end
 
     test "query parameter names are extracted as payloads" do
@@ -609,7 +609,7 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "CONTENT_TYPE" => "application/json"
       })
 
-      assert_includes context.payloads, stub_payload(:body, "../../../etc/passwd", "path.__File.join__")
+      assert_includes context.payloads, stub_payload(:body, "../../../etc/passwd", "path<File.join>")
     end
 
     test "absolute path arrays in body payloads read from JSON-encoded bodies are joined for File.join" do
@@ -619,9 +619,9 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "CONTENT_TYPE" => "application/json"
       })
 
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path1.__File.join__")
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path2.__File.join__")
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path3.__File.join__")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path1<File.join>")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path2<File.join>")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path3<File.join>")
     end
 
     test "route payloads are read from the data extracted by the router" do

@@ -179,7 +179,7 @@ module Aikido::Zen
             begin
               string = File.join__internal_for_aikido_zen(*flattened_array)
               if unsafe_path?(string)
-                payloads << Payload.new(string, source_type, [prefix, "__File.join__"].compact.join("."))
+                payloads << Payload.new(string, source_type, "#{prefix}<File.join>")
               end
             rescue
               # Could not create special payload for File.join.
