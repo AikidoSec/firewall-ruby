@@ -45,7 +45,10 @@ module Aikido::Zen
         path = original_path(request)
         query = request.query_string
 
-        query.empty? ? path : "#{path}?#{query}"
+        fullpath = query.empty? ? path : "#{path}?#{query}"
+
+        # Servers may deliver the path and query string as binary strings.
+        Aikido::Zen::Helpers.encode_safely(fullpath)
       end
 
       def self.suspicious_method?(method)
