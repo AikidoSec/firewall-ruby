@@ -3,6 +3,8 @@
 require "test_helper"
 
 class Aikido::Zen::ContextTest < ActiveSupport::TestCase
+  include JWTHelpers
+
   DummyRequest = Struct.new(:env)
 
   # Rack 3 does not require rack.input to respond to #rewind.
@@ -30,6 +32,11 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     def close
       @io.close
     end
+  end
+
+  def jwt_payloads(value, source: :body)
+    request = DummyRequest.new({})
+    Aikido::Zen::Context.new(request) { {source => {"token" => value}} }.payloads
   end
 
   test "context links to a framework-specific request object" do
@@ -82,6 +89,76 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     context = Aikido::Zen::Context.new(request) { {query: data} }
 
     assert_nothing_raised { context.payloads }
+  end
+
+  test "payload extraction adds the JWT payload keys and values under the <jwt> path" do
+    jwt = encode_jwt({"sub" => "../../etc/passwd", "nested" => {"role" => "admin"}, "list" => ["a", "b"]})
+
+    payloads = jwt_payloads(jwt)
+
+    assert_includes payloads, Aikido::Zen::Payload.new(jwt, :body, "token")
+    assert_includes payloads, Aikido::Zen::Payload.new("sub", :body, "token<jwt>.sub")
+    assert_includes payloads, Aikido::Zen::Payload.new("../../etc/passwd", :body, "token<jwt>.sub")
+    assert_includes payloads, Aikido::Zen::Payload.new("admin", :body, "token<jwt>.nested.role")
+    assert_includes payloads, Aikido::Zen::Payload.new("a", :body, "token<jwt>.list.0")
+    assert_includes payloads, Aikido::Zen::Payload.new("b", :body, "token<jwt>.list.1")
+  end
+
+  test "payload extraction places JWT claims under the path of the string that holds the JWT" do
+    jwt = encode_jwt({"sub" => "top"})
+
+    request = DummyRequest.new({})
+    context = Aikido::Zen::Context.new(request) { {body: {"user" => {"session" => jwt}}} }
+
+    assert_includes context.payloads, Aikido::Zen::Payload.new("top", :body, "user.session<jwt>.sub")
+  end
+
+  test "payload extraction extracts JWT claims when only a URL-decoded variant is a JWT" do
+    jwt = encode_jwt({"user" => "' OR 1=1--"})
+
+    [jwt.gsub(".", "%2E"), jwt.gsub(".", "%252E")].each do |encoded|
+      assert_includes jwt_payloads(encoded),
+        Aikido::Zen::Payload.new("' OR 1=1--", :body, "token<jwt>.user"),
+        "expected the claim from #{encoded.inspect}"
+    end
+  end
+
+  test "payload extraction extracts JWT claims once when the token and all its variants are JWTs" do
+    # The five variants change only the header so the payload part is the same.
+    jwt = ["%252525252541", encode_jwt_part({"user" => "' OR 1=1--"}), "signature"].join(".")
+
+    assert_equal 1, jwt_payloads(jwt).count { |payload| payload.value == "' OR 1=1--" }
+  end
+
+  test "payload extraction extracts JWT claims when a deeper variant is no longer a JWT" do
+    # The 2nd variant adds a dot to the header so it is no longer a JWT.
+    jwt = ["a%252Eb", encode_jwt_part({"user" => "' OR 1=1--"}), "signature"].join(".")
+
+    assert_includes jwt_payloads(jwt), Aikido::Zen::Payload.new("' OR 1=1--", :body, "token<jwt>.user")
+  end
+
+  test "payload extraction still adds the URL-decoded variants of a string that holds a JWT" do
+    # The two variants change only the header so the payload part is the same.
+    jwt = ["%2541", encode_jwt_part({"user" => "x"}), "signature"].join(".")
+
+    assert_includes jwt_payloads(jwt), Aikido::Zen::Payload.new("A.eyJ1c2VyIjoieCJ9.signature", :body, "token")
+  end
+
+  test "payload extraction does not extract JWT claims past the configured maximum depth" do
+    Aikido::Zen.config.extract_payloads_max_depth = 2
+
+    jwt = encode_jwt({"sub" => "too deep"})
+
+    refute_includes jwt_payloads(jwt).map(&:value), "too deep"
+  end
+
+  test "payload extraction treats a dotted string that is not a JWT as a plain string" do
+    payloads = jwt_payloads("a.b.c")
+
+    assert_equal [
+      Aikido::Zen::Payload.new("token", :body, "token"),
+      Aikido::Zen::Payload.new("a.b.c", :body, "token")
+    ], payloads
   end
 
   module GenericTests
@@ -293,9 +370,9 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         params: {path2: ["..", "..", "..", "etc", "passwd"]}
       })
 
-      assert_includes context.payloads, stub_payload(:query, "../../../etc/passwd", "path1.__File.join__")
+      assert_includes context.payloads, stub_payload(:query, "../../../etc/passwd", "path1<File.join>")
 
-      assert_includes context.payloads, stub_payload(:body, "../../../etc/passwd", "path2.__File.join__")
+      assert_includes context.payloads, stub_payload(:body, "../../../etc/passwd", "path2<File.join>")
     end
 
     test "absolute path arrays in complex parameter structures are joined for File.join" do
@@ -304,13 +381,13 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         params: {path4: ["/", "etc", "passwd"], path5: ["", "etc", "passwd"], path6: ["/etc", "passwd"]}
       })
 
-      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path1.__File.join__")
-      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path2.__File.join__")
-      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path3.__File.join__")
+      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path1<File.join>")
+      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path2<File.join>")
+      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path3<File.join>")
 
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path4.__File.join__")
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path5.__File.join__")
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path6.__File.join__")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path4<File.join>")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path5<File.join>")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path6<File.join>")
     end
 
     test "query parameter names are extracted as payloads" do
@@ -563,7 +640,7 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "CONTENT_TYPE" => "application/json"
       })
 
-      assert_includes context.payloads, stub_payload(:body, "../../../etc/passwd", "path.__File.join__")
+      assert_includes context.payloads, stub_payload(:body, "../../../etc/passwd", "path<File.join>")
     end
 
     test "absolute path arrays in body payloads read from JSON-encoded bodies are joined for File.join" do
@@ -573,9 +650,9 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "CONTENT_TYPE" => "application/json"
       })
 
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path1.__File.join__")
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path2.__File.join__")
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path3.__File.join__")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path1<File.join>")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path2<File.join>")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path3<File.join>")
     end
 
     test "route payloads are read from the data extracted by the router" do

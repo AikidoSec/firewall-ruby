@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "json"
+
 module Aikido
   module Zen
     # @api private
@@ -60,6 +62,38 @@ module Aikido
         return unless bytes.gsub!(/%(\h\h)/) { $1.hex.chr }
 
         bytes.force_encoding(Encoding::UTF_8)
+      end
+
+      # The smallest string worth decoding is ".IjAi." (the JSON string "0" with
+      # an empty header and signature). A shorter string cannot hold text that a
+      # scanner could act on.
+      MIN_JWT_LENGTH = 6
+
+      # Decodes only the payload part of a JWT. Decoding is intentionally lenient.
+      # The signature of a JWT is not verified.
+      #
+      # @param string [String] the string.
+      # @return [Object, nil] the base64 decoded and JSON parsed payload part of
+      #   the JWT, or nil if string is not a JWT.
+      def self.decode_jwt_payload(string)
+        return if string.bytesize < MIN_JWT_LENGTH
+
+        # Work with bytes because tr raises on a string that is not valid UTF-8.
+        bytes = string.b
+
+        # Avoid allocating a part per dot by indexing dots instead of splitting.
+
+        dot1 = bytes.index(".")
+        return unless dot1
+
+        dot2 = bytes.index(".", dot1 + 1)
+        return unless dot2
+
+        return if bytes.index(".", dot2 + 1)
+
+        JSON.parse(bytes[(dot1 + 1)...dot2].tr("-_", "+/").unpack1("m"))
+      rescue JSON::ParserError
+        nil
       end
 
       # Rack 3 no longer requires rack.input to respond to #rewind. Returns the
