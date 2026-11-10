@@ -135,13 +135,28 @@ class Aikido::Zen::HelpersTest < ActiveSupport::TestCase
     end
   end
 
-  test ".decode_jwt_payload returns nil for strings that are not three parts with a base64url JSON payload" do
+  test ".decode_jwt_payload returns the payload of the smallest string worth decoding" do
+    # An empty header and signature around the smallest JSON value with a string.
+    jwt = ".#{encode_jwt_part("0")}."
+
+    assert_equal Helpers::MIN_JWT_LENGTH, jwt.length
+    assert_equal "0", Helpers.decode_jwt_payload(jwt)
+  end
+
+  test ".decode_jwt_payload returns nil for a string shorter than the smallest worth decoding" do
+    jwt = ".#{encode_jwt_part(0)}."
+
+    assert_operator jwt.length, :<, Helpers::MIN_JWT_LENGTH
+    assert_nil Helpers.decode_jwt_payload(jwt)
+  end
+
+  test ".decode_jwt_payload returns nil for a string that is not three dot-separated parts around a base64 encoded JSON payload" do
     [
-      "",
-      "a.b.c",
-      "only.two",
-      "too.many.parts.here",
-      "\xff.\xfe.sig",
+      "no dots in this string",
+      "only.two parts in this string",
+      "too.many.parts.in.this.string",
+      "aaaa.bbbb.cccc", # three parts but not base64url JSON
+      "head.\xfe\xfe\xfe\xfe\xfe\xfe.sig", # payload part is not valid UTF-8
       [encode_jwt_part({"alg" => "none"}), "bm90IGpzb24", "sig"].join(".")
     ].each do |value|
       assert_nil Helpers.decode_jwt_payload(value), "expected nil for #{value.inspect}"
