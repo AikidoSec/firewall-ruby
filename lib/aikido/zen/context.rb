@@ -134,14 +134,14 @@ module Aikido::Zen
       return [] if depth > @max_depth
 
       if data.is_a?(String)
-        payloads = [Payload.new(data, source_type, prefix.to_s)]
+        payloads = []
 
-        url_decoded_variants(data).each do |value|
+        [data, *url_decoded_variants(data)].each do |value|
           payloads << Payload.new(value, source_type, prefix.to_s)
-        end
 
-        jwt_payload = Helpers.decode_jwt_payload(data)
-        if jwt_payload
+          jwt_payload = Helpers.decode_jwt_payload(value)
+          next unless jwt_payload
+
           payloads += extract_payloads_from(jwt_payload, source_type, "#{prefix}<jwt>", depth + 1)
         end
 

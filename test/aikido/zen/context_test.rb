@@ -113,6 +113,16 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     assert_includes context.payloads, Aikido::Zen::Payload.new("top", :body, "user.session<jwt>.sub")
   end
 
+  test "payload extraction extracts JWT claims from the URL-decoded variants of a string" do
+    jwt = encode_jwt({"user" => "' OR 1=1--"})
+
+    [jwt.gsub(".", "%2E"), jwt.gsub(".", "%252E")].each do |encoded|
+      assert_includes jwt_payloads(encoded),
+        Aikido::Zen::Payload.new("' OR 1=1--", :body, "token<jwt>.user"),
+        "expected the claim from #{encoded.inspect}"
+    end
+  end
+
   test "payload extraction does not extract JWT claims past the configured maximum depth" do
     Aikido::Zen.config.extract_payloads_max_depth = 2
 
