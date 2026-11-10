@@ -135,13 +135,15 @@ module Aikido::Zen
 
       if data.is_a?(String)
         payloads = []
+        jwt_payload = nil
 
         [data, *url_decoded_variants(data)].each do |value|
           payloads << Payload.new(value, source_type, prefix.to_s)
 
-          jwt_payload = Helpers.decode_jwt_payload(value)
-          next unless jwt_payload
+          jwt_payload ||= Helpers.decode_jwt_payload(value)
+        end
 
+        if jwt_payload
           payloads += extract_payloads_from(jwt_payload, source_type, "#{prefix}<jwt>", depth + 1)
         end
 

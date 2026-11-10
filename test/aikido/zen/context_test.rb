@@ -113,7 +113,7 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     assert_includes context.payloads, Aikido::Zen::Payload.new("top", :body, "user.session<jwt>.sub")
   end
 
-  test "payload extraction extracts JWT claims from the URL-decoded variants of a string" do
+  test "payload extraction extracts JWT claims when only a URL-decoded variant is a JWT" do
     jwt = encode_jwt({"user" => "' OR 1=1--"})
 
     [jwt.gsub(".", "%2E"), jwt.gsub(".", "%252E")].each do |encoded|
@@ -121,6 +121,27 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         Aikido::Zen::Payload.new("' OR 1=1--", :body, "token<jwt>.user"),
         "expected the claim from #{encoded.inspect}"
     end
+  end
+
+  test "payload extraction extracts JWT claims once when the token and all its variants are JWTs" do
+    # The five variants change only the header so the payload part is the same.
+    jwt = ["%252525252541", encode_jwt_part({"user" => "' OR 1=1--"}), "signature"].join(".")
+
+    assert_equal 1, jwt_payloads(jwt).count { |payload| payload.value == "' OR 1=1--" }
+  end
+
+  test "payload extraction extracts JWT claims when a deeper variant is no longer a JWT" do
+    # The 2nd variant adds a dot to the header so it is no longer a JWT.
+    jwt = ["a%252Eb", encode_jwt_part({"user" => "' OR 1=1--"}), "signature"].join(".")
+
+    assert_includes jwt_payloads(jwt), Aikido::Zen::Payload.new("' OR 1=1--", :body, "token<jwt>.user")
+  end
+
+  test "payload extraction still adds the URL-decoded variants of a string that holds a JWT" do
+    # The two variants change only the header so the payload part is the same.
+    jwt = ["%2541", encode_jwt_part({"user" => "x"}), "signature"].join(".")
+
+    assert_includes jwt_payloads(jwt), Aikido::Zen::Payload.new("A.eyJ1c2VyIjoieCJ9.signature", :body, "token")
   end
 
   test "payload extraction does not extract JWT claims past the configured maximum depth" do
