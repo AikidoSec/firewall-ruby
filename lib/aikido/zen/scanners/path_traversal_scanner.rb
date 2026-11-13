@@ -21,12 +21,12 @@ module Aikido::Zen
       # @return [Aikido::Zen::Attacks::PathTraversalAttack, nil] an Attack if any
       # user input is detected to be attempting a Path Traversal Attack, or +nil+ if not.
       def self.call(scan:, sink:, context:, filepath:, operation:)
-        context.payloads.each do |payload|
-          next unless new(filepath, payload.value.to_s).attack?
+        context.payloads.each do |value|
+          next unless new(filepath, value.to_s).attack?
 
           return Attacks::PathTraversalAttack.new(
             sink: sink,
-            input: payload,
+            input: context.payload_for(value),
             filepath: filepath,
             context: context,
             operation: "#{sink.operation}.#{operation}",
