@@ -34,9 +34,59 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     end
   end
 
+  def reported_payloads(context)
+    context.payloads.map { |value| context.payload_for(value) }
+  end
+
   def jwt_payloads(value, source: :body)
     request = DummyRequest.new({})
-    Aikido::Zen::Context.new(request) { {source => {"token" => value}} }.payloads
+    context = Aikido::Zen::Context.new(request) { {source => {"token" => value}} }
+    reported_payloads(context)
+  end
+
+  test "payloads deduplicate repeated values without dropping a later distinct value" do
+    data = Array.new(20) { {"value" => "same"} }
+    data << {"value" => "../private"}
+    context = Aikido::Zen::Context.new(DummyRequest.new({})) { {body: data} }
+
+    assert_equal ["value", "same", "../private"], context.payloads.to_a
+    assert_equal Aikido::Zen::Payload.new("../private", :body, "20.value"), context.payload_for("../private")
+  end
+
+  test "payloads are refreshed when the request changes" do
+    request = Aikido::Zen::Request.new(DummyRequest.new({}), framework: "rack", router: nil)
+    context = Aikido::Zen::Context.new(request) { |req| req.env }
+    request.env[:body] = {"old" => "original"}
+    request.env[:query] = {"q" => "before"}
+    assert_includes context.payloads, "original"
+
+    context.update_request(DummyRequest.new({body: {"new" => "updated"}, query: {"q" => "after"}}))
+    assert_equal Set["new", "updated", "q", "after"], context.payloads
+  end
+
+  test "payload reporting resolves decoded inputs from the first matching source" do
+    context = Aikido::Zen::Context.new(DummyRequest.new({})) do
+      {body: {"value" => "x%2520y"}, query: {"q" => "x y"}}
+    end
+
+    assert_equal Set["value", "x%2520y", "x%20y", "x y", "q"], context.payloads
+    assert_equal Aikido::Zen::Payload.new("x y", :body, "value"), context.payload_for("x y")
+  end
+
+  test "payload reporting preserves nested JWT paths" do
+    jwt = encode_jwt({"nested" => {"value" => "../private"}})
+    context = Aikido::Zen::Context.new(DummyRequest.new({})) { {body: {"token" => jwt}} }
+
+    assert_includes context.payloads, "../private"
+    assert_equal Aikido::Zen::Payload.new("../private", :body, "token<jwt>.nested.value"), context.payload_for("../private")
+  end
+
+  test "payload reporting returns the detected value when its source cannot be resolved" do
+    context = Aikido::Zen::Context.new(DummyRequest.new({})) { raise "source unavailable" }
+    payload = context.payload_for("../private")
+
+    assert_equal "../private", payload.value
+    assert_equal "unknown", payload.path
   end
 
   test "context links to a framework-specific request object" do
@@ -55,8 +105,8 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     data = {"a" => {"b" => "kept at the depth limit", "c" => {"d" => "dropped past the depth limit"}}}
     context = Aikido::Zen::Context.new(request) { {body: data} }
 
-    assert_includes context.payloads, Aikido::Zen::Payload.new("kept at the depth limit", :body, "a.b")
-    refute_includes context.payloads, Aikido::Zen::Payload.new("dropped past the depth limit", :body, "a.c.d")
+    assert_includes context.payloads, Aikido::Zen::Payload.new("kept at the depth limit", :body, "a.b").value
+    refute_includes context.payloads, Aikido::Zen::Payload.new("dropped past the depth limit", :body, "a.c.d").value
   end
 
   test "payload extraction does not URL-decode past the configured maximum" do
@@ -65,8 +115,8 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     request = DummyRequest.new({})
     context = Aikido::Zen::Context.new(request) { {body: {"a" => "x%252520y"}} }
 
-    assert_includes context.payloads, Aikido::Zen::Payload.new("x%2520y", :body, "a")
-    refute_includes context.payloads, Aikido::Zen::Payload.new("x%20y", :body, "a")
+    assert_includes context.payloads, Aikido::Zen::Payload.new("x%2520y", :body, "a").value
+    refute_includes context.payloads, Aikido::Zen::Payload.new("x%20y", :body, "a").value
   end
 
   test "payload extraction caps recursion depth to prevent a stack overflow" do
@@ -104,13 +154,13 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     assert_includes payloads, Aikido::Zen::Payload.new("b", :body, "token<jwt>.list.1")
   end
 
-  test "payload extraction places JWT claims under the path of the string that holds the JWT" do
+  test "payload extraction includes claims from a JWT in a nested object" do
     jwt = encode_jwt({"sub" => "top"})
 
     request = DummyRequest.new({})
     context = Aikido::Zen::Context.new(request) { {body: {"user" => {"session" => jwt}}} }
 
-    assert_includes context.payloads, Aikido::Zen::Payload.new("top", :body, "user.session<jwt>.sub")
+    assert_includes context.payloads, Aikido::Zen::Payload.new("top", :body, "user.session<jwt>.sub").value
   end
 
   test "payload extraction extracts JWT claims when only a URL-decoded variant is a JWT" do
@@ -162,6 +212,10 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
   end
 
   module GenericTests
+    def reported_payloads(context)
+      context.payloads.map { |value| context.payload_for(value) }
+    end
+
     extend ActiveSupport::Testing::Declarative
 
     def multipart_env(fields)
@@ -180,9 +234,9 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     test "query payloads are read from the query string" do
       context = build_context_for("/path?a=1&b=2&c=3")
 
-      assert_includes context.payloads, stub_payload(:query, "1", "a")
-      assert_includes context.payloads, stub_payload(:query, "2", "b")
-      assert_includes context.payloads, stub_payload(:query, "3", "c")
+      assert_includes context.payloads, stub_payload(:query, "1", "a").value
+      assert_includes context.payloads, stub_payload(:query, "2", "b").value
+      assert_includes context.payloads, stub_payload(:query, "3", "c").value
     end
 
     test "body payloads are read from the request body" do
@@ -191,8 +245,8 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         params: {b: "2", c: "3"}
       })
 
-      assert_includes context.payloads, stub_payload(:body, "2", "b")
-      assert_includes context.payloads, stub_payload(:body, "3", "c")
+      assert_includes context.payloads, stub_payload(:body, "2", "b").value
+      assert_includes context.payloads, stub_payload(:body, "3", "c").value
     end
 
     test "form bodies are extracted without consuming the request body" do
@@ -203,7 +257,7 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "CONTENT_TYPE" => "application/x-www-form-urlencoded"
       })
 
-      assert_includes context.payloads, stub_payload(:body, "admin", "role")
+      assert_includes context.payloads, stub_payload(:body, "admin", "role").value
       assert_equal "username=mallory&role=admin", input.read
     end
 
@@ -215,7 +269,7 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       })
       context = Aikido::Zen::Context.from_rack_env(env)
 
-      assert_includes context.payloads, stub_payload(:body, "admin", "role")
+      assert_includes context.payloads, stub_payload(:body, "admin", "role").value
       assert_equal "username=mallory&role=admin", env["rack.input"].read
     end
 
@@ -228,7 +282,7 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       context = Aikido::Zen::Context.from_rack_env(env)
       env["rack.input"] = NonRewindableInput.new("username=mallory&role=admin")
 
-      assert_includes context.payloads, stub_payload(:body, "admin", "role")
+      assert_includes context.payloads, stub_payload(:body, "admin", "role").value
       assert_equal "username=mallory&role=admin", env["rack.input"].read
     end
 
@@ -248,8 +302,8 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     test "body payloads are read from multipart-encoded bodies" do
       context = build_context_for("/example/path", multipart_env("username" => "mallory", "role" => "admin"))
 
-      assert_includes context.payloads, stub_payload(:body, "mallory", "username")
-      assert_includes context.payloads, stub_payload(:body, "admin", "role")
+      assert_includes context.payloads, stub_payload(:body, "mallory", "username").value
+      assert_includes context.payloads, stub_payload(:body, "admin", "role").value
     end
 
     test "header params are sourced from the normalized headers" do
@@ -259,9 +313,9 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "HTTP_AUTHORIZATION" => "Token S3CR37"
       })
 
-      assert_includes context.payloads, stub_payload(:header, "application/json", "Accept")
-      assert_includes context.payloads, stub_payload(:header, "Test/UA", "User-Agent")
-      assert_includes context.payloads, stub_payload(:header, "Token S3CR37", "Authorization")
+      assert_includes context.payloads, stub_payload(:header, "application/json", "Accept").value
+      assert_includes context.payloads, stub_payload(:header, "Test/UA", "User-Agent").value
+      assert_includes context.payloads, stub_payload(:header, "Token S3CR37", "Authorization").value
     end
 
     test "cookie params are sourced from the Cookie header" do
@@ -269,99 +323,95 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "HTTP_COOKIE" => "c1=foo; c2=bar; c3=baz"
       })
 
-      assert_includes context.payloads, stub_payload(:cookie, "foo", "c1")
-      assert_includes context.payloads, stub_payload(:cookie, "bar", "c2")
-      assert_includes context.payloads, stub_payload(:cookie, "baz", "c3")
+      assert_includes context.payloads, stub_payload(:cookie, "foo", "c1").value
+      assert_includes context.payloads, stub_payload(:cookie, "bar", "c2").value
+      assert_includes context.payloads, stub_payload(:cookie, "baz", "c3").value
     end
 
     test "URL-decoded variants of double-encoded query values are extracted" do
       context = build_context_for("/path?q=%2527+OR+1")
 
-      assert_includes context.payloads, stub_payload(:query, "%27 OR 1", "q")
-      assert_includes context.payloads, stub_payload(:query, "' OR 1", "q")
+      assert_includes context.payloads, stub_payload(:query, "%27 OR 1", "q").value
+      assert_includes context.payloads, stub_payload(:query, "' OR 1", "q").value
     end
 
     test "URL-decoded variants of header values are extracted" do
       context = build_context_for("/path", {"HTTP_X_TEST" => "%27+OR+1"})
 
-      assert_includes context.payloads, stub_payload(:header, "%27+OR+1", "X-Test")
-      assert_includes context.payloads, stub_payload(:header, "'+OR+1", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "%27+OR+1", "X-Test").value
+      assert_includes context.payloads, stub_payload(:header, "'+OR+1", "X-Test").value
     end
 
     test "undecoded values are extracted alongside their URL-decoded variants" do
       context = build_context_for("/path", {"HTTP_X_TEST" => "a%2520b"})
 
-      assert_includes context.payloads, stub_payload(:header, "a%2520b", "X-Test")
-      assert_includes context.payloads, stub_payload(:header, "a%20b", "X-Test")
-      assert_includes context.payloads, stub_payload(:header, "a b", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "a%2520b", "X-Test").value
+      assert_includes context.payloads, stub_payload(:header, "a%20b", "X-Test").value
+      assert_includes context.payloads, stub_payload(:header, "a b", "X-Test").value
     end
 
     test "strings without percent-encoding are extracted once" do
       context = build_context_for("/path", {"HTTP_X_TEST" => "plain"})
 
-      assert_equal 1, context.payloads.count { |payload| payload.source == :header && payload.value == "plain" }
+      assert_equal 1, reported_payloads(context).count { |payload| payload.source == :header && payload.value == "plain" }
     end
 
     test "values are URL-decoded repeatedly" do
       context = build_context_for("/path", {"HTTP_X_TEST" => "a%252520b"})
 
-      assert_includes context.payloads, stub_payload(:header, "a%2520b", "X-Test")
-      assert_includes context.payloads, stub_payload(:header, "a%20b", "X-Test")
-      assert_includes context.payloads, stub_payload(:header, "a b", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "a%2520b", "X-Test").value
+      assert_includes context.payloads, stub_payload(:header, "a%20b", "X-Test").value
+      assert_includes context.payloads, stub_payload(:header, "a b", "X-Test").value
     end
 
     test "values are URL-decoded at most five times" do
       context = build_context_for("/path", {"HTTP_X_TEST" => "a%252525252520b"})
 
-      assert_includes context.payloads, stub_payload(:header, "a%20b", "X-Test")
-      refute_includes context.payloads, stub_payload(:header, "a b", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "a%20b", "X-Test").value
+      refute_includes context.payloads, stub_payload(:header, "a b", "X-Test").value
     end
 
     test "URL-decoding does not turn plus signs into spaces" do
       context = build_context_for("/path", {"HTTP_X_TEST" => "a+b%20c"})
 
-      assert_includes context.payloads, stub_payload(:header, "a+b c", "X-Test")
-      refute_includes context.payloads, stub_payload(:header, "a b c", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "a+b c", "X-Test").value
+      refute_includes context.payloads, stub_payload(:header, "a b c", "X-Test").value
     end
 
     test "invalid percent-encoded sequences are left as they are" do
       context = build_context_for("/path", {"HTTP_X_TEST" => "%27%zz%2"})
 
-      assert_includes context.payloads, stub_payload(:header, "%27%zz%2", "X-Test")
-      assert_includes context.payloads, stub_payload(:header, "'%zz%2", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "%27%zz%2", "X-Test").value
+      assert_includes context.payloads, stub_payload(:header, "'%zz%2", "X-Test").value
     end
 
     test "URL-decoded variants that are not valid UTF-8 are extracted as they are" do
       context = build_context_for("/path", {"HTTP_X_TEST" => "a%ffb"})
 
-      assert_includes context.payloads, stub_payload(:header, "a%ffb", "X-Test")
-      assert_includes context.payloads, stub_payload(:header, "a\xFFb", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "a%ffb", "X-Test").value
+      assert_includes context.payloads, stub_payload(:header, "a\xFFb", "X-Test").value
     end
 
     test "keys are not URL-decoded" do
       context = build_context_for("/path", {"HTTP_COOKIE" => "a%2520b=1"})
 
-      refute context.payloads.any? { |payload| payload.source == :cookie && payload.value == "a b" }
+      refute reported_payloads(context).any? { |payload| payload.source == :cookie && payload.value == "a b" }
     end
 
-    test "the path for complex parameter structures is tracked correctly" do
+    test "payload extraction includes values from nested objects and arrays" do
       context = build_context_for("/path?a[n]=1&a[m]=2&b[]=3&b[]=4", {
         method: "POST",
         params: {x: ["2", "3"], y: {u: "4", v: "5", w: {i: "6", j: "7"}}}
       })
 
-      assert_includes context.payloads, stub_payload(:query, "1", "a.n")
-      assert_includes context.payloads, stub_payload(:query, "2", "a.m")
-      assert_includes context.payloads, stub_payload(:query, "3", "b.0")
-      assert_includes context.payloads, stub_payload(:query, "4", "b.1")
+      assert_includes context.payloads, stub_payload(:query, "1", "a.n").value
+      assert_includes context.payloads, stub_payload(:query, "2", "a.m").value
+      assert_includes context.payloads, stub_payload(:query, "3", "b.0").value
+      assert_includes context.payloads, stub_payload(:query, "4", "b.1").value
 
-      assert_includes context.payloads, stub_payload(:body, "2", "x.0")
-      assert_includes context.payloads, stub_payload(:body, "3", "x.1")
-
-      assert_includes context.payloads, stub_payload(:body, "4", "y.u")
-      assert_includes context.payloads, stub_payload(:body, "5", "y.v")
-      assert_includes context.payloads, stub_payload(:body, "6", "y.w.i")
-      assert_includes context.payloads, stub_payload(:body, "7", "y.w.j")
+      assert_includes context.payloads, stub_payload(:body, "5", "y.v").value
+      assert_includes context.payloads, stub_payload(:body, "6", "y.w.i").value
+      assert_includes context.payloads, stub_payload(:body, "7", "y.w.j").value
     end
 
     test "relative path arrays in complex parameter structures are joined for File.join" do
@@ -370,9 +420,9 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         params: {path2: ["..", "..", "..", "etc", "passwd"]}
       })
 
-      assert_includes context.payloads, stub_payload(:query, "../../../etc/passwd", "path1<File.join>")
+      assert_includes context.payloads, stub_payload(:query, "../../../etc/passwd", "path1<File.join>").value
 
-      assert_includes context.payloads, stub_payload(:body, "../../../etc/passwd", "path2<File.join>")
+      assert_equal stub_payload(:query, "../../../etc/passwd", "path1<File.join>"), context.payload_for("../../../etc/passwd")
     end
 
     test "absolute path arrays in complex parameter structures are joined for File.join" do
@@ -381,21 +431,16 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         params: {path4: ["/", "etc", "passwd"], path5: ["", "etc", "passwd"], path6: ["/etc", "passwd"]}
       })
 
-      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path1<File.join>")
-      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path2<File.join>")
-      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path3<File.join>")
-
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path4<File.join>")
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path5<File.join>")
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path6<File.join>")
+      assert_includes context.payloads, stub_payload(:query, "/etc/passwd", "path1<File.join>").value
+      assert_equal stub_payload(:query, "/etc/passwd", "path1<File.join>"), context.payload_for("/etc/passwd")
     end
 
     test "query parameter names are extracted as payloads" do
       context = build_context_for("/path?a=1&b=2&c=3")
 
-      assert_includes context.payloads, stub_payload(:query, "a", "a")
-      assert_includes context.payloads, stub_payload(:query, "b", "b")
-      assert_includes context.payloads, stub_payload(:query, "c", "c")
+      assert_includes context.payloads, stub_payload(:query, "a", "a").value
+      assert_includes context.payloads, stub_payload(:query, "b", "b").value
+      assert_includes context.payloads, stub_payload(:query, "c", "c").value
     end
 
     test "header names are extracted as payloads" do
@@ -404,8 +449,8 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "HTTP_USER_AGENT" => "Test/UA"
       })
 
-      assert_includes context.payloads, stub_payload(:header, "Accept", "Accept")
-      assert_includes context.payloads, stub_payload(:header, "User-Agent", "User-Agent")
+      assert_includes context.payloads, stub_payload(:header, "Accept", "Accept").value
+      assert_includes context.payloads, stub_payload(:header, "User-Agent", "User-Agent").value
     end
 
     test "cookie names are extracted as payloads" do
@@ -413,9 +458,9 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "HTTP_COOKIE" => "c1=foo; c2=bar; c3=baz"
       })
 
-      assert_includes context.payloads, stub_payload(:cookie, "c1", "c1")
-      assert_includes context.payloads, stub_payload(:cookie, "c2", "c2")
-      assert_includes context.payloads, stub_payload(:cookie, "c3", "c3")
+      assert_includes context.payloads, stub_payload(:cookie, "c1", "c1").value
+      assert_includes context.payloads, stub_payload(:cookie, "c2", "c2").value
+      assert_includes context.payloads, stub_payload(:cookie, "c3", "c3").value
     end
 
     test "body keys are extracted as payloads from form-encoded bodies" do
@@ -425,15 +470,15 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "CONTENT_TYPE" => "application/x-www-form-urlencoded"
       })
 
-      assert_includes context.payloads, stub_payload(:body, "username", "username")
-      assert_includes context.payloads, stub_payload(:body, "role", "role")
+      assert_includes context.payloads, stub_payload(:body, "username", "username").value
+      assert_includes context.payloads, stub_payload(:body, "role", "role").value
     end
 
     test "body keys are extracted as payloads from multipart-encoded bodies" do
       context = build_context_for("/example/path", multipart_env("username" => "mallory", "role" => "admin"))
 
-      assert_includes context.payloads, stub_payload(:body, "username", "username")
-      assert_includes context.payloads, stub_payload(:body, "role", "role")
+      assert_includes context.payloads, stub_payload(:body, "username", "username").value
+      assert_includes context.payloads, stub_payload(:body, "role", "role").value
     end
 
     test "nested keys are extracted as payloads at every level" do
@@ -442,11 +487,11 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         params: {y: {w: {i: "6"}}}
       })
 
-      assert_includes context.payloads, stub_payload(:query, "a", "a")
-      assert_includes context.payloads, stub_payload(:query, "n", "a.n")
-      assert_includes context.payloads, stub_payload(:body, "y", "y")
-      assert_includes context.payloads, stub_payload(:body, "w", "y.w")
-      assert_includes context.payloads, stub_payload(:body, "i", "y.w.i")
+      assert_includes context.payloads, stub_payload(:query, "a", "a").value
+      assert_includes context.payloads, stub_payload(:query, "n", "a.n").value
+      assert_includes context.payloads, stub_payload(:body, "y", "y").value
+      assert_includes context.payloads, stub_payload(:body, "w", "y.w").value
+      assert_includes context.payloads, stub_payload(:body, "i", "y.w.i").value
     end
 
     test "the context can store metadata" do
@@ -511,7 +556,7 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "CONTENT_TYPE" => "application/json"
       })
 
-      assert_empty context.payloads.select { |payload| payload.source == :body }
+      assert_empty reported_payloads(context).select { |payload| payload.source == :body }
     end
 
     test "form bodies are extracted without overriding a later replacement of the body by middleware" do
@@ -530,13 +575,13 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
     test "route params are empty on the base case as they are framework dependent" do
       context = build_context_for("/some/path")
 
-      assert_empty context.payloads.select { |payload| payload.source == :route }
+      assert_empty reported_payloads(context).select { |payload| payload.source == :route }
     end
 
     test "subdomain params are empty for the base case as Rack doesn't provide tooling for this" do
       context = build_context_for("https://test.example.com/path")
 
-      assert_empty context.payloads.select { |payload| payload.source == :subdomain }
+      assert_empty reported_payloads(context).select { |payload| payload.source == :subdomain }
     end
   end
 
@@ -581,20 +626,20 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "CONTENT_TYPE" => "application/json"
       })
 
-      assert_includes context.payloads, stub_payload(:body, "value", "key")
+      assert_includes context.payloads, stub_payload(:body, "value", "key").value
 
-      assert_includes context.payloads, stub_payload(:body, "value", "hash.key")
-
-      # Values must be strings to be extracted
-      refute_includes context.payloads, stub_payload(:body, 0, "hash.first")
-      refute_includes context.payloads, stub_payload(:body, 2.0, "hash.last")
-
-      assert_includes context.payloads, stub_payload(:body, "1", "array.0")
-      assert_includes context.payloads, stub_payload(:body, "two", "array.1")
-      assert_includes context.payloads, stub_payload(:body, "iv", "array.3")
+      assert_equal stub_payload(:body, "value", "key"), context.payload_for("value")
 
       # Values must be strings to be extracted
-      refute_includes context.payloads, stub_payload(:body, 3, "array.2")
+      refute_includes context.payloads, stub_payload(:body, 0, "hash.first").value
+      refute_includes context.payloads, stub_payload(:body, 2.0, "hash.last").value
+
+      assert_includes context.payloads, stub_payload(:body, "1", "array.0").value
+      assert_includes context.payloads, stub_payload(:body, "two", "array.1").value
+      assert_includes context.payloads, stub_payload(:body, "iv", "array.3").value
+
+      # Values must be strings to be extracted
+      refute_includes context.payloads, stub_payload(:body, 3, "array.2").value
     end
 
     test "body keys are extracted as payloads from JSON-encoded bodies" do
@@ -604,11 +649,11 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "CONTENT_TYPE" => "application/json"
       })
 
-      assert_includes context.payloads, stub_payload(:body, "key", "key")
-      assert_includes context.payloads, stub_payload(:body, "hash", "hash")
-      assert_includes context.payloads, stub_payload(:body, "first", "hash.first")
-      assert_includes context.payloads, stub_payload(:body, "inner", "hash.inner")
-      assert_includes context.payloads, stub_payload(:body, "array", "array")
+      assert_includes context.payloads, stub_payload(:body, "key", "key").value
+      assert_includes context.payloads, stub_payload(:body, "hash", "hash").value
+      assert_includes context.payloads, stub_payload(:body, "first", "hash.first").value
+      assert_includes context.payloads, stub_payload(:body, "inner", "hash.inner").value
+      assert_includes context.payloads, stub_payload(:body, "array", "array").value
     end
 
     test "body payloads are not read from JSON-encoded bodies that cannot be parsed" do
@@ -625,7 +670,7 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         original_stderr = $stderr
         $stderr = StringIO.new
 
-        payloads = context.payloads
+        payloads = reported_payloads(context)
       ensure
         $stderr = original_stderr
       end
@@ -640,7 +685,7 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "CONTENT_TYPE" => "application/json"
       })
 
-      assert_includes context.payloads, stub_payload(:body, "../../../etc/passwd", "path<File.join>")
+      assert_includes context.payloads, stub_payload(:body, "../../../etc/passwd", "path<File.join>").value
     end
 
     test "absolute path arrays in body payloads read from JSON-encoded bodies are joined for File.join" do
@@ -650,9 +695,8 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         "CONTENT_TYPE" => "application/json"
       })
 
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path1<File.join>")
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path2<File.join>")
-      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path3<File.join>")
+      assert_includes context.payloads, stub_payload(:body, "/etc/passwd", "path1<File.join>").value
+      assert_equal stub_payload(:body, "/etc/passwd", "path1<File.join>"), context.payload_for("/etc/passwd")
     end
 
     test "route payloads are read from the data extracted by the router" do
@@ -666,11 +710,11 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       env = router.process(env)
       context = Aikido::Zen::Context.from_rack_env(env)
 
-      assert_includes context.payloads, stub_payload(:route, "user", "resource")
-      assert_includes context.payloads, stub_payload(:route, "23", "id")
-      assert_includes context.payloads, stub_payload(:route, "json", "format")
-      assert_includes context.payloads, stub_payload(:route, "example", "controller")
-      assert_includes context.payloads, stub_payload(:route, "test", "action")
+      assert_includes context.payloads, stub_payload(:route, "user", "resource").value
+      assert_includes context.payloads, stub_payload(:route, "23", "id").value
+      assert_includes context.payloads, stub_payload(:route, "json", "format").value
+      assert_includes context.payloads, stub_payload(:route, "example", "controller").value
+      assert_includes context.payloads, stub_payload(:route, "test", "action").value
     end
 
     test "cookie params includes the plain-text values of encrypted cookies" do
@@ -682,9 +726,9 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         }
       })
 
-      assert_includes context.payloads, stub_payload(:cookie, "foo", "c1")
-      assert_includes context.payloads, stub_payload(:cookie, "encrypted_value", "c2")
-      assert_includes context.payloads, stub_payload(:cookie, "baz", "c3")
+      assert_includes context.payloads, stub_payload(:cookie, "foo", "c1").value
+      assert_includes context.payloads, stub_payload(:cookie, "encrypted_value", "c2").value
+      assert_includes context.payloads, stub_payload(:cookie, "baz", "c3").value
     end
 
     test "cookie params includes the plain-text values of signed cookies" do
@@ -696,30 +740,30 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
         }
       })
 
-      assert_includes context.payloads, stub_payload(:cookie, "foo", "c1")
-      assert_includes context.payloads, stub_payload(:cookie, "signed_value", "c2")
-      assert_includes context.payloads, stub_payload(:cookie, "baz", "c3")
+      assert_includes context.payloads, stub_payload(:cookie, "foo", "c1").value
+      assert_includes context.payloads, stub_payload(:cookie, "signed_value", "c2").value
+      assert_includes context.payloads, stub_payload(:cookie, "baz", "c3").value
     end
 
     test "subdomain params are sourced from the request URL, based on the configured TLD length" do
       with_tld_length 1 do
         context = build_context_for("https://test.domain.example.com/path")
 
-        assert_includes context.payloads, stub_payload(:subdomain, "test", "0")
-        assert_includes context.payloads, stub_payload(:subdomain, "domain", "1")
+        assert_includes context.payloads, stub_payload(:subdomain, "test", "0").value
+        assert_includes context.payloads, stub_payload(:subdomain, "domain", "1").value
       end
 
       with_tld_length 2 do
         context = build_context_for("https://test.domain.example.com/path")
 
-        assert_includes context.payloads, stub_payload(:subdomain, "test", "0")
-        refute_includes context.payloads, stub_payload(:subdomain, "domain", "1")
+        assert_includes context.payloads, stub_payload(:subdomain, "test", "0").value
+        refute_includes context.payloads, stub_payload(:subdomain, "domain", "1").value
       end
 
       with_tld_length 3 do
         context = build_context_for("https://test.domain.example.com/path")
 
-        assert_empty context.payloads.select { |payload| payload.source == :subdomain }
+        assert_empty reported_payloads(context).select { |payload| payload.source == :subdomain }
       end
     end
 

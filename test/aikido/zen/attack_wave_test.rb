@@ -38,6 +38,20 @@ class Aikido::Zen::AttackWaveTest < ActiveSupport::TestCase
       assert Aikido::Zen::AttackWave::Helpers.suspicious_path?("/wp-config.php", 200)
     end
 
+    test "web_scanner? checks suspicious query values but ignores body values" do
+      input = "UNION ALL SELECT"
+      sources = {body: {"value" => input}, query: {"q" => input}}
+      request = Rack::Request.new(Rack::MockRequest.env_for("/safe"))
+      context = Aikido::Zen::Context.new(request) { sources }
+      context.payloads
+
+      assert Aikido::Zen::AttackWave::Helpers.web_scanner?(context, 200)
+
+      sources = {body: {"value" => input}, query: {"q" => "benign"}}
+      context = Aikido::Zen::Context.new(request) { sources }
+      refute Aikido::Zen::AttackWave::Helpers.web_scanner?(context, 200)
+    end
+
     test "sample_for builds a sample from the request's verb and path" do
       context = context_for("/.config?q=1", "REMOTE_ADDR" => "1.2.3.4")
 

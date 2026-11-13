@@ -16,12 +16,12 @@ module Aikido::Zen
       # @param operation [Symbol, String]
       #
       def self.call(command:, scan:, sink:, context:, operation:)
-        context.payloads.each do |payload|
-          next unless new(command, payload.value.to_s).attack?
+        context.payloads.each do |value|
+          next unless new(command, value.to_s).attack?
 
           return Attacks::ShellInjectionAttack.new(
             sink: sink,
-            input: payload,
+            input: context.payload_for(value),
             command: command,
             context: context,
             operation: "#{sink.operation}.#{operation}",

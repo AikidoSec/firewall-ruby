@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "forwardable"
+require "set"
 
 require_relative "request"
 require_relative "payload"
@@ -94,12 +95,32 @@ module Aikido::Zen
       request.__setobj__(new_request)
     end
 
-    # @return [Array<Aikido::Zen::Payload>] list of user inputs from all the
+    # @return [Set<String>] unique user inputs from all the
     #   different sources we recognize.
     def payloads
-      @payloads ||= payload_sources.flat_map do |source, data|
-        extract_payloads_from(data, source)
+      return @payloads if @payloads
+
+      results = Set.new
+      payload_sources.each_value do |data|
+        extract_payloads_from(data, results)
       end
+      @payloads = results
+    end
+
+    def query_payloads
+      results = Set.new
+      extract_payloads_from(payload_sources[:query], results)
+      results
+    end
+
+    def payload_for(value)
+      payload_sources.each do |source, data|
+        payload = find_payload(value, data, source)
+        return payload if payload
+      end
+      Payload.new(value, "unknown", "unknown")
+    rescue
+      Payload.new(value, "unknown", "unknown")
     end
 
     # @!visibility private
@@ -130,37 +151,30 @@ module Aikido::Zen
     end
 
     # @!visibility private
-    def extract_payloads_from(data, source_type, prefix = nil, depth = 0)
-      return [] if depth > @max_depth
+    def extract_payloads_from(data, results, depth = 0)
+      return if depth > @max_depth
 
       if data.is_a?(String)
-        payloads = []
         jwt_payload = nil
 
         [data, *url_decoded_variants(data)].each do |value|
-          payloads << Payload.new(value, source_type, prefix.to_s)
-
+          results.add(value)
           jwt_payload ||= Helpers.decode_jwt_payload(value)
         end
 
-        if jwt_payload
-          payloads += extract_payloads_from(jwt_payload, source_type, "#{prefix}<jwt>", depth + 1)
-        end
-
-        payloads
+        extract_payloads_from(jwt_payload, results, depth + 1) if jwt_payload
       elsif data.respond_to?(:to_hash)
-        data.to_hash.flat_map do |key, value|
-          path = [prefix, key].compact.join(".")
-
-          [Payload.new(key.to_s, source_type, path)] +
-            extract_payloads_from(value, source_type, path, depth + 1)
+        hash = data.is_a?(Hash) ? data : data.to_hash
+        hash.each_pair do |key, value|
+          results.add(key.to_s)
+          extract_payloads_from(value, results, depth + 1)
         end
       elsif data.respond_to?(:to_ary)
         array = data.to_ary
-        return array if array.empty?
+        return if array.empty?
 
-        payloads = array.flat_map.with_index do |value, index|
-          extract_payloads_from(value, source_type, [prefix, index].compact.join("."), depth + 1)
+        array.each do |value|
+          extract_payloads_from(value, results, depth + 1)
         end
 
         unless Aikido::Zen.config.harden?
@@ -181,18 +195,69 @@ module Aikido::Zen
             begin
               string = File.join__internal_for_aikido_zen(*flattened_array)
               if unsafe_path?(string)
-                payloads << Payload.new(string, source_type, "#{prefix}<File.join>")
+                results.add(string)
               end
             rescue
               # Could not create special payload for File.join.
             end
           end
         end
-
-        payloads
-      else
-        []
       end
+    end
+
+    # @!visibility private
+    def find_payload(target, data, source, prefix = nil, depth = 0)
+      return if depth > @max_depth
+
+      if data.is_a?(String)
+        jwt_payload = nil
+        [data, *url_decoded_variants(data)].each do |value|
+          return Payload.new(value, source, prefix.to_s) if value == target
+          jwt_payload ||= Helpers.decode_jwt_payload(value)
+        end
+        return find_payload(target, jwt_payload, source, "#{prefix}<jwt>", depth + 1) if jwt_payload
+      elsif data.respond_to?(:to_hash)
+        hash = data.is_a?(Hash) ? data : data.to_hash
+        hash.each_pair do |key, value|
+          path = [prefix, key].compact.join(".")
+          return Payload.new(key.to_s, source, path) if key.to_s == target
+          payload = find_payload(target, value, source, path, depth + 1)
+          return payload if payload
+        end
+      elsif data.respond_to?(:to_ary)
+        array = data.to_ary
+        array.each_with_index do |value, index|
+          path = [prefix, index].compact.join(".")
+          payload = find_payload(target, value, source, path, depth + 1)
+          return payload if payload
+        end
+
+        unless Aikido::Zen.config.harden?
+          # Special case for File.join given a possibly nested array of strings,
+          # as might occur when a query parameter is an array.
+
+          # File.join recursively joins nested string arrays, and can overflow
+          # the stack given deeply nested arrays.
+          #
+          # Flatten array to max depth and check that the flattened array is an
+          # array of strings before calling File.join__internal_for_aikido_zen,
+          # only if the array was fully flattened, to prevent a stack overflow.
+          #
+          # Checking that all values are Strings handily prevents a TypeError
+          # from being raised.
+          flattened_array = array.flatten(@max_depth)
+          if flattened_array.all? { |string| string.is_a?(String) }
+            string = begin
+              File.join__internal_for_aikido_zen(*flattened_array)
+            rescue
+              # Could not create special payload for File.join.
+              nil
+            end
+            return Payload.new(string, source, "#{prefix}<File.join>") if string && string == target && unsafe_path?(string)
+          end
+        end
+      end
+      nil
     end
 
     def unsafe_path?(filepath)

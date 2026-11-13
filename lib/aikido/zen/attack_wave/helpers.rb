@@ -75,10 +75,8 @@ module Aikido::Zen
       end
 
       def self.include_suspicious_payload?(context)
-        context.payloads.each do |payload|
-          next unless payload.source == :query
-
-          value = payload.value.downcase
+        context.query_payloads.each do |string|
+          value = string.downcase
 
           length = value.length
 

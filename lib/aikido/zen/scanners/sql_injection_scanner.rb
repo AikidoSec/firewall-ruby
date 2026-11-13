@@ -26,14 +26,14 @@ module Aikido::Zen
       def self.call(query:, dialect:, scan:, sink:, context:, operation:)
         dialect = Aikido::Zen::SQL::Dialects.fetch(dialect)
 
-        context.payloads.each do |payload|
-          scanner = new(query, payload.value.to_s, dialect)
+        context.payloads.each do |value|
+          scanner = new(query, value.to_s, dialect)
           next unless scanner.attack?
 
           return Attacks::SQLInjectionAttack.new(
             sink: sink,
             query: query,
-            input: payload,
+            input: context.payload_for(value),
             dialect: dialect,
             context: context,
             operation: "#{sink.operation}.#{operation}",
