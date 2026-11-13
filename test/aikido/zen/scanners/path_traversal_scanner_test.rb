@@ -12,7 +12,8 @@ class Aikido::Zen::Scanners::PathTraversalScannerTest < ActiveSupport::TestCase
   end
 
   def scan(filepath, input = query)
-    Aikido::Zen::Scanners::PathTraversalScanner.new(filepath, input).attack?
+    scanner = Aikido::Zen::Scanners::PathTraversalScanner
+    scanner.new(filepath).attack?(input)
   end
 
   test "no path traversal" do

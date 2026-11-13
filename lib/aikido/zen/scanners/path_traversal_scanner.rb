@@ -17,12 +17,13 @@ module Aikido::Zen
       # @param sink [Aikido::Zen::Sink] the Sink that is running the scan.
       # @param context [Aikido::Zen::Context]
       # @param operation [Symbol, String] name of the method being scanned.
-      #
       # @return [Aikido::Zen::Attacks::PathTraversalAttack, nil] an Attack if any
       # user input is detected to be attempting a Path Traversal Attack, or +nil+ if not.
       def self.call(scan:, sink:, context:, filepath:, operation:)
+        scanner = new(filepath)
+
         context.payloads.each do |payload|
-          next unless new(filepath, payload.value.to_s).attack?
+          next unless scanner.attack?(payload.value.to_s)
 
           return Attacks::PathTraversalAttack.new(
             sink: sink,
@@ -39,31 +40,35 @@ module Aikido::Zen
         nil
       end
 
-      def initialize(filepath, input)
+      # @param filepath [String] the filepath to check.
+      def initialize(filepath)
         @filepath = Aikido::Zen::Helpers.encode_safely(filepath).downcase
-        @input = Aikido::Zen::Helpers.encode_safely(input).downcase
       end
 
-      def attack?
+      # @param input [String] the input to check.
+      # @return [Boolean] whether the input was an attack.
+      def attack?(input)
+        input = Aikido::Zen::Helpers.encode_safely(input).downcase
+
         # We block home-relative path
-        return true if @input.start_with?("~") && @filepath.start_with?(@input)
+        return true if input.start_with?("~") && @filepath.start_with?(input)
 
         # Single character are ignored because they don't pose a big threat
-        return false if @input.length <= 1
+        return false if input.length <= 1
 
         # We ignore cases where the user input is longer than the file path.
         # Because the user input can't be part of the file path.
-        return false if @input.length > @filepath.length
+        return false if input.length > @filepath.length
 
         # We ignore cases where the user input is not part of the file path.
-        return false unless @filepath.include?(@input)
+        return false unless @filepath.include?(input)
 
-        if PathTraversal::Helpers.include_unsafe_path_parts?(@filepath) && PathTraversal::Helpers.include_unsafe_path_parts?(@input)
+        if PathTraversal::Helpers.include_unsafe_path_parts?(@filepath) && PathTraversal::Helpers.include_unsafe_path_parts?(input)
           return true
         end
 
         # Check for absolute path traversal
-        PathTraversal::Helpers.start_with_unsafe_path?(@filepath, @input)
+        PathTraversal::Helpers.start_with_unsafe_path?(@filepath, input)
       end
     end
   end

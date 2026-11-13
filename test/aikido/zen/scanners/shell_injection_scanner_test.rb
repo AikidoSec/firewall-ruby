@@ -4,7 +4,8 @@ require "test_helper"
 
 class Aikido::Zen::Scanners::ShellInjectionScannerTest < ActiveSupport::TestCase
   def scan(command, input)
-    Aikido::Zen::Scanners::ShellInjectionScanner.new(command, input).attack?
+    scanner = Aikido::Zen::Scanners::ShellInjectionScanner
+    scanner.new(command).attack?(input)
   end
 
   def assert_attack(command, input = command, reason = "[#{input}] was not blocked")

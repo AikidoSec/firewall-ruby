@@ -6,13 +6,13 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
   setup { @redirects = Aikido::Zen::Scanners::SSRFScanner::RedirectChains.new }
 
   def assert_attack(request_uri, input, reason = "`#{input}` was not blocked")
-    scanner = Aikido::Zen::Scanners::SSRFScanner.new(URI(request_uri), input, @redirects)
-    assert scanner.attack?, reason
+    scanner = Aikido::Zen::Scanners::SSRFScanner.new(URI(request_uri), @redirects)
+    assert scanner.attack?(input), reason
   end
 
   def refute_attack(request_uri, input, reason = "`#{input}` was blocked")
-    scanner = Aikido::Zen::Scanners::SSRFScanner.new(URI(request_uri), input, @redirects)
-    refute scanner.attack?, reason
+    scanner = Aikido::Zen::Scanners::SSRFScanner.new(URI(request_uri), @redirects)
+    refute scanner.attack?(input), reason
   end
 
   test "allows the request when either the hostname or input are empty" do

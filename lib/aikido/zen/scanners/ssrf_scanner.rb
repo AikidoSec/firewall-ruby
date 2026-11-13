@@ -35,7 +35,6 @@ module Aikido::Zen
       # @param context [Aikido::Zen::Context]
       # @param operation [Symbol, String] name of the method being scanned.
       #   Expects +sink.operation+ being set to get the full module/name combo.
-      #
       # @return [Aikido::Zen::Attacks::SSRFAttack, nil] an Attack if any user
       #   input is detected to be attempting SSRF, or +nil+ if not.
       def self.call(request:, scan:, sink:, context:, operation:, **)
@@ -43,9 +42,10 @@ module Aikido::Zen
 
         context["ssrf.redirects"] ||= RedirectChains.new
 
+        scanner = new(request.uri, context["ssrf.redirects"])
+
         context.payloads.each do |payload|
-          scanner = new(request.uri, payload.value, context["ssrf.redirects"])
-          next unless scanner.attack?
+          next unless scanner.attack?(payload.value)
 
           return Attacks::SSRFAttack.new(
             sink: sink,
@@ -81,15 +81,18 @@ module Aikido::Zen
       end
 
       # @api private
-      def initialize(request_uri, input, redirects)
+      # @param request_uri [URI] the URI of the outbound request to check.
+      # @param redirects [RedirectChains] the redirects followed so far.
+      def initialize(request_uri, redirects)
         @request_uri = request_uri
-        @input = input
         @redirects = redirects
       end
 
       # @api private
-      def attack?
-        return false if @input.nil? || @input.to_s.empty?
+      # @param input [String, nil] the input to check.
+      # @return [Boolean] whether the input was an attack.
+      def attack?(input)
+        return false if input.nil? || input.to_s.empty?
 
         # If the request is not aimed at an internal IP, we can ignore it. (It
         # might still be an SSRF if defined strictly, but it's unlikely to be
@@ -98,7 +101,7 @@ module Aikido::Zen
         return false unless private_ip?(@request_uri.hostname)
 
         origins_for_request
-          .product(uris_from_input)
+          .product(uris_from_input(input))
           .any? { |(conn_uri, candidate)| match?(conn_uri, candidate) }
       end
 
@@ -144,11 +147,12 @@ module Aikido::Zen
       #   things like an FTP request (to "ftp://localhost") with a plain host
       #   as a user-input ("localhost").
       #
+      # @param input [String] the input to check.
       # @return [Array<URI>] a list of unique URIs based on the above criteria.
-      def uris_from_input
+      def uris_from_input(input)
         # Percent-encode input so URI() can parse it, as an app may do before
         # making the request.
-        input = percent_encode(@input.to_s)
+        input = percent_encode(input.to_s)
 
         # If you build a URI manually and set the hostname to an IPv6 string,
         # the URI library will be helpful to wrap it in brackets so it's a
