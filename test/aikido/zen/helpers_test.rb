@@ -7,8 +7,32 @@ class Aikido::Zen::HelpersTest < ActiveSupport::TestCase
 
   Helpers = Aikido::Zen::Helpers
 
-  test ".encode_safely returns valid UTF-8 strings unchanged" do
+  test ".encode_safely keeps valid UTF-8 strings" do
     assert_equal "Mozilla é", Helpers.encode_safely("Mozilla é")
+  end
+
+  test ".encode_safely does not modify valid UTF-8 strings" do
+    input = +"Mozilla é"
+
+    Helpers.encode_safely(input)
+
+    assert_equal Encoding::UTF_8, input.encoding
+    assert_equal "Mozilla é", input
+  end
+
+  test ".encode_safely does not copy valid UTF-8 strings" do
+    input = +"Mozilla é"
+
+    assert_same input, Helpers.encode_safely(input)
+  end
+
+  test ".encode_safely accepts frozen valid UTF-8 strings" do
+    input = "Mozilla é"
+    assert_predicate input, :frozen?
+
+    result = Helpers.encode_safely(input)
+
+    assert_equal "Mozilla é", result
   end
 
   test ".encode_safely replaces invalid bytes in UTF-8 strings" do
@@ -21,6 +45,38 @@ class Aikido::Zen::HelpersTest < ActiveSupport::TestCase
     assert result.valid_encoding?
   end
 
+  test ".encode_safely does not modify invalid UTF-8 strings" do
+    input = +"a\xFFb"
+
+    Helpers.encode_safely(input)
+
+    assert_equal Encoding::UTF_8, input.encoding
+    assert_equal "a\xFFb".b, input.b
+  end
+
+  test ".encode_safely copies invalid UTF-8 strings" do
+    input = +"a\xFFb"
+
+    refute_same input, Helpers.encode_safely(input)
+  end
+
+  test ".encode_safely accepts frozen invalid UTF-8 strings" do
+    input = "a\xFFb"
+    assert_predicate input, :frozen?
+
+    result = Helpers.encode_safely(input)
+
+    assert_equal "a�b", result
+    assert result.valid_encoding?
+  end
+
+  test ".encode_safely keeps valid UTF-8 in binary strings" do
+    result = Helpers.encode_safely("Mozilla é".b)
+
+    assert_equal "Mozilla é", result
+    assert_equal Encoding::UTF_8, result.encoding
+  end
+
   test ".encode_safely replaces invalid bytes in binary strings" do
     result = Helpers.encode_safely("a\xFFb".b)
 
@@ -28,12 +84,29 @@ class Aikido::Zen::HelpersTest < ActiveSupport::TestCase
     assert result.valid_encoding?
   end
 
-  test ".encode_safely replaces a truncated multibyte sequence in a binary string once" do
+  test ".encode_safely replaces a truncated multibyte sequence in binary strings with a single replacement character" do
     assert_equal "a�", Helpers.encode_safely("a\xE2\x82".b)
   end
 
-  test ".encode_safely keeps valid UTF-8 in binary strings" do
-    result = Helpers.encode_safely("Mozilla é".b)
+  test ".encode_safely does not modify binary strings" do
+    input = +"a\xFFb".b
+
+    Helpers.encode_safely(input)
+
+    assert_equal Encoding::BINARY, input.encoding
+    assert_equal "a\xFFb".b, input
+  end
+
+  test ".encode_safely copies binary strings" do
+    valid = +"Mozilla é".b
+    invalid = +"a\xFFb".b
+
+    refute_same valid, Helpers.encode_safely(valid)
+    refute_same invalid, Helpers.encode_safely(invalid)
+  end
+
+  test ".encode_safely accepts frozen binary strings" do
+    result = Helpers.encode_safely("Mozilla é".b.freeze)
 
     assert_equal "Mozilla é", result
     assert_equal Encoding::UTF_8, result.encoding
@@ -46,13 +119,80 @@ class Aikido::Zen::HelpersTest < ActiveSupport::TestCase
     assert_equal Encoding::UTF_8, result.encoding
   end
 
-  test ".encode_safely does not modify the given string" do
-    input = "Mozilla é".b.freeze
+  test ".encode_safely replaces invalid bytes in other encodings" do
+    result = Helpers.encode_safely((+"a\xFFb").force_encoding(Encoding::Shift_JIS))
+
+    assert_equal "a�b", result
+    assert result.valid_encoding?
+  end
+
+  test ".encode_safely replaces undefined characters in other encodings" do
+    result = Helpers.encode_safely((+"a\x81b").force_encoding(Encoding::Windows_1252))
+
+    assert_equal "a�b", result
+    assert result.valid_encoding?
+  end
+
+  test ".encode_safely does not modify strings in other encodings" do
+    input = "Mozilla é".encode("ISO-8859-1")
 
     Helpers.encode_safely(input)
 
-    assert_equal Encoding::BINARY, input.encoding
-    assert_equal "Mozilla é".b, input
+    assert_equal Encoding::ISO_8859_1, input.encoding
+    assert_equal "Mozilla \xE9".b, input.b
+  end
+
+  test ".encode_safely copies strings in other encodings" do
+    input = "Mozilla é".encode("ISO-8859-1")
+
+    refute_same input, Helpers.encode_safely(input)
+  end
+
+  test ".encode_safely accepts frozen strings in other encodings" do
+    result = Helpers.encode_safely("Mozilla é".encode("ISO-8859-1").freeze)
+
+    assert_equal "Mozilla é", result
+    assert_equal Encoding::UTF_8, result.encoding
+  end
+
+  test ".encode_safely transcodes ASCII-only strings in other encodings that are ASCII-compatible to UTF-8" do
+    [Encoding::US_ASCII, Encoding::ISO_8859_1, Encoding::Windows_1252, Encoding::Shift_JIS].each do |encoding|
+      result = Helpers.encode_safely("Mozilla/5.0 ~\\".encode(encoding))
+
+      assert_equal "Mozilla/5.0 ~\\", result, encoding.name
+      assert_equal Encoding::UTF_8, result.encoding, encoding.name
+    end
+  end
+
+  test ".encode_safely transcodes ASCII-only strings in other encodings that are not ASCII-compatible to UTF-8" do
+    [Encoding::UTF_16LE, Encoding::UTF_16BE, Encoding::UTF_32LE, Encoding::UTF_32BE].each do |encoding|
+      result = Helpers.encode_safely("Mozilla".encode(encoding))
+
+      assert_equal "Mozilla", result, encoding.name
+      assert_equal Encoding::UTF_8, result.encoding, encoding.name
+    end
+  end
+
+  test ".encode_safely does not modify ASCII-only strings in other encodings" do
+    input = "Mozilla".encode("US-ASCII")
+
+    Helpers.encode_safely(input)
+
+    assert_equal Encoding::US_ASCII, input.encoding
+    assert_equal "Mozilla".b, input.b
+  end
+
+  test ".encode_safely copies ASCII-only strings in other encodings" do
+    input = "Mozilla".encode("US-ASCII")
+
+    refute_same input, Helpers.encode_safely(input)
+  end
+
+  test ".encode_safely accepts frozen ASCII-only strings in other encodings" do
+    result = Helpers.encode_safely("Mozilla".encode("US-ASCII").freeze)
+
+    assert_equal "Mozilla", result
+    assert_equal Encoding::UTF_8, result.encoding
   end
 
   test ".decode_jwt_payload returns the decoded payload part of a JWT" do
