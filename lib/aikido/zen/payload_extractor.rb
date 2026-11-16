@@ -11,101 +11,97 @@ module Aikido::Zen
       @max_url_decoded_variants = config.extract_payloads_max_url_decoded_variants
     end
 
-    # @param sources [Hash<Symbol, #flat_map>] map of payload source types to
+    # @param sources [Hash<Symbol, Object>] map of payload source types to
     #   the actual data from the request to populate them.
     # @return [Array<Aikido::Zen::Payload>] list of user inputs from all the
     #   sources.
     def extract(sources)
-      sources.flat_map do |source, data|
+      @payloads = []
+
+      sources.each do |source, data|
         extract_payloads_from(data, source)
       end
+
+      @payloads
     end
 
     private
 
-    # Applications may decode input again, so a value can reach a sink as
-    # any of its successive URL-decoded variants.
-    #
-    # @param string [String] the string.
-    # @return [Array<String>] the successive URL-decoded variants of string.
-    def url_decoded_variants(string)
-      variants = []
-
-      current = string
-
-      @max_url_decoded_variants.times do
-        current = Helpers.url_decode(current)
-        break unless current
-
-        variants << current
-      end
-
-      variants
-    end
-
     # @!visibility private
     def extract_payloads_from(data, source_type, prefix = "", depth = 0)
-      return [] if depth > @max_depth
+      return if depth > @max_depth
 
-      if data.is_a?(String)
-        payloads = []
-        jwt_payload = nil
-
-        [data, *url_decoded_variants(data)].each do |value|
-          payloads << Payload.new(value_for(value), source_type, prefix)
-
-          jwt_payload ||= Helpers.decode_jwt_payload(value)
+      case data
+      when String
+        extract_string(data, source_type, prefix, depth)
+      when Hash
+        extract_hash(data, source_type, prefix, depth)
+      when Array
+        extract_array(data, source_type, prefix, depth)
+      else
+        if data.respond_to?(:to_hash)
+          extract_hash(data.to_hash, source_type, prefix, depth)
+        elsif data.respond_to?(:to_ary)
+          extract_array(data.to_ary, source_type, prefix, depth)
         end
+      end
+    end
 
-        if jwt_payload
-          payloads += extract_payloads_from(jwt_payload, source_type, "#{prefix}<jwt>", depth + 1)
-        end
+    def extract_string(string, source_type, prefix, depth)
+      jwt_payload = nil
 
-        payloads
-      elsif data.respond_to?(:to_hash)
-        data.to_hash.flat_map do |key, value|
-          path = path_for(prefix, key, depth)
+      [string, *url_decoded_variants(string)].each do |value|
+        @payloads << Payload.new(value_for(value), source_type, prefix)
 
-          [Payload.new(value_for(key), source_type, path)] +
-            extract_payloads_from(value, source_type, path, depth + 1)
-        end
-      elsif data.respond_to?(:to_ary)
-        array = data.to_ary
-        return array if array.empty?
+        jwt_payload ||= Helpers.decode_jwt_payload(value)
+      end
 
-        payloads = array.flat_map.with_index do |value, index|
-          extract_payloads_from(value, source_type, path_for(prefix, index, depth), depth + 1)
-        end
+      if jwt_payload
+        extract_payloads_from(jwt_payload, source_type, "#{prefix}<jwt>", depth + 1)
+      end
+    end
 
-        unless Aikido::Zen.config.harden?
-          # Special case for File.join given a possibly nested array of strings,
-          # as might occur when a query parameter is an array.
+    def extract_hash(hash, source_type, prefix, depth)
+      hash.each_pair do |key, value|
+        path = path_for(prefix, key, depth)
 
-          # File.join recursively joins nested string arrays, and can overflow
-          # the stack given deeply nested arrays.
-          #
-          # Flatten array to max depth and check that the flattened array is an
-          # array of strings before calling File.join__internal_for_aikido_zen,
-          # only if the array was fully flattened, to prevent a stack overflow.
-          #
-          # Checking that all values are Strings handily prevents a TypeError
-          # from being raised.
-          flattened_array = array.flatten(@max_depth)
-          if flattened_array.all? { |string| string.is_a?(String) }
-            begin
-              string = File.join__internal_for_aikido_zen(*flattened_array)
-              if unsafe_path?(string)
-                payloads << Payload.new(value_for(string), source_type, "#{prefix}<File.join>")
-              end
-            rescue
-              # Could not create special payload for File.join.
+        @payloads << Payload.new(value_for(key), source_type, path)
+
+        extract_payloads_from(value, source_type, path, depth + 1)
+      end
+    end
+
+    def extract_array(array, source_type, prefix, depth)
+      return if array.empty?
+
+      array.each_with_index do |value, index|
+        extract_payloads_from(value, source_type, path_for(prefix, index, depth), depth + 1)
+      end
+
+      unless Aikido::Zen.config.harden?
+        # Special case for File.join given a possibly nested array of strings,
+        # as might occur when a query parameter is an array.
+
+        # File.join recursively joins nested string arrays, and can overflow
+        # the stack given deeply nested arrays.
+        #
+        # Flatten array to max depth and check that the flattened array is an
+        # array of strings before calling File.join__internal_for_aikido_zen,
+        # only if the array was fully flattened, to prevent a stack overflow.
+        #
+        # Checking that all values are Strings handily prevents a TypeError
+        # from being raised.
+        flattened_array = array.flatten(@max_depth)
+        if flattened_array.all? { |string| string.is_a?(String) }
+          begin
+            string = File.join__internal_for_aikido_zen(*flattened_array)
+            if unsafe_path?(string)
+              @payloads << Payload.new(value_for(string), source_type, "#{prefix}<File.join>")
             end
+          rescue
+            # Could not create special payload for File.join.
           end
         end
-
-        payloads
-      else
-        []
       end
     end
 
@@ -125,6 +121,26 @@ module Aikido::Zen
       segment = Helpers.encode_safely(segment.to_s) unless segment.is_a?(Integer)
 
       "#{prefix}#{separator}#{segment}"
+    end
+
+    # Applications may decode input again, so a value can reach a sink as
+    # any of its successive URL-decoded variants.
+    #
+    # @param string [String] the string.
+    # @return [Array<String>] the successive URL-decoded variants of string.
+    def url_decoded_variants(string)
+      variants = []
+
+      current = string
+
+      @max_url_decoded_variants.times do
+        current = Helpers.url_decode(current)
+        break unless current
+
+        variants << current
+      end
+
+      variants
     end
 
     def unsafe_path?(filepath)
