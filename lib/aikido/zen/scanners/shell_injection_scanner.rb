@@ -45,8 +45,6 @@ module Aikido::Zen
       # @param input [String] the input to check.
       # @return [Boolean] whether the input was an attack.
       def attack?(input)
-        input = Aikido::Zen::Helpers.encode_safely(input)
-
         # Block single ~ character. For example `echo ~`
         if input == "~"
           if @command.size > 1 && @command.include?("~")

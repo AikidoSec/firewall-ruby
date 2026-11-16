@@ -211,11 +211,17 @@ class Aikido::Zen::ContextTest < ActiveSupport::TestCase
       assert_includes context.payloads, stub_payload(:header, "'%zz%2", "X-Test")
     end
 
-    test "URL-decoded variants that are not valid UTF-8 are extracted as they are" do
+    test "URL-decoded variants that are not valid UTF-8 are extracted with invalid bytes replaced" do
       context = build_context_for("/path", {"HTTP_X_TEST" => "a%ffb"})
 
       assert_includes context.payloads, stub_payload(:header, "a%ffb", "X-Test")
-      assert_includes context.payloads, stub_payload(:header, "a\xFFb", "X-Test")
+      assert_includes context.payloads, stub_payload(:header, "a�b", "X-Test")
+    end
+
+    test "binary strings are extracted as UTF-8" do
+      context = build_context_for("/path", {"HTTP_X_TEST" => "caf\xC3\xA9".b})
+
+      assert_includes context.payloads, stub_payload(:header, "café", "X-Test")
     end
 
     test "keys are not URL-decoded" do

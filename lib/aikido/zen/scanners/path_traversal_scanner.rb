@@ -48,7 +48,7 @@ module Aikido::Zen
       # @param input [String] the input to check.
       # @return [Boolean] whether the input was an attack.
       def attack?(input)
-        input = Aikido::Zen::Helpers.encode_safely(input).downcase
+        input = input.downcase
 
         # We block home-relative path
         return true if input.start_with?("~") && @filepath.start_with?(input)

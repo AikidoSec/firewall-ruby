@@ -44,7 +44,7 @@ module Aikido::Zen
     end
 
     # @!visibility private
-    def extract_payloads_from(data, source_type, prefix = nil, depth = 0)
+    def extract_payloads_from(data, source_type, prefix = "", depth = 0)
       return [] if depth > @max_depth
 
       if data.is_a?(String)
@@ -52,7 +52,7 @@ module Aikido::Zen
         jwt_payload = nil
 
         [data, *url_decoded_variants(data)].each do |value|
-          payloads << Payload.new(value, source_type, prefix.to_s)
+          payloads << Payload.new(value_for(value), source_type, prefix)
 
           jwt_payload ||= Helpers.decode_jwt_payload(value)
         end
@@ -64,9 +64,9 @@ module Aikido::Zen
         payloads
       elsif data.respond_to?(:to_hash)
         data.to_hash.flat_map do |key, value|
-          path = [prefix, key].compact.join(".")
+          path = path_for(prefix, key, depth)
 
-          [Payload.new(key.to_s, source_type, path)] +
+          [Payload.new(value_for(key), source_type, path)] +
             extract_payloads_from(value, source_type, path, depth + 1)
         end
       elsif data.respond_to?(:to_ary)
@@ -74,7 +74,7 @@ module Aikido::Zen
         return array if array.empty?
 
         payloads = array.flat_map.with_index do |value, index|
-          extract_payloads_from(value, source_type, [prefix, index].compact.join("."), depth + 1)
+          extract_payloads_from(value, source_type, path_for(prefix, index, depth), depth + 1)
         end
 
         unless Aikido::Zen.config.harden?
@@ -95,7 +95,7 @@ module Aikido::Zen
             begin
               string = File.join__internal_for_aikido_zen(*flattened_array)
               if unsafe_path?(string)
-                payloads << Payload.new(string, source_type, "#{prefix}<File.join>")
+                payloads << Payload.new(value_for(string), source_type, "#{prefix}<File.join>")
               end
             rescue
               # Could not create special payload for File.join.
@@ -107,6 +107,24 @@ module Aikido::Zen
       else
         []
       end
+    end
+
+    # @param value [Object] the value.
+    # @return [String] the value, as a valid UTF-8 string.
+    def value_for(value)
+      Helpers.encode_safely(value.to_s)
+    end
+
+    # @param prefix [String] the path of the hash or array.
+    # @param segment [Object] the key or index.
+    # @param depth [Integer] the depth of the hash or array.
+    # @return [String] the path, as a valid UTF-8 string.
+    def path_for(prefix, segment, depth)
+      separator = "." unless depth.zero?
+
+      segment = Helpers.encode_safely(segment.to_s) unless segment.is_a?(Integer)
+
+      "#{prefix}#{separator}#{segment}"
     end
 
     def unsafe_path?(filepath)

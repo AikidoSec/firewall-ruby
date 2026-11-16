@@ -337,13 +337,6 @@ class Aikido::Zen::Scanners::ShellInjectionScannerTest < ActiveSupport::TestCase
     assert_attack "rm -rf", "rm -rf"
   end
 
-  test "it flags attacks when the input contains invalid UTF-8 bytes" do
-    input = (+"\xFF; ls").force_encoding("UTF-8")
-    refute input.valid_encoding?
-
-    assert_attack "echo #{input}", input
-  end
-
   test "it flags attacks when another input contains invalid UTF-8 bytes" do
     other_input = (+"\xFF").force_encoding("UTF-8")
     input = "; ls"

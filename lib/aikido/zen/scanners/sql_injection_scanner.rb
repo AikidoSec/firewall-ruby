@@ -64,7 +64,7 @@ module Aikido::Zen
       def attack?(input)
         @failed_to_tokenize = false
 
-        input = Aikido::Zen::Helpers.encode_safely(input).downcase.strip
+        input = input.downcase.strip
 
         # Ignore single char inputs since they shouldn't be able to do much harm
         return false if input.length <= 1
