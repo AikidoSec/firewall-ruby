@@ -3,7 +3,7 @@
 require "forwardable"
 
 require_relative "request"
-require_relative "payload"
+require_relative "payload_extractor"
 
 module Aikido::Zen
   class Context
@@ -53,9 +53,7 @@ module Aikido::Zen
       @config = config
       @settings = settings
       @payload_sources = sources
-
-      @max_depth = @config.extract_payloads_max_depth
-      @max_url_decoded_variants = @config.extract_payloads_max_url_decoded_variants
+      @payload_extractor = PayloadExtractor.new(config: @config)
 
       @metadata = {}
       @scanning = false
@@ -97,116 +95,12 @@ module Aikido::Zen
     # @return [Array<Aikido::Zen::Payload>] list of user inputs from all the
     #   different sources we recognize.
     def payloads
-      @payloads ||= payload_sources.flat_map do |source, data|
-        extract_payloads_from(data, source)
-      end
+      @payloads ||= @payload_extractor.extract(payload_sources)
     end
 
     # @!visibility private
     def payload_sources
       @payload_sources.call(request)
-    end
-
-    private
-
-    # Applications may decode input again, so a value can reach a sink as
-    # any of its successive URL-decoded variants.
-    #
-    # @param string [String] the string.
-    # @return [Array<String>] the successive URL-decoded variants of string.
-    def url_decoded_variants(string)
-      variants = []
-
-      current = string
-
-      @max_url_decoded_variants.times do
-        current = Helpers.url_decode(current)
-        break unless current
-
-        variants << current
-      end
-
-      variants
-    end
-
-    # @!visibility private
-    def extract_payloads_from(data, source_type, prefix = nil, depth = 0)
-      return [] if depth > @max_depth
-
-      if data.is_a?(String)
-        payloads = []
-        jwt_payload = nil
-
-        [data, *url_decoded_variants(data)].each do |value|
-          payloads << Payload.new(value, source_type, prefix.to_s)
-
-          jwt_payload ||= Helpers.decode_jwt_payload(value)
-        end
-
-        if jwt_payload
-          payloads += extract_payloads_from(jwt_payload, source_type, "#{prefix}<jwt>", depth + 1)
-        end
-
-        payloads
-      elsif data.respond_to?(:to_hash)
-        data.to_hash.flat_map do |key, value|
-          path = [prefix, key].compact.join(".")
-
-          [Payload.new(key.to_s, source_type, path)] +
-            extract_payloads_from(value, source_type, path, depth + 1)
-        end
-      elsif data.respond_to?(:to_ary)
-        array = data.to_ary
-        return array if array.empty?
-
-        payloads = array.flat_map.with_index do |value, index|
-          extract_payloads_from(value, source_type, [prefix, index].compact.join("."), depth + 1)
-        end
-
-        unless Aikido::Zen.config.harden?
-          # Special case for File.join given a possibly nested array of strings,
-          # as might occur when a query parameter is an array.
-
-          # File.join recursively joins nested string arrays, and can overflow
-          # the stack given deeply nested arrays.
-          #
-          # Flatten array to max depth and check that the flattened array is an
-          # array of strings before calling File.join__internal_for_aikido_zen,
-          # only if the array was fully flattened, to prevent a stack overflow.
-          #
-          # Checking that all values are Strings handily prevents a TypeError
-          # from being raised.
-          flattened_array = array.flatten(@max_depth)
-          if flattened_array.all? { |string| string.is_a?(String) }
-            begin
-              string = File.join__internal_for_aikido_zen(*flattened_array)
-              if unsafe_path?(string)
-                payloads << Payload.new(string, source_type, "#{prefix}<File.join>")
-              end
-            rescue
-              # Could not create special payload for File.join.
-            end
-          end
-        end
-
-        payloads
-      else
-        []
-      end
-    end
-
-    def unsafe_path?(filepath)
-      normalized_filepath = Pathname.new(filepath).cleanpath.to_s.downcase
-
-      Scanners::PathTraversal::DANGEROUS_PATH_PARTS.each do |dangerous_path_part|
-        return true if normalized_filepath.include?(dangerous_path_part)
-      end
-
-      Scanners::PathTraversal::DANGEROUS_PATH_STARTS.each do |dangerous_path_start|
-        return true if normalized_filepath.start_with?(dangerous_path_start)
-      end
-
-      false
     end
   end
 end
