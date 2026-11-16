@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
 require "forwardable"
+require "set"
 
 require_relative "request"
+require_relative "payload"
 require_relative "payload_extractor"
 
 module Aikido::Zen
@@ -54,6 +56,7 @@ module Aikido::Zen
       @settings = settings
       @payload_sources = sources
       @payload_extractor = PayloadExtractor.new(config: @config)
+      @inputs = {}
 
       @metadata = {}
       @scanning = false
@@ -88,19 +91,65 @@ module Aikido::Zen
     # @param new_request [Rack::Request]
     # @return [void]
     def update_request(new_request)
-      @payloads = nil
+      @payload_sources_data = nil
+      @inputs.clear
       request.__setobj__(new_request)
-    end
-
-    # @return [Array<Aikido::Zen::Payload>] list of user inputs from all the
-    #   different sources we recognize.
-    def payloads
-      @payloads ||= @payload_extractor.extract(payload_sources)
     end
 
     # @!visibility private
     def payload_sources
-      @payload_sources.call(request)
+      @payload_sources_data ||= @payload_sources.call(request)
+    end
+
+    # Yields the unique user inputs of each payload source.
+    #
+    # @param source_types [Array<Symbol>] the keys of {#payload_sources} to
+    #   read, or all of them if none are given.
+    # @yieldparam input [String] the input.
+    # @return [Enumerator, void]
+    def each_input(*source_types, &block)
+      return enum_for(:each_input, *source_types) unless block
+
+      source_types = payload_sources.keys if source_types.empty?
+
+      source_types.each do |source_type|
+        extract_payload_source(source_type).each(&block)
+      end
+    end
+
+    # Builds the payload for the first occurrence of the user input.
+    #
+    # @param input [String] one of the inputs yielded by {#each_input}.
+    # @return [Aikido::Zen::Payload, nil] the payload, or nil if the input is
+    #   not in any payload source.
+    def payload(input)
+      payload_sources.each do |source_type, data|
+        @payload_extractor.extract(data) do |value, path|
+          if value == input
+            return Payload.new(value, source_type, path.to_s)
+          end
+        end
+      end
+
+      nil
+    end
+
+    private
+
+    # Extracts and memoizes the unique user inputs of a payload source.
+    #
+    # @param source_type [Symbol] one of the keys of {#payload_sources}.
+    # @return [Set<String>] the unique user inputs of the payload source.
+    def extract_payload_source(source_type)
+      return @inputs[source_type] if @inputs.key?(source_type)
+
+      inputs = Set.new
+
+      @payload_extractor.extract(payload_sources[source_type]) do |value, _path|
+        inputs << value
+      end
+
+      @inputs[source_type] = inputs
     end
   end
 end

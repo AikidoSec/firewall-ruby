@@ -27,13 +27,13 @@ module Aikido::Zen
 
         scanner = new(query, dialect)
 
-        context.payloads.each do |payload|
-          next unless scanner.attack?(payload.value.to_s)
+        context.each_input do |input|
+          next unless scanner.attack?(input)
 
           return Attacks::SQLInjectionAttack.new(
             sink: sink,
             query: query,
-            input: payload,
+            input: context.payload(input),
             dialect: dialect,
             context: context,
             operation: "#{sink.operation}.#{operation}",

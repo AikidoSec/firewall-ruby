@@ -44,13 +44,13 @@ module Aikido::Zen
 
         scanner = new(request.uri, context["ssrf.redirects"])
 
-        context.payloads.each do |payload|
-          next unless scanner.attack?(payload.value)
+        context.each_input do |input|
+          next unless scanner.attack?(input)
 
           return Attacks::SSRFAttack.new(
             sink: sink,
             request: request,
-            input: payload,
+            input: context.payload(input),
             context: context,
             operation: "#{sink.operation}.#{operation}",
             stack: Aikido::Zen.clean_stack_trace

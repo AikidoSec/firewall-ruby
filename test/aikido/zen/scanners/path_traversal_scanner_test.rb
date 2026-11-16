@@ -258,5 +258,24 @@ class Aikido::Zen::Scanners::PathTraversalScannerTest < ActiveSupport::TestCase
       assert_equal stub_payload(:body, "user/../../../etc/passwd", "user"), attack.input
       assert_equal "/app/users/user/../../../etc/passwd", attack.filepath
     end
+
+    test ".call reports the first path of a malicious value that is repeated in the context" do
+      context = build_context_for("/users", {
+        :method => "POST",
+        :input => %({"items": [{"file": "user/../../../etc/passwd"}, {"file": "user/../../../etc/passwd"}]}),
+        "CONTENT_TYPE" => "application/json"
+      })
+
+      attack = Aikido::Zen::Scanners::PathTraversalScanner.call(
+        filepath: "/app/users/user/../../../etc/passwd",
+        scan: Aikido::Zen::Scan.new(sink: nil, context: context),
+        sink: stub_sink(name: "test"),
+        context: context,
+        operation: "test"
+      )
+
+      assert_kind_of Aikido::Zen::Attacks::PathTraversalAttack, attack
+      assert_equal stub_payload(:body, "user/../../../etc/passwd", "items.0.file"), attack.input
+    end
   end
 end

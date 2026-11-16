@@ -393,5 +393,24 @@ class Aikido::Zen::Scanners::ShellInjectionScannerTest < ActiveSupport::TestCase
       assert_equal stub_payload(:body, "user; rm -rf /app/users", "user"), attack.input
       assert_equal "ls /app/users/user; rm -rf /app/users", attack.command
     end
+
+    test ".call reports the first path of a malicious value that is repeated in the context" do
+      context = build_context_for("/users", {
+        :method => "POST",
+        :input => %({"items": [{"name": "user; rm -rf /app/users"}, {"name": "user; rm -rf /app/users"}]}),
+        "CONTENT_TYPE" => "application/json"
+      })
+
+      attack = Aikido::Zen::Scanners::ShellInjectionScanner.call(
+        command: "ls /app/users/user; rm -rf /app/users",
+        scan: Aikido::Zen::Scan.new(sink: nil, context: context),
+        sink: stub_sink(name: "test"),
+        context: context,
+        operation: "test"
+      )
+
+      assert_kind_of Aikido::Zen::Attacks::ShellInjectionAttack, attack
+      assert_equal stub_payload(:body, "user; rm -rf /app/users", "items.0.name"), attack.input
+    end
   end
 end

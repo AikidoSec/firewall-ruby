@@ -19,12 +19,12 @@ module Aikido::Zen
       def self.call(command:, scan:, sink:, context:, operation:)
         scanner = new(command)
 
-        context.payloads.each do |payload|
-          next unless scanner.attack?(payload.value.to_s)
+        context.each_input do |input|
+          next unless scanner.attack?(input)
 
           return Attacks::ShellInjectionAttack.new(
             sink: sink,
-            input: payload,
+            input: context.payload(input),
             command: command,
             context: context,
             operation: "#{sink.operation}.#{operation}",

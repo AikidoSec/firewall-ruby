@@ -1,9 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "payload"
-
 module Aikido::Zen
-  # Extracts the user inputs from the sources of a request into Payloads.
   class PayloadExtractor
     # @param config [Aikido::Zen::Config]
     def initialize(config: Aikido::Zen.config)
@@ -11,71 +8,69 @@ module Aikido::Zen
       @max_url_decoded_variants = config.extract_payloads_max_url_decoded_variants
     end
 
-    # @param sources [Hash<Symbol, Object>] map of payload source types to
-    #   the actual data from the request to populate them.
-    # @return [Array<Aikido::Zen::Payload>] list of user inputs from all the
-    #   sources.
-    def extract(sources)
-      @payloads = []
-
-      sources.each do |source, data|
-        extract_payloads_from(data, source)
-      end
-
-      @payloads
-    end
-
-    private
-
-    # @!visibility private
-    def extract_payloads_from(data, source_type, prefix = "", depth = 0)
-      return if depth > @max_depth
+    # Yields each user input in the data of a payload source of the request.
+    #
+    # @param data [Object] the data of the payload source.
+    # @param path [Path] the path to the data, which is the root by default.
+    # @yieldparam value [String] the input, as a valid UTF-8 string.
+    # @yieldparam path [Path] the path to the input. The path is reused, so the
+    #   block must not keep it.
+    # @return [void]
+    def extract(data, path = Path.new, &block)
+      return if path.size > @max_depth
 
       case data
       when String
-        extract_string(data, source_type, prefix, depth)
+        extract_string(data, path, &block)
       when Hash
-        extract_hash(data, source_type, prefix, depth)
+        extract_hash(data, path, &block)
       when Array
-        extract_array(data, source_type, prefix, depth)
+        extract_array(data, path, &block)
       else
         if data.respond_to?(:to_hash)
-          extract_hash(data.to_hash, source_type, prefix, depth)
+          extract_hash(data.to_hash, path, &block)
         elsif data.respond_to?(:to_ary)
-          extract_array(data.to_ary, source_type, prefix, depth)
+          extract_array(data.to_ary, path, &block)
         end
       end
     end
 
-    def extract_string(string, source_type, prefix, depth)
+    private
+
+    def extract_string(string, path, &block)
       jwt_payload = nil
 
       [string, *url_decoded_variants(string)].each do |value|
-        @payloads << Payload.new(value_for(value), source_type, prefix)
+        yield value_for(value), path
 
         jwt_payload ||= Helpers.decode_jwt_payload(value)
       end
 
       if jwt_payload
-        extract_payloads_from(jwt_payload, source_type, "#{prefix}<jwt>", depth + 1)
+        path.push(Path::JWT_MARKER)
+        extract(jwt_payload, path, &block)
+        path.pop
       end
     end
 
-    def extract_hash(hash, source_type, prefix, depth)
+    def extract_hash(hash, path, &block)
       hash.each_pair do |key, value|
-        path = path_for(prefix, key, depth)
+        path.push(key)
 
-        @payloads << Payload.new(value_for(key), source_type, path)
+        yield value_for(key), path
 
-        extract_payloads_from(value, source_type, path, depth + 1)
+        extract(value, path, &block)
+        path.pop
       end
     end
 
-    def extract_array(array, source_type, prefix, depth)
+    def extract_array(array, path, &block)
       return if array.empty?
 
       array.each_with_index do |value, index|
-        extract_payloads_from(value, source_type, path_for(prefix, index, depth), depth + 1)
+        path.push(index)
+        extract(value, path, &block)
+        path.pop
       end
 
       unless Aikido::Zen.config.harden?
@@ -96,7 +91,9 @@ module Aikido::Zen
           begin
             string = File.join__internal_for_aikido_zen(*flattened_array)
             if unsafe_path?(string)
-              @payloads << Payload.new(value_for(string), source_type, "#{prefix}<File.join>")
+              path.push(Path::FILE_JOIN_MARKER)
+              yield value_for(string), path
+              path.pop
             end
           rescue
             # Could not create special payload for File.join.
@@ -109,18 +106,6 @@ module Aikido::Zen
     # @return [String] the value, as a valid UTF-8 string.
     def value_for(value)
       Helpers.encode_safely(value.to_s)
-    end
-
-    # @param prefix [String] the path of the hash or array.
-    # @param segment [Object] the key or index.
-    # @param depth [Integer] the depth of the hash or array.
-    # @return [String] the path, as a valid UTF-8 string.
-    def path_for(prefix, segment, depth)
-      separator = "." unless depth.zero?
-
-      segment = Helpers.encode_safely(segment.to_s) unless segment.is_a?(Integer)
-
-      "#{prefix}#{separator}#{segment}"
     end
 
     # Applications may decode input again, so a value can reach a sink as
@@ -158,3 +143,5 @@ module Aikido::Zen
     end
   end
 end
+
+require_relative "payload_extractor/path"

@@ -22,12 +22,12 @@ module Aikido::Zen
       def self.call(scan:, sink:, context:, filepath:, operation:)
         scanner = new(filepath)
 
-        context.payloads.each do |payload|
-          next unless scanner.attack?(payload.value.to_s)
+        context.each_input do |input|
+          next unless scanner.attack?(input)
 
           return Attacks::PathTraversalAttack.new(
             sink: sink,
-            input: payload,
+            input: context.payload(input),
             filepath: filepath,
             context: context,
             operation: "#{sink.operation}.#{operation}",

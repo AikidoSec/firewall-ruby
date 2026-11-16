@@ -512,5 +512,25 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
       assert_equal "SELECT * FROM users WHERE id=1; DROP TABLE users;", attack.query
       assert_equal stub_payload(:body, "1; DROP TABLE users;", "user"), attack.input
     end
+
+    test ".call reports the first path of a malicious value that is repeated in the context" do
+      context = build_context_for("/users", {
+        :method => "POST",
+        :input => %({"items": [{"id": "1; DROP TABLE users;"}, {"id": "1; DROP TABLE users;"}]}),
+        "CONTENT_TYPE" => "application/json"
+      })
+
+      attack = Aikido::Zen::Scanners::SQLInjectionScanner.call(
+        query: "SELECT * FROM users WHERE id=1; DROP TABLE users;",
+        dialect: :common,
+        scan: Aikido::Zen::Scan.new(sink: nil, context: context),
+        sink: stub_sink(name: "test"),
+        context: context,
+        operation: "test"
+      )
+
+      assert_kind_of Aikido::Zen::Attacks::SQLInjectionAttack, attack
+      assert_equal stub_payload(:body, "1; DROP TABLE users;", "items.0.id"), attack.input
+    end
   end
 end

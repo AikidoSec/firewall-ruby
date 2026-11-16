@@ -6,7 +6,15 @@ class Aikido::Zen::PayloadExtractorTest < ActiveSupport::TestCase
   include JWTHelpers
 
   def extract(sources)
-    Aikido::Zen::PayloadExtractor.new.extract(sources)
+    payloads = []
+
+    sources.each do |source_type, data|
+      Aikido::Zen::PayloadExtractor.new.extract(data) do |value, path|
+        payloads << Aikido::Zen::Payload.new(value, source_type, path.to_s)
+      end
+    end
+
+    payloads
   end
 
   def jwt_payloads(value, source: :body)
@@ -27,6 +35,16 @@ class Aikido::Zen::PayloadExtractorTest < ActiveSupport::TestCase
         assert string.valid_encoding?, payload.inspect
       end
     end
+  end
+
+  test "payload extraction yields the path to each input" do
+    yielded = []
+
+    Aikido::Zen::PayloadExtractor.new.extract({"a" => ["x"]}) do |value, path|
+      yielded << [value, path.to_s]
+    end
+
+    assert_equal [["a", "a"], ["x", "a.0"]], yielded
   end
 
   test "string values are extracted as valid UTF-8" do
@@ -185,6 +203,12 @@ class Aikido::Zen::PayloadExtractorTest < ActiveSupport::TestCase
     200_000.times { data = [data] }
 
     assert_nothing_raised { extract({query: data}) }
+  end
+
+  test "strings without percent-encoding are extracted once" do
+    payloads = extract({header: {"X-Test" => "plain"}})
+
+    assert_equal 1, payloads.count { |payload| payload.value == "plain" }
   end
 
   test "payload extraction does not URL-decode past the configured maximum" do
