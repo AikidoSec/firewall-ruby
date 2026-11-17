@@ -14,14 +14,17 @@ module Aikido::Zen
       # @param sink [Aikido::Zen::Sink]
       # @param context [Aikido::Zen::Context]
       # @param operation [Symbol, String]
-      #
+      # @return [Aikido::Zen::Attacks::ShellInjectionAttack, nil] the attack,
+      #   or nil if there was none.
       def self.call(command:, scan:, sink:, context:, operation:)
-        context.payloads.each do |payload|
-          next unless new(command, payload.value.to_s).attack?
+        scanner = new(command)
+
+        context.each_input do |input|
+          next unless scanner.attack?(input)
 
           return Attacks::ShellInjectionAttack.new(
             sink: sink,
-            input: payload,
+            input: context.payload(input),
             command: command,
             context: context,
             operation: "#{sink.operation}.#{operation}",
@@ -34,16 +37,16 @@ module Aikido::Zen
         nil
       end
 
-      # @param command [String]
-      # @param input [String]
-      def initialize(command, input)
+      # @param command [String] the command to check.
+      def initialize(command)
         @command = Aikido::Zen::Helpers.encode_safely(command)
-        @input = Aikido::Zen::Helpers.encode_safely(input)
       end
 
-      def attack?
+      # @param input [String] the input to check.
+      # @return [Boolean] whether the input was an attack.
+      def attack?(input)
         # Block single ~ character. For example `echo ~`
-        if @input == "~"
+        if input == "~"
           if @command.size > 1 && @command.include?("~")
             return true
           end
@@ -51,17 +54,17 @@ module Aikido::Zen
 
         # we ignore single character since they don't pose a big threat.
         # They are only able to crash the shell, not execute arbitraty commands.
-        return false if @input.size <= 1
+        return false if input.size <= 1
 
         # We ignore cases where the user input is longer than the command because
         # the user input can't be part of the command
-        return false if @input.size > @command.size
+        return false if input.size > @command.size
 
-        return false unless @command.include?(@input)
+        return false unless @command.include?(input)
 
-        return false if ShellInjection::Helpers.is_safely_encapsulated @command, @input
+        return false if ShellInjection::Helpers.is_safely_encapsulated @command, input
 
-        ShellInjection::Helpers.contains_shell_syntax @command, @input
+        ShellInjection::Helpers.contains_shell_syntax @command, input
       end
     end
   end

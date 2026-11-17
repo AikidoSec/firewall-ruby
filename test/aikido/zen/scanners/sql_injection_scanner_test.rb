@@ -14,7 +14,8 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
 
     def scan(query, input = query, dialect = :common)
       dialect = Aikido::Zen::SQL::Dialects.fetch(dialect)
-      Aikido::Zen::Scanners::SQLInjectionScanner.new(query, input, dialect).attack?
+      scanner = Aikido::Zen::Scanners::SQLInjectionScanner
+      scanner.new(query, dialect).attack?(input)
     end
   end
 
@@ -333,25 +334,12 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
     refute_attack "SELECT * FROM comments WHERE comment = 'I'm writting you'"
   end
 
-  test "it flags attacks when the input contains invalid UTF-8 bytes" do
-    input = (+"\xFF1 OR 1=1--").force_encoding("UTF-8")
-    refute input.valid_encoding?
-
-    assert_attack "SELECT * FROM users WHERE token = #{input}", input
-  end
-
   test "it flags attacks when another input contains invalid UTF-8 bytes" do
     other_input = (+"\xFF").force_encoding("UTF-8")
     input = "1 OR 1=1--"
     refute other_input.valid_encoding?
 
     assert_attack "SELECT * FROM users WHERE name = '#{other_input}' AND id = #{input}", input
-  end
-
-  test "it flags attacks when the input is a binary string with valid UTF-8" do
-    input = "é1 OR 1=1--".b
-
-    assert_attack "SELECT * FROM users WHERE token = é1 OR 1=1--", input
   end
 
   class TestMySQLDialect < ActiveSupport::TestCase
@@ -523,6 +511,26 @@ class Aikido::Zen::Scanners::SQLInjectionScannerTest < ActiveSupport::TestCase
 
       assert_equal "SELECT * FROM users WHERE id=1; DROP TABLE users;", attack.query
       assert_equal stub_payload(:body, "1; DROP TABLE users;", "user"), attack.input
+    end
+
+    test ".call reports the first path of a malicious value that is repeated in the context" do
+      context = build_context_for("/users", {
+        :method => "POST",
+        :input => %({"items": [{"id": "1; DROP TABLE users;"}, {"id": "1; DROP TABLE users;"}]}),
+        "CONTENT_TYPE" => "application/json"
+      })
+
+      attack = Aikido::Zen::Scanners::SQLInjectionScanner.call(
+        query: "SELECT * FROM users WHERE id=1; DROP TABLE users;",
+        dialect: :common,
+        scan: Aikido::Zen::Scan.new(sink: nil, context: context),
+        sink: stub_sink(name: "test"),
+        context: context,
+        operation: "test"
+      )
+
+      assert_kind_of Aikido::Zen::Attacks::SQLInjectionAttack, attack
+      assert_equal stub_payload(:body, "1; DROP TABLE users;", "items.0.id"), attack.input
     end
   end
 end

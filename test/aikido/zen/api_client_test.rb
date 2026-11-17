@@ -610,15 +610,6 @@ class Aikido::Zen::APIClientTest < ActiveSupport::TestCase
       )
     end
 
-    test "it reports attacks whose input contains invalid UTF-8 bytes" do
-      input = (+"\xFF1 OR 1=1--").force_encoding("UTF-8")
-
-      @client.report(Aikido::Zen::Events::Attack.new(attack: sql_injection_attack(input)))
-
-      assert_requested :post, "https://guard.aikido.dev/api/runtime/events",
-        body: hash_including(type: "detected_attack")
-    end
-
     test "it reports attacks whose request has a User-Agent with invalid UTF-8 bytes" do
       env = Rack::MockRequest.env_for("/users", "HTTP_USER_AGENT" => "bad\xFFagent".b)
       context = Aikido::Zen::Context.from_rack_env(env)

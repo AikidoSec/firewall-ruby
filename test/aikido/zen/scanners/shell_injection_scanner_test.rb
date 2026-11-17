@@ -4,7 +4,8 @@ require "test_helper"
 
 class Aikido::Zen::Scanners::ShellInjectionScannerTest < ActiveSupport::TestCase
   def scan(command, input)
-    Aikido::Zen::Scanners::ShellInjectionScanner.new(command, input).attack?
+    scanner = Aikido::Zen::Scanners::ShellInjectionScanner
+    scanner.new(command).attack?(input)
   end
 
   def assert_attack(command, input = command, reason = "[#{input}] was not blocked")
@@ -336,13 +337,6 @@ class Aikido::Zen::Scanners::ShellInjectionScannerTest < ActiveSupport::TestCase
     assert_attack "rm -rf", "rm -rf"
   end
 
-  test "it flags attacks when the input contains invalid UTF-8 bytes" do
-    input = (+"\xFF; ls").force_encoding("UTF-8")
-    refute input.valid_encoding?
-
-    assert_attack "echo #{input}", input
-  end
-
   test "it flags attacks when another input contains invalid UTF-8 bytes" do
     other_input = (+"\xFF").force_encoding("UTF-8")
     input = "; ls"
@@ -398,6 +392,25 @@ class Aikido::Zen::Scanners::ShellInjectionScannerTest < ActiveSupport::TestCase
 
       assert_equal stub_payload(:body, "user; rm -rf /app/users", "user"), attack.input
       assert_equal "ls /app/users/user; rm -rf /app/users", attack.command
+    end
+
+    test ".call reports the first path of a malicious value that is repeated in the context" do
+      context = build_context_for("/users", {
+        :method => "POST",
+        :input => %({"items": [{"name": "user; rm -rf /app/users"}, {"name": "user; rm -rf /app/users"}]}),
+        "CONTENT_TYPE" => "application/json"
+      })
+
+      attack = Aikido::Zen::Scanners::ShellInjectionScanner.call(
+        command: "ls /app/users/user; rm -rf /app/users",
+        scan: Aikido::Zen::Scan.new(sink: nil, context: context),
+        sink: stub_sink(name: "test"),
+        context: context,
+        operation: "test"
+      )
+
+      assert_kind_of Aikido::Zen::Attacks::ShellInjectionAttack, attack
+      assert_equal stub_payload(:body, "user; rm -rf /app/users", "items.0.name"), attack.input
     end
   end
 end

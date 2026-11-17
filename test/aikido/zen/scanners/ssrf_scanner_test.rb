@@ -6,13 +6,13 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
   setup { @redirects = Aikido::Zen::Scanners::SSRFScanner::RedirectChains.new }
 
   def assert_attack(request_uri, input, reason = "`#{input}` was not blocked")
-    scanner = Aikido::Zen::Scanners::SSRFScanner.new(URI(request_uri), input, @redirects)
-    assert scanner.attack?, reason
+    scanner = Aikido::Zen::Scanners::SSRFScanner.new(URI(request_uri), @redirects)
+    assert scanner.attack?(input), reason
   end
 
   def refute_attack(request_uri, input, reason = "`#{input}` was blocked")
-    scanner = Aikido::Zen::Scanners::SSRFScanner.new(URI(request_uri), input, @redirects)
-    refute scanner.attack?, reason
+    scanner = Aikido::Zen::Scanners::SSRFScanner.new(URI(request_uri), @redirects)
+    refute scanner.attack?(input), reason
   end
 
   test "allows the request when either the hostname or input are empty" do
@@ -159,6 +159,28 @@ class Aikido::Zen::Scanners::SSRFScannerTest < ActiveSupport::TestCase
         wrapper.headers
         wrapper.headers
       end
+    end
+  end
+
+  class CallTest < ActiveSupport::TestCase
+    setup do
+      Aikido::Zen.config.request_builder = Aikido::Zen::Context::RACK_REQUEST_BUILDER
+    end
+
+    test ".call reports the first path of a malicious value that is repeated in the context" do
+      context = Aikido::Zen::Context.from_rack_env(Rack::MockRequest.env_for("/users?a=localhost&b=localhost"))
+      request = Aikido::Zen::Scanners::SSRFScanner::Request.new(verb: "GET", uri: URI("http://localhost/admin"), headers: {})
+
+      attack = Aikido::Zen::Scanners::SSRFScanner.call(
+        request: request,
+        scan: Aikido::Zen::Scan.new(sink: nil, context: context),
+        sink: Aikido::Zen::Sink.new("test", "request_op", operation: "test", scanners: [NOOP]),
+        context: context,
+        operation: "test"
+      )
+
+      assert_kind_of Aikido::Zen::Attacks::SSRFAttack, attack
+      assert_equal Aikido::Zen::Payload.new("localhost", :query, "a"), attack.input
     end
   end
 

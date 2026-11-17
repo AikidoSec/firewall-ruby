@@ -136,16 +136,13 @@ module Aikido::Zen
       # @raise [Aikido::Zen::InternalsError] if there's a problem loading or
       #   calling libzen.
       def self.detect_sql_injection(query, input, dialect)
-        query_bytes = Aikido::Zen::Helpers.encode_safely(query)
-        input_bytes = Aikido::Zen::Helpers.encode_safely(input)
+        query_ptr = FFI::MemoryPointer.new(:uint8, query.bytesize)
+        input_ptr = FFI::MemoryPointer.new(:uint8, input.bytesize)
 
-        query_ptr = FFI::MemoryPointer.new(:uint8, query_bytes.bytesize)
-        input_ptr = FFI::MemoryPointer.new(:uint8, input_bytes.bytesize)
+        query_ptr.put_bytes(0, query)
+        input_ptr.put_bytes(0, input)
 
-        query_ptr.put_bytes(0, query_bytes)
-        input_ptr.put_bytes(0, input_bytes)
-
-        result = detect_sql_injection_native(query_ptr, query_bytes.bytesize, input_ptr, input_bytes.bytesize, dialect)
+        result = detect_sql_injection_native(query_ptr, query.bytesize, input_ptr, input.bytesize, dialect)
 
         if result == 2
           attempt = format("scan %s query %p with input %p", dialect, query, input)
