@@ -53,7 +53,7 @@ jobs:
       with:
         persist-credentials: false
     - name: Setup databases
-      uses: ./.github/actions/setup-databases
+      uses: $/.github/actions/setup-databases
     - name: Set up the correct Gemfile for Ruby ${{ matrix.ruby }}
       run: bin/link_gemfile "${{ matrix.ruby }}"
     - name: Set up Ruby
