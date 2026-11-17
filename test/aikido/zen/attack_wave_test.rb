@@ -57,6 +57,18 @@ class Aikido::Zen::AttackWaveTest < ActiveSupport::TestCase
 
       assert_equal "/.config?q=1", sample.path
     end
+
+    test "sample_for builds a sample that can be serialized when the path and query string have invalid UTF-8 bytes" do
+      env = Rack::MockRequest.env_for("/.env")
+      env["PATH_INFO"] = "/.env/\xFF".b
+      env["QUERY_STRING"] = "q=\xFF".b
+      context = Aikido::Zen::Context.from_rack_env(env)
+
+      sample = Aikido::Zen::AttackWave::Helpers.sample_for(context)
+
+      assert_equal "/.env/�?q=�", sample.path
+      assert_nothing_raised { JSON.generate(sample.as_json) }
+    end
   end
 
   class TestClock
