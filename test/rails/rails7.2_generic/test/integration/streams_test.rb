@@ -1,13 +1,14 @@
 require "test_helper"
 
 # ActionController::Live runs the action in its own thread, where Zen's
-# fiber-local context reads back as nil. rails/test_help stubs that thread away,
-# so put it back to get the production behaviour under test.
-ActionController::Live.class_eval do
-  def new_controller_thread
-    Thread.new { yield }.join
-  end
-end
+# fiber-local current context reads back as nil unless it is inherited.
+# The test case stubs that thread away, so put Rails' own method back
+# to get the original behavior.
+rails_new_controller_thread = ActionController::Live.instance_method(:new_controller_thread)
+
+require "action_controller/test_case"
+
+ActionController::Live.send(:define_method, :new_controller_thread, rails_new_controller_thread)
 
 class StreamsTest < ActionDispatch::IntegrationTest
   setup do
