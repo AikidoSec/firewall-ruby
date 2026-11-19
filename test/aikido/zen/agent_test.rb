@@ -239,7 +239,7 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   end
 
   test "#start! starts heartbeats and the api_stream even if the initial settings update reports no change" do
-    assert_difference "@worker.jobs.size", +1 do
+    assert_difference "@worker.recurring.size", +1 do
       @agent.stub :update_settings_from_runtime_config!, ->(*) { false } do
         @agent.start!
       end
@@ -252,12 +252,12 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   test "#start! starts polling for setting updates every minute" do
     @api_client.expect :should_fetch_settings?, false
 
-    assert_difference "@worker.jobs.size", +1 do
+    assert_difference "@worker.recurring.size", +1 do
       @agent.start!
     end
 
-    timer = @worker.jobs.first
-    assert_equal @config.polling_interval, timer.execution_interval
+    timer = @worker.recurring.first
+    assert_equal @config.polling_interval, timer.interval
 
     refute_logged :info, /updated runtime settings after polling/i
 
@@ -275,6 +275,54 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
     assert_logged :info, /updated runtime settings after polling/i
 
     assert_mock @api_client
+  end
+
+  test "#start! queues a one-off tasks for each initial heartbeat delay" do
+    size = @config.initial_heartbeat_delays.size
+
+    assert_difference "@worker.delayed.size", size do
+      @agent.start!
+    end
+
+    tasks = @worker.delayed.last(size)
+
+    size.times do |i|
+      assert_equal @config.initial_heartbeat_delays[i], tasks[i].interval
+      assert tasks[i].scheduled? # is queued for execution
+    end
+  end
+
+  test "#start! successfully sends the initial heartbeats" do
+    # Make sure there are _some_ stats
+    @collector.track_request
+
+    # Ignore the actual delay
+    def @worker.delay(*)
+      yield
+      MockDelayedTask.new(scheduled: false)
+    end
+
+    heartbeat_sent = false
+
+    @agent.stub(:send_heartbeat, -> { heartbeat_sent = true }) do
+      @agent.start!
+    end
+
+    assert heartbeat_sent
+  end
+
+  test "#stop! cancels the polling and the initial heartbeats that it scheduled" do
+    @agent.start!
+
+    tasks = @worker.recurring + @worker.delayed
+
+    refute_empty @worker.recurring
+    refute_empty @worker.delayed
+    assert tasks.all?(&:scheduled?)
+
+    @agent.stop!
+
+    refute tasks.any?(&:scheduled?)
   end
 
   test "#handle_attack logs the attack's message" do
@@ -445,12 +493,12 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   test "#updated_settings! configures a timer for the configured frequency" do
     Aikido::Zen.runtime_settings.heartbeat_interval = 10
 
-    assert_difference "@worker.jobs.size", +1 do
+    assert_difference "@worker.recurring.size", +1 do
       @agent.updated_settings!
     end
 
-    timer = @worker.jobs.first
-    assert_equal 10, timer.execution_interval
+    timer = @worker.recurring.first
+    assert_equal 10, timer.interval
 
     assert_logged :debug, /scheduling heartbeats every 10 seconds/i
   end
@@ -458,65 +506,32 @@ class Aikido::Zen::AgentTest < ActiveSupport::TestCase
   test "#updated_settings! resets the timer if the interval changes" do
     settings = Aikido::Zen.runtime_settings
     settings.heartbeat_interval = 10
-    assert_difference "@worker.jobs.size", +1 do
+    assert_difference "@worker.recurring.size", +1 do
       @agent.updated_settings!
     end
 
-    first_timer = @worker.jobs.last
-    assert_equal 10, first_timer.execution_interval
-    assert first_timer.running?
+    first_timer = @worker.recurring.last
+    assert_equal 10, first_timer.interval
+    assert first_timer.scheduled?
 
     settings.heartbeat_interval = 20
-    assert_difference "@worker.jobs.size", +1 do
+    assert_difference "@worker.recurring.size", +1 do
       @agent.updated_settings!
     end
 
-    second_timer = @worker.jobs.last
-    assert_equal 20, second_timer.execution_interval
-    refute first_timer.running?
-    assert second_timer.running?
+    second_timer = @worker.recurring.last
+    assert_equal 20, second_timer.interval
+    refute first_timer.scheduled?
+    assert second_timer.scheduled?
   end
 
   test "#updated_settings! does not restart heartbeats when they are running and not stale" do
     Aikido::Zen.runtime_settings.heartbeat_interval = 10
     @agent.updated_settings!
 
-    assert_no_difference "@worker.jobs.size" do
+    assert_no_difference "@worker.recurring.size" do
       @agent.updated_settings!
     end
-  end
-
-  test "#start! queues a one-off tasks for each initial heartbeat delay" do
-    size = @config.initial_heartbeat_delays.size
-
-    assert_difference "@worker.delayed.size", size do
-      @agent.start!
-    end
-
-    tasks = @worker.delayed.last(size)
-
-    size.times do |i|
-      assert_equal @config.initial_heartbeat_delays[i], tasks[i].initial_delay
-      assert tasks[i].pending? # is queued for execution
-    end
-  end
-
-  test "#start! successfully sends the initial heartbeats" do
-    # Make sure there are _some_ stats
-    @collector.track_request
-
-    # Ignore the actual delay
-    def @worker.delay(*)
-      yield
-    end
-
-    heartbeat_sent = false
-
-    @agent.stub(:send_heartbeat, -> { heartbeat_sent = true }) do
-      @agent.start!
-    end
-
-    assert heartbeat_sent
   end
 
   test "#updated_settings! does not queue a one-off task if the server received stats" do

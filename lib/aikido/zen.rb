@@ -145,6 +145,13 @@ module Aikido
       @collector ||= Collector.new
     end
 
+    # The worker that runs the background work of Zen, in a background thread.
+    #
+    # @return [Aikido::Zen::Worker]
+    def self.worker
+      @worker ||= Worker.new
+    end
+
     # Gets the current context object that holds all information about the
     # current request.
     #
@@ -501,6 +508,10 @@ module Aikido
       @worker_process_client = nil
       client&.stop
 
+      worker = @worker
+      @worker = nil
+      worker&.stop
+
       @running.make_false
     end
 
@@ -523,6 +534,8 @@ module Aikido
         @worker_process_server = WorkerProcess::Agent::Server.new
         @worker_process_server.start
 
+        worker.start
+
         @agent = Agent.start
       end
 
@@ -542,6 +555,10 @@ module Aikido
         client = @worker_process_client
         @worker_process_client = nil
         client&.close
+
+        # The worker thread does not survive the fork and must be restarted.
+        worker.stop
+        worker.start
 
         case config.agent_mode
         when :per_worker

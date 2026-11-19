@@ -20,7 +20,7 @@ module Aikido::Zen
       config: Aikido::Zen.config,
       settings: Aikido::Zen.runtime_settings,
       collector: Aikido::Zen.collector,
-      worker: Aikido::Zen::Worker.new(config: config),
+      worker: Aikido::Zen.worker,
       api_client: Aikido::Zen::APIClient.new(config: config),
       api_stream: Aikido::Zen::APIStream.new(config: config)
     )
@@ -32,6 +32,10 @@ module Aikido::Zen
       @api_stream = api_stream
 
       @started_at = nil
+
+      # The worker is shared, so the tasks that are scheduled by this agent
+      # are cancelled when it is stopped.
+      @tasks = Concurrent::Array.new
 
       @runtime_config_update_mutex = Mutex.new
       @runtime_firewall_lists_update_mutex = Mutex.new
@@ -92,7 +96,7 @@ module Aikido::Zen
       poll_for_setting_updates
 
       @config.initial_heartbeat_delays.each do |heartbeat_delay|
-        @worker.delay(heartbeat_delay) do
+        @tasks << @worker.delay(heartbeat_delay) do
           send_heartbeat
           @config.logger.info("Executed initial heartbeat after #{heartbeat_delay} seconds")
         end
@@ -106,7 +110,10 @@ module Aikido::Zen
     def stop!
       @config.logger.info("Stopping Aikido agent")
       @started_at = nil
-      @worker.shutdown
+
+      @tasks.each(&:cancel)
+
+      @heartbeats&.stop
 
       @api_stream.stop!
     end
@@ -208,7 +215,7 @@ module Aikido::Zen
     # @return [void]
     # @see Aikido::Zen::RuntimeSettings
     def poll_for_setting_updates
-      @worker.every(@config.polling_interval, run_now: true) do
+      @tasks << @worker.every(@config.polling_interval, run_now: true) do
         if @api_client.should_fetch_settings?
           if update_settings_from_runtime_config!(@api_client.fetch_runtime_config, reason: "after polling")
             updated_settings!

@@ -4,85 +4,136 @@ require "concurrent"
 
 module Aikido::Zen
   # @api private
-  #
-  # The worker manages the background thread in which Zen communicates with the
-  # Aikido server.
   class Worker
-    # @return [Concurrent::ExecutorService]
-    attr_reader :executor
+    class Task
+      # @param block [Proc] the block that cancels the scheduled work
+      def initialize(&block)
+        @initialize_block = block
 
-    # @!visibility private
-    attr_reader :timers, :deferrals
+        @cancelled = Concurrent::AtomicBoolean.new(false)
+      end
 
-    def initialize(config: Aikido::Zen.config)
-      @config = config
-      @timers = []
-      @deferrals = []
-      @executor = Concurrent::SingleThreadExecutor.new
-    end
+      # Cancels the scheduled work once, the first time it is called.
+      #
+      # @return [void]
+      def cancel
+        @initialize_block.call if @cancelled.make_true
 
-    # Queue a block to be run asynchronously in the background thread.
-    #
-    # @return [void]
-    def perform(&block)
-      executor.post do
-        yield
-      rescue Exception => err # rubocop:disable Lint/RescueException
-        @config.logger.error("Error in background worker: #{err.class}: #{err.message}")
-        @config.logger.debug(err.backtrace.join("\n"))
+        nil
       end
     end
 
-    # Queue a block to be run asynchronously after a delay.
-    #
-    # @param interval [Integer] amount of seconds to wait.
-    # @return [void]
-    def delay(interval, &task)
-      Concurrent::ScheduledTask
-        .execute(interval, executor: executor) { perform(&task) }
-        .tap { |deferral| @deferrals << deferral }
+    class NotRunningError < Aikido::ZenError; end
+
+    def initialize(config: Aikido::Zen.config)
+      @config = config
+
+      @executor = nil
+
+      @tasks = Concurrent::Set.new
+
+      @running = Concurrent::AtomicBoolean.new(false)
     end
 
-    # Queue a block to run repeatedly on a timer on the background thread. The
-    # timer will consider how long the block takes to run to schedule the next
-    # run. For example, if you schedule a block to run every 10 seconds, and the
-    # block itself takes 2 seconds, the second iteration will be run 8 seconds
-    # after the first one.
-    #
-    # If the block takes longer than the given interval, the second iteration
-    # will be run immediately.
-    #
-    # @param interval [Integer] amount of seconds to wait between runs.
-    # @param run_now [Boolean] whether to run the block immediately, or wait for
-    #   +interval+ seconds before the first run. Defaults to +true+.
-    # @return [void]
-    def every(interval, run_now: true, &task)
-      Concurrent::TimerTask
-        .execute(
-          run_now: run_now,
-          executor: executor,
-          interval_type: :fixed_rate,
-          execution_interval: interval
-        ) {
-          perform(&task)
-        }
-        .tap { |timer| @timers << timer }
+    def running?
+      @running.true?
     end
 
-    # Safely clean up and kill the thread, giving time to kill any ongoing tasks
-    # on the queue.
-    #
-    # @return [void]
-    def shutdown
-      @deferrals.each { |task| task.cancel if task.pending? }
-      @timers.each { |task| task.shutdown }
+    def start
+      return false unless @running.make_true
+
+      @executor = Concurrent::SingleThreadExecutor.new
+
+      # Create the thread of the executor now, instead of when the first block is queued.
+      @executor.post {}
+
+      true
+    end
+
+    def stop
+      return false unless @running.make_false
+
+      @tasks.to_a.each(&:cancel)
+
       @executor.shutdown
       @executor.wait_for_termination(30)
+
+      true
     end
 
-    def restart
-      shutdown
-      @executor = Concurrent::SingleThreadExecutor.new
+    # Queue a block to be run asynchronously.
+    #
+    # @return [void]
+    # @raise [NotRunningError] if the worker is not running
+    def perform(&block)
+      ensure_running
+
+      @executor.post { run(&block) }
+    end
+
+    # Queue a block to be run asynchronously, after +interval+ seconds.
+    #
+    # @param interval [Integer] the number of seconds to wait before running
+    # @return [Task]
+    # @raise [NotRunningError] if the worker is not running
+    def delay(interval, &block)
+      ensure_running
+
+      deferral = Concurrent::ScheduledTask.execute(
+        interval,
+        executor: @executor
+      ) do
+        run(&block)
+      end
+
+      schedule { deferral.cancel }
+    end
+
+    # Queue a block to be run asynchronously, every +interval+ seconds.
+    #
+    # If a run takes longer than that, the next run starts immediately.
+    #
+    # @param interval [Integer] the number of seconds between runs
+    # @param run_now [Boolean] whether to also run the block immediately
+    # @return [Task]
+    # @raise [NotRunningError] if the worker is not running
+    def every(interval, run_now: true, &block)
+      ensure_running
+
+      timer = Concurrent::TimerTask.execute(
+        executor: @executor,
+        run_now: run_now,
+        execution_interval: interval,
+        interval_type: :fixed_rate
+      ) do
+        run(&block)
+      end
+
+      schedule { timer.shutdown }
+    end
+
+    private
+
+    def ensure_running
+      raise NotRunningError, "The worker is not running" unless running?
+    end
+
+    def run
+      yield
+    rescue Exception => err # rubocop:disable Lint/RescueException
+      @config.logger.error("Error in background worker: #{err.class}: #{err.message}")
+      @config.logger.debug(err.backtrace.join("\n"))
+    end
+
+    def schedule(&cancel)
+      task = Task.new do
+        @tasks.delete(task)
+        cancel.call
+      end
+
+      @tasks << task
+
+      task
     end
   end
 end

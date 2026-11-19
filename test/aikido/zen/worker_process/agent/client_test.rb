@@ -50,6 +50,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       # Ignore the actual delay before polling starts.
       def worker.delay(*)
         yield
+        MockDelayedTask.new(scheduled: false)
       end
 
       agent = Aikido::Zen::WorkerProcess::Agent::Client.new(
@@ -76,8 +77,8 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       Aikido::Zen::WorkerProcess::Agent::Client.new(
         "127.0.0.1", 12345, worker: worker, keepalive_worker: keepalive_worker
       )
-      assert_empty worker.jobs
-      assert_empty keepalive_worker.jobs
+      assert_empty worker.recurring
+      assert_empty keepalive_worker.recurring
     end
   end
 
@@ -87,16 +88,16 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
 
       assert client.closed
       refute client.stopped
-      assert worker.jobs.all?(&:running?)
-      assert keepalive_worker.jobs.all?(&:running?)
+      assert worker.recurring.all?(&:scheduled?)
+      assert keepalive_worker.recurring.all?(&:scheduled?)
     end
   end
 
   test "#start connects the RPC client and schedules three tasks across two workers" do
     build_agent("updated_settings" => {}) do |agent, worker, collector, client, keepalive_worker|
       assert client.started
-      assert_equal 2, worker.jobs.size
-      assert_equal 1, keepalive_worker.jobs.size
+      assert_equal 2, worker.recurring.size
+      assert_equal 1, keepalive_worker.recurring.size
     end
   end
 
@@ -122,7 +123,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       agent.start
 
       assert_equal 1, worker.delayed.size
-      assert_includes 1..5, worker.delayed.first.initial_delay
+      assert_includes 1..5, worker.delayed.first.interval
     end
   end
 
@@ -147,7 +148,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       )
       agent.start
 
-      assert_equal 0, worker.delayed.first.initial_delay
+      assert_equal 0, worker.delayed.first.interval
     end
   end
 
@@ -172,13 +173,23 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     end
   end
 
-  test "#stop does stop the RPC client and does shut down the worker" do
+  test "#stop stops the RPC client and cancels the tasks that it scheduled on its keepalive worker and on the shared worker" do
     build_agent("updated_settings" => {}) do |agent, worker, collector, client, keepalive_worker|
       agent.stop
 
       assert client.stopped
-      assert worker.jobs.none?(&:running?)
-      assert keepalive_worker.jobs.none?(&:running?)
+      assert keepalive_worker.recurring.none?(&:scheduled?)
+      assert worker.recurring.none?(&:scheduled?)
+    end
+  end
+
+  test "#stop does not cancel the tasks that other components scheduled on the shared worker" do
+    build_agent("updated_settings" => {}) do |agent, worker, collector, client, keepalive_worker|
+      other_task = worker.every(10, run_now: false) {}
+
+      agent.stop
+
+      assert other_task.scheduled?
     end
   end
 
@@ -339,14 +350,14 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
 
   test "the scheduled keepalive task pings the parent" do
     build_agent("updated_settings" => {}) do |agent, worker, collector, client, keepalive_worker|
-      assert_nothing_raised { keepalive_worker.jobs[0].task.call }
+      assert_nothing_raised { keepalive_worker.recurring[0].block.call }
     end
   end
 
   test "the scheduled keepalive task logs an error when the RPC call raises" do
     build_agent("updated_settings" => {}) do |agent, worker, collector, client, keepalive_worker|
       client.stub(:invoke, ->(*) { raise "boom" }) do
-        keepalive_worker.jobs[0].task.call
+        keepalive_worker.recurring[0].block.call
 
         assert_logged :error, /keepalive failed: boom/
       end
@@ -355,7 +366,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
 
   test "the scheduled polling task updates settings from the parent" do
     build_agent("updated_settings" => {}) do |agent, worker, collector, client|
-      assert_nothing_raised { worker.jobs[0].task.call }
+      assert_nothing_raised { worker.recurring[0].block.call }
     end
   end
 
@@ -388,7 +399,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       "firewall_lists" => firewall_data,
       "firewall_lists_generation" => 9
     }) do |agent, worker, collector, client|
-      worker.jobs[0].task.call
+      worker.recurring[0].block.call
 
       assert_logged :debug, /starting runtime settings update/
       assert_logged :debug, /finished runtime settings update/
@@ -397,7 +408,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
 
   test "the scheduled polling task does not log when settings are unchanged" do
     build_agent("updated_settings" => {}) do |agent, worker, collector, client|
-      worker.jobs[0].task.call
+      worker.recurring[0].block.call
 
       refute_logged :debug, /runtime settings update/
     end
@@ -432,7 +443,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       "firewall_lists" => firewall_data,
       "firewall_lists_generation" => 9
     }) do |agent, worker, collector, client|
-      worker.jobs[0].task.call
+      worker.recurring[0].block.call
 
       _name, args = client.invoke_calls.last
       assert_equal [KEEPALIVE_INTERVAL, 5, 9], args
@@ -445,7 +456,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       "firewall_lists_generation" => 9
     }) do |agent, worker, collector, client|
       Aikido::Zen.firewall.stub :update_from_json, ->(*) { raise "boom" } do
-        worker.jobs[0].task.call
+        worker.recurring[0].block.call
       end
 
       assert_logged :error, /failed to get settings from parent: boom/
@@ -473,7 +484,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       "config" => config_data,
       "config_generation" => 5
     }) do |agent, worker, collector, client|
-      worker.jobs[0].task.call
+      worker.recurring[0].block.call
 
       assert_equal 60, Aikido::Zen.runtime_settings.heartbeat_interval
 
@@ -496,7 +507,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
       "firewall_lists" => firewall_data,
       "firewall_lists_generation" => 9
     }) do |agent, worker, collector, client|
-      worker.jobs[0].task.call
+      worker.recurring[0].block.call
 
       _name, args = client.invoke_calls.last
       assert_equal [KEEPALIVE_INTERVAL, nil, 9], args
@@ -534,7 +545,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
     }) do |agent, worker, collector, client|
       client.invoke_results["updated_settings"] = {}
 
-      assert_nothing_raised { worker.jobs[0].task.call }
+      assert_nothing_raised { worker.recurring[0].block.call }
 
       _name, args = client.invoke_calls.last
       assert_equal [KEEPALIVE_INTERVAL, 5, 9], args
@@ -544,7 +555,7 @@ class Aikido::Zen::WorkerProcess::Agent::ClientTest < ActiveSupport::TestCase
   test "the scheduled polling task logs an error when the RPC call raises" do
     build_agent("updated_settings" => {}) do |agent, worker, collector, client|
       client.stub(:invoke, ->(*) { raise "boom" }) do
-        worker.jobs[0].task.call
+        worker.recurring[0].block.call
 
         assert_logged :error, /failed to get settings from parent: boom/
       end
@@ -589,9 +600,12 @@ class Aikido::Zen::WorkerProcess::Agent::ClientIntegrationTest < ActiveSupport::
   end
 
   def build_client
+    worker = Aikido::Zen::Worker.new
+    worker.start
+
     Aikido::Zen::WorkerProcess::Agent::Client.new(
       @server.host, @server.port,
-      worker: Aikido::Zen::Worker.new,
+      worker: worker,
       collector: Aikido::Zen.collector,
       polling_interval: 1,
       polling_jitter: 0

@@ -61,6 +61,7 @@ class ActiveSupport::TestCase
   setup do
     Aikido::Zen.instance_variable_set(:@info, nil)
     Aikido::Zen.instance_variable_set(:@agent, nil)
+    Aikido::Zen.instance_variable_set(:@worker, nil)
     Aikido::Zen.instance_variable_set(:@config, nil)
 
     collector = Aikido::Zen::Collector.new

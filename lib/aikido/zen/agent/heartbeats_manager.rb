@@ -10,17 +10,18 @@ module Aikido::Zen
       @worker = worker
 
       @timer = nil
+      @scheduled_interval = nil
     end
 
     # @return [Boolean]
     def running?
-      !!@timer&.running?
+      !@timer.nil?
     end
 
     # @return [Boolean] whether the currently running heartbeat matches the
     #   expected interval in the runtime settings.
     def stale_settings?
-      running? && @timer.execution_interval != interval
+      running? && @scheduled_interval != interval
     end
 
     # Sets up the the timer to run the given block at the appropriate interval.
@@ -32,6 +33,7 @@ module Aikido::Zen
 
       if interval&.nonzero?
         @config.logger.debug "Scheduling heartbeats every #{interval} seconds"
+        @scheduled_interval = interval
         @timer = @worker.every(interval, run_now: false, &task)
       else
         @config.logger.warn(format("Heartbeat could not be set up (interval: %p)", interval))
@@ -44,7 +46,7 @@ module Aikido::Zen
     def stop
       return unless running?
 
-      @timer.shutdown
+      @timer.cancel
       @timer = nil
     end
 

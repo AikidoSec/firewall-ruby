@@ -16,7 +16,7 @@ module Aikido::Zen::WorkerProcess
         port,
         secret: Aikido::Zen.secret,
         config: Aikido::Zen.config,
-        worker: Aikido::Zen::Worker.new(config: config),
+        worker: Aikido::Zen.worker,
         keepalive_worker: Aikido::Zen::Worker.new(config: config),
         polling_interval: config.worker_process_polling_interval,
         polling_jitter: config.worker_process_polling_jitter,
@@ -33,6 +33,10 @@ module Aikido::Zen::WorkerProcess
 
         @rpc_client = Aikido::Zen::RPC::Client.new(secret, host, port, reconnect: true)
 
+        # The worker is shared, so the tasks that are scheduled by this client
+        # are cancelled when it is stopped.
+        @tasks = Concurrent::Array.new
+
         @known_config_generation = nil
         @known_firewall_lists_generation = nil
       end
@@ -43,12 +47,14 @@ module Aikido::Zen::WorkerProcess
 
       def start
         @rpc_client.start
+        @keepalive_worker.start
         schedule_tasks
       end
 
       def stop
-        @keepalive_worker.shutdown
-        @worker.shutdown
+        @tasks.each(&:cancel)
+
+        @keepalive_worker.stop
         @rpc_client.stop
       end
 
@@ -137,14 +143,14 @@ module Aikido::Zen::WorkerProcess
         # Delay start polling to reduce the chance of workers polling in lockstep.
         delay = polling_start_delay
         @config.logger.debug("Forked worker process #{Process.pid}: will start polling in #{delay}s")
-        @worker.delay(delay) { start_polling }
+        @tasks << @worker.delay(delay) { start_polling }
 
-        @worker.every(@heartbeat_interval, run_now: false) { send_collector_events }
+        @tasks << @worker.every(@heartbeat_interval, run_now: false) { send_collector_events }
       end
 
       def start_polling
         @config.logger.debug("Forked worker process #{Process.pid}: started polling")
-        @worker.every(@polling_interval, run_now: true) { update_settings }
+        @tasks << @worker.every(@polling_interval, run_now: true) { update_settings }
       end
 
       def polling_start_delay

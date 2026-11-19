@@ -7,6 +7,14 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     Aikido::Zen::Context.from_rack_env(Rack::MockRequest.env_for(path, env))
   end
 
+  def recording_worker(calls)
+    worker = WorkerHelpers::MockWorker.new
+    %i[start stop].each do |name|
+      worker.define_singleton_method(name) { calls << name }
+    end
+    worker
+  end
+
   test "it has a version number" do
     refute_nil ::Aikido::Zen::VERSION
   end
@@ -462,9 +470,56 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     Aikido::Zen.instance_variable_set(:@worker_process_client, nil)
   end
 
-  test ".stop! stops and clears the agent, worker process server and client, and marks Zen as no longer running" do
+  test ".worker returns the same worker every time" do
+    assert_same Aikido::Zen.worker, Aikido::Zen.worker
+  end
+
+  test ".worker returns a worker that is not started" do
+    refute Aikido::Zen.worker.running?
+  end
+
+  test ".worker is the default worker of the agent" do
+    assert_same Aikido::Zen.worker, Aikido::Zen::Agent.new.instance_variable_get(:@worker)
+  end
+
+  test ".start! starts the worker before it starts the agent" do
+    Aikido::Zen.config.api_token = "TOKEN"
+
+    server = Minitest::Mock.new
+    server.expect(:start, nil)
+    server.expect(:stop, nil)
+
     agent = Minitest::Mock.new
     agent.expect(:stop!, nil)
+
+    calls = []
+    Aikido::Zen.instance_variable_set(:@worker, recording_worker(calls))
+
+    start_agent = lambda do
+      calls << :agent_start
+      agent
+    end
+
+    Aikido::Zen::WorkerProcess::Agent::Server.stub(:new, server) do
+      Aikido::Zen::Agent.stub(:start, start_agent) do
+        Aikido::Zen.start!
+      end
+    end
+
+    assert_equal %i[start agent_start], calls
+
+    Aikido::Zen.stop!
+
+    assert_mock server
+    assert_mock agent
+  end
+
+  test ".stop! stops and clears the agent, the worker, and the worker process server and client, and marks Zen as no longer running" do
+    agent = Minitest::Mock.new
+    agent.expect(:stop!, nil)
+
+    worker = Minitest::Mock.new
+    worker.expect(:stop, nil)
 
     server = Minitest::Mock.new
     server.expect(:stop, nil)
@@ -473,6 +528,7 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     client.expect(:stop, nil)
 
     Aikido::Zen.instance_variable_set(:@agent, agent)
+    Aikido::Zen.instance_variable_set(:@worker, worker)
     Aikido::Zen.instance_variable_set(:@worker_process_server, server)
     Aikido::Zen.instance_variable_set(:@worker_process_client, client)
     Aikido::Zen.instance_variable_set(:@running, Concurrent::AtomicBoolean.new(true))
@@ -480,9 +536,11 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     Aikido::Zen.stop!
 
     assert_mock agent
+    assert_mock worker
     assert_mock server
     assert_mock client
     assert_nil Aikido::Zen.agent
+    assert_nil Aikido::Zen.instance_variable_get(:@worker)
     assert_nil Aikido::Zen.worker_process_server
     assert_nil Aikido::Zen.instance_variable_get(:@worker_process_client)
     assert_equal false, Aikido::Zen.instance_variable_get(:@running).true?
@@ -545,6 +603,43 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     assert_nil Aikido::Zen.agent
   end
 
+  test ".fork! in per worker agent mode stops and starts the worker, before starting the new agent" do
+    Aikido::Zen.config.agent_mode = :per_worker
+
+    old_server = Minitest::Mock.new
+    old_server.expect(:close, nil)
+
+    old_agent = Minitest::Mock.new
+    old_agent.expect(:stop!, nil)
+
+    new_agent = Minitest::Mock.new
+    new_agent.expect(:stop!, nil)
+
+    calls = []
+    Aikido::Zen.instance_variable_set(:@worker, recording_worker(calls))
+    Aikido::Zen.instance_variable_set(:@agent, old_agent)
+    Aikido::Zen.instance_variable_set(:@worker_process_server, old_server)
+    Aikido::Zen.instance_variable_set(:@running, Concurrent::AtomicBoolean.new(true))
+
+    start_agent = lambda do
+      calls << :agent_start
+      new_agent
+    end
+
+    Aikido::Zen::Agent.stub(:start, start_agent) do
+      Aikido::Zen.fork!
+    end
+
+    assert_equal %i[stop start agent_start], calls
+
+    assert_mock old_server
+    assert_mock old_agent
+
+    Aikido::Zen.stop!
+
+    assert_mock new_agent
+  end
+
   test ".fork! in shared agent mode closes the existing server and client, and connects a new client to the still-running parent" do
     parent = Aikido::Zen::WorkerProcess::Agent::Server.new
     parent.start
@@ -568,6 +663,32 @@ class Aikido::ZenTest < ActiveSupport::TestCase
     assert_nil Aikido::Zen.worker_process_server
     assert_kind_of Aikido::Zen::WorkerProcess::Agent::Client, Aikido::Zen.instance_variable_get(:@worker_process_client)
   ensure
+    parent.close
+  end
+
+  test ".fork! in shared agent mode stops and starts the worker" do
+    parent = Aikido::Zen::WorkerProcess::Agent::Server.new
+    parent.start
+
+    old_server = Minitest::Mock.new
+    old_server.expect(:host, parent.host)
+    old_server.expect(:port, parent.port)
+    old_server.expect(:close, nil)
+
+    calls = []
+    Aikido::Zen.instance_variable_set(:@worker, recording_worker(calls))
+    Aikido::Zen.instance_variable_set(:@worker_process_server, old_server)
+    Aikido::Zen.instance_variable_set(:@running, Concurrent::AtomicBoolean.new(true))
+
+    Aikido::Zen.fork!
+
+    assert_equal %i[stop start], calls
+
+    assert_mock old_server
+
+    refute_logged :error, /failed to start/
+  ensure
+    Aikido::Zen.instance_variable_get(:@worker_process_client)&.stop
     parent.close
   end
 

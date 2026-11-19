@@ -1,7 +1,7 @@
 module WorkerHelpers
-  MockWorker = Struct.new(:jobs, :delayed, :restarted) do
+  MockWorker = Struct.new(:recurring, :delayed) do
     def initialize
-      super([], [], false)
+      super([], [])
     end
 
     def perform(&block)
@@ -9,41 +9,38 @@ module WorkerHelpers
     end
 
     def delay(interval, &block)
-      MockDefer.new(queued: true, interval: interval)
+      MockDelayedTask.new(scheduled: true, interval: interval)
         .tap { |task| delayed << task }
     end
 
-    def every(interval, run_now: true, &task)
+    def every(interval, run_now: true, &block)
       yield if run_now
-      MockTimer.new(running: true, interval: interval, run_now: run_now, task: task)
-        .tap { |timer| jobs << timer }
+      MockRecurringTask.new(scheduled: true, interval: interval, run_now: run_now, block: block)
+        .tap { |task| recurring << task }
     end
 
-    def shutdown
-      jobs.each(&:shutdown)
+    def start
+      true
     end
 
-    def restart
-      jobs.clear
-      self[:restarted] = true
+    def stop
+      recurring.each(&:cancel)
     end
   end
 
-  MockDefer = Struct.new(:queued, :interval, keyword_init: true) do
-    alias_method :pending?, :queued
-    alias_method :initial_delay, :interval
+  MockDelayedTask = Struct.new(:scheduled, :interval, keyword_init: true) do
+    alias_method :scheduled?, :scheduled
 
     def cancel
-      self.queued = false
+      self.scheduled = false
     end
   end
 
-  MockTimer = Struct.new(:running, :interval, :run_now, :task, keyword_init: true) do
-    alias_method :running?, :running
-    alias_method :execution_interval, :interval
+  MockRecurringTask = Struct.new(:scheduled, :interval, :run_now, :block, keyword_init: true) do
+    alias_method :scheduled?, :scheduled
 
-    def shutdown
-      self.running = false
+    def cancel
+      self.scheduled = false
     end
   end
 end
