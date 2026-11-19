@@ -131,6 +131,10 @@ module Aikido::Zen
             Helpers.scan(file_name, "expand_path")
           end
 
+          sink_before :absolute_path do |file_name|
+            Helpers.scan(file_name, "absolute_path")
+          end
+
           sink_before :realpath do |file_name|
             Helpers.scan(file_name, "realpath")
           end
