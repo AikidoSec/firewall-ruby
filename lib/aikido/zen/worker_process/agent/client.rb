@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "../../background_worker"
-
 module Aikido::Zen::WorkerProcess
   module Agent
     class Client
