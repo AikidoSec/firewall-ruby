@@ -10,6 +10,7 @@ Rails.application.routes.draw do
   get "manifest" => "rails/pwa#manifest", :as => :pwa_manifest
 
   get "streams" => "streams#show"
+  post "jobs" => "jobs#create"
   get "test/rate_limit" => "rate_limit#show"
 
   # Defines the root path route ("/")

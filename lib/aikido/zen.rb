@@ -169,6 +169,34 @@ module Aikido
       Fiber.current.aikido_current_context = context
     end
 
+    # Executes a block with the given context.
+    #
+    # @param context [Aikido::Zen::Context, nil]
+    # @yield the block to execute with the given current context
+    # @return [Object] the result of the block
+    # @raise [ArgumentError] if no block is given
+    def self.with_context(context)
+      raise ArgumentError, "block required" unless block_given?
+
+      previous_context = current_context
+      self.current_context = context
+
+      begin
+        yield
+      ensure
+        self.current_context = previous_context
+      end
+    end
+
+    # Executes a block with no context.
+    #
+    # @yield the block to execute with no current context
+    # @return [Object] the result of the block
+    # @raise [ArgumentError] if no block is given
+    def self.without_context(&block)
+      with_context(nil, &block)
+    end
+
     # @return [Boolean] whether the current request is bypassed.
     def self.request_bypassed?
       context = current_context

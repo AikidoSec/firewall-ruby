@@ -867,4 +867,106 @@ class Aikido::ZenTest < ActiveSupport::TestCase
       assert_logged :warn, /Dropped custom event event\.over_the_limit/
     end
   end
+
+  test ".with_context executes a block with the given context and restores the previous one" do
+    previous = Aikido::Zen.current_context = context_for("/previous")
+    given = context_for("/given")
+
+    result = Aikido::Zen.with_context(given) do
+      assert_same given, Aikido::Zen.current_context
+      :result
+    end
+
+    assert_equal :result, result
+    assert_same previous, Aikido::Zen.current_context
+  end
+
+  test ".with_context restores the previous context when the block raises" do
+    previous = Aikido::Zen.current_context = context_for("/previous")
+
+    assert_raises(RuntimeError) do
+      Aikido::Zen.with_context(context_for("/given")) { raise "boom" }
+    end
+
+    assert_same previous, Aikido::Zen.current_context
+  end
+
+  test ".with_context executes the block even if no context is set" do
+    assert_nil Aikido::Zen.current_context
+
+    assert_equal :result, Aikido::Zen.with_context(context_for("/given")) { :result }
+    assert_nil Aikido::Zen.current_context
+  end
+
+  test ".with_context raises ArgumentError if no block is given and keeps the context" do
+    context = Aikido::Zen.current_context = context_for("/")
+
+    err = assert_raises(ArgumentError) do
+      Aikido::Zen.with_context(context_for("/given"))
+    end
+
+    assert_equal "block required", err.message
+    assert_same context, Aikido::Zen.current_context
+  end
+
+  test ".with_context creates threads with the given context" do
+    given = context_for("/given")
+
+    thread_context = Aikido::Zen.with_context(given) do
+      Thread.new { Aikido::Zen.current_context }.value
+    end
+
+    assert_same given, thread_context
+    assert_nil Aikido::Zen.current_context
+  end
+
+  test ".without_context executes a block with no context and restores the previous one" do
+    context = Aikido::Zen.current_context = context_for("/")
+
+    result = Aikido::Zen.without_context do
+      assert_nil Aikido::Zen.current_context
+      :result
+    end
+
+    assert_equal :result, result
+    assert_same context, Aikido::Zen.current_context
+  end
+
+  test ".without_context restores the previous context when the block raises" do
+    context = Aikido::Zen.current_context = context_for("/")
+
+    assert_raises(RuntimeError) do
+      Aikido::Zen.without_context { raise "boom" }
+    end
+
+    assert_same context, Aikido::Zen.current_context
+  end
+
+  test ".without_context executes the block even if no context is set" do
+    assert_nil Aikido::Zen.current_context
+
+    assert_equal :result, Aikido::Zen.without_context { :result }
+    assert_nil Aikido::Zen.current_context
+  end
+
+  test ".without_context raises ArgumentError if no block is given and keeps the context" do
+    context = Aikido::Zen.current_context = context_for("/")
+
+    err = assert_raises(ArgumentError) do
+      Aikido::Zen.without_context
+    end
+
+    assert_equal "block required", err.message
+    assert_same context, Aikido::Zen.current_context
+  end
+
+  test ".without_context creates threads with no context" do
+    Aikido::Zen.current_context = context_for("/")
+
+    thread_context = Aikido::Zen.without_context do
+      Thread.new { Aikido::Zen.current_context }.value
+    end
+
+    assert_nil thread_context
+  end
 end

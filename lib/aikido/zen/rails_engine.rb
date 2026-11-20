@@ -4,6 +4,34 @@ require "action_dispatch"
 
 module Aikido::Zen
   class RailsEngine < ::Rails::Engine
+    # The ActiveJob async adapter runs jobs on a thread pool, and uses a timer
+    # thread to schedule delayed jobs.
+    #
+    # These threads must not inherit the context of the request that caused
+    # their creation, so they are created with no context. A job runs in the
+    # context that it was enqueued in.
+    module AsyncSchedulerWithoutContext
+      def enqueue(...)
+        Aikido::Zen.without_context { super }
+      end
+
+      def enqueue_at(...)
+        Aikido::Zen.without_context { super }
+      end
+    end
+
+    module AsyncJobContextSetter
+      def initialize(job)
+        @aikido_context = Aikido::Zen.current_context
+
+        super
+      end
+
+      def perform
+        Aikido::Zen.with_context(@aikido_context) { super }
+      end
+    end
+
     config.before_configuration do
       # Access library configuration at `Rails.application.config.zen`.
       config.zen = Aikido::Zen.config
@@ -51,6 +79,11 @@ module Aikido::Zen
         # request handling, so that by the time we start evaluating inputs, we
         # have assigned the request correctly.
         before_action { Aikido::Zen.current_context&.update_request(request) }
+      end
+
+      ActiveSupport.on_load(:active_job) do
+        ActiveJob::QueueAdapters::AsyncAdapter::Scheduler.prepend(Aikido::Zen::RailsEngine::AsyncSchedulerWithoutContext)
+        ActiveJob::QueueAdapters::AsyncAdapter::JobWrapper.prepend(Aikido::Zen::RailsEngine::AsyncJobContextSetter)
       end
     end
 
