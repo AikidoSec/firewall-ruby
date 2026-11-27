@@ -51,6 +51,11 @@ class Aikido::Zen::Request::HeuristicRouterTest < ActiveSupport::TestCase
     assert_parameterizes "/posts/05-01-2023/comments/05-01-2023", into: "/posts/:date/comments/:date"
   end
 
+  test "preserves slugs containing dates" do
+    assert_parameterizes "/posts/2023-05-01-article", into: "/posts/2023-05-01-article"
+    assert_parameterizes "/posts/article-01-05-2023", into: "/posts/article-01-05-2023"
+  end
+
   test "replaces UUIDs" do
     # UUIDv1
     assert_parameterizes "/posts/d9428888-122b-11e1-b85c-61cd3cbb3210", into: "/posts/:uuid"
